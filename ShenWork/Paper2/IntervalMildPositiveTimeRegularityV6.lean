@@ -80,18 +80,26 @@ theorem restartBase_coeff_bound
   exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
     hcontOn S.hM.le hbdd
 
-/-- The interior-slice cosine realization plus eigenvalue-weighted `ℓ¹`
-summability of its coefficients, wired from `{hsrcB, hB_restart}`. -/
-theorem mildSlice_eigenvalueSummable_and_realization
+/-- The explicit interior-slice cosine coefficient of `S.u σ`: the restart
+coefficient based at `σ/2` with the B-form source, evaluated at increment
+`σ/2`.  Used as the realization witness below. -/
+def restartSliceCoeff
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀) (σ : ℝ) : ℕ → ℝ :=
+  localRestartCoeff
+    (cosineCoeffs (intervalDomainLift (S.u (σ / 2))))
+    (fun r n => bFormSourceCoeffs p S.u (σ / 2 + r) n)
+    (σ - σ / 2)
+
+/-- Eigenvalue-weighted `ℓ¹` summability of the explicit interior-slice
+coefficients, wired from `hsrcB` (parabolic gain, no pointwise ladder). -/
+theorem restartSliceCoeff_eigenvalueSummable
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (S : ConjugateMildSolutionData p u₀)
     (hsrcB : DuhamelSourceTimeC1 (bFormSourceCoeffs p S.u))
-    (hB_restart : RestartRepresentation S)
     {σ : ℝ} (hσ : 0 < σ) (hσT : σ < S.T) :
-    ∃ bc : ℕ → ℝ,
-      Summable (fun n => unitIntervalCosineEigenvalue n * |bc n|) ∧
-      Set.EqOn (intervalDomainLift (S.u σ))
-        (fun x => ∑' n, bc n * cosineMode n x) (Set.Icc (0 : ℝ) 1) := by
+    Summable (fun n =>
+      unitIntervalCosineEigenvalue n * |restartSliceCoeff S σ n|) := by
   set τ : ℝ := σ / 2 with hτdef
   have hτpos : 0 < τ := by rw [hτdef]; linarith
   have hτT : τ < S.T := by rw [hτdef]; linarith
@@ -103,23 +111,36 @@ theorem mildSlice_eigenvalueSummable_and_realization
     simpa [a, add_comm] using
       ShenWork.IntervalDuhamelSourceShift.DuhamelSourceTimeC1.shift_nonneg
         hsrcB hτpos.le
-  refine ⟨fun n => localRestartCoeff a₀ a (σ - τ) n, ?_, ?_⟩
-  · rw [hσmτ]
+  have hsum :
+      Summable (fun n =>
+        unitIntervalCosineEigenvalue n * |localRestartCoeff a₀ a (σ - τ) n|) := by
+    rw [hσmτ]
     exact ShenWork.IntervalResolverSpectralJointC2Producer.localRestartCoeff_eigenvalue_summable
       (τ := τ) (M := 2 * S.M) (a₀ := a₀) (a := a) hτpos ha₀_bd srcShift
-  · intro x hx
-    have hrep := hB_restart σ hσ hσT
-    have hrep_at : ∀ y : intervalDomainPoint,
-        S.u σ y =
-          ∑' n,
-            localRestartCoeff
-              (cosineCoeffs (intervalDomainLift (S.u (σ / 2))))
-              (fun r n => bFormSourceCoeffs p S.u (σ / 2 + r) n)
-              (σ - σ / 2) n * cosineMode n y.1 :=
-      hrep.self_of_nhds
-    have hval := hrep_at ⟨x, hx⟩
-    rw [intervalDomainLift, dif_pos hx]
-    simpa [a₀, a, τ, hτdef] using hval
+  simpa [restartSliceCoeff, a₀, a, τ, hτdef] using hsum
+
+/-- The explicit interior-slice cosine realization, wired from `hB_restart`. -/
+theorem restartSliceCoeff_realization
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    (hB_restart : RestartRepresentation S)
+    {σ : ℝ} (hσ : 0 < σ) (hσT : σ < S.T) :
+    Set.EqOn (intervalDomainLift (S.u σ))
+      (fun x => ∑' n, restartSliceCoeff S σ n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1) := by
+  intro x hx
+  have hrep := hB_restart σ hσ hσT
+  have hrep_at : ∀ y : intervalDomainPoint,
+      S.u σ y =
+        ∑' n,
+          localRestartCoeff
+            (cosineCoeffs (intervalDomainLift (S.u (σ / 2))))
+            (fun r n => bFormSourceCoeffs p S.u (σ / 2 + r) n)
+            (σ - σ / 2) n * cosineMode n y.1 :=
+    hrep.self_of_nhds
+  have hval := hrep_at ⟨x, hx⟩
+  rw [intervalDomainLift, dif_pos hx]
+  simpa [restartSliceCoeff] using hval
 
 /-- **Shared `(C1)` export.**  Each interior slice of a conjugate mild solution
 is `C²` on `[0,1]` with vanishing Neumann endpoint derivatives, from the two
@@ -133,11 +154,10 @@ theorem mildSlice_contDiffOn_two_neumann
     {σ : ℝ} (hσ : 0 < σ) (hσT : σ < S.T) :
     ContDiffOn ℝ 2 (intervalDomainLift (S.u σ)) (Set.Icc (0 : ℝ) 1)
       ∧ deriv (intervalDomainLift (S.u σ)) 0 = 0
-      ∧ deriv (intervalDomainLift (S.u σ)) 1 = 0 := by
-  obtain ⟨bc, hbsum, hagree⟩ :=
-    mildSlice_eigenvalueSummable_and_realization S hsrcB hB_restart hσ hσT
-  exact ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_conjunct7_unconditional
-    hbsum hagree
+      ∧ deriv (intervalDomainLift (S.u σ)) 1 = 0 :=
+  ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_conjunct7_unconditional
+    (restartSliceCoeff_eigenvalueSummable S hsrcB hσ hσT)
+    (restartSliceCoeff_realization S hB_restart hσ hσT)
 
 #print axioms mildSlice_contDiffOn_two_neumann
 

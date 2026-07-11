@@ -1,6 +1,7 @@
 import ShenWork.Paper2.IntervalChiNegFinalAssemblyV3
 import ShenWork.Paper2.IntervalResolverBootstrapFromMild
 import ShenWork.Paper2.IntervalBFormSpectralProviderDischarge
+import ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
 
 /-!
 # HSpectral producer for the χ₀<0 V6 assembly — generic-`S` assembler
@@ -53,6 +54,9 @@ open ShenWork.Paper2.IntervalResolverBootstrapFromMild
    hResolverPos_of_conjugateMild)
 open ShenWork.Paper2.IntervalChiNegFinalAssemblyV3
   (PositiveTimeSpectralBootstrapFrontier bootstrapData_of_positiveTime_frontier)
+open ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
+  (RestartRepresentation restartSliceCoeff restartSliceCoeff_eigenvalueSummable
+   restartSliceCoeff_realization)
 
 noncomputable section
 
@@ -183,31 +187,39 @@ theorem hasBFormSpectralPdeAgreement_of_leaves
     a, srcShift, τ, hoff, hlogData t₀ ht₀ ht₀T,
     hchemData t₀ ht₀ ht₀T, hrep, hsource_at, hsum_b⟩
 
-/-- The atomic analytic leaf bundle from which `HSpectral` is assembled for a
-generic `ConjugateMildSolutionData`.  Every field is a statement about the
-slices of `S.u`; none refers to the construction of `S.u`. -/
+/-- B-form spectral PDE agreement from the *reduced* leaf set: the per-slice
+cosine realization (`bc`/`hbsum`/`hagree`) is derived from the restart
+representation and the source `DuhamelSourceTimeC1` via the shared `(C1)`
+regularity file (`restartSliceCoeff` and its summability/realization). -/
+theorem hasBFormSpectralPdeAgreement_of_restart
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    (hsrcB : DuhamelSourceTimeC1 (bFormSourceCoeffs p S.u))
+    (hB_restart : RestartRepresentation S)
+    (hlogData : ∀ t, 0 < t → t < S.T →
+      LogisticCosineFourierData p S.u t)
+    (hchemData : ∀ t, 0 < t → t < S.T →
+      ChemDivCosineFourierData p (S.u t)
+        (coupledChemicalConcentration p S.u t)) :
+    HasBFormSpectralPdeAgreement p S.T S.u :=
+  hasBFormSpectralPdeAgreement_of_leaves S (restartSliceCoeff S)
+    (fun σ hσ hσT => restartSliceCoeff_eigenvalueSummable S hsrcB hσ hσT)
+    (fun σ hσ hσT => restartSliceCoeff_realization S hB_restart hσ hσT)
+    hsrcB hB_restart hlogData hchemData
+
+/-- The reduced analytic leaf bundle from which `HSpectral` is assembled for a
+generic `ConjugateMildSolutionData`.  The per-slice cosine realization is no
+longer a leaf — it is wired from `hB_restart` + `hsrcB` in the shared `(C1)`
+file.  Every field is a statement about the slices of `S.u`; none refers to the
+construction of `S.u`. -/
 structure BFormMildSpectralLeaves
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (S : ConjugateMildSolutionData p u₀) where
-  /-- Per-slice cosine realization of `S.u` with eigenvalue-weighted-summable
-  coefficients. -/
-  bc : ℝ → ℕ → ℝ
-  hbsum : ∀ σ, 0 < σ → σ < S.T →
-    Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
-  hagree : ∀ σ, 0 < σ → σ < S.T →
-    Set.EqOn (intervalDomainLift (S.u σ))
-      (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
-  /-- The B-form source `DuhamelSourceTimeC1` (the source ladder). -/
+  /-- The B-form source `DuhamelSourceTimeC1` (the source ladder, facet C2a). -/
   hsrcB : DuhamelSourceTimeC1 (bFormSourceCoeffs p S.u)
-  /-- The restart cosine representation of `S.u` near each interior time. -/
-  hB_restart : ∀ t₀, 0 < t₀ → t₀ < S.T →
-    ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
-      S.u s y =
-        ∑' n,
-          localRestartCoeff
-            (cosineCoeffs (intervalDomainLift (S.u (t₀ / 2))))
-            (fun σ n => bFormSourceCoeffs p S.u (t₀ / 2 + σ) n)
-            (s - t₀ / 2) n * cosineMode n y.1
+  /-- The restart cosine representation of `S.u` near each interior time
+  (facet C2b). -/
+  hB_restart : RestartRepresentation S
   /-- Logistic Fourier data at each interior time. -/
   hlogData : ∀ t, 0 < t → t < S.T → LogisticCosineFourierData p S.u t
   /-- Chem-div Fourier data at each interior time. -/
@@ -217,7 +229,7 @@ structure BFormMildSpectralLeaves
   /-- The per-interior-time resolver source witness. -/
   hResolverWitness : ResolverSourceWitnessFromMild p S
 
-/-- Assemble the positive-time spectral frontier from the atomic leaf bundle,
+/-- Assemble the positive-time spectral frontier from the reduced leaf bundle,
 without touching the dead `LadderOutput` interface. -/
 def spectralFrontier_of_leaves
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -226,12 +238,12 @@ def spectralFrontier_of_leaves
     PositiveTimeSpectralBootstrapFrontier p S where
   hTimeNhd :=
     hasTimeNeighborhoodSpectralAgreement_of_pdeAgreement
-      (hasBFormSpectralPdeAgreement_of_leaves S H.bc H.hbsum H.hagree
-        H.hsrcB H.hB_restart H.hlogData H.hchemData)
+      (hasBFormSpectralPdeAgreement_of_restart S H.hsrcB H.hB_restart
+        H.hlogData H.hchemData)
   hResolverData := hResolverData_of_sourceWitness H.hResolverWitness
   hPdeAgreement :=
-    hasBFormSpectralPdeAgreement_of_leaves S H.bc H.hbsum H.hagree
-      H.hsrcB H.hB_restart H.hlogData H.hchemData
+    hasBFormSpectralPdeAgreement_of_restart S H.hsrcB H.hB_restart
+      H.hlogData H.hchemData
 
 /-- The generic-`S` `HSpectral` producer, reduced to the atomic leaf bundle. -/
 def bFormMildSpectralBootstrapData_of_leaves
