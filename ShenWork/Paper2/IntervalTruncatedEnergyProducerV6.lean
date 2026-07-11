@@ -19,6 +19,7 @@ import ShenWork.Paper2.IntervalTruncatedPicardLimitJointContinuity
 import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
 import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
+import ShenWork.Paper2.IntervalChiNegTruncatedRestartStrictPosProducer
 
 open Filter Topology Set MeasureTheory
 open scoped BigOperators Topology ENNReal
@@ -1345,6 +1346,167 @@ theorem truncatedLimit_timeSlice_continuousOn_Ioc
       rw [Real.dist_eq] at hcore
       exact add_lt_add (add_lt_add hcore htail_pair_t) htail_pair_t0
     _ = eps := by ring
+
+
+/-! ## Negative-part energy continuity from time slices
+
+Joint time-space continuity is stronger than the scalar energy needs.  The
+fixed-point ball gives one integrable spatial dominator, while the preceding
+theorem gives pointwise-in-space time continuity.  Dominated convergence
+therefore yields continuity on every compact positive-time window. -/
+
+/-- The negative-part energy is continuous on every closed positive-time
+window.  No iterate-side joint-continuity bootstrap is used. -/
+theorem truncatedLimit_negativePartEnergy_continuousOn_positive_window
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) (hbT : b ≤ DT.T) :
+    ContinuousOn
+      (negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T))
+      (Set.Icc a b) := by
+  let U : ℝ → intervalDomainPoint → ℝ :=
+    truncatedConjugatePicardLimit p u₀ DT.T
+  let F : ℝ → ℝ → ℝ := fun t y =>
+    (negativePart (intervalDomainLift (U t) y)) ^ 2
+  have hwindow : Set.Icc a b ⊆ Set.Ioc (0 : ℝ) DT.T := by
+    intro t ht
+    exact ⟨ha.trans_le ht.1, ht.2.trans hbT⟩
+  have hF_meas : ∀ t ∈ Set.Icc a b,
+      AEStronglyMeasurable (F t) (intervalMeasure 1) := by
+    intro t ht
+    have ht0 : 0 < t := ha.trans_le ht.1
+    have htT : t ≤ DT.T := ht.2.trans hbT
+    have hint := negativePart_sq_integrable_of_continuous_bound
+      ((truncatedConjugateMildSolutionData_of_data DT).hcont t ht0 htT)
+      DT.hM.le
+      ((truncatedConjugateMildSolutionData_of_data DT).hbound t ht0 htT)
+    simpa [F, U, negativePartLift] using hint.aestronglyMeasurable
+  have hF_bound : ∀ t ∈ Set.Icc a b, ∀ᵐ y ∂ intervalMeasure 1,
+      ‖F t y‖ ≤ DT.M ^ 2 := by
+    intro t ht
+    refine Filter.Eventually.of_forall fun y => ?_
+    have ht0 : 0 < t := ha.trans_le ht.1
+    have htT : t ≤ DT.T := ht.2.trans hbT
+    have hlift : |intervalDomainLift (U t) y| ≤ DT.M := by
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simpa [U, intervalDomainLift, hy] using
+          (truncatedConjugateMildSolutionData_of_data DT).hbound
+            t ht0 htT ⟨y, hy⟩
+      · simp [U, intervalDomainLift, hy, DT.hM.le]
+    have hneg : |negativePart (intervalDomainLift (U t) y)| ≤ DT.M :=
+      (negativePart_abs_le_abs _).trans hlift
+    rw [Real.norm_eq_abs]
+    simpa [F, abs_pow] using
+      (pow_le_pow_left₀ (abs_nonneg _) hneg 2)
+  have hdom_int : Integrable (fun _ : ℝ => DT.M ^ 2) (intervalMeasure 1) :=
+    integrable_const _
+  have hF_cont : ∀ᵐ y ∂ intervalMeasure 1,
+      ContinuousOn (fun t => F t y) (Set.Icc a b) := by
+    refine Filter.Eventually.of_forall fun y => ?_
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · let x : intervalDomainPoint := ⟨y, hy⟩
+      have htime :=
+        (truncatedLimit_timeSlice_continuousOn_Ioc DT x).mono hwindow
+      have hcomp :=
+        (negativePart_continuous.continuousOn.comp htime
+          (fun _ _ => Set.mem_univ _)).pow 2
+      have heq : (fun t => F t y) =
+          fun t => (negativePart (U t x)) ^ 2 := by
+        funext t
+        simp only [F, intervalDomainLift, dif_pos hy]
+        rfl
+      rw [heq]
+      exact hcomp
+    · have hzero : (fun t => F t y) = fun _ : ℝ => 0 := by
+        funext t
+        simp only [F, intervalDomainLift, dif_neg hy]
+        simp [negativePart]
+      rw [hzero]
+      exact continuousOn_const
+  have hint : ContinuousOn
+      (fun t => ∫ y, F t y ∂ intervalMeasure 1) (Set.Icc a b) :=
+    MeasureTheory.continuousOn_of_dominated hF_meas hF_bound hdom_int hF_cont
+  simpa [negativePartEnergy, negativePartLift, F, U] using hint
+
+/-- With nonnegative initial data, the positive-window continuity extends to
+the artificial zero-time endpoint of the truncated trajectory.  The initial
+trace makes its negative-part energy vanish there. -/
+theorem truncatedLimit_negativePartEnergy_continuousOn_Icc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (DT : TruncatedConjugateMildExistenceData p u₀) :
+    ContinuousOn
+      (negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T))
+      (Set.Icc (0 : ℝ) DT.T) := by
+  let U : ℝ → intervalDomainPoint → ℝ :=
+    truncatedConjugatePicardLimit p u₀ DT.T
+  let E : ℝ → ℝ := negativePartEnergy U
+  have htrace : InitialTrace intervalDomain u₀ U := by
+    simpa [U] using
+      truncatedConjugatePicardLimit_initialTrace_of_truncated_data
+        p hu₀.admissible.2 DT
+  have hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x := by
+    intro x
+    have h := positiveInitialDatum_intervalDomainLift_nonneg hu₀ x.1 x.2
+    simpa [intervalDomainLift, x.2] using h
+  have hvanish :
+      ∀ eps > 0, ∃ delta > 0, ∀ s, 0 < s → s < delta → s < DT.T →
+        E s < eps := by
+    simpa [U, E] using
+      (negativePartEnergy_initial_vanishes_of_trace_nonneg
+        hu₀.admissible hu₀_nonneg htrace
+        (truncatedConjugateMildSolutionData_of_data DT).hcont DT.hM.le
+        (truncatedConjugateMildSolutionData_of_data DT).hbound)
+  have hE_zero : E 0 = 0 := by
+    have hslice : U 0 = fun _ : intervalDomainPoint => 0 := by
+      funext x
+      simp [U, truncatedConjugatePicardLimit]
+    simp [E, negativePartEnergy, negativePartLift, hslice,
+      intervalDomainLift, negativePart]
+  have hzero : ContinuousWithinAt E (Set.Ici (0 : ℝ)) 0 := by
+    rw [Metric.continuousWithinAt_iff]
+    intro eps heps
+    obtain ⟨delta, hdelta, hsmall⟩ := hvanish eps heps
+    refine ⟨min delta DT.T, lt_min hdelta DT.hT, ?_⟩
+    intro t ht0 hdist
+    rw [hE_zero, Real.dist_eq, sub_zero]
+    by_cases ht : t = 0
+    · subst t
+      rw [hE_zero, abs_zero]
+      exact heps
+    · have ht_nonneg : 0 ≤ t := ht0
+      have htpos : 0 < t := lt_of_le_of_ne ht_nonneg (Ne.symm ht)
+      have habs : |t| < min delta DT.T := by
+        change |t - 0| < min delta DT.T at hdist
+        simpa only [sub_zero] using hdist
+      have htmin : t < min delta DT.T := by
+        simpa only [abs_of_nonneg ht_nonneg] using habs
+      have hEt : E t < eps :=
+        hsmall t htpos (lt_of_lt_of_le htmin (min_le_left _ _))
+          (lt_of_lt_of_le htmin (min_le_right _ _))
+      have hEnonneg : 0 ≤ E t := by
+        exact integral_nonneg fun y => sq_nonneg (negativePartLift (U t) y)
+      rw [abs_of_nonneg hEnonneg]
+      exact hEt
+  intro t ht
+  by_cases ht0 : t = 0
+  · subst t
+    exact hzero.mono fun s hs => hs.1
+  · have htpos : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm ht0)
+    let a : ℝ := t / 2
+    have ha : 0 < a := by dsimp [a]; linarith
+    have hat : a ≤ t := by dsimp [a]; linarith
+    have htmem : t ∈ Set.Icc a DT.T := ⟨hat, ht.2⟩
+    have hposwin : ContinuousOn E (Set.Icc a DT.T) := by
+      simpa [E, U] using
+        truncatedLimit_negativePartEnergy_continuousOn_positive_window
+          DT ha (hat.trans ht.2) le_rfl
+    have hnhds : Set.Icc a DT.T ∈ 𝓝[Set.Icc (0 : ℝ) DT.T] t := by
+      have hopen : Set.Ioi a ∈ 𝓝 t := Ioi_mem_nhds (by dsimp [a]; linarith)
+      have hinter : Set.Icc (0 : ℝ) DT.T ∩ Set.Ioi a ∈
+          𝓝[Set.Icc (0 : ℝ) DT.T] t := inter_mem_nhdsWithin _ hopen
+      exact mem_of_superset hinter fun s hs => ⟨hs.2.le, hs.1.2⟩
+    exact (hposwin.continuousWithinAt htmem).mono_of_mem_nhdsWithin hnhds
 
 
 /-! ## Legacy weak-Duhamel bundle after variational nonnegativity
