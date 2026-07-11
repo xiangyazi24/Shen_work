@@ -18,6 +18,7 @@ import ShenWork.Paper2.IntervalTruncatedPicardIterJointContinuity
 import ShenWork.Paper2.IntervalTruncatedPicardLimitJointContinuity
 import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
+import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
 
 open Filter Topology Set MeasureTheory
 open scoped BigOperators Topology ENNReal
@@ -31,6 +32,10 @@ open ShenWork.IntervalDomain
 open ShenWork.IntervalConjugatePicard
   (UniformConjugateMildExistenceCore)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalConjugateDuhamelMap (intervalConjugateKernelOperator)
+open ShenWork.IntervalConjugateChemFluxIntegrable
+  (conjugateDuhamel_intervalIntegrable_of_measurable_bound)
 open ShenWork.Paper2.BFormPositiveDatumNegPart
 
 /-- The exact expansion of
@@ -994,6 +999,353 @@ theorem truncatedLimit_dctDominators
   · exact chemotaxisDuhamelDCTDominatingFunction_of_bounds ht.le hCQ DT.hM.le
       (fun s => (truncatedLimit_flux_integrable DT s).aestronglyMeasurable)
       (by simpa [U] using hflux_bound) htest_meas htest_bound
+
+/-- Every fixed spatial point of the faithful conjugate mild trajectory is
+continuous on positive times, including one-sided continuity at the terminal
+time.  The only initial-datum inputs are the same boundedness and measurability
+assumptions used by the faithful positive-time spatial regularity chain. -/
+theorem truncatedLimit_timeSlice_continuousOn_Ioc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (x : intervalDomainPoint) :
+    ContinuousOn
+      (fun t : ℝ => truncatedConjugatePicardLimit p u₀ DT.T t x)
+      (Set.Ioc (0 : ℝ) DT.T) := by
+  let D := truncatedConjugateMildSolutionData_of_data DT
+  -- Globally cut off the two source families.  On every mild integration
+  -- window `(0,t]`, `t ≤ D.T`, they agree with the faithful sources.
+  let Q : ℝ → ℝ → ℝ := fun s y =>
+    if 0 < s ∧ s ≤ D.T then truncatedChemFluxLifted p (D.u s) y else 0
+  let L : ℝ → ℝ → ℝ := fun s y =>
+    if 0 < s ∧ s ≤ D.T then truncatedLogisticLifted p (D.u s) y else 0
+  let CQ : ℝ := D.M *
+    (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * D.M ^ p.γ)))
+  let CL : ℝ := D.M * (p.a + p.b * D.M ^ p.α)
+  have hCQ : 0 ≤ CQ := by
+    dsimp [CQ]
+    exact mul_nonneg D.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _))))
+  have hCL : 0 ≤ CL := by
+    dsimp [CL]
+    exact mul_nonneg D.hM.le
+      (add_nonneg p.ha (mul_nonneg p.hb (Real.rpow_nonneg D.hM.le _)))
+  have hQ_meas : Measurable (Function.uncurry Q) := by
+    have hbase :=
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_joint_measurable_of_lift_joint
+        (p := p) (w := D.u) D.hmeas
+    simp only [Q]
+    refine Measurable.ite ?_ hbase measurable_const
+    exact ((isOpen_Ioi.preimage continuous_fst).measurableSet).inter
+      ((isClosed_Iic.preimage continuous_fst).measurableSet)
+  have hL_meas : Measurable (Function.uncurry L) := by
+    have hbase :=
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedLogisticLifted_joint_measurable_of_lift_joint
+        (p := p) (w := D.u) D.hmeas
+    simp only [L]
+    refine Measurable.ite ?_ hbase measurable_const
+    exact ((isOpen_Ioi.preimage continuous_fst).measurableSet).inter
+      ((isClosed_Iic.preimage continuous_fst).measurableSet)
+  have hQ_bound : ∀ s y, |Q s y| ≤ CQ := by
+    intro s y
+    simp only [Q]
+    split_ifs with hs
+    · dsimp [CQ]
+      exact
+        _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_abs_le_of_abs_ball
+            p D.hM (D.hcont s hs.1 hs.2) (D.hbound s hs.1 hs.2) y
+    · simpa using hCQ
+  have hL_bound : ∀ s y, |L s y| ≤ CL := by
+    intro s y
+    simp only [L]
+    split_ifs with hs
+    · dsimp [CL]
+      exact truncatedLogisticLifted_abs_le p D.hM.le
+        (D.hbound s hs.1 hs.2) y
+    · simpa using hCL
+  have hQ_int : ∀ s, Integrable (Q s) (intervalMeasure 1) := by
+    intro s
+    simp only [Q]
+    split_ifs with hs
+    · simpa [D] using truncatedLimit_flux_integrable DT s
+    · simp
+  have hL_int : ∀ s, Integrable (L s) (intervalMeasure 1) := by
+    intro s
+    exact Integrable.of_bound
+      (hL_meas.comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable
+      CL (Filter.Eventually.of_forall (hL_bound s))
+  have hu₀_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      DT.hbase_lift_meas DT.hbase_lift_bound
+
+  intro t0 ht0
+  rw [Metric.continuousWithinAt_iff]
+  intro eps heps
+  set Cg : ℝ :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  let tailBound : ℝ → ℝ := fun r =>
+    |p.χ₀| * (Cg * (2 * Real.sqrt r) * CQ) + r * CL
+  have htail_cont : ContinuousAt tailBound 0 := by
+    dsimp [tailBound]
+    fun_prop
+  have htail_zero : tailBound 0 = 0 := by
+    simp [tailBound]
+  have heps3 : 0 < eps / 3 := by positivity
+  obtain ⟨dtail, hdtail, htail_close⟩ :=
+    (Metric.continuousAt_iff.mp htail_cont) (eps / 3) heps3
+  let rho : ℝ := min (t0 / 4) (dtail / 4)
+  have hrho : 0 < rho := by
+    exact lt_min (by linarith [ht0.1]) (by linarith)
+  have hrho_t : rho ≤ t0 / 4 := min_le_left _ _
+  have hrho_d : rho ≤ dtail / 4 := min_le_right _ _
+  let c : ℝ := t0 - rho
+  let lo : ℝ := t0 - rho / 2
+  let hi : ℝ := t0 + rho / 2
+  have hc0 : 0 ≤ c := by dsimp [c]; linarith
+  have hclo : c < lo := by dsimp [c, lo]; linarith
+  have hlohi : lo ≤ hi := by dsimp [lo, hi]; linarith
+  have hlo0 : 0 < lo := by dsimp [lo]; linarith
+  have ht0mem : t0 ∈ Set.Icc lo hi := by
+    constructor <;> dsimp [lo, hi] <;> linarith
+  have hbox_nhds : Set.Icc lo hi ∈ nhds t0 :=
+    Icc_mem_nhds (by dsimp [lo]; linarith) (by dsimp [hi]; linarith)
+
+  let Hom : ℝ → ℝ := fun t =>
+    intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+  let BEarly : ℝ → ℝ := fun t =>
+    ∫ s in (0 : ℝ)..c,
+      intervalConjugateKernelOperator (t - s) (Q s) x.1
+  let LEarly : ℝ → ℝ := fun t =>
+    ∫ s in (0 : ℝ)..c,
+      intervalFullSemigroupOperator (t - s) (L s) x.1
+  let Core : ℝ → ℝ := fun t =>
+    Hom t + (-p.χ₀) * BEarly t + LEarly t
+
+  have hHom_on : ContinuousOn Hom (Set.Icc lo hi) := by
+    have hjoint := fullSemigroup_fixedSource_jointContinuousOn
+      hlo0 hlohi hu₀_int DT.hbase_lift_bound
+    have hpair : ContinuousOn (fun t : ℝ => ((t, x.1) : ℝ × ℝ))
+        (Set.Icc lo hi) := continuousOn_id.prodMk continuousOn_const
+    exact hjoint.comp hpair (fun t ht => ⟨ht, x.2⟩)
+  have hBEarly_on : ContinuousOn BEarly (Set.Icc lo hi) := by
+    exact conjugateEarly_continuousOn hc0 hclo hlohi hCQ
+      hQ_meas hQ_int hQ_bound x
+  have hLEarly_on : ContinuousOn LEarly (Set.Icc lo hi) := by
+    exact valueEarly_continuousOn hc0 hclo hlohi hCL
+      hL_meas hL_int hL_bound x
+  have hCore_on : ContinuousOn Core (Set.Icc lo hi) := by
+    exact (hHom_on.add (continuousOn_const.mul hBEarly_on)).add hLEarly_on
+  have hCore_at : ContinuousAt Core t0 := hCore_on.continuousAt hbox_nhds
+  obtain ⟨dcore, hdcore, hcore_close⟩ :=
+    (Metric.continuousAt_iff.mp hCore_at) (eps / 3) heps3
+  refine ⟨min dcore (rho / 2), lt_min hdcore (by linarith), ?_⟩
+  intro t ht htdist
+  have htcore : dist t t0 < dcore :=
+    lt_of_lt_of_le htdist (min_le_left _ _)
+  have htnear : dist t t0 < rho / 2 :=
+    lt_of_lt_of_le htdist (min_le_right _ _)
+  have htnear_abs : |t - t0| < rho / 2 := by
+    simpa [Real.dist_eq] using htnear
+  have hct : c < t := by
+    have hlow := (abs_lt.mp htnear_abs).1
+    dsimp [c]
+    linarith
+  have htlocal : t ∈ Set.Icc lo hi := by
+    dsimp [lo, hi]
+    constructor <;> linarith [abs_lt.mp htnear_abs]
+  have hgap0 : 0 ≤ t - c := sub_nonneg.mpr hct.le
+  have hgap_lt : t - c < dtail := by
+    dsimp [c]
+    have : t - t0 < rho / 2 := (abs_lt.mp htnear_abs).2
+    have h2rho : 2 * rho ≤ dtail / 2 := by linarith [hrho_d]
+    linarith
+  have hrho_lt : rho < dtail := by linarith [hrho_d, hdtail]
+  have htail_nonneg : ∀ {r : ℝ}, 0 ≤ r → 0 ≤ tailBound r := by
+    intro r hr
+    dsimp [tailBound]
+    have hCg0 : 0 ≤ Cg :=
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+    positivity
+  have htail_t : tailBound (t - c) < eps / 3 := by
+    have hd : dist (t - c) 0 < dtail := by
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg hgap0]
+      exact hgap_lt
+    have h := htail_close hd
+    rw [htail_zero, Real.dist_eq, sub_zero,
+      abs_of_nonneg (htail_nonneg hgap0)] at h
+    exact h
+  have htail_t0 : tailBound rho < eps / 3 := by
+    have hd : dist rho 0 < dtail := by
+      rw [Real.dist_eq, sub_zero, abs_of_pos hrho]
+      exact hrho_lt
+    have h := htail_close hd
+    rw [htail_zero, Real.dist_eq, sub_zero,
+      abs_of_nonneg (htail_nonneg hrho.le)] at h
+    exact h
+
+  let BTail : ℝ → ℝ := fun r =>
+    ∫ s in c..r,
+      intervalConjugateKernelOperator (r - s) (Q s) x.1
+  let LTail : ℝ → ℝ := fun r =>
+    ∫ s in c..r,
+      intervalFullSemigroupOperator (r - s) (L s) x.1
+
+  have hmild_cutoff : ∀ r, 0 < r → r ≤ D.T →
+      D.u r x = Hom r + (-p.χ₀) *
+          (∫ s in (0 : ℝ)..r,
+            intervalConjugateKernelOperator (r - s) (Q s) x.1) +
+        (∫ s in (0 : ℝ)..r,
+          intervalFullSemigroupOperator (r - s) (L s) x.1) := by
+    intro r hr hrT
+    have hm := D.hmild r hr hrT x
+    rw [hm]
+    unfold truncatedConjugateDuhamelMap
+    dsimp [Hom]
+    have hBeq :
+        (∫ s in (0 : ℝ)..r,
+          intervalConjugateKernelOperator (r - s)
+            (truncatedChemFluxLifted p (D.u s)) x.1) =
+        (∫ s in (0 : ℝ)..r,
+          intervalConjugateKernelOperator (r - s) (Q s) x.1) := by
+      apply intervalIntegral.integral_congr_ae
+      apply Eventually.of_forall
+      intro s hs
+      rw [Set.uIoc_of_le hr.le] at hs
+      have hsT : s ≤ D.T := hs.2.trans hrT
+      simp [Q, hs.1, hsT]
+    have hLeq :
+        (∫ s in (0 : ℝ)..r,
+          intervalFullSemigroupOperator (r - s)
+            (truncatedLogisticLifted p (D.u s)) x.1) =
+        (∫ s in (0 : ℝ)..r,
+          intervalFullSemigroupOperator (r - s) (L s) x.1) := by
+      apply intervalIntegral.integral_congr_ae
+      apply Eventually.of_forall
+      intro s hs
+      rw [Set.uIoc_of_le hr.le] at hs
+      have hsT : s ≤ D.T := hs.2.trans hrT
+      simp [L, hs.1, hsT]
+    rw [hBeq, hLeq]
+  have hsplit : ∀ r, 0 < r → r ≤ D.T → c < r →
+      D.u r x = Core r + (-p.χ₀) * BTail r + LTail r := by
+    intro r hr hrT hcr
+    rw [hmild_cutoff r hr hrT]
+    have hBfull :=
+      conjugateDuhamel_intervalIntegrable_of_measurable_bound
+        hr hCQ hQ_meas hQ_int hQ_bound (x := x.1)
+    have hLfull :=
+      _root_.ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
+        hr hL_meas hCL hL_bound x.1
+    have hc_mem : c ∈ Set.uIcc (0 : ℝ) r := by
+      rw [Set.uIcc_of_le hr.le]
+      exact ⟨hc0, hcr.le⟩
+    have hB0c := hBfull.mono_set
+      (Set.uIcc_subset_uIcc_left hc_mem)
+    have hBcR := hBfull.mono_set
+      (Set.uIcc_subset_uIcc_right hc_mem)
+    have hL0c := hLfull.mono_set
+      (Set.uIcc_subset_uIcc_left hc_mem)
+    have hLcR := hLfull.mono_set
+      (Set.uIcc_subset_uIcc_right hc_mem)
+    have hBsplit :=
+      intervalIntegral.integral_add_adjacent_intervals hB0c hBcR
+    have hLsplit :=
+      intervalIntegral.integral_add_adjacent_intervals hL0c hLcR
+    rw [← hBsplit, ← hLsplit]
+    dsimp [Core, BEarly, LEarly, BTail, LTail]
+    ring
+  have hsplit_t := hsplit t ht.1 ht.2 hct
+  have hct0 : c < t0 := by dsimp [c]; linarith
+  have hsplit_t0 := hsplit t0 ht0.1 ht0.2 hct0
+  have hBtail_t : |BTail t| ≤ Cg * (2 * Real.sqrt (t - c)) * CQ := by
+    simpa [BTail, Cg] using
+      (conjugateTail_abs_le hct hCQ hQ_meas hQ_int hQ_bound x.1)
+  have hLtail_t := valueTail_abs_le hct hCL hL_bound x.1
+  have hBtail_t0 : |BTail t0| ≤ Cg * (2 * Real.sqrt (t0 - c)) * CQ := by
+    simpa [BTail, Cg] using
+      (conjugateTail_abs_le hct0 hCQ hQ_meas hQ_int hQ_bound x.1)
+  have hLtail_t0 := valueTail_abs_le hct0 hCL hL_bound x.1
+  have htail_pair_t : |(-p.χ₀) * BTail t + LTail t| < eps / 3 := by
+    calc
+      |(-p.χ₀) * BTail t + LTail t|
+          ≤ |p.χ₀| * |BTail t| + |LTail t| := by
+              calc
+                |(-p.χ₀) * BTail t + LTail t|
+                    ≤ |(-p.χ₀) * BTail t| + |LTail t| := abs_add_le _ _
+                _ = |p.χ₀| * |BTail t| + |LTail t| := by
+                  rw [abs_mul, abs_neg]
+      _ ≤ |p.χ₀| *
+            (Cg * (2 * Real.sqrt (t - c)) * CQ) + (t - c) * CL := by
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left hBtail_t (abs_nonneg _)) hLtail_t
+      _ = tailBound (t - c) := by rfl
+      _ < eps / 3 := htail_t
+  have htail_pair_t0 : |(-p.χ₀) * BTail t0 + LTail t0| < eps / 3 := by
+    have ht0c : t0 - c = rho := by dsimp [c]; ring
+    calc
+      |(-p.χ₀) * BTail t0 + LTail t0|
+          ≤ |p.χ₀| * |BTail t0| + |LTail t0| := by
+              calc
+                |(-p.χ₀) * BTail t0 + LTail t0|
+                    ≤ |(-p.χ₀) * BTail t0| + |LTail t0| := abs_add_le _ _
+                _ = |p.χ₀| * |BTail t0| + |LTail t0| := by
+                  rw [abs_mul, abs_neg]
+      _ ≤ |p.χ₀| *
+            (Cg * (2 * Real.sqrt (t0 - c)) * CQ) + (t0 - c) * CL := by
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left hBtail_t0 (abs_nonneg _)) hLtail_t0
+      _ = tailBound rho := by rw [ht0c]
+      _ < eps / 3 := htail_t0
+  have hcore : dist (Core t) (Core t0) < eps / 3 := hcore_close htcore
+  change dist (D.u t x) (D.u t0 x) < eps
+  rw [hsplit_t, hsplit_t0, Real.dist_eq]
+  have htail_sub :
+      |((-p.χ₀) * BTail t + LTail t) -
+          ((-p.χ₀) * BTail t0 + LTail t0)| ≤
+        |(-p.χ₀) * BTail t + LTail t| +
+          |(-p.χ₀) * BTail t0 + LTail t0| := by
+    calc
+      |((-p.χ₀) * BTail t + LTail t) -
+          ((-p.χ₀) * BTail t0 + LTail t0)| =
+          |((-p.χ₀) * BTail t + LTail t) +
+            (-((-p.χ₀) * BTail t0 + LTail t0))| := by
+              congr 1
+      _ ≤ |(-p.χ₀) * BTail t + LTail t| +
+          |-((-p.χ₀) * BTail t0 + LTail t0)| := abs_add_le _ _
+      _ = |(-p.χ₀) * BTail t + LTail t| +
+          |(-p.χ₀) * BTail t0 + LTail t0| := by rw [abs_neg]
+  calc
+    |(Core t + (-p.χ₀) * BTail t + LTail t) -
+        (Core t0 + (-p.χ₀) * BTail t0 + LTail t0)|
+        ≤ |Core t - Core t0| +
+            |(-p.χ₀) * BTail t + LTail t| +
+            |(-p.χ₀) * BTail t0 + LTail t0| := by
+          calc
+            |(Core t + (-p.χ₀) * BTail t + LTail t) -
+                (Core t0 + (-p.χ₀) * BTail t0 + LTail t0)| =
+                |(Core t - Core t0) +
+                  (((-p.χ₀) * BTail t + LTail t) -
+                    ((-p.χ₀) * BTail t0 + LTail t0))| := by
+                      congr 1
+                      ring
+            _ ≤ |Core t - Core t0| +
+                |((-p.χ₀) * BTail t + LTail t) -
+                  ((-p.χ₀) * BTail t0 + LTail t0)| := abs_add_le _ _
+            _ ≤ |Core t - Core t0| +
+                (|(-p.χ₀) * BTail t + LTail t| +
+                  |(-p.χ₀) * BTail t0 + LTail t0|) :=
+                    add_le_add (le_refl _) htail_sub
+            _ = |Core t - Core t0| +
+                |(-p.χ₀) * BTail t + LTail t| +
+                |(-p.χ₀) * BTail t0 + LTail t0| := by ring
+    _ < eps / 3 + eps / 3 + eps / 3 := by
+      rw [Real.dist_eq] at hcore
+      exact add_lt_add (add_lt_add hcore htail_pair_t) htail_pair_t0
+    _ = eps := by ring
+
 
 /-! ## Legacy weak-Duhamel bundle after variational nonnegativity
 
