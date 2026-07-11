@@ -353,7 +353,7 @@ theorem intervalConjugateDuhamel_firstDeriv_continuousOn_Icc_of_late_deriv_bound
 /-- The time integral of the first spatial derivative of a conjugate Duhamel
 leg is differentiable.  The early half uses only bounded source data; the late
 half uses an integrable Holder bound for the actual weak source derivative. -/
-theorem intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
+theorem intervalConjugateDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_deriv_holder
     {t theta CQ CQd HQd : ℝ} (ht : 0 < t)
     (htheta0 : 0 < theta) (htheta1 : theta < 1)
     (hCQ : 0 ≤ CQ) (hHQd : 0 ≤ HQd)
@@ -378,11 +378,15 @@ theorem intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
           (fun z => intervalConjugateKernelOperator (t - s) (F s) z) x)
         volume 0 t)
     {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    HasDerivAt
-      (fun y => ∫ s in (0 : ℝ)..t, deriv
-        (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y)
-      (∫ s in (0 : ℝ)..t, deriv (fun y => deriv
-        (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y) x) x := by
+    (IntervalIntegrable
+        (fun s => deriv (fun y => deriv
+          (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y) x)
+        volume 0 t) ∧
+      HasDerivAt
+        (fun y => ∫ s in (0 : ℝ)..t, deriv
+          (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y)
+        (∫ s in (0 : ℝ)..t, deriv (fun y => deriv
+          (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y) x) x := by
   set Cmix : ℝ := 5 * Real.sqrt 2 / 2 with hCmix
   set Cgrad : ℝ :=
     ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant with hCgrad
@@ -514,7 +518,43 @@ theorem intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
     (hF_meas := hmeas_evt) (hF_int := hfirst_int x hx)
     (hF'_meas := hP'_meas) (h_bound := hBound)
     (bound_integrable := hbound_int) (h_diff := hDiff)
-  exact hresult.2
+  exact hresult
+
+/-- Derivative-only compatibility wrapper for
+`intervalConjugateDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_deriv_holder`. -/
+theorem intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
+    {t theta CQ CQd HQd : ℝ} (ht : 0 < t)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hCQ : 0 ≤ CQ) (hHQd : 0 ≤ HQd)
+    {F : ℝ → ℝ → ℝ}
+    (hF_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, Integrable (F s) (intervalMeasure 1))
+    (hF_bound : ∀ s y, |F s y| ≤ CQ)
+    (hF_cont : ∀ s ∈ Set.Ioo (0 : ℝ) t, Continuous (F s))
+    (hF_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      ∀ z ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt (F s) (deriv (F s) z) z)
+    (hF_deriv_int : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      IntervalIntegrable (deriv (F s)) volume 0 1)
+    (hF0 : ∀ s, F s 0 = 0) (hF1 : ∀ s, F s 1 = 0)
+    (hF_deriv_bound : ∀ s, t / 2 < s → s < t →
+      ∀ z, |deriv (F s) z| ≤ CQd)
+    (hF_deriv_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (F s) a - deriv (F s) b| ≤ HQd * |a - b| ^ theta)
+    (hfirst_int : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s => deriv
+          (fun z => intervalConjugateKernelOperator (t - s) (F s) z) x)
+        volume 0 t)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt
+      (fun y => ∫ s in (0 : ℝ)..t, deriv
+        (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y)
+      (∫ s in (0 : ℝ)..t, deriv (fun y => deriv
+        (fun z => intervalConjugateKernelOperator (t - s) (F s) z) y) x) x :=
+  (intervalConjugateDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_deriv_holder
+    ht htheta0 htheta1 hCQ hHQd hF_meas hF_int hF_bound hF_cont hF_deriv
+      hF_deriv_int hF0 hF1 hF_deriv_bound hF_deriv_holder hfirst_int hx).2
 
 /-- The integrated second derivative of a conjugate Duhamel leg is continuous
 on the open physical interval under the same early/late hypotheses. -/
@@ -824,5 +864,11 @@ theorem intervalConjugateDuhamel_secondDeriv_continuousOn_Icc_of_late_deriv_hold
         hlag (hF_cont s hsIoo).continuousOn (hF_deriv s hsIoo)
           (hF_deriv_int s hsIoo) (hF0 s) (hF1 s)
           (hF_deriv_bound s hlate hsIoo.2)) x hx
+
+section AxiomAudit
+
+#print axioms intervalConjugateDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_deriv_holder
+
+end AxiomAudit
 
 end ShenWork.Paper2

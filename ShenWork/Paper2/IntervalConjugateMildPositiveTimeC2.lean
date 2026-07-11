@@ -26,22 +26,28 @@ open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
 open ShenWork.IntervalConjugatePicard (ConjugateMildSolutionData)
 
 /-- The first spatial derivative of the actual chemotaxis Duhamel leg is
-differentiable at every positive-time interior point. -/
-theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
+differentiable at every positive-time interior point, and its second spatial
+derivative time integrand is interval-integrable. -/
+theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_interior
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildSolutionData p u₀)
     (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
     (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
     {t x : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
     (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    HasDerivAt
-      (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
-        (fun z ↦ intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (D.u s)) z) y)
-      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
-        (fun z ↦ intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (D.u s)) z) y) x)
-      x := by
+    (IntervalIntegrable
+        (fun s ↦ deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s)
+            (chemFluxLifted p (D.u s)) z) y) x)
+        volume 0 t) ∧
+      HasDerivAt
+        (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s)
+            (chemFluxLifted p (D.u s)) z) y)
+        (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s)
+            (chemFluxLifted p (D.u s)) z) y) x)
+        x := by
   set CQ : ℝ := D.M * (Real.sqrt (∑' k : ℕ,
       (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
         (2 * (p.ν * D.M ^ p.γ))) with hCQ
@@ -167,7 +173,8 @@ theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
       ht (by norm_num : (0 : ℝ) < 1 / 4) (by norm_num : (1 / 4 : ℝ) < 1)
         hCQ_nn hHQ_nn hF_meas hF_int hF_bound hF_cont_late hF_holder hF0 hF1
         z (Set.Ioo_subset_Icc_self hz)
-  have hcut := intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
+  have hcut :=
+    intervalConjugateDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_deriv_holder
     ht heta0 heta1 hCQ_nn hHQd_nn hF_meas hF_int hF_bound hF_cont
       hF_deriv hF_deriv_int hF0 hF1 hF_deriv_bound hF_deriv_holder
       hfirst_int hx
@@ -201,7 +208,52 @@ theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
       (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
         (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) :=
     Filter.Eventually.of_forall hfun_eq
-  exact (hev.hasDerivAt_iff.mpr hcut).congr_deriv hder_eq.symm
+  have hsecond_int : IntervalIntegrable
+      (fun s ↦ deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      volume 0 t := by
+    refine hcut.1.congr (fun s hs ↦ ?_)
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [hF_eq hs.1 (hs.2.trans htT)]
+  exact ⟨hsecond_int, (hev.hasDerivAt_iff.mpr hcut.2).congr_deriv hder_eq.symm⟩
+
+/-- The second spatial derivative integrand of the actual chemotaxis
+Duhamel leg is integrable in time at each interior spatial point. -/
+theorem conjugateMild_chemDuhamel_secondDeriv_intervalIntegrable_interior
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t x : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
+    (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    IntervalIntegrable
+      (fun s ↦ deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      volume 0 t :=
+  (conjugateMild_chemDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_interior
+    D hu₀ hu₀_meas ht htT hx).1
+
+/-- The first spatial derivative of the actual chemotaxis Duhamel leg is
+differentiable at every positive-time interior point. -/
+theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t x : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
+    (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt
+      (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y)
+      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      x :=
+  (conjugateMild_chemDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_interior
+    D hu₀ hu₀_meas ht htT hx).2
 
 /-- The first and second spatial derivative profiles of the actual
 chemotaxis Duhamel leg are continuous on the closed physical interval. -/
@@ -400,5 +452,12 @@ theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
       (Set.Ioo (0 : ℝ) 1) :=
   (conjugateMild_chemDuhamel_secondDeriv_continuousOn_Icc
     D hu₀ hu₀_meas ht htT).mono Set.Ioo_subset_Icc_self
+
+section AxiomAudit
+
+#print axioms conjugateMild_chemDuhamel_secondDeriv_intervalIntegrable_interior
+#print axioms conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
+
+end AxiomAudit
 
 end ShenWork.Paper2

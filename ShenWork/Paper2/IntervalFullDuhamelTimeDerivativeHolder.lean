@@ -196,6 +196,27 @@ private theorem fixedOldHistory_hasDerivAt
     intervalIntegral.integral_sub hval_r hval_t]
   rw [slope_def_field]
 
+/-- A fixed Duhamel history ending strictly before the target time can be
+differentiated by the positive-time generator identity.  This public wrapper
+is the nonsingular old-history interface used when a source has first been
+smoothed by a fixed positive semigroup step. -/
+theorem intervalFullDuhamel_fixedHistory_hasDerivAt_time
+    {a t CQ : ℝ} (ha0 : 0 ≤ a) (hat : a < t) (hCQ : 0 ≤ CQ)
+    {H : ℝ → ℝ → ℝ}
+    (hH_meas : Measurable (Function.uncurry H))
+    (hH_cont : ∀ s, Continuous (H s))
+    (hH_int : ∀ s, Integrable (H s) (intervalMeasure 1))
+    (hH_bound : ∀ s y, |H s y| ≤ CQ)
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt
+      (fun r : ℝ => ∫ s in (0 : ℝ)..a,
+        intervalFullSemigroupOperator (r - s) (H s) x)
+      (∫ s in (0 : ℝ)..a, deriv (fun y : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) (H s) z) y) x)
+      t := by
+  simpa [fullDuhamelValueIntegrand, fullDuhamelHessIntegrand] using
+    fixedOldHistory_hasDerivAt ha0 hat hCQ hH_meas hH_cont hH_int hH_bound hx
+
 private def clippedSource (H : ℝ → ℝ → ℝ) (s y : ℝ) : ℝ :=
   H s (ShenWork.IntervalMildPicardThreshold.unitClip y).1
 
@@ -1224,6 +1245,7 @@ theorem intervalFullDuhamel_hasDerivAt_time_of_uniform_trace_late_holder
 
 section AxiomAudit
 
+#print axioms intervalFullDuhamel_fixedHistory_hasDerivAt_time
 #print axioms intervalFullDuhamel_hasDerivAt_time_of_uniform_trace_late_holder
 
 end AxiomAudit
