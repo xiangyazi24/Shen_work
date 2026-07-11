@@ -7,7 +7,7 @@
   the truncated Picard limit.  No convergence of derivatives is needed.
 -/
 
-import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
+import ShenWork.Paper2.IntervalTruncatedGradientWindow
 
 open MeasureTheory Set
 open scoped BigOperators Topology Real
