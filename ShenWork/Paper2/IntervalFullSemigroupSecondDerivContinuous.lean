@@ -14,6 +14,20 @@ namespace ShenWork.IntervalNeumannFullKernel
 
 open ShenWork.IntervalDomain (intervalMeasure intervalMeasure_univ_lt_top)
 
+/-- The first spatial derivative of a positive-time full semigroup profile is
+continuous on all of `ℝ` for bounded measurable data. -/
+theorem intervalFullSemigroupOperator_deriv_continuous_of_bounded
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {C : ℝ} (hf_bound : ∀ y, |f y| ≤ C) :
+    Continuous
+      (fun x : ℝ ↦ deriv
+        (fun z ↦ intervalFullSemigroupOperator t f z) x) := by
+  rw [continuous_iff_continuousAt]
+  intro x
+  exact (intervalFullSemigroupOperator_hasDerivAt_deriv_fst
+    ht hf_meas hf_bound x).continuousAt
+
 /-- For fixed `y`, the full-kernel Hessian is continuous in its first spatial
 variable on the physical interval. -/
 theorem continuousOn_secondDeriv_intervalNeumannFullKernel_fst_in_x

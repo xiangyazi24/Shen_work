@@ -203,19 +203,24 @@ theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
     Filter.Eventually.of_forall hfun_eq
   exact (hev.hasDerivAt_iff.mpr hcut).congr_deriv hder_eq.symm
 
-/-- The second spatial derivative of the actual chemotaxis Duhamel leg is
-continuous on the open physical interval. -/
-theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
+/-- The first and second spatial derivative profiles of the actual
+chemotaxis Duhamel leg are continuous on the closed physical interval. -/
+theorem conjugateMild_chemDuhamel_spatialDerivs_continuousOn_Icc
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildSolutionData p u₀)
     (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
     (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
     {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
-    ContinuousOn
-      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
-        (fun z ↦ intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (D.u s)) z) y) x)
-      (Set.Ioo (0 : ℝ) 1) := by
+    (ContinuousOn
+        (fun x ↦ ∫ s in (0 : ℝ)..t, deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s)
+            (chemFluxLifted p (D.u s)) z) x)
+        (Set.Icc (0 : ℝ) 1)) ∧
+      ContinuousOn
+        (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s)
+            (chemFluxLifted p (D.u s)) z) y) x)
+        (Set.Icc (0 : ℝ) 1) := by
   set CQ : ℝ := D.M * (Real.sqrt (∑' k : ℕ,
       (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
         (2 * (p.ν * D.M ^ p.γ))) with hCQ
@@ -316,10 +321,25 @@ theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
     have hsT : s ≤ D.T := (le_of_lt hst).trans htT
     rw [hF_eq hs0 hsT]
     exact hQderiv_holder s (le_of_lt hs2) hsT a ha b hb
-  have hcut := intervalConjugateDuhamel_secondDeriv_continuousOn_of_late_deriv_holder
+  have hcut₁ := intervalConjugateDuhamel_firstDeriv_continuousOn_Icc_of_late_deriv_bound
+    ht hCQ_nn hCQd_nn hF_meas hF_int hF_bound hF_cont hF_deriv
+      hF_deriv_int hF0 hF1 hF_deriv_bound
+  have hcut₂ := intervalConjugateDuhamel_secondDeriv_continuousOn_Icc_of_late_deriv_holder
     ht heta0 heta1 hCQ_nn hHQd_nn hF_meas hF_int hF_bound hF_cont
       hF_deriv hF_deriv_int hF0 hF1 hF_deriv_bound hF_deriv_holder
-  have heq : ∀ x,
+  have heq₁ : ∀ x,
+      (∫ s in (0 : ℝ)..t, deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) x) =
+      ∫ s in (0 : ℝ)..t, deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) x := by
+    intro x
+    apply intervalIntegral.integral_congr_ae
+    apply Filter.Eventually.of_forall
+    intro s hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [hF_eq hs.1 (hs.2.trans htT)]
+  have heq₂ : ∀ x,
       (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
         (fun z ↦ intervalConjugateKernelOperator (t - s)
           (chemFluxLifted p (D.u s)) z) y) x) =
@@ -331,6 +351,54 @@ theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
     intro s hs
     rw [Set.uIoc_of_le ht.le] at hs
     rw [hF_eq hs.1 (hs.2.trans htT)]
-  exact hcut.congr (fun x _hx ↦ heq x)
+  exact ⟨hcut₁.congr (fun x _hx ↦ heq₁ x),
+    hcut₂.congr (fun x _hx ↦ heq₂ x)⟩
+
+/-- Closed-interval continuity of the first derivative profile of the actual
+chemotaxis Duhamel leg. -/
+theorem conjugateMild_chemDuhamel_firstDeriv_continuousOn_Icc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) x)
+      (Set.Icc (0 : ℝ) 1) :=
+  (conjugateMild_chemDuhamel_spatialDerivs_continuousOn_Icc
+    D hu₀ hu₀_meas ht htT).1
+
+/-- Closed-interval continuity of the second derivative profile of the actual
+chemotaxis Duhamel leg. -/
+theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn_Icc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      (Set.Icc (0 : ℝ) 1) :=
+  (conjugateMild_chemDuhamel_spatialDerivs_continuousOn_Icc
+    D hu₀ hu₀_meas ht htT).2
+
+/-- Open-interval corollary of the endpoint-closed chemotaxis Hessian theorem. -/
+theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      (Set.Ioo (0 : ℝ) 1) :=
+  (conjugateMild_chemDuhamel_secondDeriv_continuousOn_Icc
+    D hu₀ hu₀_meas ht htT).mono Set.Ioo_subset_Icc_self
 
 end ShenWork.Paper2
