@@ -525,3 +525,6 @@ import ShenWork.Paper2.IntervalFullDuhamelSpatialC2
 import ShenWork.Paper2.IntervalConjugateMildInteriorC2
 import ShenWork.Paper2.IntervalConjugateMildClosedSpatial
 import ShenWork.Paper2.IntervalFullSemigroupTimeDerivative
+import ShenWork.Paper2.IntervalConjugatePicardLimitJointContinuity
+import ShenWork.Paper2.IntervalJointContinuityFromHolder
+import ShenWork.Paper2.IntervalResolverWeightedTimeSeries
