@@ -96,4 +96,45 @@ theorem logistic_secondDeriv_abs_le
     _ = (|a| + |b| * (α + 1) * M ^ α) * B₂ + |b| * (α + 1) * α * M ^ (α - 1) * B₁ ^ 2 := by
         ring
 
+/-! ## HasDerivAt derivative towers (Q4363) — produce the second-derivative
+expression the bound above consumes, valid at `u = 0` (no strict positivity). -/
+
+/-- **First derivative of `u^{α+1}`** via `HasDerivAt.rpow_const` with the right
+disjunct `1 ≤ α+1` — fires even when `u x = 0`. -/
+theorem powSucc_hasDerivAt
+    {α : ℝ} {u u1 : ℝ → ℝ} {x : ℝ}
+    (hu0 : HasDerivAt u (u1 x) x) (hα : 1 ≤ α) :
+    HasDerivAt (fun y => u y ^ (α + 1)) (u1 x * (α + 1) * u x ^ α) x := by
+  have hα1 : (1 : ℝ) ≤ α + 1 := by linarith
+  have h := hu0.rpow_const (p := α + 1) (Or.inr hα1)
+  rw [show (α + 1) - 1 = α from by ring] at h
+  exact h
+
+/-- **Derivative of `P₁ = u'·(α+1)·u^α`** (the second-derivative wiring for
+`u^{α+1}`) — differentiates `u^α` via the right disjunct `1 ≤ α`, valid at `u=0`. -/
+theorem powSucc_deriv_hasDerivAt
+    {α : ℝ} {u u1 u2 : ℝ → ℝ} {x : ℝ}
+    (hu0 : HasDerivAt u (u1 x) x) (hu1 : HasDerivAt u1 (u2 x) x) (hα : 1 ≤ α) :
+    HasDerivAt (fun y => u1 y * (α + 1) * u y ^ α)
+      (u2 x * (α + 1) * u x ^ α + u1 x * (α + 1) * (u1 x * α * u x ^ (α - 1))) x := by
+  have hpowα : HasDerivAt (fun y => u y ^ α) (u1 x * α * u x ^ (α - 1)) x :=
+    hu0.rpow_const (p := α) (Or.inr hα)
+  have hcoef : HasDerivAt (fun y => u1 y * (α + 1)) (u2 x * (α + 1)) x :=
+    hu1.mul_const (α + 1)
+  have h := hcoef.mul hpowα
+  exact h
+
+/-- **Full logistic source second derivative** `S(u)=a·u−b·u^{α+1}` — `HasDerivAt`
+of `S'` at value `S'' = a·u'' − b·((α+1)α·u^{α-1}(u')² + (α+1)·u^α·u'')`, valid at
+`u ≥ 0` (base possibly `0`).  This is the derivative-tower residual now closed;
+composing with `logistic_secondDeriv_abs_le` bounds `|S''|` with no δ-floor. -/
+theorem logistic_source_secondDeriv_hasDerivAt
+    {a b α : ℝ} {u u1 u2 : ℝ → ℝ} {x : ℝ}
+    (hu0 : HasDerivAt u (u1 x) x) (hu1 : HasDerivAt u1 (u2 x) x) (hα : 1 ≤ α) :
+    HasDerivAt (fun y => a * u1 y - b * (u1 y * (α + 1) * u y ^ α))
+      (a * u2 x - b * (u2 x * (α + 1) * u x ^ α
+        + u1 x * (α + 1) * (u1 x * α * u x ^ (α - 1)))) x := by
+  have hP1 := powSucc_deriv_hasDerivAt hu0 hu1 hα
+  exact (hu1.const_mul a).sub (hP1.const_mul b)
+
 end ShenWork.Paper2.LogisticNemytskiiC2
