@@ -4453,3 +4453,20 @@ genuine Neumann limits and ordinary endpoint derivatives; it is not claimed by
 this commit.  A cold hostile audit passed the secant/MVT argument, local-time
 gluing, quantifier match, and clean-3 check.  The root import build passed 9248
 jobs.
+
+### Task 314: faithful coupled joint value continuity (2026-07-10)
+
+Commit `6474da58` closes both halves of the classical ledger's `jointValue`
+field.  `conjugateMild_jointValue_v` first derives continuity in time of every
+actual resolver source coefficient from Task312's joint continuity of `u`,
+with no coefficient time derivative.  A uniform all-mode bound and the
+summable elliptic weights then give joint continuity of the resolver series on
+`(0,D.T) × [0,1]`.  The exact physical series identity identifies this series
+with `coupledChemicalConcentration p D.u`, including the canonical `nu`,
+`gamma`, zero/nonzero-mode normalization, real part, and resolver weight.
+
+`conjugateMild_coupled_jointValue` pairs this with Task312's `u` result.  It
+uses no SourceTimeC1, spectral-agreement package, restart theorem, classical
+regularity, or time derivative.  A cold hostile audit traced every source and
+weight definition and classified it as a faithful fragment.  The root import
+build passed 9249 jobs.
