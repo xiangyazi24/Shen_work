@@ -4434,3 +4434,22 @@ build passed 9246 jobs.
 This closes only the `u` half of `IntervalClassicalRegularityAtoms.jointValue`.
 The `v` half, joint continuity of the physical spatial derivative `u_x`, the
 time-derivative fields, and `hpde_u` remain on the active dependency path.
+
+### Task 313: faithful positive-time interior spatial derivative continuity (2026-07-10)
+
+Commit `fb7c8103` adds a parametric mean-value bridge which recovers time
+continuity of a spatial derivative from joint continuity of the underlying
+values and a spatial Holder modulus uniform in the parameter.  Its faithful
+consumer, `conjugateMild_jointSpatialDeriv_interior`, combines Task312's joint
+value theorem with the actual positive-time Holder estimate for
+`deriv (intervalDomainLift (D.u t))`.  It proves joint continuity on
+`(0,D.T) × (0,1)` without assuming derivative time continuity, restart data,
+source-TimeC1, classical regularity, or spectral agreement.
+
+The interior restriction is deliberate: the available faithful Holder theorem
+is stated only for spatial points in `(0,1)`.  Extending the result to the
+closed spatial interval requires a separate endpoint argument using the
+genuine Neumann limits and ordinary endpoint derivatives; it is not claimed by
+this commit.  A cold hostile audit passed the secant/MVT argument, local-time
+gluing, quantifier match, and clean-3 check.  The root import build passed 9248
+jobs.
