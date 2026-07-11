@@ -4470,3 +4470,42 @@ uses no SourceTimeC1, spectral-agreement package, restart theorem, classical
 regularity, or time derivative.  A cold hostile audit traced every source and
 weight definition and classified it as a faithful fragment.  The root import
 build passed 9249 jobs.
+
+### Tasks 315–318: closed spatial traces and direct Duhamel time differentiation (2026-07-10)
+
+Commits `1c557f31` and `9b66114c` close two analytic interfaces needed for a
+direct physical-space time derivative.  The first extends the faithful joint
+continuity of `u_x` from the open interval to `(0,D.T) × [0,1]` using the
+genuine one-sided Neumann limits and the actual ordinary endpoint derivative
+values.  The second proves a reusable target-time derivative theorem for a
+full Neumann Duhamel leg.  Its old history is handled by dominated convergence,
+its late history by the cancellative Holder Hessian estimate, and its moving
+endpoint by the uniform source trace and the heat approximate identity.  It
+does not require source-TimeC1 or restart data.
+
+Commit `5409b317` applies that theorem to the actual logistic source after a
+constant spatial extension, and records the joint-continuity-to-uniform-trace
+bridge.  The extension is used only because the generic semigroup theorem asks
+for globally continuous spatial slices; it agrees with the literal logistic
+source on `[0,1]`, which is the whole support of the interval semigroup.  The
+same commit constructs the ordinary-derivative continuous representative
+`conjugateMildChemDivJointRep` for the post-IBP chemotaxis source.  It proves
+joint continuity on `(0,D.T) × [0,1]`, equality with both the raw flux
+derivative and the literal physical chemotaxis divergence on `(0,1)`, a uniform
+target-time trace, and positive-strip spatial Holder control.
+
+The crucial hostile-audit finding is that the chemotaxis representative must
+not be treated as uniformly bounded down to time zero: the available faithful
+bound for `u_x`, hence for the flux derivative, can have an integrable
+`t^(-1/2)` singularity.  Commit `50817885` removes this obstruction without a
+false bound.  It proves positive-lag target-time differentiation of the
+conjugate operator by a half-step semigroup factorisation and then differentiates
+a fixed old-history integral using only the original flux's global bound.
+Consequently the faithful chemotaxis Duhamel leg can be split at a positive
+time: keep the old history in conjugate-kernel form and integrate by parts only
+on the late history.  Commit `79b1d99a` also exposes the actual conjugate
+Hessian's time integrability, so the two derivative integrals can be recombined
+honestly.  All landed interfaces are clean-3; the corresponding root builds
+passed through 9255 jobs.  The active remaining seam is the final old/late
+chemotaxis `HasDerivAt` assembly, followed by the full `u_t`/literal-PDE and
+classical-solution wiring.
