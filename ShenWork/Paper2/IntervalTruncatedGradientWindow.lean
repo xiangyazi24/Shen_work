@@ -34,6 +34,19 @@ def truncWindowA (M A_L A_F χ a lo hi : ℝ) : ℝ :=
 def truncWindowB (B_F χ a hi : ℝ) : ℝ :=
   heatGradientLinftyLinftyConstant * (2 * Real.sqrt (hi - a)) * |χ| * B_F
 
+/-- Short-window contraction: since `truncWindowB ∝ √(hi−a)`, a short enough window makes the
+contraction coefficient `< 1`.  The hypothesis is the definitional product regrouped so a caller can
+choose the window length `hi − a` small against the fixed constants `Cg·2|χ|·B_F`. -/
+theorem truncWindowB_lt_one_of_sqrt_prod {B_F χ a hi : ℝ}
+    (hprod :
+      heatGradientLinftyLinftyConstant * (2 * (|χ| * B_F)) * Real.sqrt (hi - a) < 1) :
+    truncWindowB B_F χ a hi < 1 := by
+  unfold truncWindowB
+  calc
+    heatGradientLinftyLinftyConstant * (2 * Real.sqrt (hi - a)) * |χ| * B_F
+        = heatGradientLinftyLinftyConstant * (2 * (|χ| * B_F)) * Real.sqrt (hi - a) := by ring
+    _ < 1 := hprod
+
 def truncWindowAffine
     (M A_L A_F B_F χ a lo hi G : ℝ) : ℝ :=
   truncWindowA M A_L A_F χ a lo hi
