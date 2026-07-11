@@ -995,4 +995,78 @@ theorem truncatedLimit_dctDominators
       (fun s => (truncatedLimit_flux_integrable DT s).aestronglyMeasurable)
       (by simpa [U] using hflux_bound) htest_meas htest_bound
 
+/-! ## Legacy weak-Duhamel bundle after variational nonnegativity
+
+The old DT-indexed consumer asks for a coefficient-shaped weak certificate at
+the terminal time, even though the truncated trajectory is extended by zero
+to the right of its horizon.  The mathematically correct order is therefore:
+first prove nonnegativity by the open-time variational argument, then observe
+that the negative-part test is identically zero.  At that point every endpoint
+and tested-differentiation field of the legacy semigroup bundle is literal
+zero, including at `t = T`.
+-/
+
+private theorem negativePartTest_eq_zero_of_slice_nonneg
+    {u : ℝ → intervalDomainPoint → ℝ} {t : ℝ}
+    (h : ∀ x : intervalDomainPoint, 0 ≤ u t x) :
+    negativePartTest u t = fun _ : ℝ => 0 := by
+  funext y
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · simp [negativePartTest, negativePartLift, intervalDomainLift, hy,
+      negativePart_eq_zero_of_nonneg (h ⟨y, hy⟩)]
+  · simp [negativePartTest, negativePartLift, intervalDomainLift, hy,
+      negativePart_eq_zero_of_nonneg (le_refl (0 : ℝ))]
+
+/-- Once the variational argument has shown that the truncated limit is
+nonnegative, the complete legacy `NegativePartStandardHeatSemigroupDuhamelFacts`
+record (including its closed endpoint fields) is discharged without any
+pointwise time derivative of the solution. -/
+def truncatedLimit_standardHeatSemigroupDuhamelFacts_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x) :
+    NegativePartStandardHeatSemigroupDuhamelFacts p DT.T u₀
+      (truncatedConjugatePicardLimit p u₀ DT.T) where
+  gradient_tminus_half := neumannHeatGradientTMinusHalfBound
+  source_endpoint_l2_lebesgue := by
+    intro t ht htT
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [HeatDuhamelEndpointLebesguePointFact, htest]
+  chem_endpoint_l2_lebesgue := by
+    intro t ht htT
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [ChemotaxisDuhamelEndpointLebesguePointFact, htest]
+  source_dct_dominator := by
+    intro t ht htT
+    exact (truncatedLimit_dctDominators DT ht htT).1
+  chem_dct_dominator := by
+    intro t ht htT
+    exact (truncatedLimit_dctDominators DT ht htT).2
+  semigroup_form_identity := by
+    intro t ht htT
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [negativePartTestedLegWeakContribution, htest]
+  source_duhamel_differentiation := by
+    intro t ht htT
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [negativePartTestedLegWeakContribution,
+      negativePartLogisticWeakTerm, htest]
+  hminusone_duhamel_differentiation_after_restricted_duality := by
+    intro t ht htT _hdual
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [negativePartTestedLegWeakContribution,
+      negativePartChemWeakTerm, htest]
+  tested_mild_decomposition := by
+    intro _hmild t ht htT
+    have htest := negativePartTest_eq_zero_of_slice_nonneg
+      (hnonneg t ht htT)
+    simp [negativePartTestedWeakLHS,
+      negativePartTestedLegWeakContribution, htest]
+
 end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
