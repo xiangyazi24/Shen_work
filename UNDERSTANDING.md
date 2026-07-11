@@ -4509,3 +4509,37 @@ honestly.  All landed interfaces are clean-3; the corresponding root builds
 passed through 9255 jobs.  The active remaining seam is the final old/late
 chemotaxis `HasDerivAt` assembly, followed by the full `u_t`/literal-PDE and
 classical-solution wiring.
+
+### Tasks 319–320: faithful chemotaxis time derivative and literal `u` equation (2026-07-10)
+
+Commit `cb819b4b` closes the actual chemotaxis target-time derivative.  It
+splits at `a=t/4`: the old history remains in conjugate-flux form and uses only
+the global bound for the original flux, while the late history is integrated
+by parts into the continuous physical flux-derivative representative on a
+strictly positive strip.  The late trace, Holder bound, and Hessian
+integrability are supplied explicitly, and the two histories are recombined
+only after the required interval-integrability facts are present.  Thus no
+uniform bound for the flux derivative near time zero is assumed.  A hostile
+audit classified the result as a faithful actual-leg fragment; the root build
+passed 9256 jobs and the theorem is clean-3.
+
+Commit `3e0c13b8` differentiates all three terms of the faithful mild equation
+and identifies the resulting generator terms with the genuine second spatial
+derivative already proved for the same mild slice.  The chemotaxis trace is
+then identified with the literal physical divergence on the open spatial
+interval, and the reaction trace with the literal logistic source.  The public
+theorem `conjugateMild_intervalDomain_pde_u` now supplies the exact Paper 2
+parabolic equation at every positive interior space-time point without a
+classical-solution, PDE, restart, spectral-agreement, or source-time-C1
+premise.  The root build passed 9257 jobs and the theorem is clean-3.
+
+The next honest seam is closed-domain time regularity.  The same old/late
+argument can extend the chemotaxis time derivative to `x in [0,1]`, but its
+trace there must remain `conjugateMildChemDivJointRep`, not the ordinary
+derivative of the zero-extended flux.  The only missing endpoint input is a
+public closed-interval version of the actual conjugate Hessian's time
+integrability; the existing closed spatial-continuity proof already contains
+the required measurability and common integrable dominator.  Even after this
+endpoint derivative is obtained, joint continuity of the full time-derivative
+field remains a separate parabolic-regularity obligation and must not be
+inferred from pointwise differentiability alone.
