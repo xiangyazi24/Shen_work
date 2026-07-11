@@ -528,3 +528,5 @@ import ShenWork.Paper2.IntervalFullSemigroupTimeDerivative
 import ShenWork.Paper2.IntervalConjugatePicardLimitJointContinuity
 import ShenWork.Paper2.IntervalJointContinuityFromHolder
 import ShenWork.Paper2.IntervalResolverWeightedTimeSeries
+import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
+import ShenWork.Paper2.IntervalConjugateMildJointValue
