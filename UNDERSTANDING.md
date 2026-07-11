@@ -4406,3 +4406,31 @@ for this source-certificate route.  This is still intentionally a non-PDE
 value/integral source bridge; the next core headline work is to feed exact
 source coefficient/time-C1 data into the `IntervalDomainPdeUGeneralChi`
 `hpde_u` producer, not to add more aliases around this bridge.
+
+### Tasks 311–312: faithful positive-time value continuity (2026-07-10)
+
+Commit `a56f85f7` adds three explicitly classified reductions.  The Picard
+uniform-limit module transfers joint continuity of all concrete iterates to
+the canonical limit but does not produce the iterate premise.  The generic
+Holder bridge proves joint continuity from fixed-space time continuity and a
+spatial Holder modulus uniform on each positive-time strip.  The resolver
+weighted-series module proves local termwise time differentiation and joint
+continuity from mode-uniform coefficient bounds.  Independent hostile audits
+passed all three and classified them as reductions, not faithful producers.
+The integrated root build passed 9244 jobs.
+
+Commit `ab1e9b3f` closes the first genuinely faithful time-regularity seam.
+`conjugateMild_timeSlice_continuousOn_Ioc` proves, directly from the mild
+formula, continuity of `t ↦ D.u t x` on `(0,D.T]` for every physical point.
+The proof freezes an early integration interval and controls the remaining
+chemotaxis and reaction tails by square-root and linear bounds; it uses no
+source-TimeC1, restart, classical regularity, or spectral-agreement premise.
+`conjugateMild_jointValue_u` combines this with the positive-strip spatial
+Holder estimate to give joint continuity of the lifted faithful `u` on
+`(0,D.T) × [0,1]`.  Both theorems are clean-3 and an independent hostile audit
+classified the time-slice theorem as a faithful fragment.  The root import
+build passed 9246 jobs.
+
+This closes only the `u` half of `IntervalClassicalRegularityAtoms.jointValue`.
+The `v` half, joint continuity of the physical spatial derivative `u_x`, the
+time-derivative fields, and `hpde_u` remain on the active dependency path.
