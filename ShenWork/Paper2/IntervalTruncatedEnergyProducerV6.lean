@@ -19,7 +19,12 @@ import ShenWork.Paper2.IntervalTruncatedPicardLimitJointContinuity
 import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
 import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
+import ShenWork.Paper2.IntervalFullDuhamelRestart
 import ShenWork.Paper2.IntervalChiNegTruncatedRestartStrictPosProducer
+import ShenWork.Paper2.IntervalNegativePartWeakEnergy
+import ShenWork.PDE.IntervalDomainContinuousExtension
+import ShenWork.PDE.IntervalSemigroupUniform
+import ShenWork.PDE.IntervalSemigroupC1ApproxIdentity
 
 open Filter Topology Set MeasureTheory
 open scoped BigOperators Topology ENNReal
@@ -809,6 +814,103 @@ private theorem truncatedLimit_negativePartTest_deriv_ae_bound
   exact ⟨G, hG,
     negativePartTest_deriv_ae_bound_of_lipschitz DT hG hlip⟩
 
+/-- Whole-line version of the same derivative envelope.  The test is locally
+zero off `[0,1]`; the two endpoints are null for Lebesgue measure. -/
+private theorem truncatedLimit_negativePartTest_deriv_ae_bound_volume
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ᵐ x ∂volume,
+        |deriv (negativePartTest
+          (truncatedConjugatePicardLimit p u₀ DT.T) t) x| ≤ G := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let φ := negativePartTest U t
+  obtain ⟨G, hG, hlip⟩ :=
+    ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedPicardLimit_lipschitzOn_positive_time
+      DT ht htT
+  have hφlip : LipschitzOnWith ⟨G, hG⟩ φ (Set.Icc (0 : ℝ) 1) := by
+    apply LipschitzOnWith.of_dist_le_mul
+    intro x hx y hy
+    rw [Real.dist_eq, Real.dist_eq]
+    change |(-negativePart (intervalDomainLift (U t) x)) -
+        (-negativePart (intervalDomainLift (U t) y))| ≤ G * |x - y|
+    calc
+      |(-negativePart (intervalDomainLift (U t) x)) -
+          (-negativePart (intervalDomainLift (U t) y))| =
+          |negativePart (intervalDomainLift (U t) x) -
+            negativePart (intervalDomainLift (U t) y)| := by
+        rw [show (-negativePart (intervalDomainLift (U t) x)) -
+            (-negativePart (intervalDomainLift (U t) y)) =
+          -(negativePart (intervalDomainLift (U t) x) -
+            negativePart (intervalDomainLift (U t) y)) by ring, abs_neg]
+      _ ≤ |intervalDomainLift (U t) x - intervalDomainLift (U t) y| :=
+        negativePart_lipschitz_abs _ _
+      _ ≤ G * |x - y| := by simpa [U] using hlip x hx y hy
+  have hne0 : ∀ᵐ x : ℝ ∂volume, x ≠ 0 := by
+    simp [ae_iff, measure_singleton]
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ 1 := by
+    simp [ae_iff, measure_singleton]
+  refine ⟨G, hG, ?_⟩
+  filter_upwards [hne0, hne1] with x hx0 hx1
+  by_cases hx : x ∈ Set.Ioo (0 : ℝ) 1
+  · have hnhds : Set.Icc (0 : ℝ) 1 ∈ nhds x :=
+      mem_of_superset (isOpen_Ioo.mem_nhds hx) Set.Ioo_subset_Icc_self
+    have hder := norm_deriv_le_of_lipschitzOn hnhds hφlip
+    simpa [φ, Real.norm_eq_abs] using hder
+  · have hout : x < 0 ∨ 1 < x := by
+      rw [Set.mem_Ioo, not_and_or] at hx
+      rcases hx with hx | hx
+      · exact Or.inl (lt_of_le_of_ne (le_of_not_gt hx) hx0)
+      · exact Or.inr (lt_of_le_of_ne (le_of_not_gt hx) (Ne.symm hx1))
+    have hev : φ =ᶠ[nhds x] fun _ : ℝ => 0 := by
+      rcases hout with hxlt | hxgt
+      · filter_upwards [Iio_mem_nhds hxlt] with y hy
+        have hyI : y ∉ Set.Icc (0 : ℝ) 1 := fun h => (not_lt_of_ge h.1) hy
+        simp [φ, U, negativePartTest, negativePartLift, intervalDomainLift,
+          hyI, negativePart]
+      · filter_upwards [Ioi_mem_nhds hxgt] with y hy
+        have hyI : y ∉ Set.Icc (0 : ℝ) 1 := fun h => (not_lt_of_ge h.2) hy
+        simp [φ, U, negativePartTest, negativePartLift, intervalDomainLift,
+          hyI, negativePart]
+    rw [hev.deriv_eq]
+    simp [hG]
+
+/-- The fixed final negative-part test is absolutely continuous on the spatial
+interval. -/
+private theorem truncatedLimit_negativePartTest_absolutelyContinuous
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    AbsolutelyContinuousOnInterval
+      (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t) 0 1 := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let φ := negativePartTest U t
+  obtain ⟨G, hG, hlip⟩ :=
+    ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedPicardLimit_lipschitzOn_positive_time
+      DT ht htT
+  have hφlip : LipschitzOnWith ⟨G, hG⟩ φ (Set.Icc (0 : ℝ) 1) := by
+    apply LipschitzOnWith.of_dist_le_mul
+    intro x hx y hy
+    rw [Real.dist_eq, Real.dist_eq]
+    change |(-negativePart (intervalDomainLift (U t) x)) -
+        (-negativePart (intervalDomainLift (U t) y))| ≤ G * |x - y|
+    calc
+      |(-negativePart (intervalDomainLift (U t) x)) -
+          (-negativePart (intervalDomainLift (U t) y))| =
+          |negativePart (intervalDomainLift (U t) x) -
+            negativePart (intervalDomainLift (U t) y)| := by
+        rw [show (-negativePart (intervalDomainLift (U t) x)) -
+            (-negativePart (intervalDomainLift (U t) y)) =
+          -(negativePart (intervalDomainLift (U t) x) -
+            negativePart (intervalDomainLift (U t) y)) by ring, abs_neg]
+      _ ≤ |intervalDomainLift (U t) x - intervalDomainLift (U t) y| :=
+        negativePart_lipschitz_abs _ _
+      _ ≤ G * |x - y| := by simpa [U] using hlip x hx y hy
+  have hφlip_u : LipschitzOnWith ⟨G, hG⟩ φ (Set.uIcc (0 : ℝ) 1) := by
+    simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hφlip
+  exact hφlip_u.absolutelyContinuousOnInterval
+
 private def truncatedLogisticBound (p : CM2Params) (M : ℝ) : ℝ :=
   M * (p.a + p.b * M ^ p.α)
 
@@ -1348,6 +1450,1609 @@ theorem truncatedLimit_timeSlice_continuousOn_Ioc
     _ = eps := by ring
 
 
+private theorem truncatedLimit_timeSlice_continuousWithinAt_Iio
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T)
+    (x : intervalDomainPoint) :
+    ContinuousWithinAt
+      (fun s => truncatedConjugatePicardLimit p u₀ DT.T s x)
+      (Set.Iio t) t := by
+  have hbase :=
+    (truncatedLimit_timeSlice_continuousOn_Ioc DT x).continuousWithinAt
+      (show t ∈ Set.Ioc (0 : ℝ) DT.T from ⟨ht, htT⟩)
+  have hpos : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (by linarith)
+  have hinter : Set.Iio t ∩ Set.Ioi (t / 2) ∈ nhdsWithin t (Set.Iio t) :=
+    inter_mem_nhdsWithin _ hpos
+  have hmem : Set.Ioc (0 : ℝ) DT.T ∈ nhdsWithin t (Set.Iio t) := by
+    exact mem_of_superset hinter fun s hs =>
+      ⟨lt_trans (by linarith : 0 < t / 2) hs.2, (le_of_lt hs.1).trans htT⟩
+  exact hbase.mono_of_mem_nhdsWithin hmem
+
+/-- Left-endpoint convergence of the ordinary Duhamel pairing against the
+fixed final negative-part test. -/
+private theorem truncatedLimit_logistic_pairing_tendsto
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    Tendsto
+      (fun s => ∫ x,
+        intervalFullSemigroupOperator (t - s)
+            (truncatedLogisticLifted p
+              ((truncatedConjugatePicardLimit p u₀ DT.T) s)) x *
+          negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t x
+        ∂ intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t))
+      (nhds (∫ x,
+        truncatedLogisticLifted p
+            ((truncatedConjugatePicardLimit p u₀ DT.T) t) x *
+          negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t x
+        ∂ intervalMeasure 1)) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let L : ℝ → ℝ → ℝ := fun s => truncatedLogisticLifted p (U s)
+  let φ : ℝ → ℝ := negativePartTest U t
+  let φD : intervalDomainPoint → ℝ := Set.restrict (Set.Icc (0 : ℝ) 1) φ
+  let ψ : ℝ → ℝ := ShenWork.IntervalDomain.intervalDomainConstExtend φD
+  have hφcont : ContinuousOn φ (Set.Icc (0 : ℝ) 1) := by
+    simpa [φ, U] using truncatedLimit_test_continuousOn DT ht htT
+  have hφDcont : Continuous φD := by
+    simpa [φD] using (continuousOn_iff_continuous_restrict.mp hφcont)
+  have hψcont : Continuous ψ := by
+    exact ShenWork.IntervalDomain.constExtend_continuous hφDcont
+  have hφlift : φ = intervalDomainLift φD := by
+    funext y
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · simp [φD, intervalDomainLift, hy]
+    · simp [φ, φD, negativePartTest, negativePartLift,
+        intervalDomainLift, hy, negativePart]
+  have hψeq : ∀ y ∈ Set.Icc (0 : ℝ) 1, ψ y = φ y := by
+    intro y hy
+    change ShenWork.IntervalDomain.intervalDomainConstExtend φD y = φ y
+    rw [ShenWork.IntervalDomain.constExtend_eq_lift_on_Icc hy, ← hφlift]
+  have hφbound : ∀ y, |φ y| ≤ DT.M := by
+    intro y
+    have hlift : |intervalDomainLift (U t) y| ≤ DT.M := by
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simpa [U, intervalDomainLift, hy] using
+          (truncatedConjugateMildSolutionData_of_data DT).hbound
+            t ht htT ⟨y, hy⟩
+      · simp [intervalDomainLift, hy, DT.hM.le]
+    simpa [φ, negativePartTest, negativePartLift, abs_neg] using
+      (negativePart_abs_le_abs (intervalDomainLift (U t) y)).trans hlift
+  have hψbound : ∀ y, |ψ y| ≤ DT.M := by
+    intro y
+    by_cases hy0 : y ≤ 0
+    · simp only [ψ, ShenWork.IntervalDomain.intervalDomainConstExtend,
+        dif_pos hy0]
+      simpa [φD] using hφbound 0
+    · by_cases hy1 : 1 ≤ y
+      · simp only [ψ, ShenWork.IntervalDomain.intervalDomainConstExtend,
+          dif_neg hy0, dif_pos hy1]
+        simpa [φD] using hφbound 1
+      · have hy : y ∈ Set.Icc (0 : ℝ) 1 :=
+          ⟨(not_le.mp hy0).le, (not_le.mp hy1).le⟩
+        rw [hψeq y hy]
+        exact hφbound y
+  have hψmeas : AEStronglyMeasurable ψ (intervalMeasure 1) :=
+    hψcont.aestronglyMeasurable
+  have hr : Tendsto (fun s : ℝ => t - s)
+      (nhdsWithin t (Set.Iio t)) (nhdsWithin 0 (Set.Ioi 0)) := by
+    rw [tendsto_nhdsWithin_iff]
+    constructor
+    · have hc : ContinuousAt (fun s : ℝ => t - s) t :=
+        continuousAt_const.sub continuousAt_id
+      simpa using hc.tendsto.mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with s hs
+      exact sub_pos.mpr (show s < t from hs)
+  have hSpoint : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      Tendsto (fun s => intervalFullSemigroupOperator (t - s) ψ y)
+        (nhdsWithin t (Set.Iio t)) (nhds (ψ y)) := by
+    intro y hy
+    exact
+      (ShenWork.IntervalSemigroupUniform.intervalFullSemigroup_tendstoUniformlyOn
+        ψ hψcont).tendsto_at hy |>.comp hr
+  let F : ℝ → ℝ → ℝ := fun s y =>
+    L s y * intervalFullSemigroupOperator (t - s) ψ y
+  let f : ℝ → ℝ := fun y => L t y * φ y
+  let C : ℝ := truncatedLogisticBound p DT.M * DT.M
+  have hCL : 0 ≤ truncatedLogisticBound p DT.M :=
+    truncatedLogisticBound_nonneg p DT.hM.le
+  have hC : 0 ≤ C := mul_nonneg hCL DT.hM.le
+  have hpos_event : ∀ᶠ s in nhdsWithin t (Set.Iio t), 0 < s := by
+    have hnh : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (by linarith)
+    have hnh' : ∀ᶠ s in nhdsWithin t (Set.Iio t), s ∈ Set.Ioi (t / 2) :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds hnh
+    filter_upwards [hnh'] with s hs
+    exact lt_trans (by linarith : 0 < t / 2) hs
+  have hFmeas : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      AEStronglyMeasurable (F s) (intervalMeasure 1) := by
+    filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+    have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+    have hScont :=
+      ShenWork.IntervalDuhamelIntegrability.intervalFullSemigroupOperator_continuous_of_bounded
+        (sub_pos.mpr hst) DT.hM.le hψbound hψmeas
+    exact (truncatedLimit_logistic_aestronglyMeasurable DT s).mul
+      hScont.aestronglyMeasurable
+  have hFbound : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      ∀ᵐ y ∂intervalMeasure 1, ‖F s y‖ ≤ C := by
+    filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+    have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+    refine Filter.Eventually.of_forall fun y => ?_
+    have hLb := truncatedLogisticLifted_abs_le p DT.hM.le
+      (fun x => by simpa [U] using
+        (truncatedConjugateMildSolutionData_of_data DT).hbound s hs0 hsT x) y
+    have hSb :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+        (sub_pos.mpr hst) DT.hM.le hψbound y
+    change |L s y * intervalFullSemigroupOperator (t - s) ψ y| ≤ C
+    rw [abs_mul]
+    exact mul_le_mul hLb hSb (abs_nonneg _) hCL
+  have hFlim : ∀ᵐ y ∂intervalMeasure 1,
+      Tendsto (fun s => F s y) (nhdsWithin t (Set.Iio t)) (nhds (f y)) := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with y hy
+    let X : intervalDomainPoint := ⟨y, Set.Ioo_subset_Icc_self hy⟩
+    have hUlim : Tendsto (fun s => U s X) (nhdsWithin t (Set.Iio t))
+        (nhds (U t X)) := by
+      simpa [U] using
+        (truncatedLimit_timeSlice_continuousWithinAt_Iio DT ht htT X)
+    have hlocal : Continuous (truncatedLogisticLocal p) := by
+      unfold truncatedLogisticLocal
+      have hp : Continuous (fun r : ℝ => positivePart r) := by
+        simpa [positivePart] using continuous_id.max continuous_const
+      exact continuous_id.mul
+        (continuous_const.sub (continuous_const.mul
+          (hp.rpow_const (fun _ => Or.inr p.hα.le))))
+    have hLlim : Tendsto (fun s => L s y) (nhdsWithin t (Set.Iio t))
+        (nhds (L t y)) := by
+      simpa [L, U, truncatedLogisticLifted, intervalDomainLift,
+        Set.Ioo_subset_Icc_self hy] using hlocal.continuousAt.tendsto.comp hUlim
+    have hSlim := hSpoint y (Set.Ioo_subset_Icc_self hy)
+    have hmul := hLlim.mul hSlim
+    simpa [F, f, hψeq y (Set.Ioo_subset_Icc_self hy)] using hmul
+  have hDCT : Tendsto (fun s => ∫ y, F s y ∂intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t)) (nhds (∫ y, f y ∂intervalMeasure 1)) :=
+    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+      (fun _ : ℝ => C) hFmeas hFbound (integrable_const _) hFlim
+  refine hDCT.congr' ?_
+  filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+  have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+  have hLbound : ∀ y, |L s y| ≤ truncatedLogisticBound p DT.M :=
+    truncatedLogisticLifted_abs_le p DT.hM.le (fun x => by
+      simpa [U] using
+        (truncatedConjugateMildSolutionData_of_data DT).hbound s hs0 hsT x)
+  have hpair :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalFullSemigroupOperator_pairing_comm
+      (sub_pos.mpr hst)
+      (truncatedLimit_logistic_aestronglyMeasurable DT s)
+      (by simpa [φ, U] using
+        (truncatedLimit_fluxTestDualityData DT ht htT
+          (show 0 < t / 2 by linarith) (show t / 2 < t by linarith)).test_bounded.measurable)
+      hLbound hφbound
+  symm
+  calc
+    (∫ x, intervalFullSemigroupOperator (t - s) (L s) x * φ x
+        ∂intervalMeasure 1) =
+        ∫ y, L s y * intervalFullSemigroupOperator (t - s) φ y
+          ∂intervalMeasure 1 := hpair
+    _ = ∫ y, F s y ∂intervalMeasure 1 := by
+      apply integral_congr_ae
+      exact Filter.Eventually.of_forall fun y => by
+        have hsem : intervalFullSemigroupOperator (t - s) φ y =
+            intervalFullSemigroupOperator (t - s) ψ y := by
+          rw [hφlift]
+          exact ShenWork.IntervalDomain.semigroupOperator_constExtend_eq_lift.symm
+        simp [F, hsem]
+
+private def truncatedResolverSourceDiffEnergy
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (s t : ℝ) : ℝ :=
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  ∫ y,
+    (p.ν * positivePart (intervalDomainLift (U s) y) ^ p.γ -
+      p.ν * positivePart (intervalDomainLift (U t) y) ^ p.γ) ^ 2
+    ∂intervalMeasure 1
+
+private theorem truncatedResolverSourceDiffEnergy_nonneg
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀) (s t : ℝ) :
+    0 ≤ truncatedResolverSourceDiffEnergy p DT s t := by
+  exact integral_nonneg fun _ => sq_nonneg _
+
+/-- The positive-part elliptic source is strongly continuous in spatial L²
+along every positive-time left filter.  This uses only pointwise time
+continuity and the uniform truncated ball. -/
+private theorem truncatedResolverSourceDiffEnergy_tendsto
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    Tendsto (fun s => truncatedResolverSourceDiffEnergy p DT s t)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let ρ : ℝ → ℝ → ℝ := fun s y =>
+    p.ν * positivePart (intervalDomainLift (U s) y) ^ p.γ
+  let F : ℝ → ℝ → ℝ := fun s y => (ρ s y - ρ t y) ^ 2
+  let B : ℝ := (2 * (p.ν * DT.M ^ p.γ)) ^ 2
+  have hsrc : 0 ≤ p.ν * DT.M ^ p.γ :=
+    mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _)
+  have hB : 0 ≤ B := sq_nonneg _
+  have hpos_event : ∀ᶠ s in nhdsWithin t (Set.Iio t), 0 < s := by
+    have hnh : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (by linarith)
+    have hnh' : ∀ᶠ s in nhdsWithin t (Set.Iio t), s ∈ Set.Ioi (t / 2) :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds hnh
+    filter_upwards [hnh'] with s hs
+    exact lt_trans (half_pos ht) hs
+  have hFmeas : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      AEStronglyMeasurable (F s) (intervalMeasure 1) := by
+    filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+    have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+    have hUs : ContinuousOn (intervalDomainLift (U s)) (Set.Icc (0 : ℝ) 1) :=
+      ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+        (by simpa [U] using
+          (truncatedConjugateMildSolutionData_of_data DT).hcont s hs0 hsT)
+    have hUt : ContinuousOn (intervalDomainLift (U t)) (Set.Icc (0 : ℝ) 1) :=
+      ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+        (by simpa [U] using
+          (truncatedConjugateMildSolutionData_of_data DT).hcont t ht htT)
+    have hp : Continuous (fun r : ℝ => positivePart r) := by
+      simpa [positivePart] using continuous_id.max continuous_const
+    have hρs : ContinuousOn (ρ s) (Set.Icc (0 : ℝ) 1) := by
+      simpa [ρ] using continuousOn_const.mul
+        ((hp.continuousOn.comp hUs (fun _ _ => Set.mem_univ _)).rpow_const
+          (fun _ _ => Or.inr p.hγ.le))
+    have hρt : ContinuousOn (ρ t) (Set.Icc (0 : ℝ) 1) := by
+      simpa [ρ] using continuousOn_const.mul
+        ((hp.continuousOn.comp hUt (fun _ _ => Set.mem_univ _)).rpow_const
+          (fun _ _ => Or.inr p.hγ.le))
+    exact ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      ((hρs.sub hρt).pow 2)
+  have hFbound : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      ∀ᵐ y ∂intervalMeasure 1, ‖F s y‖ ≤ B := by
+    filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+    have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+    refine Filter.Eventually.of_forall fun y => ?_
+    have hUbound : ∀ r, 0 < r → r ≤ DT.T →
+        |intervalDomainLift (U r) y| ≤ DT.M := by
+      intro r hr hrT
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simpa [U, intervalDomainLift, hy] using
+          (truncatedConjugateMildSolutionData_of_data DT).hbound
+            r hr hrT ⟨y, hy⟩
+      · simp [intervalDomainLift, hy, DT.hM.le]
+    have hρbound : ∀ r, 0 < r → r ≤ DT.T → |ρ r y| ≤
+        p.ν * DT.M ^ p.γ := by
+      intro r hr hrT
+      have hp_le : positivePart (intervalDomainLift (U r) y) ≤ DT.M := by
+        have h := abs_positivePart_le_abs (intervalDomainLift (U r) y)
+        rw [abs_of_nonneg (positivePart_nonneg _)] at h
+        exact h.trans (hUbound r hr hrT)
+      have hpow := Real.rpow_le_rpow (positivePart_nonneg _) hp_le p.hγ.le
+      change |p.ν * positivePart (intervalDomainLift (U r) y) ^ p.γ| ≤
+        p.ν * DT.M ^ p.γ
+      rw [abs_of_nonneg
+        (mul_nonneg p.hν.le (Real.rpow_nonneg (positivePart_nonneg _) _))]
+      exact mul_le_mul_of_nonneg_left hpow p.hν.le
+    have hd : |ρ s y - ρ t y| ≤ 2 * (p.ν * DT.M ^ p.γ) := by
+      calc
+        |ρ s y - ρ t y| ≤ |ρ s y| + |ρ t y| := abs_sub _ _
+        _ ≤ p.ν * DT.M ^ p.γ + p.ν * DT.M ^ p.γ :=
+          add_le_add (hρbound s hs0 hsT) (hρbound t ht htT)
+        _ = 2 * (p.ν * DT.M ^ p.γ) := by ring
+    change ‖(ρ s y - ρ t y) ^ 2‖ ≤ B
+    rw [Real.norm_eq_abs, abs_pow]
+    exact pow_le_pow_left₀ (abs_nonneg _) hd 2
+  have hFlim : ∀ᵐ y ∂intervalMeasure 1,
+      Tendsto (fun s => F s y) (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with y hy
+    have hyI : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    let X : intervalDomainPoint := ⟨y, hyI⟩
+    have hUlim : Tendsto (fun s => U s X) (nhdsWithin t (Set.Iio t))
+        (nhds (U t X)) := by
+      simpa [U] using
+        (truncatedLimit_timeSlice_continuousWithinAt_Iio DT ht htT X)
+    have hp : Continuous (fun r : ℝ =>
+        p.ν * positivePart r ^ p.γ) := by
+      have hpp : Continuous (fun r : ℝ => positivePart r) := by
+        simpa [positivePart] using continuous_id.max continuous_const
+      exact continuous_const.mul
+        (hpp.rpow_const (fun _ => Or.inr p.hγ.le))
+    have hρlim : Tendsto (fun s => ρ s y) (nhdsWithin t (Set.Iio t))
+        (nhds (ρ t y)) := by
+      have hlift : ∀ r, intervalDomainLift (U r) y = U r X := by
+        intro r
+        simp [intervalDomainLift, hyI, X]
+      simpa [ρ, hlift] using
+        hp.continuousAt.tendsto.comp hUlim
+    have hconst : Tendsto (fun _ : ℝ => ρ t y)
+        (nhdsWithin t (Set.Iio t)) (nhds (ρ t y)) := tendsto_const_nhds
+    simpa [F] using (hρlim.sub hconst).pow 2
+  have hDCT := MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+    (fun _ : ℝ => B) hFmeas hFbound (integrable_const _) hFlim
+  simpa [truncatedResolverSourceDiffEnergy, U, ρ, F] using hDCT
+
+private theorem intervalMeasure_integral_eq_intervalIntegral_energy
+    (f : ℝ → ℝ) :
+    (∫ y, f y ∂intervalMeasure 1) = ∫ y in (0 : ℝ)..1, f y := by
+  simp only [intervalMeasure, ShenWork.IntervalDomain.intervalSet]
+  change (∫ y in Set.Icc (0 : ℝ) 1, f y ∂volume) =
+    ∫ y in (0 : ℝ)..1, f y
+  rw [intervalIntegral.integral_of_le (by norm_num : (0 : ℝ) ≤ 1),
+    ← MeasureTheory.integral_Icc_eq_integral_Ioc]
+
+/-- Static resolvent stability with the source L² distance left explicit.
+Unlike the older ball-Lipschitz theorem, this works for every `γ > 0`. -/
+private theorem truncatedResolver_diff_le_sourceEnergy
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {s t y : ℝ} (hs : 0 < s) (hsT : s ≤ DT.T)
+    (ht : 0 < t) (htT : t ≤ DT.T) (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    let ws := positivePartSlice (U s)
+    let wt := positivePartSlice (U t)
+    |resolverGradReal p ws y - resolverGradReal p wt y| ≤
+        Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          Real.sqrt (4 * truncatedResolverSourceDiffEnergy p DT s t) ∧
+      |ShenWork.PDE.intervalNeumannResolverR p ws ⟨y, hy⟩ -
+          ShenWork.PDE.intervalNeumannResolverR p wt ⟨y, hy⟩| ≤
+        Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          Real.sqrt (4 * truncatedResolverSourceDiffEnergy p DT s t) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let ws := positivePartSlice (U s)
+  let wt := positivePartSlice (U t)
+  have hws_cont : Continuous ws := positivePartSlice_continuous (by
+    simpa [U] using
+      (truncatedConjugateMildSolutionData_of_data DT).hcont s hs hsT)
+  have hwt_cont : Continuous wt := positivePartSlice_continuous (by
+    simpa [U] using
+      (truncatedConjugateMildSolutionData_of_data DT).hcont t ht htT)
+  have hws_lift : ContinuousOn (intervalDomainLift ws) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+      hws_cont
+  have hwt_lift : ContinuousOn (intervalDomainLift wt) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+      hwt_cont
+  have hsrcs : ContinuousOn
+      (fun x : ℝ => p.ν * intervalDomainLift ws x ^ p.γ)
+      (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul
+      (hws_lift.rpow_const (fun _ _ => Or.inr p.hγ.le))
+  have hsrct : ContinuousOn
+      (fun x : ℝ => p.ν * intervalDomainLift wt x ^ p.γ)
+      (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul
+      (hwt_lift.rpow_const (fun _ _ => Or.inr p.hγ.le))
+  have henergy :=
+    ShenWork.IntervalResolverWeakBounds.sourceCoeff_diff_energy_le_integral_of_continuousOn
+      p hsrcs hsrct
+  have hInt : (∫ x in (0 : ℝ)..1,
+      (p.ν * intervalDomainLift ws x ^ p.γ -
+        p.ν * intervalDomainLift wt x ^ p.γ) ^ 2) =
+      truncatedResolverSourceDiffEnergy p DT s t := by
+    rw [← intervalMeasure_integral_eq_intervalIntegral_energy]
+    unfold truncatedResolverSourceDiffEnergy
+    apply integral_congr_ae
+    exact Filter.Eventually.of_forall fun x => by
+      simp only [ws, wt]
+      rw [intervalDomainLift_positivePartSlice,
+        intervalDomainLift_positivePartSlice]
+  rw [hInt] at henergy
+  let A : ℕ → ℂ := fun k =>
+    ShenWork.PDE.intervalNeumannResolverSourceCoeff p ws k -
+      ShenWork.PDE.intervalNeumannResolverSourceCoeff p wt k
+  have hA : ShenWork.PDE.ResolventEstimate.coeffL2Norm A ≤
+      Real.sqrt (4 * truncatedResolverSourceDiffEnergy p DT s t) := by
+    rw [ShenWork.PDE.ResolventEstimate.coeffL2Norm]
+    exact Real.sqrt_le_sqrt henergy
+  have hdiff :=
+    ShenWork.IntervalResolverWeakBounds.resolverSourceCoeff_diff_re_sq_summable_of_continuousOn
+      p hws_lift hwt_lift
+  have hl2s : Summable (fun k : ℕ =>
+      ((ShenWork.PDE.intervalNeumannResolverSourceCoeff p ws k).re) ^ 2) := by
+    simpa [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero, sub_zero] using
+      ShenWork.IntervalResolverWeakBounds.resolverSourceCoeff_re_sq_summable_of_continuousOn
+        p hws_lift
+  have hl2t : Summable (fun k : ℕ =>
+      ((ShenWork.PDE.intervalNeumannResolverSourceCoeff p wt k).re) ^ 2) := by
+    simpa [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero, sub_zero] using
+      ShenWork.IntervalResolverWeakBounds.resolverSourceCoeff_re_sq_summable_of_continuousOn
+        p hwt_lift
+  let Y : intervalDomainPoint := ⟨y, hy⟩
+  have hgrad := ShenWork.PDE.intervalNeumannResolverR_grad_sup_lipschitz
+    p ws wt hdiff Y
+    (ShenWork.IntervalResolverWeakBounds.resolver_sineSeries_summable_of_sourceL2
+      p hl2s y)
+    (ShenWork.IntervalResolverWeakBounds.resolver_sineSeries_summable_of_sourceL2
+      p hl2t y)
+  have hval := ShenWork.PDE.intervalNeumannResolverR_sup_lipschitz
+    p ws wt hdiff Y
+    (ShenWork.IntervalResolverWeakBounds.resolver_cosineSeries_summable_of_sourceL2
+      p hl2s y)
+    (ShenWork.IntervalResolverWeakBounds.resolver_cosineSeries_summable_of_sourceL2
+      p hl2t y)
+  rw [← resolverGradReal_eq p ws Y, ← resolverGradReal_eq p wt Y] at hgrad
+  constructor
+  · exact hgrad.trans (mul_le_mul_of_nonneg_left hA (Real.sqrt_nonneg _))
+  · exact hval.trans (mul_le_mul_of_nonneg_left hA (Real.sqrt_nonneg _))
+
+/-- The faithful truncated chemotaxis flux is strongly continuous in spatial
+`L¹` from the left at every active time.  Resolver continuity is obtained
+directly from the source `L²` energy, so no Lipschitz estimate for the power
+map (and hence no assumption `1 ≤ γ`) is needed. -/
+private theorem truncatedLimit_flux_sub_integral_tendsto_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    Tendsto
+      (fun s => ∫ y,
+        |truncatedChemFluxLifted p
+              ((truncatedConjugatePicardLimit p u₀ DT.T) s) y -
+          truncatedChemFluxLifted p
+              ((truncatedConjugatePicardLimit p u₀ DT.T) t) y|
+        ∂intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let Q : ℝ → ℝ → ℝ := fun s => truncatedChemFluxLifted p (U s)
+  let E : ℝ → ℝ := fun s => truncatedResolverSourceDiffEnergy p DT s t
+  let Cg : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+  let Cr : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+  let CQ : ℝ := DT.M *
+    (Cg * (2 * (p.ν * DT.M ^ p.γ)))
+  have hE : Tendsto E (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa [E] using truncatedResolverSourceDiffEnergy_tendsto DT ht htT
+  have h4E : Tendsto (fun s => 4 * E s)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa using tendsto_const_nhds.mul hE
+  have hsqrt : Tendsto (fun s => Real.sqrt (4 * E s))
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa only [Function.comp_apply, Real.sqrt_zero] using
+      (Real.continuous_sqrt.tendsto 0).comp h4E
+  have hCgsqrt : Tendsto (fun s => Cg * Real.sqrt (4 * E s))
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa only [mul_zero] using
+      (tendsto_const_nhds (x := Cg)).mul hsqrt
+  have hCrsqrt : Tendsto (fun s => Cr * Real.sqrt (4 * E s))
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa only [mul_zero] using
+      (tendsto_const_nhds (x := Cr)).mul hsqrt
+  have hpos_event : ∀ᶠ s in nhdsWithin t (Set.Iio t), 0 < s := by
+    have hnh : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (half_lt_self ht)
+    have hnh' : ∀ᶠ s in nhdsWithin t (Set.Iio t), s ∈ Set.Ioi (t / 2) :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds hnh
+    filter_upwards [hnh'] with s hs
+    exact (half_pos ht).trans hs
+  have hQlim : ∀ᵐ y ∂intervalMeasure 1,
+      Tendsto (fun s => Q s y) (nhdsWithin t (Set.Iio t))
+        (nhds (Q t y)) := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with y hy
+    have hyI : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    let X : intervalDomainPoint := ⟨y, hyI⟩
+    let w : ℝ → intervalDomainPoint → ℝ := fun s => positivePartSlice (U s)
+    let A : ℝ → ℝ := fun s => positivePart (intervalDomainLift (U s) y)
+    let G : ℝ → ℝ := fun s => resolverGradReal p (w s) y
+    let R : ℝ → ℝ := fun s => intervalDomainLift
+      (ShenWork.PDE.intervalNeumannResolverR p (w s)) y
+    have hUlim : Tendsto (fun s => U s X) (nhdsWithin t (Set.Iio t))
+        (nhds (U t X)) := by
+      simpa [U] using
+        (truncatedLimit_timeSlice_continuousWithinAt_Iio DT ht htT X)
+    have hAlim : Tendsto A (nhdsWithin t (Set.Iio t)) (nhds (A t)) := by
+      have hp : Continuous (fun r : ℝ => positivePart r) := by
+        simpa [positivePart] using continuous_id.max continuous_const
+      have hlift : ∀ s, intervalDomainLift (U s) y = U s X := by
+        intro s
+        simp [intervalDomainLift, hyI, X]
+      simpa [A, hlift] using hp.continuousAt.tendsto.comp hUlim
+    have hGdiff : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+        |G s - G t| ≤ Cg * Real.sqrt (4 * E s) := by
+      filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+      have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+      simpa [G, w, Cg, E, U] using
+        (truncatedResolver_diff_le_sourceEnergy DT hs0 hsT ht htT hyI).1
+    have hGlim : Tendsto G (nhdsWithin t (Set.Iio t)) (nhds (G t)) := by
+      rw [tendsto_iff_norm_sub_tendsto_zero]
+      simpa [Real.norm_eq_abs] using squeeze_zero'
+        (Filter.Eventually.of_forall fun s => abs_nonneg (G s - G t))
+        hGdiff hCgsqrt
+    have hRdiff : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+        |R s - R t| ≤ Cr * Real.sqrt (4 * E s) := by
+      filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+      have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+      simpa [R, w, Cr, E, U, intervalDomainLift, hyI] using
+        (truncatedResolver_diff_le_sourceEnergy DT hs0 hsT ht htT hyI).2
+    have hRlim : Tendsto R (nhdsWithin t (Set.Iio t)) (nhds (R t)) := by
+      rw [tendsto_iff_norm_sub_tendsto_zero]
+      simpa [Real.norm_eq_abs] using squeeze_zero'
+        (Filter.Eventually.of_forall fun s => abs_nonneg (R s - R t))
+        hRdiff hCrsqrt
+    have hUt_cont : Continuous (U t) := by
+      simpa [U] using
+        (truncatedConjugateMildSolutionData_of_data DT).hcont t ht htT
+    have hRt : 0 ≤ R t := by
+      simpa [R, w, U, positivePartSlice] using
+        _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.resolverR_positivePart_lift_nonneg_of_continuous
+          p hUt_cont y
+    have hdenlim : Tendsto (fun s => (1 + R s) ^ p.β)
+        (nhdsWithin t (Set.Iio t)) (nhds ((1 + R t) ^ p.β)) := by
+      exact (tendsto_const_nhds.add hRlim).rpow_const
+        (Or.inl (ne_of_gt (by linarith : 0 < 1 + R t)))
+    have hden_ne : (1 + R t) ^ p.β ≠ 0 :=
+      ne_of_gt (Real.rpow_pos_of_pos (by linarith : 0 < 1 + R t) _)
+    have hfluxlim := (hAlim.mul hGlim).div hdenlim hden_ne
+    simpa [Q, truncatedChemFluxLifted, A, G, R, w, U,
+      positivePartSlice] using hfluxlim
+  let F : ℝ → ℝ → ℝ := fun s y => |Q s y - Q t y|
+  let B : ℝ := 2 * CQ
+  have hCQ : 0 ≤ CQ := by
+    dsimp [CQ, Cg]
+    exact mul_nonneg DT.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _))))
+  have hQbound : ∀ s, 0 < s → s ≤ DT.T → ∀ y, |Q s y| ≤ CQ := by
+    intro s hs hsT y
+    rw [show Q s y = truncatedChemFluxLifted p (U s) y by rfl,
+      truncatedChemFluxLifted_eq_chemFluxLifted_positivePartSlice]
+    exact
+      ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+        p DT.hM.le
+        (fun x => (abs_positivePart_le_abs (U s x)).trans (by
+          simpa [U] using
+            (truncatedConjugateMildSolutionData_of_data DT).hbound s hs hsT x))
+        (positivePartSlice_nonneg (U s))
+        (positivePartSlice_continuous (by
+          simpa [U] using
+            (truncatedConjugateMildSolutionData_of_data DT).hcont s hs hsT)) y
+  have hFmeas : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      AEStronglyMeasurable (F s) (intervalMeasure 1) := by
+    filter_upwards [] with s
+    exact (((truncatedLimit_flux_integrable DT s).sub
+      (truncatedLimit_flux_integrable DT t)).abs.aestronglyMeasurable)
+  have hFbound : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      ∀ᵐ y ∂intervalMeasure 1, ‖F s y‖ ≤ B := by
+    filter_upwards [self_mem_nhdsWithin, hpos_event] with s hst hs0
+    have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+    refine Filter.Eventually.of_forall fun y => ?_
+    rw [Real.norm_eq_abs, abs_abs]
+    calc
+      |Q s y - Q t y| ≤ |Q s y| + |Q t y| := abs_sub _ _
+      _ ≤ CQ + CQ := add_le_add (hQbound s hs0 hsT y)
+        (hQbound t ht htT y)
+      _ = B := by ring
+  have hFlim : ∀ᵐ y ∂intervalMeasure 1,
+      Tendsto (fun s => F s y) (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    filter_upwards [hQlim] with y hy
+    simpa [F] using (hy.sub_const (Q t y)).abs
+  have hDCT := MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+    (fun _ : ℝ => B) hFmeas hFbound (integrable_const _) hFlim
+  simpa [F, Q, U] using hDCT
+
+/-- Left-endpoint convergence of the chemotaxis Duhamel pairing against the
+fixed final negative-part test.  The fixed-flux term is moved by
+self-adjointness onto the Dirichlet heat approximation of the continuous
+endpoint-zero flux; the varying-flux term is controlled by `L¹` time
+continuity and the preserved derivative envelope of the test. -/
+private theorem truncatedLimit_chem_pairing_tendsto_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    Tendsto
+      (fun s => ∫ x,
+        truncatedChemFluxLifted p
+            ((truncatedConjugatePicardLimit p u₀ DT.T) s) x *
+          deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator (t - s)
+              (negativePartTest
+                (truncatedConjugatePicardLimit p u₀ DT.T) t) z) x
+        ∂intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let Q : ℝ → ℝ → ℝ := fun s => truncatedChemFluxLifted p (U s)
+  let φ : ℝ → ℝ := negativePartTest U t
+  let D : ℝ → (ℝ → ℝ) → ℝ → ℝ :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalConjugateApproxOperator
+  let Cg : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+  let CQ : ℝ := DT.M *
+    (Cg * (2 * (p.ν * DT.M ^ p.γ)))
+  have hCQ : 0 ≤ CQ := by
+    dsimp [CQ, Cg]
+    exact mul_nonneg DT.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _))))
+  have hQbound : ∀ s, 0 < s → s ≤ DT.T → ∀ y, |Q s y| ≤ CQ := by
+    intro s hs hsT y
+    rw [show Q s y = truncatedChemFluxLifted p (U s) y by rfl,
+      truncatedChemFluxLifted_eq_chemFluxLifted_positivePartSlice]
+    exact
+      ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+        p DT.hM.le
+        (fun x => (abs_positivePart_le_abs (U s x)).trans (by
+          simpa [U] using
+            (truncatedConjugateMildSolutionData_of_data DT).hbound s hs hsT x))
+        (positivePartSlice_nonneg (U s))
+        (positivePartSlice_continuous (by
+          simpa [U] using
+            (truncatedConjugateMildSolutionData_of_data DT).hcont s hs hsT)) y
+  have hQt_cont : ContinuousOn (Q t) (Set.Icc (0 : ℝ) 1) := by
+    simpa [Q, U] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFlux_continuousOn_positive_time
+        DT ht htT
+  have hQt_meas : AEStronglyMeasurable (Q t) (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      hQt_cont
+  have hQt_zero : Q t 0 = 0 := by
+    simpa [Q, U] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_zero_left'
+        p (U t)
+  have hQt_one : Q t 1 = 0 := by
+    simpa [Q, U] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_zero_right'
+        p (U t)
+  have hφcont : ContinuousOn φ (Set.Icc (0 : ℝ) 1) := by
+    simpa [φ, U] using truncatedLimit_test_continuousOn DT ht htT
+  have hφmeas : AEStronglyMeasurable φ (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      hφcont
+  have hφbound : ∀ y, |φ y| ≤ DT.M := by
+    intro y
+    have hlift : |intervalDomainLift (U t) y| ≤ DT.M := by
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simpa [U, intervalDomainLift, hy] using
+          (truncatedConjugateMildSolutionData_of_data DT).hbound
+            t ht htT ⟨y, hy⟩
+      · simp [U, intervalDomainLift, hy, DT.hM.le]
+    simpa [φ, negativePartTest, negativePartLift, abs_neg] using
+      (negativePart_abs_le_abs (intervalDomainLift (U t) y)).trans hlift
+  have hφac : AbsolutelyContinuousOnInterval φ 0 1 := by
+    simpa [φ, U] using
+      truncatedLimit_negativePartTest_absolutelyContinuous DT ht htT
+  obtain ⟨G, hG, hderiv_bound_vol⟩ :=
+    truncatedLimit_negativePartTest_deriv_ae_bound_volume DT ht htT
+  let d : ℝ → ℝ := fun y =>
+    if |deriv φ y| ≤ G then deriv φ y else 0
+  have hd_meas_global : Measurable d := by
+    apply Measurable.ite
+    · exact measurableSet_le (Measurable.abs (measurable_deriv φ)) measurable_const
+    · exact measurable_deriv φ
+    · exact measurable_const
+  have hd_meas : AEStronglyMeasurable d (intervalMeasure 1) :=
+    hd_meas_global.aestronglyMeasurable
+  have hd_bound : ∀ y, |d y| ≤ G := by
+    intro y
+    by_cases hy : |deriv φ y| ≤ G
+    · simpa [d, hy] using hy
+    · simp [d, hy, hG]
+  have hd_eq_vol : d =ᵐ[volume] deriv φ := by
+    filter_upwards [hderiv_bound_vol] with y hy
+    have hy' : |deriv φ y| ≤ G := by simpa [φ, U] using hy
+    simp [d, hy']
+  have hd_eq_μ : d =ᵐ[intervalMeasure 1] deriv φ := by
+    simp only [intervalMeasure, ShenWork.IntervalDomain.intervalSet]
+    exact hd_eq_vol.filter_mono ae_restrict_le
+  have hd_int : Integrable d (intervalMeasure 1) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      hd_meas hd_bound
+  have hderiv_eq : ∀ {r : ℝ}, 0 < r → ∀ x,
+      deriv (fun z : ℝ => intervalFullSemigroupOperator r φ z) x =
+        D r d x := by
+    intro r hr x
+    rw [ShenWork.Paper2.IntervalNegativePartWeakEnergy.deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_of_ac
+      hr hφmeas hφbound hφac x]
+    unfold D ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalConjugateApproxOperator
+    congr 1
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [hd_eq_vol] with y hy
+    intro _hy
+    rw [hy]
+  have hD_int : ∀ {r : ℝ}, 0 < r →
+      Integrable (D r d) (intervalMeasure 1) := by
+    intro r hr
+    exact
+      ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalConjugateApproxOperator_integrable_of_bound
+        hr hd_meas hd_bound
+  have hr : Tendsto (fun s : ℝ => t - s)
+      (nhdsWithin t (Set.Iio t)) (nhdsWithin 0 (Set.Ioi 0)) := by
+    rw [tendsto_nhdsWithin_iff]
+    constructor
+    · have hc : ContinuousAt (fun s : ℝ => t - s) t :=
+        continuousAt_const.sub continuousAt_id
+      simpa using hc.tendsto.mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with s hs
+      exact sub_pos.mpr (show s < t from hs)
+  have hpos_event : ∀ᶠ s in nhdsWithin t (Set.Iio t), 0 < s := by
+    have hnh : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (half_lt_self ht)
+    have hnh' : ∀ᶠ s in nhdsWithin t (Set.Iio t), s ∈ Set.Ioi (t / 2) :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds hnh
+    filter_upwards [hnh'] with s hs
+    exact (half_pos ht).trans hs
+  let V : ℝ → ℝ := fun s => ∫ x,
+    (Q s x - Q t x) *
+      deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+    ∂intervalMeasure 1
+  have hVbound : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      |V s| ≤ G * (∫ x, |Q s x - Q t x| ∂intervalMeasure 1) := by
+    filter_upwards [self_mem_nhdsWithin] with s hst
+    have hrpos : 0 < t - s := sub_pos.mpr hst
+    have hQdiff_int := (truncatedLimit_flux_integrable DT s).sub
+      (truncatedLimit_flux_integrable DT t)
+    have hdS_int : Integrable
+        (fun x => deriv
+          (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x)
+        (intervalMeasure 1) :=
+      (hD_int hrpos).congr (Filter.Eventually.of_forall fun x => by
+        exact (hderiv_eq hrpos x).symm)
+    have hdS_bound : ∀ x,
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x| ≤ G :=
+      fun x =>
+        ShenWork.Paper2.IntervalNegativePartWeakEnergy.abs_deriv_intervalFullSemigroupOperator_le_of_ac
+          hrpos hφmeas hφbound hφac hG hderiv_bound_vol x
+    have hdom_int : Integrable (fun x => G * |Q s x - Q t x|)
+        (intervalMeasure 1) := hQdiff_int.abs.const_mul G
+    have hnorm := MeasureTheory.norm_integral_le_of_norm_le hdom_int
+      (Filter.Eventually.of_forall fun x => by
+        rw [Real.norm_eq_abs, abs_mul]
+        calc
+          |Q s x - Q t x| *
+              |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x|
+              ≤ |Q s x - Q t x| * G :=
+            mul_le_mul_of_nonneg_left (hdS_bound x) (abs_nonneg _)
+          _ = G * |Q s x - Q t x| := by ring)
+    rw [Real.norm_eq_abs] at hnorm
+    simpa [V, MeasureTheory.integral_const_mul] using hnorm
+  have hVrhs : Tendsto
+      (fun s => G * (∫ x, |Q s x - Q t x| ∂intervalMeasure 1))
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa [Q, U] using (tendsto_const_nhds (x := G)).mul
+      (truncatedLimit_flux_sub_integral_tendsto_zero DT ht htT)
+  have hVabs : Tendsto (fun s => |V s|)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) :=
+    squeeze_zero'
+      (Filter.Eventually.of_forall fun s => abs_nonneg (V s)) hVbound hVrhs
+  have hV : Tendsto V (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    simpa [Real.norm_eq_abs] using hVabs
+  have happrox :
+      ShenWork.IntervalSemigroupC1ApproxIdentity.InitialLegConjugateDerivativeApprox
+        (Q t) :=
+    ShenWork.IntervalSemigroupC1ApproxIdentity.initialLegConjugateDerivativeApprox_of_continuousOn_zero
+      hQt_cont hQt_zero hQt_one
+  have hDQt_point : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      Tendsto (fun r => D r (Q t) y) (nhdsWithin 0 (Set.Ioi 0))
+        (nhds (Q t y)) := by
+    intro y hy
+    rw [Metric.tendsto_nhds]
+    intro ε hε
+    obtain ⟨δ, hδ, happ⟩ := happrox ε hε
+    have hlt : ∀ᶠ r in nhdsWithin 0 (Set.Ioi 0), r < δ :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds (Iio_mem_nhds hδ)
+    filter_upwards [self_mem_nhdsWithin, hlt] with r hrpos hrδ
+    simpa [D, Real.dist_eq] using happ r hrpos hrδ y hy
+  let F : ℝ → ℝ → ℝ := fun s y => d y * D (t - s) (Q t) y
+  let f : ℝ → ℝ := fun y => d y * Q t y
+  obtain ⟨δ₁, hδ₁, happ₁⟩ := happrox 1 (by norm_num : (0 : ℝ) < 1)
+  have hrlt_event : ∀ᶠ s in nhdsWithin t (Set.Iio t), t - s < δ₁ := by
+    have hset : Set.Iio δ₁ ∈ nhdsWithin 0 (Set.Ioi 0) :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds (Iio_mem_nhds hδ₁)
+    exact hr hset
+  have hFmeas : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      AEStronglyMeasurable (F s) (intervalMeasure 1) := by
+    filter_upwards [self_mem_nhdsWithin] with s hst
+    have hDq_int :=
+      ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalConjugateApproxOperator_integrable_of_bound
+        (sub_pos.mpr hst) hQt_meas (hQbound t ht htT)
+    exact ((hDq_int.bdd_mul hd_meas
+      (Filter.Eventually.of_forall fun y => by
+        rw [Real.norm_eq_abs]
+        exact hd_bound y)).congr
+      (Filter.Eventually.of_forall fun _ => by ring)).aestronglyMeasurable
+  have hFbound : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+      ∀ᵐ y ∂intervalMeasure 1, ‖F s y‖ ≤ G * (CQ + 1) := by
+    filter_upwards [self_mem_nhdsWithin, hrlt_event] with s hst hrδ
+    have hrpos : 0 < t - s := sub_pos.mpr hst
+    filter_upwards [ae_mem_Ioo_unitInterval] with y hy
+    have hyI : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    have ha := happ₁ (t - s) hrpos hrδ y hyI
+    have ha' : |D (t - s) (Q t) y - Q t y| < 1 := by
+      simpa [D] using ha
+    have hDq : |D (t - s) (Q t) y| ≤ CQ + 1 := by
+      calc
+        |D (t - s) (Q t) y| =
+            |(D (t - s) (Q t) y - Q t y) + Q t y| := by
+          congr 1
+          ring
+        _ ≤ |D (t - s) (Q t) y - Q t y| + |Q t y| :=
+          abs_add_le _ _
+        _ = |Q t y| + |D (t - s) (Q t) y - Q t y| := add_comm _ _
+        _ ≤ CQ + 1 := add_le_add (hQbound t ht htT y) (le_of_lt ha')
+    change |d y * D (t - s) (Q t) y| ≤ G * (CQ + 1)
+    rw [abs_mul]
+    exact mul_le_mul (hd_bound y) hDq (abs_nonneg _)
+      (hG.trans (by linarith [hCQ]))
+  have hFlim : ∀ᵐ y ∂intervalMeasure 1,
+      Tendsto (fun s => F s y) (nhdsWithin t (Set.Iio t)) (nhds (f y)) := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with y hy
+    have hyI : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    simpa [F, f] using (tendsto_const_nhds (x := d y)).mul
+      ((hDQt_point y hyI).comp hr)
+  have hFint : Tendsto (fun s => ∫ y, F s y ∂intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t)) (nhds (∫ y, f y ∂intervalMeasure 1)) :=
+    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+      (fun _ : ℝ => G * (CQ + 1)) hFmeas hFbound (integrable_const _) hFlim
+  have hdu_zero : ∀ᵐ x ∂intervalMeasure 1,
+      0 < intervalDomainLift (U t) x →
+        deriv (negativePartLift (U t)) x = 0 := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with x hx hpos
+    have hlift_contOn : ContinuousOn (intervalDomainLift (U t))
+        (Set.Icc (0 : ℝ) 1) :=
+      ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+        (by simpa [U] using
+          (truncatedConjugateMildSolutionData_of_data DT).hcont t ht htT)
+    have hlift_cont : ContinuousAt (intervalDomainLift (U t)) x :=
+      hlift_contOn.continuousAt (Icc_mem_nhds hx.1 hx.2)
+    have hpos_ev : ∀ᶠ y in nhds x, 0 < intervalDomainLift (U t) y :=
+      hlift_cont.tendsto.eventually (isOpen_Ioi.mem_nhds hpos)
+    have hzero_ev : negativePartLift (U t) =ᶠ[nhds x] fun _ => 0 := by
+      filter_upwards [hpos_ev] with y hy
+      simp [negativePartLift, negativePart_eq_zero_of_nonneg hy.le]
+    rw [hzero_ev.deriv_eq]
+    simp
+  have hchem_zero : (∫ y, f y ∂intervalMeasure 1) = 0 := by
+    have hbase := negativePart_chemFlux_test_integral_eq_zero_regular p U t hdu_zero
+    calc
+      (∫ y, f y ∂intervalMeasure 1) =
+          ∫ y, Q t y * deriv φ y ∂intervalMeasure 1 := by
+        apply integral_congr_ae
+        filter_upwards [hd_eq_μ] with y hy
+        simp [f, hy]
+        ring
+      _ = 0 := by simpa [Q, φ] using hbase
+  have hfixed : Tendsto
+      (fun s => ∫ x, Q t x *
+        deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+        ∂intervalMeasure 1)
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    have hcongr : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+        (∫ x, Q t x *
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+          ∂intervalMeasure 1) =
+        ∫ y, F s y ∂intervalMeasure 1 := by
+      filter_upwards [self_mem_nhdsWithin] with s hst
+      have hrpos : 0 < t - s := sub_pos.mpr hst
+      calc
+        (∫ x, Q t x *
+            deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+            ∂intervalMeasure 1) =
+            ∫ x, D (t - s) d x * Q t x ∂intervalMeasure 1 := by
+          apply integral_congr_ae
+          exact Filter.Eventually.of_forall fun x => by
+            change Q t x *
+                deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x =
+              D (t - s) d x * Q t x
+            rw [hderiv_eq hrpos x]
+            ring
+        _ = ∫ y, d y * D (t - s) (Q t) y ∂intervalMeasure 1 :=
+          ShenWork.Paper2.IntervalNegativePartWeakEnergy.intervalConjugateApproxOperator_pairing_comm
+            hrpos hd_meas hQt_meas hd_bound (hQbound t ht htT)
+        _ = ∫ y, F s y ∂intervalMeasure 1 := rfl
+    have hcongr' : ∀ᶠ s in nhdsWithin t (Set.Iio t),
+        (∫ y, F s y ∂intervalMeasure 1) =
+          ∫ x, Q t x *
+            deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+            ∂intervalMeasure 1 :=
+      hcongr.mono fun _ hs => hs.symm
+    have := hFint.congr' hcongr'
+    simpa [hchem_zero] using this
+  have hsum : Tendsto
+      (fun s => V s +
+        (∫ x, Q t x *
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+          ∂intervalMeasure 1))
+      (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa only [zero_add] using hV.add hfixed
+  refine hsum.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with s hst
+  have hrpos : 0 < t - s := sub_pos.mpr hst
+  have hdS_int : Integrable
+      (fun x => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x)
+      (intervalMeasure 1) :=
+    (hD_int hrpos).congr (Filter.Eventually.of_forall fun x => by
+      exact (hderiv_eq hrpos x).symm)
+  have hdS_bound : ∀ x,
+      |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x| ≤ G :=
+    fun x =>
+      ShenWork.Paper2.IntervalNegativePartWeakEnergy.abs_deriv_intervalFullSemigroupOperator_le_of_ac
+        hrpos hφmeas hφbound hφac hG hderiv_bound_vol x
+  have hQs_int := truncatedLimit_flux_integrable DT s
+  have hQt_int := truncatedLimit_flux_integrable DT t
+  have hleft_int : Integrable (fun x =>
+      (Q s x - Q t x) *
+        deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x)
+      (intervalMeasure 1) :=
+    ((hQs_int.sub hQt_int).bdd_mul hdS_int.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => by
+        rw [Real.norm_eq_abs]
+        exact hdS_bound x)).congr
+      (Filter.Eventually.of_forall fun _ => by
+        simp only [Pi.sub_apply, Q, U]
+        ring)
+  have hright_int : Integrable (fun x => Q t x *
+      deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x)
+      (intervalMeasure 1) :=
+    (hQt_int.bdd_mul hdS_int.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun x => by
+        rw [Real.norm_eq_abs]
+        exact hdS_bound x)).congr
+      (Filter.Eventually.of_forall fun _ => by ring)
+  rw [← MeasureTheory.integral_add hleft_int hright_int]
+  apply integral_congr_ae
+  exact Filter.Eventually.of_forall fun x => by
+    simp [V, Q, φ, U]
+    ring
+
+/-- Fubini for the ordinary-source tail against the fixed final negative-part
+test.  Besides the identity, retain integrability of the resulting spatial
+pairing for the convex energy increment. -/
+private theorem truncatedLimit_logistic_tail_pairing
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {a t : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    let φ := negativePartTest U t
+    Integrable (fun x =>
+      (∫ s in a..t,
+        intervalFullSemigroupOperator (t - s)
+          (truncatedLogisticLifted p (U s)) x) * φ x)
+      (intervalMeasure 1) ∧
+    IntervalIntegrable (fun s => ∫ x,
+      intervalFullSemigroupOperator (t - s)
+        (truncatedLogisticLifted p (U s)) x * φ x
+      ∂ intervalMeasure 1) volume a t ∧
+    (∫ x,
+      (∫ s in a..t,
+        intervalFullSemigroupOperator (t - s)
+          (truncatedLogisticLifted p (U s)) x) * φ x
+      ∂ intervalMeasure 1) =
+      ∫ s in a..t, ∫ x,
+        intervalFullSemigroupOperator (t - s)
+          (truncatedLogisticLifted p (U s)) x * φ x
+        ∂ intervalMeasure 1 := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  let L : ℝ → ℝ → ℝ := fun s => truncatedLogisticLifted p (U s)
+  let φ : ℝ → ℝ := negativePartTest U t
+  let LF : ℝ → ℝ → ℝ := fun s x =>
+    intervalFullSemigroupOperator (t - s) (L s) x * φ x
+  let CL : ℝ := truncatedLogisticBound p DT.M
+  have ht : 0 < t := ha.trans hat
+  have hφmeas : AEStronglyMeasurable φ (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      (by simpa [φ, U] using truncatedLimit_test_continuousOn DT ht htT)
+  have hφbound : ∀ x, |φ x| ≤ DT.M := by
+    intro x
+    exact (truncatedLimit_fluxTestDualityData DT ht htT ha hat).test_bounded.bound x
+  have hLjoint : Measurable (Function.uncurry L) := by
+    simpa [L, U, SD] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedLogisticLifted_joint_measurable_of_lift_joint
+        (p := p) (w := SD.u) SD.hmeas
+  have hSjoint : Measurable (fun r : (ℝ × ℝ) × ℝ =>
+      intervalFullSemigroupOperator (r.1.1 - r.2) (L r.2) r.1.2) :=
+    ShenWork.IntervalMildPicardThreshold.intervalFullSemigroupOperator_s_param_joint_measurable'
+      hLjoint
+  have hmap : Measurable (fun z : ℝ × ℝ => (((t, z.2), z.1) : (ℝ × ℝ) × ℝ)) :=
+    (measurable_const.prodMk measurable_snd).prodMk measurable_fst
+  have hSmeas : Measurable (fun z : ℝ × ℝ =>
+      intervalFullSemigroupOperator (t - z.1) (L z.1) z.2) :=
+    hSjoint.comp hmap
+  have hLFmeas : AEStronglyMeasurable (Function.uncurry LF)
+      ((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)) := by
+    simpa [LF] using hSmeas.aestronglyMeasurable.mul
+      (hφmeas.comp_snd (μ := volume.restrict (Set.Ioc a t)))
+  have hCL : 0 ≤ CL := by
+    dsimp [CL]
+    exact truncatedLogisticBound_nonneg p DT.hM.le
+  have hprod_mem : ∀ᵐ z ∂((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)),
+      z.1 ∈ Set.Ioo a t := by
+    rw [MeasureTheory.Measure.ae_prod_iff_ae_ae
+      (measurableSet_Ioo.preimage measurable_fst)]
+    filter_upwards [ae_restrict_mem measurableSet_Ioc,
+      (Measure.ae_ne volume t).filter_mono ae_restrict_le] with s hs hsne
+    exact Filter.Eventually.of_forall fun _ => ⟨hs.1, lt_of_le_of_ne hs.2 hsne⟩
+  have hLFbound : ∀ᵐ z ∂((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)),
+      ‖Function.uncurry LF z‖ ≤ CL * DT.M := by
+    filter_upwards [hprod_mem] with z hz
+    have hs0 : 0 < z.1 := ha.trans hz.1
+    have hsT : z.1 ≤ DT.T := (le_of_lt hz.2).trans htT
+    have hLb := truncatedLogisticLifted_abs_le p DT.hM.le
+      (fun x => by simpa [U, SD] using SD.hbound z.1 hs0 hsT x) z.2
+    have hSb :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+        (sub_pos.mpr hz.2) hCL
+        (truncatedLogisticLifted_abs_le p DT.hM.le
+          (fun x => by simpa [U, SD] using SD.hbound z.1 hs0 hsT x)) z.2
+    change |intervalFullSemigroupOperator (t - z.1) (L z.1) z.2 * φ z.2| ≤
+      CL * DT.M
+    rw [abs_mul]
+    exact mul_le_mul hSb (hφbound z.2) (abs_nonneg _) hCL
+  have hLFprod : Integrable (Function.uncurry LF)
+      ((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)) :=
+    Integrable.of_bound hLFmeas (CL * DT.M) hLFbound
+  have hLFprod_uIoc : Integrable (Function.uncurry LF)
+      ((volume.restrict (Set.uIoc a t)).prod (intervalMeasure 1)) := by
+    simpa [Set.uIoc_of_le hat.le] using hLFprod
+  have hswap := MeasureTheory.intervalIntegral_integral_swap hLFprod_uIoc
+  have hspatial_raw : Integrable
+      (fun x => ∫ s in a..t, LF s x) (intervalMeasure 1) := by
+    simpa [intervalIntegral.integral_of_le hat.le, Set.uIoc_of_le hat.le] using
+      hLFprod_uIoc.integral_prod_right
+  have htime_int : IntervalIntegrable
+      (fun s => ∫ x, LF s x ∂ intervalMeasure 1) volume a t := by
+    rw [intervalIntegrable_iff]
+    exact hLFprod_uIoc.integral_prod_left
+  have hpoint : (fun x =>
+      (∫ s in a..t, intervalFullSemigroupOperator (t - s) (L s) x) * φ x) =
+      fun x => ∫ s in a..t, LF s x := by
+    funext x
+    rw [intervalIntegral.integral_mul_const]
+  constructor
+  · rw [hpoint]
+    exact hspatial_raw
+  constructor
+  · simpa [LF] using htime_int
+  · rw [hpoint]
+    simpa [LF] using hswap.symm
+
+set_option maxHeartbeats 0
+
+/-- Fubini for the B-form tail against the fixed final negative-part test.
+The regular restricted duality changes the spatial B-pairing into the
+negative semigroup-gradient pairing. -/
+private theorem truncatedLimit_chem_tail_pairing
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {a t : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    let φ := negativePartTest U t
+    Integrable (fun x =>
+      (∫ s in a..t,
+        intervalConjugateKernelOperator (t - s)
+          (truncatedChemFluxLifted p (U s)) x) * φ x)
+      (intervalMeasure 1) ∧
+    IntervalIntegrable (fun s => ∫ x,
+      truncatedChemFluxLifted p (U s) x *
+        deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+      ∂ intervalMeasure 1) volume a t ∧
+    (∫ x,
+      (∫ s in a..t,
+        intervalConjugateKernelOperator (t - s)
+          (truncatedChemFluxLifted p (U s)) x) * φ x
+      ∂ intervalMeasure 1) =
+      -(∫ s in a..t, ∫ x,
+        truncatedChemFluxLifted p (U s) x *
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+        ∂ intervalMeasure 1) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  let Q : ℝ → ℝ → ℝ := fun s => truncatedChemFluxLifted p (U s)
+  let φ : ℝ → ℝ := negativePartTest U t
+  let BF : ℝ → ℝ → ℝ := fun s x =>
+    intervalConjugateKernelOperator (t - s) (Q s) x * φ x
+  let CP : ℝ → ℝ := fun s => ∫ x, Q s x *
+    deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+    ∂ intervalMeasure 1
+  let Cg : ℝ :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  let CQ : ℝ := DT.M *
+    (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * DT.M ^ p.γ)))
+  let K : ℝ := Cg * CQ * DT.M
+  have ht : 0 < t := ha.trans hat
+  have hφmeas : AEStronglyMeasurable φ (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      (by simpa [φ, U] using truncatedLimit_test_continuousOn DT ht htT)
+  have hφbound : ∀ x, |φ x| ≤ DT.M := by
+    intro x
+    exact (truncatedLimit_fluxTestDualityData DT ht htT ha hat).test_bounded.bound x
+  have hQjoint : Measurable (Function.uncurry Q) := by
+    simpa [Q, U, SD] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_joint_measurable_of_lift_joint
+        (p := p) (w := SD.u) SD.hmeas
+  have hBjoint : Measurable (fun r : (ℝ × ℝ) × ℝ =>
+      intervalConjugateKernelOperator (r.1.1 - r.2) (Q r.2) r.1.2) :=
+    ShenWork.IntervalConjugateKernelJointMeas.intervalConjugateKernelOperator_s_param_joint_measurable
+      hQjoint
+  have hmap : Measurable (fun z : ℝ × ℝ => (((t, z.2), z.1) : (ℝ × ℝ) × ℝ)) :=
+    (measurable_const.prodMk measurable_snd).prodMk measurable_fst
+  have hBmeas : Measurable (fun z : ℝ × ℝ =>
+      intervalConjugateKernelOperator (t - z.1) (Q z.1) z.2) :=
+    hBjoint.comp hmap
+  have hBFmeas : AEStronglyMeasurable (Function.uncurry BF)
+      ((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)) := by
+    simpa [BF] using hBmeas.aestronglyMeasurable.mul
+      (hφmeas.comp_snd (μ := volume.restrict (Set.Ioc a t)))
+  have hCg : 0 ≤ Cg :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hCQ : 0 ≤ CQ := by
+    dsimp [CQ]
+    exact mul_nonneg DT.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _))))
+  have hK : 0 ≤ K := by
+    dsimp [K]
+    exact mul_nonneg (mul_nonneg hCg hCQ) DT.hM.le
+  have hprod_mem : ∀ᵐ z ∂((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)),
+      z.1 ∈ Set.Ioo a t := by
+    rw [MeasureTheory.Measure.ae_prod_iff_ae_ae
+      (measurableSet_Ioo.preimage measurable_fst)]
+    filter_upwards [ae_restrict_mem measurableSet_Ioc,
+      (Measure.ae_ne volume t).filter_mono ae_restrict_le] with s hs hsne
+    exact Filter.Eventually.of_forall fun _ => ⟨hs.1, lt_of_le_of_ne hs.2 hsne⟩
+  have hdom_time : Integrable
+      (fun s : ℝ => K * (t - s) ^ (-(1 / 2) : ℝ))
+      (volume.restrict (Set.Ioc a t)) := by
+    exact (integrableOn_Icc_sub_rpow_neg_half_const t K ht.le).mono_set
+      (fun s hs => ⟨ha.le.trans hs.1.le, hs.2⟩)
+  have hdom_prod : Integrable
+      (fun z : ℝ × ℝ => K * (t - z.1) ^ (-(1 / 2) : ℝ))
+      ((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)) :=
+    hdom_time.comp_fst (intervalMeasure 1)
+  have hBFbound : ∀ᵐ z ∂((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)),
+      ‖Function.uncurry BF z‖ ≤ K * (t - z.1) ^ (-(1 / 2) : ℝ) := by
+    filter_upwards [hprod_mem] with z hz
+    have hs0 : 0 < z.1 := ha.trans hz.1
+    have hsT : z.1 ≤ DT.T := (le_of_lt hz.2).trans htT
+    have HD := truncatedLimit_fluxTestDualityData DT ht htT hs0 hz.2
+    have hQint := HD.flux_bounded.integrable
+    have hQbound : ∀ y, |Q z.1 y| ≤ CQ := by
+      intro y
+      rw [show Q z.1 y = truncatedChemFluxLifted p (U z.1) y by rfl,
+        truncatedChemFluxLifted_eq_chemFluxLifted_positivePartSlice]
+      exact
+        ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+          p DT.hM.le
+          (fun X => (abs_positivePart_le_abs (U z.1 X)).trans (by
+            simpa [U, SD] using SD.hbound z.1 hs0 hsT X))
+          (positivePartSlice_nonneg (U z.1))
+          (positivePartSlice_continuous (by
+            simpa [U, SD] using SD.hcont z.1 hs0 hsT)) y
+    have hBb :=
+      ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator_abs_le
+        (sub_pos.mpr hz.2) hQint hQbound z.2
+    change |intervalConjugateKernelOperator (t - z.1) (Q z.1) z.2 * φ z.2| ≤
+      K * (t - z.1) ^ (-(1 / 2) : ℝ)
+    rw [abs_mul]
+    calc
+      |intervalConjugateKernelOperator (t - z.1) (Q z.1) z.2| * |φ z.2|
+          ≤ (Cg * (t - z.1) ^ (-(1 / 2) : ℝ) * CQ) * DT.M :=
+            mul_le_mul hBb (hφbound z.2) (abs_nonneg _)
+              (mul_nonneg (mul_nonneg hCg (Real.rpow_nonneg (sub_pos.mpr hz.2).le _)) hCQ)
+      _ = K * (t - z.1) ^ (-(1 / 2) : ℝ) := by
+        dsimp [K]
+        ring
+  have hBFprod : Integrable (Function.uncurry BF)
+      ((volume.restrict (Set.Ioc a t)).prod (intervalMeasure 1)) :=
+    Integrable.mono' hdom_prod hBFmeas hBFbound
+  have hBFprod_uIoc : Integrable (Function.uncurry BF)
+      ((volume.restrict (Set.uIoc a t)).prod (intervalMeasure 1)) := by
+    simpa [Set.uIoc_of_le hat.le] using hBFprod
+  have hswap := MeasureTheory.intervalIntegral_integral_swap hBFprod_uIoc
+  have hspatial_raw : Integrable
+      (fun x => ∫ s in a..t, BF s x) (intervalMeasure 1) := by
+    simpa [intervalIntegral.integral_of_le hat.le, Set.uIoc_of_le hat.le] using
+      hBFprod_uIoc.integral_prod_right
+  have hBtime_int : IntervalIntegrable
+      (fun s => ∫ x, BF s x ∂ intervalMeasure 1) volume a t := by
+    rw [intervalIntegrable_iff]
+    exact hBFprod_uIoc.integral_prod_left
+  have hCP_int : IntervalIntegrable CP volume a t := by
+    rw [intervalIntegrable_iff]
+    rw [intervalIntegrable_iff] at hBtime_int
+    have heq : ∀ᵐ s ∂volume.restrict (Set.uIoc a t),
+        CP s = -(∫ x, BF s x ∂ intervalMeasure 1) := by
+      filter_upwards [ae_restrict_mem measurableSet_uIoc,
+        (Measure.ae_ne volume t).filter_mono ae_restrict_le] with s hs hsne
+      rw [Set.uIoc_of_le hat.le] at hs
+      have hs0 : 0 < s := ha.trans hs.1
+      have hst : s < t := lt_of_le_of_ne hs.2 hsne
+      have hd := (truncatedLimit_fluxTestDualityData DT ht htT hs0 hst).duality hst
+      have hd' : (∫ x, BF s x ∂ intervalMeasure 1) = -CP s := by
+        simpa [BF, CP, Q, φ, U] using hd
+      linarith [hd']
+    apply hBtime_int.neg.congr
+    filter_upwards [heq] with s hs
+    exact hs.symm
+  have htime_eq :
+      (∫ s in a..t, ∫ x, BF s x ∂ intervalMeasure 1) =
+        -(∫ s in a..t, CP s) := by
+    rw [← intervalIntegral.integral_neg]
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [(Measure.ae_ne volume t)] with s hsne hsI
+    rw [Set.uIoc_of_le hat.le] at hsI
+    have hs0 : 0 < s := ha.trans hsI.1
+    have hst : s < t := lt_of_le_of_ne hsI.2 hsne
+    exact (truncatedLimit_fluxTestDualityData DT ht htT hs0 hst).duality hst
+  have hpoint : (fun x =>
+      (∫ s in a..t, intervalConjugateKernelOperator (t - s) (Q s) x) * φ x) =
+      fun x => ∫ s in a..t, BF s x := by
+    funext x
+    rw [intervalIntegral.integral_mul_const]
+  constructor
+  · rw [hpoint]
+    exact hspatial_raw
+  constructor
+  · simpa [CP, Q, φ] using hCP_int
+  · rw [hpoint]
+    exact hswap.symm.trans (by simpa [BF, CP] using htime_eq)
+
+/-- Restart the faithful truncated mild equation at a positive earlier time.
+The two nonlinear tails are left in their native B-form shapes. -/
+private theorem truncatedLimit_backward_restart
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {a t : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T)
+    (x : intervalDomainPoint) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    U t x =
+      intervalFullSemigroupOperator (t - a) (intervalDomainLift (U a)) x.1 +
+        (-p.χ₀) * (∫ s in a..t,
+          intervalConjugateKernelOperator (t - s)
+            (truncatedChemFluxLifted p (U s)) x.1) +
+        ∫ s in a..t,
+          intervalFullSemigroupOperator (t - s)
+            (truncatedLogisticLifted p (U s)) x.1 := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  let Q : ℝ → ℝ → ℝ := fun s => truncatedChemFluxLifted p (U s)
+  let L : ℝ → ℝ → ℝ := fun s => truncatedLogisticLifted p (U s)
+  let CQ : ℝ := DT.M *
+    (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * DT.M ^ p.γ)))
+  let CL : ℝ := DT.M * (p.a + p.b * DT.M ^ p.α)
+  have hCQ : 0 ≤ CQ := by
+    dsimp [CQ]
+    exact mul_nonneg DT.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _))))
+  have hCL : 0 ≤ CL := by
+    dsimp [CL]
+    exact mul_nonneg DT.hM.le
+      (add_nonneg p.ha
+        (mul_nonneg p.hb (Real.rpow_nonneg DT.hM.le _)))
+  have hcont_all : ∀ s, Continuous (U s) := by
+    intro s
+    by_cases hs : 0 < s ∧ s ≤ DT.T
+    · simpa [U, SD] using SD.hcont s hs.1 hs.2
+    · have hzero : U s = fun _ : intervalDomainPoint => 0 := by
+        funext y
+        simp [U, truncatedConjugatePicardLimit, hs]
+      rw [hzero]
+      exact continuous_const
+  have hball_all : ∀ s, ∀ y : intervalDomainPoint, |U s y| ≤ DT.M := by
+    intro s y
+    by_cases hs : 0 < s ∧ s ≤ DT.T
+    · simpa [U, SD] using SD.hbound s hs.1 hs.2 y
+    · simp [U, truncatedConjugatePicardLimit, hs, DT.hM.le]
+  have hQ_meas : Measurable (Function.uncurry Q) := by
+    simpa [Q, U, SD] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_joint_measurable_of_lift_joint
+        (p := p) (w := SD.u) SD.hmeas
+  have hL_meas : Measurable (Function.uncurry L) := by
+    simpa [L, U, SD] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedLogisticLifted_joint_measurable_of_lift_joint
+        (p := p) (w := SD.u) SD.hmeas
+  have hQ_bound : ∀ s y, |Q s y| ≤ CQ := by
+    intro s y
+    simpa [Q, CQ] using
+      _root_.ShenWork.Paper2.TruncatedPositiveTimeBootstrap.truncatedChemFluxLifted_abs_le_of_abs_ball
+        p DT.hM (hcont_all s) (hball_all s) y
+  have hL_bound : ∀ s y, |L s y| ≤ CL := by
+    intro s y
+    simpa [L, CL] using truncatedLogisticLifted_abs_le p DT.hM.le
+      (hball_all s) y
+  have hQ_int : ∀ s, Integrable (Q s) (intervalMeasure 1) := by
+    intro s
+    simpa [Q, U] using truncatedLimit_flux_integrable DT s
+  have hL_int : ∀ s, Integrable (L s) (intervalMeasure 1) := by
+    intro s
+    exact Integrable.of_bound
+      (hL_meas.comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable
+      CL (Filter.Eventually.of_forall (hL_bound s))
+  have hu₀_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      DT.hbase_lift_meas DT.hbase_lift_bound
+  have hrestart := ShenWork.Paper2.IntervalFullDuhamelRestart.intervalBFormDuhamel_restart
+    ha hat DT.hbase_lift_meas hu₀_int DT.hM.le DT.hbase_lift_bound
+    hQ_meas hQ_int hCQ hQ_bound hL_meas hL_int hCL hL_bound
+    (-p.χ₀) x.2
+  have haT : a ≤ DT.T := (le_of_lt hat).trans htT
+  have hinner : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      (intervalFullSemigroupOperator a (intervalDomainLift u₀) y +
+          (-p.χ₀) * (∫ s in (0 : ℝ)..a,
+            intervalConjugateKernelOperator (a - s) (Q s) y) +
+          ∫ s in (0 : ℝ)..a,
+            intervalFullSemigroupOperator (a - s) (L s) y) =
+        intervalDomainLift (U a) y := by
+    intro y hy
+    have hm := SD.hmild a ha haT ⟨y, hy⟩
+    simpa [SD, U, Q, L, truncatedConjugateDuhamelMap,
+      intervalDomainLift, hy] using hm.symm
+  have hsem :=
+    ShenWork.IntervalSemigroupC1ApproxIdentity.intervalFullSemigroupOperator_congr_on_Icc
+      hinner (t - a) x.1
+  have hm_t := SD.hmild t (ha.trans hat) htT x
+  have hm_t' :
+      truncatedConjugatePicardLimit p u₀ DT.T t x =
+        truncatedConjugateDuhamelMap p u₀
+          (truncatedConjugatePicardLimit p u₀ DT.T) t x := by
+    simpa [SD] using hm_t
+  dsimp only
+  rw [hm_t']
+  change
+    intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 +
+        (-p.χ₀) * (∫ s in (0 : ℝ)..t,
+          intervalConjugateKernelOperator (t - s) (Q s) x.1) +
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (L s) x.1 = _
+  rw [hrestart, hsem]
+
+/-- The convex negative-part energy increment is controlled by the two
+time-averaged tested nonlinear tails of the positive-time restart. -/
+private theorem truncatedLimit_backward_energy_increment_le
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {a t : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    let φ := negativePartTest U t
+    negativePartEnergy U t - negativePartEnergy U a ≤
+      2 * (p.χ₀ * (∫ s in a..t, ∫ x,
+        truncatedChemFluxLifted p (U s) x *
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) φ z) x
+        ∂ intervalMeasure 1) +
+        ∫ s in a..t, ∫ x,
+          intervalFullSemigroupOperator (t - s)
+            (truncatedLogisticLifted p (U s)) x * φ x
+          ∂ intervalMeasure 1) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  let f : ℝ → ℝ := intervalDomainLift (U a)
+  let u : ℝ → ℝ := intervalDomainLift (U t)
+  let φ : ℝ → ℝ := negativePartTest U t
+  let BT : ℝ → ℝ := fun x => ∫ s in a..t,
+    intervalConjugateKernelOperator (t - s)
+      (truncatedChemFluxLifted p (U s)) x
+  let LT : ℝ → ℝ := fun x => ∫ s in a..t,
+    intervalFullSemigroupOperator (t - s)
+      (truncatedLogisticLifted p (U s)) x
+  let z : ℝ → ℝ := fun x => (-p.χ₀) * BT x + LT x
+  let CP : ℝ → ℝ := fun s => ∫ x,
+    truncatedChemFluxLifted p (U s) x *
+      deriv (fun y : ℝ => intervalFullSemigroupOperator (t - s) φ y) x
+    ∂ intervalMeasure 1
+  let LP : ℝ → ℝ := fun s => ∫ x,
+    intervalFullSemigroupOperator (t - s)
+      (truncatedLogisticLifted p (U s)) x * φ x
+    ∂ intervalMeasure 1
+  have ht : 0 < t := ha.trans hat
+  have haT : a ≤ DT.T := (le_of_lt hat).trans htT
+  have hfa_cont : Continuous (U a) := by
+    simpa [U, SD] using SD.hcont a ha haT
+  have hft_cont : Continuous (U t) := by
+    simpa [U, SD] using SD.hcont t ht htT
+  have hfa_bound : ∀ X, |U a X| ≤ DT.M := by
+    intro X
+    simpa [U, SD] using SD.hbound a ha haT X
+  have hft_bound : ∀ X, |U t X| ≤ DT.M := by
+    intro X
+    simpa [U, SD] using SD.hbound t ht htT X
+  have hf_meas : AEStronglyMeasurable f (intervalMeasure 1) := by
+    apply ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+    simpa [f] using
+      ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity.intervalDomain_lift_continuousOn_Icc_of_continuous
+        hfa_cont
+  have hf_bound : ∀ x, |f x| ≤ DT.M := by
+    intro x
+    by_cases hx : x ∈ Set.Icc (0 : ℝ) 1
+    · simpa [f, intervalDomainLift, hx] using hfa_bound ⟨x, hx⟩
+    · simp [f, intervalDomainLift, hx, DT.hM.le]
+  have huE : Integrable (fun x => (negativePart (u x)) ^ 2)
+      (intervalMeasure 1) := by
+    simpa [u, negativePartLift] using
+      negativePart_sq_integrable_of_continuous_bound hft_cont DT.hM.le hft_bound
+  have hScont : Continuous (fun x => intervalFullSemigroupOperator (t - a) f x) :=
+    ShenWork.IntervalDuhamelIntegrability.intervalFullSemigroupOperator_continuous_of_bounded
+      (sub_pos.mpr hat) DT.hM.le hf_bound hf_meas
+  have hSbound : ∀ x, |intervalFullSemigroupOperator (t - a) f x| ≤ DT.M :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+      (sub_pos.mpr hat) DT.hM.le hf_bound
+  have hSE : Integrable
+      (fun x => (negativePart (intervalFullSemigroupOperator (t - a) f x)) ^ 2)
+      (intervalMeasure 1) := by
+    apply ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+    · exact (negativePart_continuous.comp hScont).pow 2 |>.aestronglyMeasurable
+    · intro x
+      rw [abs_pow]
+      have hn := (negativePart_abs_le_abs
+        (intervalFullSemigroupOperator (t - a) f x)).trans (hSbound x)
+      exact pow_le_pow_left₀ (abs_nonneg _) hn 2
+  obtain ⟨hLint, _hLPint, hLpair⟩ :=
+    truncatedLimit_logistic_tail_pairing DT ha hat htT
+  obtain ⟨hBint, _hCPint, hBpair⟩ :=
+    truncatedLimit_chem_tail_pairing DT ha hat htT
+  have hcomb : Integrable (fun x =>
+      (-p.χ₀) * (BT x * φ x) + LT x * φ x) (intervalMeasure 1) := by
+    exact hBint.const_mul (-p.χ₀) |>.add hLint
+  have hpair : Integrable (fun x => (-2 * negativePart (u x)) * z x)
+      (intervalMeasure 1) := by
+    have hbase := hcomb.const_mul 2
+    apply hbase.congr
+    filter_upwards [] with x
+    simp only [u, z, BT, LT, φ, negativePartTest, negativePartLift]
+    ring
+  have hrepr : ∀ᵐ x ∂intervalMeasure 1,
+      u x = intervalFullSemigroupOperator (t - a) f x + z x := by
+    filter_upwards [ae_mem_Ioo_unitInterval] with x hx
+    let X : intervalDomainPoint := ⟨x, Set.Ioo_subset_Icc_self hx⟩
+    have hr := truncatedLimit_backward_restart DT ha hat htT X
+    have hr' : u x = intervalFullSemigroupOperator (t - a) f x +
+        (-p.χ₀) * BT x + LT x := by
+      simpa [u, f, BT, LT, U, intervalDomainLift,
+        Set.Ioo_subset_Icc_self hx, X] using hr
+    rw [hr']
+    simp only [z]
+    ring
+  have hinc :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.negativePartEnergy_sub_le_remainder_pairing
+      (h := t - a) (f := f) (u := u) (z := z) (M := DT.M)
+      (sub_pos.mpr hat) hf_meas hf_bound hrepr huE hSE hpair
+  have hpair_integral :
+      (∫ x, (-2 * negativePart (u x)) * z x ∂ intervalMeasure 1) =
+        2 * (p.χ₀ * (∫ s in a..t, CP s) + ∫ s in a..t, LP s) := by
+    calc
+      (∫ x, (-2 * negativePart (u x)) * z x ∂ intervalMeasure 1) =
+          2 * (∫ x,
+            ((-p.χ₀) * (BT x * φ x) + LT x * φ x)
+            ∂ intervalMeasure 1) := by
+        rw [← MeasureTheory.integral_const_mul]
+        apply integral_congr_ae
+        filter_upwards [] with x
+        simp only [u, z, BT, LT, φ, negativePartTest, negativePartLift]
+        ring
+      _ = 2 * ((-p.χ₀) * (∫ x, BT x * φ x ∂ intervalMeasure 1) +
+          ∫ x, LT x * φ x ∂ intervalMeasure 1) := by
+        rw [MeasureTheory.integral_add (hBint.const_mul (-p.χ₀)) hLint,
+          MeasureTheory.integral_const_mul]
+      _ = 2 * (p.χ₀ * (∫ s in a..t, CP s) + ∫ s in a..t, LP s) := by
+        have hb : (∫ x, BT x * φ x ∂ intervalMeasure 1) =
+            -(∫ s in a..t, CP s) := by
+          simpa [BT, CP, U, φ] using hBpair
+        have hl : (∫ x, LT x * φ x ∂ intervalMeasure 1) =
+            ∫ s in a..t, LP s := by
+          simpa [LT, LP, U, φ] using hLpair
+        rw [hb, hl]
+        ring
+  rw [hpair_integral] at hinc
+  simpa [negativePartEnergy, negativePartLift, U, u, f, CP, LP, φ] using hinc
+
+/-- At every positive active time, the backward energy quotient has a
+convergent upper bound whose limit is at most `2 a E(t)`. -/
+private theorem truncatedLimit_backward_energy_upper_tendsto
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    let U := truncatedConjugatePicardLimit p u₀ DT.T
+    let E := negativePartEnergy U
+    ∃ d : ℝ, ∃ R : ℝ → ℝ,
+      d ≤ (2 * p.a) * E t ∧
+      Tendsto R (nhdsWithin 0 (Set.Ioi 0)) (nhds d) ∧
+      ∀ᶠ q in nhdsWithin 0 (Set.Ioi 0),
+        q⁻¹ * (E t - E (t - q)) ≤ R q := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  let E : ℝ → ℝ := negativePartEnergy U
+  let φ : ℝ → ℝ := negativePartTest U t
+  let CP : ℝ → ℝ := fun s => ∫ x,
+    truncatedChemFluxLifted p (U s) x *
+      deriv (fun y : ℝ => intervalFullSemigroupOperator (t - s) φ y) x
+    ∂ intervalMeasure 1
+  let LP : ℝ → ℝ := fun s => ∫ x,
+    intervalFullSemigroupOperator (t - s)
+      (truncatedLogisticLifted p (U s)) x * φ x
+    ∂ intervalMeasure 1
+  let L0 : ℝ := ∫ x,
+    truncatedLogisticLifted p (U t) x * φ x ∂ intervalMeasure 1
+  let c : ℝ := t / 2
+  have hc : 0 < c := by dsimp [c]; linarith
+  have hct : c < t := by dsimp [c]; linarith
+  obtain ⟨_hLspatial, hLPint, _hLswap⟩ :=
+    truncatedLimit_logistic_tail_pairing DT hc hct htT
+  obtain ⟨_hBspatial, hCPint, _hBswap⟩ :=
+    truncatedLimit_chem_tail_pairing DT hc hct htT
+  have hLPint' : IntervalIntegrable LP volume c t := by
+    simpa [LP, U, φ] using hLPint
+  have hCPint' : IntervalIntegrable CP volume c t := by
+    simpa [CP, U, φ] using hCPint
+  have hLPmeas : AEStronglyMeasurable LP (volume.restrict (Set.uIoc c t)) := by
+    rw [intervalIntegrable_iff] at hLPint'
+    exact hLPint'.aestronglyMeasurable
+  have hCPmeas : AEStronglyMeasurable CP (volume.restrict (Set.uIoc c t)) := by
+    rw [intervalIntegrable_iff] at hCPint'
+    exact hCPint'.aestronglyMeasurable
+  have hLPlim : Tendsto LP (nhdsWithin t (Set.Iio t)) (nhds L0) := by
+    simpa [LP, L0, U, φ] using truncatedLimit_logistic_pairing_tendsto DT ht htT
+  have hCPlim : Tendsto CP (nhdsWithin t (Set.Iio t)) (nhds 0) := by
+    simpa [CP, U, φ] using truncatedLimit_chem_pairing_tendsto_zero DT ht htT
+  have hLPavg :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.left_intervalAverage_tendsto
+      hct hLPint' hLPmeas hLPlim
+  have hCPavg :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.left_intervalAverage_tendsto
+      hct hCPint' hCPmeas hCPlim
+  let d : ℝ := 2 * L0
+  let R : ℝ → ℝ := fun q => 2 *
+    (p.χ₀ * (q⁻¹ * ∫ s in (t - q)..t, CP s) +
+      q⁻¹ * ∫ s in (t - q)..t, LP s)
+  refine ⟨d, R, ?_, ?_, ?_⟩
+  · have hlog_meas : AEStronglyMeasurable
+        (fun x => truncatedLogisticLifted p (U t) x * φ x)
+        (intervalMeasure 1) := by
+      exact (truncatedLimit_logistic_aestronglyMeasurable DT t).mul
+        ((truncatedLimit_fluxTestDualityData DT ht htT hc hct).test_bounded.measurable)
+    have hCL : 0 ≤ truncatedLogisticBound p DT.M :=
+      truncatedLogisticBound_nonneg p DT.hM.le
+    have hlog_int : Integrable
+        (fun x => truncatedLogisticLifted p (U t) x * φ x)
+        (intervalMeasure 1) := by
+      apply ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound hlog_meas
+      intro x
+      rw [abs_mul]
+      exact mul_le_mul
+        (truncatedLogisticLifted_abs_le p DT.hM.le (fun X => by
+          simpa [U, SD] using SD.hbound t ht htT X) x)
+        ((truncatedLimit_fluxTestDualityData DT ht htT hc hct).test_bounded.bound x)
+        (abs_nonneg _) hCL
+    have hEint : Integrable (fun x => (negativePartLift (U t) x) ^ 2)
+        (intervalMeasure 1) := by
+      exact negativePart_sq_integrable_of_continuous_bound
+        (by simpa [U, SD] using SD.hcont t ht htT) DT.hM.le
+        (fun X => by simpa [U, SD] using SD.hbound t ht htT X)
+    have hL0 := truncatedLogistic_negativePartTest_integral_le
+      p U t (by simpa [φ] using hlog_int) hEint
+    dsimp [d, L0, E]
+    nlinarith
+  · have hinner := (tendsto_const_nhds (x := p.χ₀)).mul hCPavg |>.add hLPavg
+    have hmul := (tendsto_const_nhds (x := (2 : ℝ))).mul hinner
+    simpa [R, d] using hmul
+  · have hqt : ∀ᶠ q in nhdsWithin 0 (Set.Ioi 0), q < t :=
+      Filter.Eventually.filter_mono nhdsWithin_le_nhds (Iio_mem_nhds ht)
+    filter_upwards [self_mem_nhdsWithin, hqt] with q hq hqt
+    have hq0 : 0 < q := hq
+    have ha_q : 0 < t - q := sub_pos.mpr hqt
+    have hat_q : t - q < t := sub_lt_self t hq0
+    have hinc := truncatedLimit_backward_energy_increment_le
+      DT ha_q hat_q htT
+    have hinc' : E t - E (t - q) ≤
+        2 * (p.χ₀ * (∫ s in (t - q)..t, CP s) +
+          ∫ s in (t - q)..t, LP s) := by
+      simpa [E, CP, LP, U, φ] using hinc
+    have hm := mul_le_mul_of_nonneg_left hinc' (inv_nonneg.mpr hq0.le)
+    calc
+      q⁻¹ * (E t - E (t - q)) ≤
+          q⁻¹ * (2 * (p.χ₀ * (∫ s in (t - q)..t, CP s) +
+            ∫ s in (t - q)..t, LP s)) := hm
+      _ = R q := by
+        dsimp [R]
+        ring
+
+
 /-! ## Negative-part energy continuity from time slices
 
 Joint time-space continuity is stronger than the scalar energy needs.  The
@@ -1507,6 +3212,96 @@ theorem truncatedLimit_negativePartEnergy_continuousOn_Icc
           𝓝[Set.Icc (0 : ℝ) DT.T] t := inter_mem_nhdsWithin _ hopen
       exact mem_of_superset hinter fun s hs => ⟨hs.2.le, hs.1.2⟩
     exact (hposwin.continuousWithinAt htmem).mono_of_mem_nhdsWithin hnhds
+
+/-! ## Open-time variational nonnegativity, then endpoint closure -/
+
+/-- The negative-part energy vanishes at every strictly interior active time.
+Only positive-time restarts are used in the fencing argument. -/
+private theorem truncatedLimit_negativePartEnergy_eq_zero_open
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t < DT.T) :
+    negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T) t = 0 := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let E : ℝ → ℝ := negativePartEnergy U
+  have hcont : ContinuousOn E (Set.Icc (0 : ℝ) t) := by
+    exact (truncatedLimit_negativePartEnergy_continuousOn_Icc hu₀ DT).mono
+      (Set.Icc_subset_Icc le_rfl htT.le)
+  have hnonneg : ∀ s ∈ Set.Icc (0 : ℝ) t, 0 ≤ E s := by
+    intro s _hs
+    exact integral_nonneg fun x => sq_nonneg (negativePartLift (U s) x)
+  have hE0 : E 0 = 0 := by
+    have hU0 : U 0 = fun _ : intervalDomainPoint => 0 := by
+      funext x
+      simp [U, truncatedConjugatePicardLimit]
+    simp [E, negativePartEnergy, negativePartLift, hU0,
+      intervalDomainLift, negativePart]
+  have hupper : ∀ s ∈ Set.Ioc (0 : ℝ) t, ∃ d : ℝ, ∃ R : ℝ → ℝ,
+      d ≤ (2 * p.a) * E s ∧
+      Tendsto R (nhdsWithin 0 (Set.Ioi 0)) (nhds d) ∧
+      ∀ᶠ q in nhdsWithin 0 (Set.Ioi 0),
+        q⁻¹ * (E s - E (s - q)) ≤ R q := by
+    intro s hs
+    simpa [E, U] using truncatedLimit_backward_energy_upper_tendsto
+      DT hs.1 (hs.2.trans htT.le)
+  have hzero :=
+    ShenWork.Paper2.IntervalNegativePartWeakEnergy.backward_gronwall_zero_of_upper_tendsto
+      ht.le hcont hnonneg hE0 hupper
+  exact hzero t (Set.right_mem_Icc.mpr ht.le)
+
+/-- Endpoint-safe second stage: continuity closes the zero-energy identity
+from `[0,T)` to `[0,T]`. -/
+private theorem truncatedLimit_negativePartEnergy_eq_zero_closed
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (DT : TruncatedConjugateMildExistenceData p u₀) :
+    Set.EqOn
+      (negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T))
+      (fun _ : ℝ => 0) (Set.Icc (0 : ℝ) DT.T) := by
+  let E : ℝ → ℝ :=
+    negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T)
+  have hopen : Set.EqOn E (fun _ : ℝ => 0) (Set.Ico (0 : ℝ) DT.T) := by
+    intro t ht
+    by_cases ht0 : t = 0
+    · subst t
+      have hU0 : truncatedConjugatePicardLimit p u₀ DT.T 0 =
+          fun _ : intervalDomainPoint => 0 := by
+        funext x
+        simp [truncatedConjugatePicardLimit]
+      simp [E, negativePartEnergy, negativePartLift, hU0,
+        intervalDomainLift, negativePart]
+    · have htpos : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm ht0)
+      simpa [E] using
+        truncatedLimit_negativePartEnergy_eq_zero_open hu₀ DT htpos ht.2
+  have hcont : ContinuousOn E (Set.Icc (0 : ℝ) DT.T) := by
+    simpa [E] using truncatedLimit_negativePartEnergy_continuousOn_Icc hu₀ DT
+  apply hopen.of_subset_closure hcont continuousOn_const Set.Ico_subset_Icc_self
+  rw [closure_Ico (ne_of_lt DT.hT)]
+
+/-- Pointwise nonnegativity on the whole closed active window, obtained only
+after the open-time energy argument and endpoint continuity. -/
+theorem truncatedConjugatePicardLimit_nonneg_v6
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (DT : TruncatedConjugateMildExistenceData p u₀) :
+    ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  have hint : ∀ t, 0 < t → t ≤ DT.T →
+      Integrable (fun x => (negativePartLift (U t) x) ^ 2) (intervalMeasure 1) := by
+    intro t ht htT
+    exact negativePart_sq_integrable_of_continuous_bound
+      (by simpa [U] using
+        (truncatedConjugateMildSolutionData_of_data DT).hcont t ht htT)
+      DT.hM.le
+      (fun X => by simpa [U] using
+        (truncatedConjugateMildSolutionData_of_data DT).hbound t ht htT X)
+  have hzero := truncatedLimit_negativePartEnergy_eq_zero_closed hu₀ DT
+  intro t ht htT
+  exact negativePartEnergy_zero_to_pointwise_nonneg_of_continuous
+    (u := U) (truncatedConjugateMildSolutionData_of_data DT).hcont hint
+    t ht htT (by exact hzero ⟨ht.le, htT⟩)
 
 
 /-! ## Legacy weak-Duhamel bundle after variational nonnegativity
@@ -1724,5 +3519,16 @@ def truncatedNegativePartEnergyCoreRegularData_of_nonneg
   zero_energy_to_pointwise_nonneg := by
     intro t ht htT _hzero
     exact hnonneg t ht htT
+
+/-- Uniform V6 energy producer.  This has the exact expansion of
+`IntervalChiNegV6Assembly.UniformTruncatedEnergyDataV6`; the local abbreviation
+keeps this file independent of the later Jensen assembly. -/
+def uniformTruncatedEnergyDataV6_producer (p : CM2Params) :
+    UniformTruncatedEnergyDataV6Direct p := by
+  intro M hM u₀ hu₀ hbound C A
+  let DT : TruncatedConjugateMildExistenceData p u₀ :=
+    (uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A).toData
+  exact truncatedNegativePartEnergyCoreRegularData_of_nonneg DT
+    (truncatedConjugatePicardLimit_nonneg_v6 hu₀ DT)
 
 end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
