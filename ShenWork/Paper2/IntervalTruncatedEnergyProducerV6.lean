@@ -620,4 +620,122 @@ def truncatedNegativePartMildToWeakRegularData_of_standardFacts
       (truncatedLimit_weakIdentity_of_standardFacts DT H ht htT)
       (truncatedLimit_test_continuousOn DT ht htT)
 
+/-! ## Integrable weak-Duhamel dominators -/
+
+private theorem semigroupGradient_pairing_abs_le
+    {τ Cf Cg : ℝ} (hτ : 0 < τ) (hCf : 0 ≤ Cf) (hCg : 0 ≤ Cg)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    (hf_bound : ∀ y, |f y| ≤ Cf)
+    (hg_bound : ∀ᵐ x ∂ intervalMeasure 1, |g x| ≤ Cg) :
+    |∫ x,
+        deriv (fun z : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator τ f z) x *
+          g x
+        ∂ intervalMeasure 1| ≤
+      (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+          Cf * Cg * (intervalMeasure 1).real Set.univ) *
+        τ ^ (-(1 / 2) : ℝ) := by
+  let Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  have hCgrad : 0 ≤ Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hpoint : ∀ᵐ x ∂ intervalMeasure 1,
+      |deriv (fun z : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator τ f z) x *
+          g x| ≤ Cgrad * τ ^ (-(1 / 2) : ℝ) * Cf * Cg := by
+    filter_upwards [hg_bound] with x hx
+    rw [abs_mul]
+    have hsem :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+        hτ hf_meas hf_bound x
+    exact mul_le_mul hsem hx (abs_nonneg _)
+      (mul_nonneg
+        (mul_nonneg hCgrad (Real.rpow_nonneg hτ.le _)) hCf)
+  haveI : IsFiniteMeasure (intervalMeasure 1) :=
+    ⟨ShenWork.IntervalDomain.intervalMeasure_univ_lt_top 1⟩
+  have hpoint_norm : ∀ᵐ x ∂ intervalMeasure 1,
+      ‖deriv (fun z : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator τ f z) x *
+          g x‖ ≤ Cgrad * τ ^ (-(1 / 2) : ℝ) * Cf * Cg := by
+    filter_upwards [hpoint] with x hx
+    simpa [Real.norm_eq_abs] using hx
+  have hint := norm_integral_le_of_norm_le_const hpoint_norm
+  rw [Real.norm_eq_abs] at hint
+  calc
+    |∫ x,
+        deriv (fun z : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator τ f z) x *
+          g x
+        ∂ intervalMeasure 1|
+        ≤ (Cgrad * τ ^ (-(1 / 2) : ℝ) * Cf * Cg) *
+            (intervalMeasure 1).real Set.univ := hint
+    _ = (Cgrad * Cf * Cg * (intervalMeasure 1).real Set.univ) *
+          τ ^ (-(1 / 2) : ℝ) := by ring
+
+private theorem integrableOn_Icc_sub_rpow_neg_half_const
+    (t K : ℝ) (ht : 0 ≤ t) :
+    IntegrableOn (fun s : ℝ => K * (t - s) ^ (-(1 / 2) : ℝ))
+      (Set.Icc (0 : ℝ) t) volume := by
+  have h :=
+    (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half t).const_mul K
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le ht] at h
+  simpa [IntegrableOn, MeasureTheory.restrict_Ioc_eq_restrict_Icc] using h
+
+/-- The ordinary-source Duhamel weak-gradient integrand has the standard
+`(t-s)^(-1/2)` majorant. -/
+theorem heatDuhamelDCTDominatingFunction_of_bounds
+    {F : ℝ → ℝ → ℝ} {φ : ℝ → ℝ} {t CF Cφ : ℝ}
+    (ht : 0 ≤ t) (hCF : 0 ≤ CF) (hCφ : 0 ≤ Cφ)
+    (hF_meas : ∀ s, AEStronglyMeasurable (F s) (intervalMeasure 1))
+    (hF_bound : ∀ s, 0 < s → s < t → ∀ y, |F s y| ≤ CF)
+    (hφderiv : ∀ᵐ x ∂ intervalMeasure 1, |deriv φ x| ≤ Cφ) :
+    HeatDuhamelDCTDominatingFunction F φ t := by
+  let K : ℝ :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+      CF * Cφ * (intervalMeasure 1).real Set.univ
+  refine ⟨fun s => K * (t - s) ^ (-(1 / 2) : ℝ),
+    integrableOn_Icc_sub_rpow_neg_half_const t K ht, ?_⟩
+  intro s hs hst
+  exact semigroupGradient_pairing_abs_le (sub_pos.mpr hst) hCF hCφ
+    (hF_meas s) (hF_bound s hs hst) hφderiv
+
+/-- The divergence-source weak integrand has the same integrable majorant,
+with the semigroup gradient falling on the fixed test. -/
+theorem chemotaxisDuhamelDCTDominatingFunction_of_bounds
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {φ : ℝ → ℝ} {t CQ Cφ : ℝ}
+    (ht : 0 ≤ t) (hCQ : 0 ≤ CQ) (hCφ : 0 ≤ Cφ)
+    (hQ_meas : ∀ s, AEStronglyMeasurable
+      (truncatedChemFluxLifted p (u s)) (intervalMeasure 1))
+    (hQ_bound : ∀ s, 0 < s → s < t → ∀ y,
+      |truncatedChemFluxLifted p (u s) y| ≤ CQ)
+    (hφ_meas : AEStronglyMeasurable φ (intervalMeasure 1))
+    (hφ_bound : ∀ y, |φ y| ≤ Cφ) :
+    ChemotaxisDuhamelDCTDominatingFunction p u φ t := by
+  let K : ℝ :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+      Cφ * CQ * (intervalMeasure 1).real Set.univ
+  refine ⟨fun s => K * (t - s) ^ (-(1 / 2) : ℝ),
+    integrableOn_Icc_sub_rpow_neg_half_const t K ht, ?_⟩
+  intro s hs hst
+  have hpair := semigroupGradient_pairing_abs_le
+    (sub_pos.mpr hst) hCφ hCQ hφ_meas hφ_bound
+    (Eventually.of_forall (hQ_bound s hs hst))
+  have hintegral :
+      (∫ y, truncatedChemFluxLifted p (u s) y *
+          deriv (fun z =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) φ z) y ∂ intervalMeasure 1) =
+        ∫ y, deriv (fun z =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) φ z) y *
+          truncatedChemFluxLifted p (u s) y ∂ intervalMeasure 1 := by
+    apply integral_congr_ae
+    filter_upwards [] with y
+    ring
+  rw [hintegral]
+  dsimp [K]
+  exact hpair
+
 end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
