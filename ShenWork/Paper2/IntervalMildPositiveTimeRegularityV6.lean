@@ -1,6 +1,7 @@
 import ShenWork.Paper2.IntervalBFormSpectralProviderDischarge
 import ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn
 import ShenWork.PDE.IntervalCosineSliceRegularity
+import ShenWork.Paper2.IntervalCoeffLadderFull
 
 /-!
 # Positive-time spatial regularity of a conjugate mild solution (shared `(C1)`)
@@ -118,6 +119,33 @@ def MildSolutionSliceHasDerivAtTime
     (∀ t, 0 < t → t < S.T → Continuous (udot t)) ∧
     (∀ c T' : ℝ, 0 < c → T' < S.T → ∃ B : ℝ, 0 ≤ B ∧
         ∀ t ∈ Set.Icc c T', ∀ x : intervalDomainPoint, |udot t x| ≤ B)
+
+/-- **THE second open engine of `hsrcB` — the R-engine (spatial ladder).**
+
+The source-from-solution envelope pass: from a solution-coefficient envelope of
+order `m` (`|cosineCoeffs (lift (S.u σ)) k| ≤ C/k^m` on the window) it produces
+the next B-form source envelope of order `m-1` (the `-1` is the flux `∂ₓ`).  This
+is the single nonlinear engine of the spatial ladder `R` (the eigenvalue-ℓ¹
+representation of `S.u`): with it, the finite pass induction
+  base `WindowSourceEnvelope 0` (from `S.hbound`) → heat pass `+2`
+  (`ladder_pass_gain_envelope`, reuse) → this source pass `-1` → …
+reaches `WindowSourceEnvelope 2`, whence `R` follows by
+`restartCoeff_eigenvalue_weighted_summable_of_pass2_envelope`, and then `L`
+(`MildSolutionSliceHasDerivAtTime`) and all of `hsrcB` follow.
+
+Content (cq31): the `u^γ` Nemytskii bound `‖u^γ‖_{H^{m-1}} ≤ C(‖u‖_∞, δ)‖u‖_{H^m}`
+(carrying the `δ`-floor `uniform_positive_lower_bound` — never unrestricted),
+the elliptic resolver gain `R[u] ∈ H^{m+2}`, the chem-div flux product algebra,
+and Bessel (`H^{m-1} ⇒ cosine-coeff `O(k^{-(m-1)})`).  Drop-in target for
+Codex/cq31. -/
+def SourceFromSolutionEnvelopePass
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀) : Type :=
+  ∀ {m : ℕ} {c T' : ℝ}, 0 < c → T' < S.T → 1 ≤ m →
+    ShenWork.Paper2.IntervalCoeffLadderFull.WindowCoefficientEnvelope m c T'
+      (fun σ n => cosineCoeffs (intervalDomainLift (S.u σ)) n) →
+    ShenWork.Paper2.IntervalCoeffLadderFull.WindowSourceEnvelope (m - 1) c T'
+      (bFormSourceCoeffs p S.u)
 
 /-- The restart base coefficients `cosineCoeffs (lift (S.u τ))` are bounded by
 `2 * S.M`, directly from slice continuity and boundedness — no cosine-series
