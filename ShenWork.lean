@@ -532,3 +532,4 @@ import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
 import ShenWork.Paper2.IntervalConjugateMildJointValue
 import ShenWork.Paper2.IntervalParametricSpatialDerivativeContinuity
 import ShenWork.Paper2.IntervalConjugateMildJointSpatialDerivative
+import ShenWork.Paper2.IntervalConjugateMildCoupledJointValue
