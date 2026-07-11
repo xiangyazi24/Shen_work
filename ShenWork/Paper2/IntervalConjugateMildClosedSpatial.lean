@@ -144,6 +144,70 @@ theorem conjugateMild_coupledChemical_closedC2_endpointDerivs
     ShenWork.IntervalFullKernelRegularity.deriv_intervalDomainLift_eq_zero_at_zero _,
     ShenWork.IntervalFullKernelRegularity.deriv_intervalDomainLift_eq_zero_at_one _⟩
 
+/-- The faithful mild solution and its elliptic resolver jointly discharge the
+interior spatial-C2 field of `IntervalClassicalRegularityAtoms`. -/
+theorem conjugateMild_coupled_interiorC2
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Ioo (0 : ℝ) 1) ∧
+        ContDiffOn ℝ 2
+          (intervalDomainLift (coupledChemicalConcentration p D.u t))
+          (Set.Ioo (0 : ℝ) 1) := by
+  intro t ht
+  exact ⟨conjugateMild_intervalDomainLift_contDiffOn_two_interior
+      D hu₀ hu₀_meas ht.1 ht.2.le,
+    conjugateMild_coupledChemical_contDiffOn_two_interior
+      D hu₀ hu₀_meas ht.1 ht.2.le⟩
+
+/-- The faithful mild solution and its elliptic resolver jointly discharge the
+genuine one-sided Neumann-limit field of `IntervalClassicalRegularityAtoms`. -/
+theorem conjugateMild_coupled_neumannLimits
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T →
+      (Tendsto (deriv (intervalDomainLift (D.u t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Tendsto (deriv (intervalDomainLift (D.u t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) ∧
+      (Tendsto
+          (deriv (intervalDomainLift (coupledChemicalConcentration p D.u t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Tendsto
+          (deriv (intervalDomainLift (coupledChemicalConcentration p D.u t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) := by
+  intro t ht
+  exact ⟨conjugateMild_intervalDomainLift_neumannLimits
+      D hu₀ hu₀_meas ht.1 ht.2.le,
+    conjugateMild_coupledChemical_neumannLimits
+      D hu₀ hu₀_meas ht.1 ht.2.le⟩
+
+/-- The faithful mild solution and its elliptic resolver jointly discharge the
+closed spatial-C2 field of `IntervalClassicalRegularityAtoms`. -/
+theorem conjugateMild_coupled_closedC2
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T →
+      (ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) ∧
+          deriv (intervalDomainLift (D.u t)) 0 = 0 ∧
+          deriv (intervalDomainLift (D.u t)) 1 = 0) ∧
+        (ContDiffOn ℝ 2
+            (intervalDomainLift (coupledChemicalConcentration p D.u t))
+            (Set.Icc (0 : ℝ) 1) ∧
+          deriv (intervalDomainLift (coupledChemicalConcentration p D.u t)) 0 = 0 ∧
+          deriv (intervalDomainLift (coupledChemicalConcentration p D.u t)) 1 = 0) := by
+  intro t ht
+  exact ⟨conjugateMild_intervalDomainLift_closedC2_endpointDerivs
+      D hu₀ hu₀_meas ht.1 ht.2.le,
+    conjugateMild_coupledChemical_closedC2_endpointDerivs
+      D hu₀ hu₀_meas ht.1 ht.2.le⟩
+
 end ShenWork.Paper2
 
 #print axioms ShenWork.Paper2.intervalDomainLift_resolverR_eq_cosineSeries_on_Icc
@@ -151,3 +215,6 @@ end ShenWork.Paper2
 #print axioms ShenWork.Paper2.conjugateMild_coupledChemical_contDiffOn_two_interior
 #print axioms ShenWork.Paper2.conjugateMild_coupledChemical_neumannLimits
 #print axioms ShenWork.Paper2.conjugateMild_coupledChemical_closedC2_endpointDerivs
+#print axioms ShenWork.Paper2.conjugateMild_coupled_interiorC2
+#print axioms ShenWork.Paper2.conjugateMild_coupled_neumannLimits
+#print axioms ShenWork.Paper2.conjugateMild_coupled_closedC2

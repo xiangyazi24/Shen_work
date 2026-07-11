@@ -524,3 +524,4 @@ import ShenWork.Paper2.IntervalFullSemigroupSecondDerivContinuous
 import ShenWork.Paper2.IntervalFullDuhamelSpatialC2
 import ShenWork.Paper2.IntervalConjugateMildInteriorC2
 import ShenWork.Paper2.IntervalConjugateMildClosedSpatial
+import ShenWork.Paper2.IntervalFullSemigroupTimeDerivative
