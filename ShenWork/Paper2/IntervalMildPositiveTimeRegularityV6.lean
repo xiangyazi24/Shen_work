@@ -60,6 +60,31 @@ def RestartRepresentation
             (fun σ n => bFormSourceCoeffs p S.u (t₀ / 2 + σ) n)
             (s - t₀ / 2) n * cosineMode n y.1
 
+/-- **Uniform positive lower bound on an interior slice.**  From strict
+positivity (`S.hpos`) and continuity (`S.hcont`) of the slice on the compact
+interval `[0,1]`, the slice is bounded below by a positive `δ`.  This is the
+refinement needed for `u^γ` (Nemytskii) regularity: `∂ₓₓ(u^γ)` carries a factor
+`u^{γ-2}` which blows up as `u → 0` for `γ ∈ [1,2)`, so pointwise `u > 0` is not
+enough — a uniform floor `δ > 0` is required, and compactness supplies it. -/
+theorem uniform_positive_lower_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    {σ : ℝ} (hσ : 0 < σ) (hσT : σ ≤ S.T) :
+    ∃ δ : ℝ, 0 < δ ∧
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, δ ≤ intervalDomainLift (S.u σ) x := by
+  have hcontOn :
+      ContinuousOn (intervalDomainLift (S.u σ)) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn.continuousOn_intervalDomainLift_of_hasContinuousSlices
+      S.hcont hσ hσT
+  have hne : (Set.Icc (0 : ℝ) 1).Nonempty := ⟨0, by norm_num⟩
+  obtain ⟨x₀, hx₀mem, hx₀min⟩ :=
+    isCompact_Icc.exists_isMinOn hne hcontOn
+  refine ⟨intervalDomainLift (S.u σ) x₀, ?_, ?_⟩
+  · rw [intervalDomainLift, dif_pos hx₀mem]
+    exact S.hpos σ hσ hσT ⟨x₀, hx₀mem⟩
+  · intro x hx
+    exact hx₀min hx
+
 /-- The restart base coefficients `cosineCoeffs (lift (S.u τ))` are bounded by
 `2 * S.M`, directly from slice continuity and boundedness — no cosine-series
 circularity. -/
