@@ -197,6 +197,81 @@ theorem conjugateMild_logisticDuhamel_deriv_hasDerivAt_interior
     Filter.Eventually.of_forall hfun_eq
   exact (hev.hasDerivAt_iff.mpr hcut).congr_deriv hder_eq.symm
 
+/-- The second spatial derivative of the actual reaction Duhamel leg is
+continuous on the open physical interval. -/
+theorem conjugateMild_logisticDuhamel_secondDeriv_continuousOn
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (D.u s)) z) y) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  set CL : ℝ := D.M * (p.a + p.b * D.M ^ p.α) with hCL
+  have hCL_nn : 0 ≤ CL := by
+    rw [hCL]
+    exact mul_nonneg D.hM.le
+      (add_nonneg p.ha (mul_nonneg p.hb (Real.rpow_nonneg D.hM.le _)))
+  set F : ℝ → ℝ → ℝ := fun s y ↦
+    if 0 < s ∧ s ≤ D.T then logisticLifted p (D.u s) y else 0 with hF
+  have hF_eq : ∀ {s : ℝ}, 0 < s → s ≤ D.T →
+      F s = logisticLifted p (D.u s) := by
+    intro s hs0 hsT
+    funext y
+    simp [hF, hs0, hsT]
+  have hF_bound : ∀ s y, |F s y| ≤ CL := by
+    intro s y
+    simp only [hF]
+    split_ifs with hs
+    · rw [hCL]
+      exact logisticLifted_orderBox_bound D.hM D.hbound s hs.1 hs.2 y
+    · simpa using hCL_nn
+  have hF_meas : Measurable (Function.uncurry F) := by
+    have hbase := logisticLifted_uncurry_measurable
+      (p := p) (u := D.u) D.hmeas
+    simp only [hF]
+    refine Measurable.ite ?_ hbase measurable_const
+    exact ((isOpen_Ioi.preimage continuous_fst).measurableSet).inter
+      ((isClosed_Iic.preimage continuous_fst).measurableSet)
+  have hF_int : ∀ s, Integrable (F s) (intervalMeasure 1) := by
+    intro s
+    simp only [hF]
+    split_ifs with hs
+    · exact ShenWork.IntervalDuhamelIntegrability.logisticLifted_integrable_of_continuous
+        p (D.hbound s hs.1 hs.2) D.hM.le (D.hcont s hs.1 hs.2)
+    · simp
+  have ht2 : 0 < t / 2 := by positivity
+  obtain ⟨HQ, hHQ_nn, hQholder⟩ :=
+    conjugateMild_logisticLifted_positiveTime_holder_uniform
+      D hu₀ hu₀_meas ht2
+  have hF_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |F s a - F s b| ≤ HQ * |a - b| ^ (1 / 4 : ℝ) := by
+    intro s hs2 hst a ha b hb
+    have hs0 : 0 < s := lt_trans ht2 hs2
+    have hsT : s ≤ D.T := (le_of_lt hst).trans htT
+    rw [hF_eq hs0 hsT]
+    exact hQholder s (le_of_lt hs2) hsT a ha b hb
+  have hcut := intervalFullDuhamel_secondDeriv_continuousOn_of_late_holder
+    ht (by norm_num : (0 : ℝ) < 1 / 4) (by norm_num : (1 / 4 : ℝ) < 1)
+      hCL_nn hHQ_nn hF_meas hF_int hF_bound hF_holder
+  have heq : ∀ x,
+      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (D.u s)) z) y) x) =
+      ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y) x := by
+    intro x
+    apply intervalIntegral.integral_congr_ae
+    apply Filter.Eventually.of_forall
+    intro s hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [hF_eq hs.1 (hs.2.trans htT)]
+  exact hcut.congr (fun x _hx ↦ heq x)
+
 /-- Every positive-time faithful mild slice has a genuine second spatial
 derivative at each interior point. -/
 theorem conjugateMild_intervalDomainLift_deriv_hasDerivAt_interior
@@ -258,5 +333,87 @@ theorem conjugateMild_intervalDomainLift_deriv_hasDerivAt_interior
     dsimp [rhs, I, Cleg, Rleg]
     rw [hwhole.deriv, hinit_first.deriv]
   exact hev.hasDerivAt_iff.mpr hrhs
+
+/-- The genuine second spatial derivative of every positive-time faithful
+mild slice is continuous on the open physical interval. -/
+theorem conjugateMild_intervalDomainLift_secondDeriv_continuousOn_interior
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ deriv (fun y ↦ deriv (intervalDomainLift (D.u t)) y) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  let I₂ : ℝ → ℝ := fun x ↦ deriv (fun y ↦ deriv
+    (fun z ↦ intervalFullSemigroupOperator t (intervalDomainLift u₀) z) y) x
+  let C₂ : ℝ → ℝ := fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+    (fun z ↦ intervalConjugateKernelOperator (t - s)
+      (chemFluxLifted p (D.u s)) z) y) x
+  let R₂ : ℝ → ℝ := fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+    (fun z ↦ intervalFullSemigroupOperator (t - s)
+      (logisticLifted p (D.u s)) z) y) x
+  let rhs : ℝ → ℝ := fun x ↦ I₂ x + (-p.χ₀) * C₂ x + R₂ x
+  have hu₀_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound hu₀_meas hu₀
+  have hinit : ContinuousOn I₂ (Set.Ioo (0 : ℝ) 1) := by
+    exact
+      (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_secondDeriv_continuousOn_Icc_of_bounded
+        ht hu₀_int hu₀).mono Set.Ioo_subset_Icc_self
+  have hchem : ContinuousOn C₂ (Set.Ioo (0 : ℝ) 1) := by
+    exact conjugateMild_chemDuhamel_secondDeriv_continuousOn
+      D hu₀ hu₀_meas ht htT
+  have hreact : ContinuousOn R₂ (Set.Ioo (0 : ℝ) 1) := by
+    exact conjugateMild_logisticDuhamel_secondDeriv_continuousOn
+      D hu₀ hu₀_meas ht htT
+  have hrhs : ContinuousOn rhs (Set.Ioo (0 : ℝ) 1) := by
+    dsimp [rhs]
+    exact (hinit.add (continuousOn_const.mul hchem)).add hreact
+  have heq : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      deriv (fun y ↦ deriv (intervalDomainLift (D.u t)) y) x = rhs x := by
+    intro x hx
+    have hwhole := conjugateMild_intervalDomainLift_deriv_hasDerivAt_interior
+      D hu₀ hu₀_meas ht htT hx
+    have hinit_deriv :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_deriv_fst
+        ht hu₀_meas hu₀ x
+    dsimp [rhs, I₂, C₂, R₂]
+    rw [hwhole.deriv, hinit_deriv.deriv]
+  exact hrhs.congr (fun x hx ↦ heq x hx)
+
+/-- Every positive-time faithful mild slice is spatially `C²` on the open
+physical interval, with no regularity premise beyond the mild-solution data
+and the original bounded measurable datum. -/
+theorem conjugateMild_intervalDomainLift_contDiffOn_two_interior
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Ioo (0 : ℝ) 1) := by
+  have hdiff : DifferentiableOn ℝ (intervalDomainLift (D.u t))
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro x hx
+    exact (conjugateMild_intervalDomainLift_hasDerivAt_interior
+      D hu₀ hu₀_meas (θ := (1 / 4 : ℝ)) (by norm_num) (by norm_num)
+        ht htT hx).differentiableAt.differentiableWithinAt
+  have hderiv_diff : DifferentiableOn ℝ
+      (fun x ↦ deriv (intervalDomainLift (D.u t)) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro x hx
+    exact (conjugateMild_intervalDomainLift_deriv_hasDerivAt_interior
+      D hu₀ hu₀_meas ht htT hx).differentiableAt.differentiableWithinAt
+  have hsecond_cont :=
+    conjugateMild_intervalDomainLift_secondDeriv_continuousOn_interior
+      D hu₀ hu₀_meas ht htT
+  rw [show (2 : WithTop ℕ∞) = 1 + 1 by norm_num,
+    contDiffOn_succ_iff_deriv_of_isOpen isOpen_Ioo]
+  refine ⟨hdiff, ?_, ?_⟩
+  · norm_num
+  rw [show (1 : WithTop ℕ∞) = 0 + 1 by norm_num,
+    contDiffOn_succ_iff_deriv_of_isOpen isOpen_Ioo]
+  refine ⟨hderiv_diff, ?_, ?_⟩
+  · norm_num
+  exact contDiffOn_zero.mpr hsecond_cont
 
 end ShenWork.Paper2

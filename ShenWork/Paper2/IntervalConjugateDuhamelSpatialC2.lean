@@ -9,6 +9,7 @@
 -/
 import ShenWork.Paper2.IntervalConjugateSemigroupSecondDeriv
 import ShenWork.Paper2.IntervalConjugateDuhamelSpatialC1
+import ShenWork.Paper2.IntervalFullSemigroupSecondDerivContinuous
 import ShenWork.PDE.IntervalParamDerivMeasurable
 
 open MeasureTheory Filter
@@ -18,9 +19,10 @@ noncomputable section
 
 namespace ShenWork.Paper2
 
-open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalDomain (intervalMeasure intervalSet)
 open ShenWork.IntervalConjugateDuhamelMap (intervalConjugateKernelOperator)
-open ShenWork.IntervalNeumannFullKernel (weightedHeatHessConst)
+open ShenWork.IntervalNeumannFullKernel
+  (intervalFullSemigroupOperator weightedHeatHessConst)
 
 /-- Fixed-space measurability of the second spatial derivative of a lagged
 conjugate-operator family.  No joint measurability of the source derivative is
@@ -89,6 +91,74 @@ theorem intervalConjugateKernelOperator_s_dependent_secondDeriv_aestronglyMeasur
     (hsecond s hsIoo).hasDerivAt.congr_of_eventuallyEq hev
   have hsur := ShenWork.ParamDeriv.diffQuotLimsup_eq_of_hasDerivAt hD1has
   simpa [D2] using hsur
+
+/-- Early-lag continuity of the conjugate-operator Hessian, obtained from the
+half-step semigroup factorisation. -/
+theorem intervalConjugateKernelOperator_secondDeriv_continuousOn_Ioo_of_split
+    {r : ℝ} (hr : 0 < r) {Q : ℝ → ℝ} (hQcont : Continuous Q)
+    (hQint : Integrable Q (intervalMeasure 1)) {CQ : ℝ}
+    (hQbound : ∀ y, |Q y| ≤ CQ) :
+    ContinuousOn
+      (fun x ↦ deriv (fun z ↦ deriv
+        (fun w ↦ intervalConjugateKernelOperator r Q w) z) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  have hr2 : 0 < r / 2 := by positivity
+  let B : ℝ → ℝ := fun z ↦ intervalConjugateKernelOperator (r / 2) Q z
+  let F : ℝ → ℝ := fun z ↦ intervalFullSemigroupOperator (r / 2) B z
+  let J : ℝ → ℝ := fun z ↦ intervalConjugateKernelOperator r Q z
+  have hBdiff : Differentiable ℝ B := fun z ↦
+    (ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator_hasDerivAt
+      hr2 hQint hQbound z).differentiableAt
+  have hBint : Integrable B (intervalMeasure 1) := by
+    simp only [intervalMeasure, intervalSet]
+    exact hBdiff.continuous.continuousOn.integrableOn_Icc
+  have hBbound : ∀ z,
+      |B z| ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (r / 2) ^ (-(1 / 2) : ℝ) * CQ := by
+    intro z
+    exact ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator_abs_le
+      hr2 hQint hQbound z
+  have hEqOn : Set.EqOn F J (Set.Icc (0 : ℝ) 1) := by
+    intro z hz
+    dsimp [F, J, B]
+    simpa [show r / 2 + r / 2 = r by ring] using
+      intervalFullSemigroupOperator_comp_conjugateKernel
+        hr2 hr2 hQcont hQint hQbound hz
+  have hFcont :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_secondDeriv_continuousOn_Icc_of_bounded
+      hr2 hBint hBbound
+  refine (hFcont.mono Set.Ioo_subset_Icc_self).congr ?_
+  intro z hz
+  have hdev := deriv_eventuallyEq_of_eqOn_Icc hEqOn hz
+  simpa [F, J] using hdev.deriv_eq.symm
+
+/-- Late-lag continuity of the conjugate-operator Hessian after flux
+integration by parts. -/
+theorem intervalConjugateKernelOperator_secondDeriv_continuousOn_Ioo_of_deriv
+    {r : ℝ} (hr : 0 < r) {Q : ℝ → ℝ}
+    (hQcont : ContinuousOn Q (Set.uIcc (0 : ℝ) 1))
+    (hQderiv : ∀ z ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt Q (deriv Q z) z)
+    (hQderiv_int : IntervalIntegrable (deriv Q) volume 0 1)
+    (hQ0 : Q 0 = 0) (hQ1 : Q 1 = 0)
+    {CQd : ℝ} (hQderiv_bound : ∀ z, |deriv Q z| ≤ CQd) :
+    ContinuousOn
+      (fun x ↦ deriv (fun z ↦ deriv
+        (fun w ↦ intervalConjugateKernelOperator r Q w) z) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  have heq : (fun w ↦ intervalConjugateKernelOperator r Q w) =
+      fun w ↦ intervalFullSemigroupOperator r (deriv Q) w := by
+    funext w
+    exact ShenWork.Paper2.IntervalConjugateKernelIBP.intervalConjugateKernelOperator_eq_semigroup_deriv
+      hr hQcont hQderiv hQderiv_int hQ0 hQ1
+  rw [heq]
+  have hQint : Integrable (deriv Q) (intervalMeasure 1) := by
+    simpa [intervalMeasure, intervalSet] using
+      (intervalIntegrable_iff_integrableOn_Icc_of_le
+        (by norm_num : (0 : ℝ) ≤ 1)).mp hQderiv_int
+  exact
+    (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_secondDeriv_continuousOn_Icc_of_bounded
+      hr hQint hQderiv_bound).mono Set.Ioo_subset_Icc_self
 
 /-- The time integral of the first spatial derivative of a conjugate Duhamel
 leg is differentiable.  The early half uses only bounded source data; the late
@@ -255,5 +325,158 @@ theorem intervalConjugateDuhamel_deriv_hasDerivAt_of_late_deriv_holder
     (hF'_meas := hP'_meas) (h_bound := hBound)
     (bound_integrable := hbound_int) (h_diff := hDiff)
   exact hresult.2
+
+/-- The integrated second derivative of a conjugate Duhamel leg is continuous
+on the open physical interval under the same early/late hypotheses. -/
+theorem intervalConjugateDuhamel_secondDeriv_continuousOn_of_late_deriv_holder
+    {t theta CQ CQd HQd : ℝ} (ht : 0 < t)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hCQ : 0 ≤ CQ) (hHQd : 0 ≤ HQd)
+    {F : ℝ → ℝ → ℝ}
+    (hF_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, Integrable (F s) (intervalMeasure 1))
+    (hF_bound : ∀ s y, |F s y| ≤ CQ)
+    (hF_cont : ∀ s ∈ Set.Ioo (0 : ℝ) t, Continuous (F s))
+    (hF_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      ∀ z ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt (F s) (deriv (F s) z) z)
+    (hF_deriv_int : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      IntervalIntegrable (deriv (F s)) volume 0 1)
+    (hF0 : ∀ s, F s 0 = 0) (hF1 : ∀ s, F s 1 = 0)
+    (hF_deriv_bound : ∀ s, t / 2 < s → s < t →
+      ∀ z, |deriv (F s) z| ≤ CQd)
+    (hF_deriv_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (F s) a - deriv (F s) b| ≤ HQd * |a - b| ^ theta) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  set Cmix : ℝ := 5 * Real.sqrt 2 / 2 with hCmix
+  set Cgrad : ℝ :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant with hCgrad
+  set Cearly : ℝ := Cmix * (t / 4) ^ (-(1 : ℝ)) *
+    (Cgrad * (t / 4) ^ (-(1 / 2) : ℝ) * CQ) with hCearly
+  set Clate : ℝ := weightedHeatHessConst theta * HQd with hClate
+  set bound : ℝ → ℝ := fun s ↦
+    Cearly + Clate * (t - s) ^ (-1 + theta / 2 : ℝ) with hbound
+  have ht4 : 0 < t / 4 := by positivity
+  have hCmix_nn : 0 ≤ Cmix := by rw [hCmix]; positivity
+  have hCgrad_nn : 0 ≤ Cgrad := by
+    rw [hCgrad]
+    exact ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hCearly_nn : 0 ≤ Cearly := by
+    rw [hCearly]
+    exact mul_nonneg
+      (mul_nonneg hCmix_nn (Real.rpow_nonneg ht4.le _))
+      (mul_nonneg (mul_nonneg hCgrad_nn (Real.rpow_nonneg ht4.le _)) hCQ)
+  have hClate_nn : 0 ≤ Clate := by
+    rw [hClate]
+    exact mul_nonneg
+      (ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst_nonneg theta) hHQd
+  have hbound_int : IntervalIntegrable bound volume 0 t := by
+    rw [hbound]
+    have hc : IntervalIntegrable (fun _ : ℝ ↦ Cearly) volume 0 t :=
+      intervalIntegrable_const
+    exact hc.add
+      ((ShenWork.IntervalNeumannFullKernel.intervalIntegrable_sub_rpow_hessian
+        (t := t) htheta0).const_mul Clate)
+  have hmeas : ∀ x ∈ Set.Ioo (0 : ℝ) 1, AEStronglyMeasurable
+      (fun s ↦ deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x)
+      (volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    intro x hx
+    have hsecond : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+        DifferentiableAt ℝ
+          (fun y ↦ deriv
+            (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x := by
+      intro s hs
+      have hlag : 0 < t - s := sub_pos.mpr hs.2
+      rcases le_or_gt s (t / 2) with hearly | hlate
+      · exact intervalConjugateKernelOperator_hasDerivAt_deriv_of_split
+          hlag (hF_cont s hs) (hF_int s) (hF_bound s) hx
+      · exact (intervalConjugateKernelOperator_hasDerivAt_deriv_of_deriv
+          hlag (hF_cont s hs).continuousOn (hF_deriv s hs)
+            (hF_deriv_int s hs) (hF0 s) (hF1 s)
+            (measurable_deriv (F s)).aestronglyMeasurable
+            (hF_deriv_bound s hlate hs.2) x).differentiableAt
+    exact intervalConjugateKernelOperator_s_dependent_secondDeriv_aestronglyMeasurable_x
+      ht hF_meas hF_int hF_bound hx hsecond
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton]
+    exact Real.volume_singleton
+  have hpoint : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x| ≤
+          bound s := by
+    intro s hs x hx
+    have hlag : 0 < t - s := sub_pos.mpr hs.2
+    rcases le_or_gt s (t / 2) with hearly | hlate
+    · have hhalf_ge : t / 4 ≤ (t - s) / 2 := by linarith
+      have hp1 : ((t - s) / 2) ^ (-(1 : ℝ)) ≤
+          (t / 4) ^ (-(1 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos ht4 hhalf_ge (by norm_num)
+      have hp2 : ((t - s) / 2) ^ (-(1 / 2) : ℝ) ≤
+          (t / 4) ^ (-(1 / 2) : ℝ) :=
+        Real.rpow_le_rpow_of_nonpos ht4 hhalf_ge (by norm_num)
+      have hraw := intervalConjugateKernelOperator_secondDeriv_abs_le_of_split
+        hlag (hF_cont s hs) (hF_int s) (hF_bound s) hx
+      have hinner :
+          Cgrad * ((t - s) / 2) ^ (-(1 / 2) : ℝ) * CQ ≤
+            Cgrad * (t / 4) ^ (-(1 / 2) : ℝ) * CQ :=
+        mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hp2 hCgrad_nn) hCQ
+      have hearly_bound : |deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x| ≤
+          Cearly := by
+        refine hraw.trans ?_
+        rw [hCearly, hCmix, hCgrad]
+        exact mul_le_mul
+          (mul_le_mul_of_nonneg_left hp1 hCmix_nn) hinner
+          (mul_nonneg (mul_nonneg hCgrad_nn
+            (Real.rpow_nonneg (by linarith : 0 ≤ (t - s) / 2) _)) hCQ)
+          (mul_nonneg hCmix_nn (Real.rpow_nonneg ht4.le _))
+      rw [hbound]
+      exact hearly_bound.trans (le_add_of_nonneg_right
+        (mul_nonneg hClate_nn (Real.rpow_nonneg hlag.le _)))
+    · have hraw := intervalConjugateKernelOperator_secondDeriv_abs_le_of_deriv_holder
+        hlag htheta0 htheta1 (hF_cont s hs).continuousOn
+          (hF_deriv s hs) (hF_deriv_int s hs) (hF0 s) (hF1 s)
+          (measurable_deriv (F s)).aestronglyMeasurable
+          (hF_deriv_bound s hlate hs.2) hHQd
+          (hF_deriv_holder s hlate hs.2) hx
+      have hlate_bound : |deriv (fun y ↦ deriv
+          (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x| ≤
+          Clate * (t - s) ^ (-1 + theta / 2 : ℝ) := by
+        rw [hClate]
+        convert hraw using 1 <;> ring
+      rw [hbound]
+      exact hlate_bound.trans (le_add_of_nonneg_left hCearly_nn)
+  intro x hx
+  refine intervalIntegral.continuousWithinAt_of_dominated_interval
+    (bound := bound) ?hF_meas ?h_bound hbound_int ?h_cont
+  case hF_meas =>
+    filter_upwards [self_mem_nhdsWithin] with y hy
+    exact hmeas y hy
+  case h_bound =>
+    filter_upwards [self_mem_nhdsWithin] with y hy
+    filter_upwards [hne] with s hst hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [Real.norm_eq_abs]
+    exact hpoint s ⟨hs.1, lt_of_le_of_ne hs.2 hst⟩ y hy
+  case h_cont =>
+    filter_upwards [hne] with s hst hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    have hsIoo : s ∈ Set.Ioo (0 : ℝ) t :=
+      ⟨hs.1, lt_of_le_of_ne hs.2 hst⟩
+    have hlag : 0 < t - s := sub_pos.mpr hsIoo.2
+    rcases le_or_gt s (t / 2) with hearly | hlate
+    · exact (intervalConjugateKernelOperator_secondDeriv_continuousOn_Ioo_of_split
+        hlag (hF_cont s hsIoo) (hF_int s) (hF_bound s)) x hx
+    · exact (intervalConjugateKernelOperator_secondDeriv_continuousOn_Ioo_of_deriv
+        hlag (hF_cont s hsIoo).continuousOn (hF_deriv s hsIoo)
+          (hF_deriv_int s hsIoo) (hF0 s) (hF1 s)
+          (hF_deriv_bound s hlate hsIoo.2)) x hx
 
 end ShenWork.Paper2

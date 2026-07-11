@@ -203,4 +203,134 @@ theorem conjugateMild_chemDuhamel_deriv_hasDerivAt_interior
     Filter.Eventually.of_forall hfun_eq
   exact (hev.hasDerivAt_iff.mpr hcut).congr_deriv hder_eq.symm
 
+/-- The second spatial derivative of the actual chemotaxis Duhamel leg is
+continuous on the open physical interval. -/
+theorem conjugateMild_chemDuhamel_secondDeriv_continuousOn
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ContinuousOn
+      (fun x ↦ ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x)
+      (Set.Ioo (0 : ℝ) 1) := by
+  set CQ : ℝ := D.M * (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * D.M ^ p.γ))) with hCQ
+  have hCQ_nn : 0 ≤ CQ := by
+    rw [hCQ]
+    exact mul_nonneg D.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _))))
+  set F : ℝ → ℝ → ℝ := fun s z ↦
+    if 0 < s ∧ s ≤ D.T then chemFluxLifted p (D.u s) z else 0 with hF
+  have hF_eq : ∀ {s : ℝ}, 0 < s → s ≤ D.T →
+      F s = chemFluxLifted p (D.u s) := by
+    intro s hs0 hsT
+    funext z
+    simp [hF, hs0, hsT]
+  have hF_bound : ∀ s z, |F s z| ≤ CQ := by
+    intro s z
+    simp only [hF]
+    split_ifs with hs
+    · rw [hCQ]
+      exact ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+        p D.hM.le (D.hbound s hs.1 hs.2) (D.hnonneg s hs.1 hs.2)
+          (D.hcont s hs.1 hs.2) z
+    · simpa using hCQ_nn
+  have hF_meas : Measurable (Function.uncurry F) := by
+    have hbase := ShenWork.Paper2.chemFluxLifted_uncurry_measurable
+      (p := p) (u := D.u) D.hmeas
+    simp only [hF]
+    refine Measurable.ite ?_ hbase measurable_const
+    exact ((isOpen_Ioi.preimage continuous_fst).measurableSet).inter
+      ((isClosed_Iic.preimage continuous_fst).measurableSet)
+  have hF_int : ∀ s, Integrable (F s) (intervalMeasure 1) := by
+    intro s
+    simp only [hF]
+    split_ifs with hs
+    · exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+        p (D.hbound s hs.1 hs.2) D.hM.le (D.hcont s hs.1 hs.2)
+          (D.hnonneg s hs.1 hs.2)
+    · simp
+  have ht2 : 0 < t / 2 := by positivity
+  obtain ⟨CQd, hCQd_nn, hQderiv_bound⟩ :=
+    conjugateMild_chemFlux_deriv_positiveTime_uniformBound
+      D hu₀ hu₀_meas ht2
+  obtain ⟨eta, HQd, heta0, heta1, hHQd_nn, hQderiv_holder⟩ :=
+    conjugateMild_chemFlux_deriv_positiveTime_holder_uniform
+      D hu₀ hu₀_meas ht2
+  have hF_cont : ∀ s ∈ Set.Ioo (0 : ℝ) t, Continuous (F s) := by
+    intro s hs
+    have hsT : s ≤ D.T := (le_of_lt hs.2).trans htT
+    rw [hF_eq hs.1 hsT]
+    exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+      p (D.hcont s hs.1 hsT) (D.hnonneg s hs.1 hsT)
+  have hF_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      ∀ z ∈ Set.Ioo (0 : ℝ) 1,
+        HasDerivAt (F s) (deriv (F s) z) z := by
+    intro s hs z hz
+    have hsT : s ≤ D.T := (le_of_lt hs.2).trans htT
+    rw [hF_eq hs.1 hsT]
+    exact (conjugateMild_chemFlux_differentiableAt_interior
+      D hu₀ hu₀_meas hs.1 hsT hz).hasDerivAt
+  have hF_deriv_int : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      IntervalIntegrable (deriv (F s)) volume 0 1 := by
+    intro s hs
+    have hsT : s ≤ D.T := (le_of_lt hs.2).trans htT
+    rw [hF_eq hs.1 hsT]
+    exact conjugateMild_chemFlux_deriv_intervalIntegrable
+      D hu₀ hu₀_meas hs.1 hsT
+  have hF0 : ∀ s, F s 0 = 0 := by
+    intro s
+    simp only [hF]
+    split_ifs
+    · exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_zero
+        p (D.u s)
+    · rfl
+  have hF1 : ∀ s, F s 1 = 0 := by
+    intro s
+    simp only [hF]
+    split_ifs
+    · exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_one
+        p (D.u s)
+    · rfl
+  have hF_deriv_bound : ∀ s, t / 2 < s → s < t →
+      ∀ z, |deriv (F s) z| ≤ CQd := by
+    intro s hs2 hst z
+    have hs0 : 0 < s := lt_trans ht2 hs2
+    have hsT : s ≤ D.T := (le_of_lt hst).trans htT
+    rw [hF_eq hs0 hsT]
+    by_cases hz : z ∈ Set.Ioo (0 : ℝ) 1
+    · exact hQderiv_bound s (le_of_lt hs2) hsT z hz
+    · rw [chemFluxLifted_deriv_eq_zero_off_Ioo p (D.u s) hz, abs_zero]
+      exact hCQd_nn
+  have hF_deriv_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (F s) a - deriv (F s) b| ≤ HQd * |a - b| ^ eta := by
+    intro s hs2 hst a ha b hb
+    have hs0 : 0 < s := lt_trans ht2 hs2
+    have hsT : s ≤ D.T := (le_of_lt hst).trans htT
+    rw [hF_eq hs0 hsT]
+    exact hQderiv_holder s (le_of_lt hs2) hsT a ha b hb
+  have hcut := intervalConjugateDuhamel_secondDeriv_continuousOn_of_late_deriv_holder
+    ht heta0 heta1 hCQ_nn hHQd_nn hF_meas hF_int hF_bound hF_cont
+      hF_deriv hF_deriv_int hF0 hF1 hF_deriv_bound hF_deriv_holder
+  have heq : ∀ x,
+      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) z) y) x) =
+      ∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalConjugateKernelOperator (t - s) (F s) z) y) x := by
+    intro x
+    apply intervalIntegral.integral_congr_ae
+    apply Filter.Eventually.of_forall
+    intro s hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [hF_eq hs.1 (hs.2.trans htT)]
+  exact hcut.congr (fun x _hx ↦ heq x)
+
 end ShenWork.Paper2
