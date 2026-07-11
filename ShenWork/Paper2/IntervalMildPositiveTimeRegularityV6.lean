@@ -133,11 +133,28 @@ reaches `WindowSourceEnvelope 2`, whence `R` follows by
 `restartCoeff_eigenvalue_weighted_summable_of_pass2_envelope`, and then `L`
 (`MildSolutionSliceHasDerivAtTime`) and all of `hsrcB` follow.
 
-Content (cq31): the `u^γ` Nemytskii bound `‖u^γ‖_{H^{m-1}} ≤ C(‖u‖_∞, δ)‖u‖_{H^m}`
-(carrying the `δ`-floor `uniform_positive_lower_bound` — never unrestricted),
-the elliptic resolver gain `R[u] ∈ H^{m+2}`, the chem-div flux product algebra,
-and Bessel (`H^{m-1} ⇒ cosine-coeff `O(k^{-(m-1)})`).  Drop-in target for
-Codex/cq31. -/
+Content — the verified cq31 (Q4277) flux-regularity chain, checked against the
+commit-`fe90ef7c` definitions:
+
+* logistic `u(a − b u^α)`: smooth Nemytskii of `u`, preserves order ⟹ `H^m`
+  coeffs `O(k^{-m})` — but at HIGH order the `u^α`/`u^γ` Moser step is FALSE for
+  `u` that can vanish; it REQUIRES the positive floor.  So the Nemytskii lemma is
+  `‖u^γ‖_{H^r} ≤ C(‖u‖_∞, δ, r) · ‖u‖_{H^r}` for `u ≥ δ > 0` (thread the
+  committed `uniform_positive_lower_bound δ`).  Without `δ` it is false at high
+  order — do not state it unrestricted.
+* chem-div flux chain (each step verified):
+  `u ∈ H^r  ⟹  R = R[u] ∈ H^{r+2}` (elliptic Neumann resolver, +2 gain)
+  `⟹  R_x (1+R)^{-β} ∈ H^{r+1}` (composition; `1+R ≥ 1`, so `(1+R)^{-β}` smooth)
+  `⟹  Q = u · R_x(1+R)^{-β} ∈ H^r` (Sobolev algebra `H^s·H^s ⊂ H^s`, `s>1/2`)
+  `⟹  ∂ₓQ ∈ H^{r-1}`.
+  Hence the source-from-solution map is exactly `WCE m → WSE (m-1)` (the `-1` is
+  the flux `∂ₓ`), and Bessel turns `H^{r-1}` into cosine-coeff `O(k^{-(r-1)})`.
+* Termination: the chemotaxis Duhamel then gains `+2` relative to `∂ₓQ`, NET `+1`
+  per sharp pass (`H^{r-1} → H^{r+1}`).  Even the repo's landed conservative
+  `any α<1` per-pass gain still crosses the `H^{s}` (`s>5/2`) threshold in
+  finitely many passes — finite termination holds without the sharp `+1`.
+
+Drop-in target for Codex/cq31 (Q4277). -/
 def SourceFromSolutionEnvelopePass
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (S : ConjugateMildSolutionData p u₀) : Type :=
