@@ -85,6 +85,40 @@ theorem uniform_positive_lower_bound
   · intro x hx
     exact hx₀min hx
 
+/-- **THE single open leaf of the generic-`S` source ladder `hsrcB`.**
+
+Per interior time and space point, the mild solution's slice has a time
+derivative that is continuous and, on each compact interior window, uniformly
+bounded.  Everything else in `hsrcB` (the B-form source `DuhamelSourceTimeC1`)
+is reuse: the spatial ℓ¹/decay envelope is the already-solved representation-fed
+weak-H² adapters (`logisticSource_/powerSource_duhamelSourceTimeC1_of_representation`,
+`IntervalResolverPowerDecay`), and the source time-`C¹` fields follow from this
+leaf by the chain rule (`logisticReaction_comp_hasDerivAt` takes the slice
+`HasDerivAt`; `CoupledChemDivLocalChainRule.exists_local_slab` takes `∂ₜu`, with
+the resolver `∂ₜv` from `∂ₜu` by elliptic linearity).
+
+Non-circular route (cq33): the coefficient Duhamel identity
+`c_k(t) = e^{-νλ_k t} c_k(0) + ∫₀ᵗ e^{-νλ_k(t-s)} s_k(s) ds` is differentiable in
+`t` with `∂ₜc_k(t) = -νλ_k c_k(t) + s_k(t)` by Leibniz/FTC — needing ONLY `s_k`
+*continuous* in time (the kernel `e^{-νλ_k(t-s)}` is smooth, no `1/(t-s)`
+singularity at the coefficient level).  Then
+`∂ₜu(t,x) = ∑_k (-νλ_k c_k(t) + s_k(t)) cos(kπx)` converges by the eigenvalue-
+weighted ℓ¹ (`∑ λ_k|c_k| < ∞`, from the solved spatial ladder) plus `s_k ∈ ℓ¹`.
+So the base breaks the circularity at the *continuity* level (supplied by
+`S.hcont`), not the differentiability level.  The `δ`-floor
+(`uniform_positive_lower_bound`) supplies the `u^{γ-1}` factor in the chain rule.
+
+Drop-in target for Codex/cq33. -/
+def MildSolutionSliceHasDerivAtTime
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀) : Prop :=
+  ∃ udot : ℝ → intervalDomainPoint → ℝ,
+    (∀ t, 0 < t → t < S.T → ∀ x : intervalDomainPoint,
+        HasDerivAt (fun r => S.u r x) (udot t x) t) ∧
+    (∀ t, 0 < t → t < S.T → Continuous (udot t)) ∧
+    (∀ c T' : ℝ, 0 < c → T' < S.T → ∃ B : ℝ, 0 ≤ B ∧
+        ∀ t ∈ Set.Icc c T', ∀ x : intervalDomainPoint, |udot t x| ≤ B)
+
 /-- The restart base coefficients `cosineCoeffs (lift (S.u τ))` are bounded by
 `2 * S.M`, directly from slice continuity and boundedness — no cosine-series
 circularity. -/
