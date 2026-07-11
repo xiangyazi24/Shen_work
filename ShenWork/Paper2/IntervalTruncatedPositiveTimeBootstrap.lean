@@ -31,9 +31,11 @@ import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalResolverWeakLapBound
 import ShenWork.Paper2.IntervalResolverWeakODEBridge
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
+import ShenWork.Paper2.IntervalTruncatedGradientWindowChain
 import ShenWork.Paper2.IntervalTruncatedChemFluxBound
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
+import ShenWork.Paper2.IntervalTruncatedWindowLipschitzLimit
 import ShenWork.Paper2.IntervalTransversalZeroSet
 import ShenWork.PDE.CosineSpectrum
 
@@ -1503,11 +1505,11 @@ This is the key regularity black box that breaks the circularity between
 source bounds and gradient bounds.  The proof is: iterate-level heat
 smoothing gives each u_n Lipschitz at positive time, with constants uniform
 in n (Volterra contraction), so the Picard limit inherits Lipschitz. -/
-theorem truncatedPicardLimit_lipschitzOn_positive_time
+theorem truncatedPicardLimit_lipschitzOn_positive_time_of_contraction
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T)
-    (hcontr_grad : truncWindowB
+    (hcontr : truncWindowB
       (Real.sqrt (∑' k : ℕ,
           (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
             * (2 * (p.ν * DT.M ^ p.γ)))
@@ -1585,7 +1587,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
       apply add_nonneg
       · exact mul_nonneg DT.hM.le hH_M_nn
       · exact mul_nonneg (mul_nonneg p.hβ DT.hM.le) (sq_nonneg _)
-    have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := hcontr_grad
+    have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := hcontr
     let Gw : ℝ := truncWindowFixedG Mw A_L A_F B_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
       dsimp only [Gw]
@@ -2020,6 +2022,445 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     (hlim_x.sub hlim_y).abs
   exact le_of_tendsto hlim_diff (Filter.Eventually.of_forall (fun n => hiter n x hx y hy))
 
+/-- At every positive time, the lifted truncated Picard-limit slice is
+Lipschitz on `[0,1]`.  The proof starts from the near-zero left profile and
+chains finitely many equal-width contracting restart windows up to `t`. -/
+theorem truncatedPicardLimit_lipschitzOn_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+      |intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
+       intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
+  have hmeas_iterates_grad : ∀ k,
+      HasJointMeasurability (truncatedConjugatePicardIter p u₀ k) := by
+    intro k
+    induction k with
+    | zero => exact DT.hbase_meas
+    | succ k ih => exact DT.hmeas_preserved _ ih
+  let U : ℕ → ℝ → intervalDomainPoint → ℝ :=
+    fun n s => truncatedConjugatePicardIter p u₀ n s
+  let Src : ℕ → ℝ → ℝ → ℝ :=
+    fun n s y =>
+      truncatedLogisticLifted p (U n s) y
+        - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y
+  let Mw : ℝ := DT.M
+  let A_L : ℝ := DT.M * (p.a + p.b * DT.M ^ p.α)
+  let Γ_M : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+      * (2 * (p.ν * DT.M ^ p.γ))
+  let V_M : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+      * (2 * (p.ν * DT.M ^ p.γ))
+  let H_M : ℝ := p.μ * V_M + p.ν * DT.M ^ p.γ
+  let A_F : ℝ := DT.M * H_M + p.β * DT.M * Γ_M ^ 2
+  let B_F : ℝ := Γ_M
+  have hΓ_M_nn : 0 ≤ Γ_M := mul_nonneg (Real.sqrt_nonneg _)
+    (mul_nonneg (by positivity) (mul_nonneg (le_of_lt p.hν)
+      (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+  have hV_M_nn : 0 ≤ V_M := mul_nonneg (Real.sqrt_nonneg _)
+    (mul_nonneg (by positivity) (mul_nonneg (le_of_lt p.hν)
+      (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+  have hH_M_nn : 0 ≤ H_M := by
+    dsimp only [H_M]
+    exact add_nonneg (mul_nonneg p.hμ.le hV_M_nn)
+      (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _))
+  have hBF_nn : 0 ≤ B_F := by
+    simpa [B_F] using hΓ_M_nn
+  have hAL_nn : 0 ≤ A_L := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
+    (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+  have hAF_nn : 0 ≤ A_F := by
+    dsimp only [A_F]
+    exact add_nonneg (mul_nonneg DT.hM.le hH_M_nn)
+      (mul_nonneg (mul_nonneg p.hβ DT.hM.le) (sq_nonneg _))
+  let C : EqualStepGradientWindowChain t B_F p.χ₀ :=
+    Classical.choice (exists_equalStepGradientWindowChain ht hBF_nn)
+  let a : ℝ := C.a 0
+  let lo : ℝ := C.lo 0
+  let hi : ℝ := C.hi 0
+  have ha : 0 < a := by
+    dsimp only [a]
+    exact C.a_pos 0
+  have hlo_pos : 0 < lo := by
+    exact ha.trans (by
+      dsimp only [a, lo]
+      exact C.a_lt_lo 0)
+  have hlo_t : lo ≤ t := by
+    dsimp only [lo]
+    exact (C.lo_le_hi 0).trans (C.hi_le_target (Nat.zero_le C.N))
+  have hloT : lo ≤ DT.T := hlo_t.trans htT
+  have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := by
+    dsimp only [a, hi]
+    exact C.window_contraction 0
+  let Gw : ℝ := truncWindowFixedG Mw A_L A_F B_F p.χ₀ a lo hi
+  have hGw_nn : 0 ≤ Gw := by
+    dsimp only [Gw]
+    simp only [truncWindowFixedG, truncWindowA]
+    apply div_nonneg
+    · apply add_nonneg
+      · exact mul_nonneg
+          (div_nonneg
+            ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+            (Real.sqrt_nonneg _)) (le_of_lt DT.hM)
+      · exact mul_nonneg
+          (mul_nonneg
+            ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+            (mul_nonneg (by positivity) (Real.sqrt_nonneg _)))
+          (add_nonneg hAL_nn (mul_nonneg (abs_nonneg _) hAF_nn))
+    · linarith
+  have hleft_zero : ∀ n : ℕ, IterGradOnWindow U a lo n Gw := by
+    have hM : 0 ≤ Mw := le_of_lt DT.hM
+    have hPaG : truncLeftProfile Mw A_L A_F B_F p.χ₀ lo a ≤ Gw := by
+      dsimp only [Gw]
+      exact truncLeftProfile_le_Gw hM hAL_nn hAF_nn hBF_nn ha
+        (by
+          dsimp only [lo, a]
+          rw [C.lo_zero, C.a_zero])
+        (by
+          dsimp only [hi, a]
+          rw [C.hi_zero, C.a_zero])
+        hBcontr
+    have hleftContr : truncLeftB B_F p.χ₀ lo < 1 := by
+      have hlo_span : lo ≤ hi - a := by
+        dsimp only [lo, hi, a]
+        rw [C.lo_zero, C.hi_sub_a]
+        nlinarith [C.h_pos]
+      have hsqrt_le : Real.sqrt lo ≤ Real.sqrt (hi - a) :=
+        Real.sqrt_le_sqrt hlo_span
+      have htwo_sqrt_le :
+          2 * Real.sqrt lo ≤ 2 * Real.sqrt (hi - a) :=
+        mul_le_mul_of_nonneg_left hsqrt_le (by norm_num)
+      have hK_nonneg :
+          0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+      have hchiBF_nonneg : 0 ≤ |p.χ₀| * B_F :=
+        mul_nonneg (abs_nonneg p.χ₀) hBF_nn
+      have hb_core :
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * (2 * Real.sqrt lo)
+            ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * (2 * Real.sqrt (hi - a)) :=
+        mul_le_mul_of_nonneg_left htwo_sqrt_le hK_nonneg
+      have hb_le : truncLeftB B_F p.χ₀ lo ≤ truncWindowB B_F p.χ₀ a hi := by
+        rw [truncLeftB, truncWindowB, truncLeftBeta]
+        calc
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                * (2 * Real.sqrt lo) * (|p.χ₀| * B_F)
+              ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                * (2 * Real.sqrt (hi - a)) * (|p.χ₀| * B_F) :=
+                mul_le_mul_of_nonneg_right hb_core hchiBF_nonneg
+          _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                * (2 * Real.sqrt (hi - a)) * |p.χ₀| * B_F := by ring
+      exact lt_of_le_of_lt hb_le hBcontr
+    have base : IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo 0 := by
+      simpa [Mw] using
+        truncatedConjugatePicardIter_zero_left_profile
+          (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
+          hAL_nn hAF_nn hBF_nn hlo_pos hleftContr
+    have source : ∀ n, IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
+        ∀ s, 0 < s → s ≤ lo → ∀ y,
+          |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
+            truncLeftBeta B_F p.χ₀ *
+              truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+      intro n hprofile s hs_pos hs_lo y
+      have hball_cont := truncatedConjugatePicardIter_ball p u₀
+        DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+        DT.hbase_meas DT.hmeas_preserved n
+      have hs_T : s ≤ DT.T := hs_lo.trans hloT
+      have hball : ∀ x, |U n s x| ≤ DT.M := hball_cont.1 s hs_pos hs_T
+      have hK_nonneg :
+          0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+      have hprofile_nonneg :
+          0 ≤ truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+        unfold truncLeftProfile truncLeftSingularC
+        exact add_nonneg
+          (div_nonneg (mul_nonneg hK_nonneg hM) (Real.sqrt_nonneg _))
+          (truncLeftD_nonneg hM hAL_nn hAF_nn hBF_nn hlo_pos.le hleftContr)
+      dsimp only [Src]
+      have hlog : |truncatedLogisticLifted p (U n s) y| ≤ A_L := by
+        have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
+          by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+          · simp only [intervalDomainLift, dif_pos hy]
+            exact hball ⟨y, hy⟩
+          · simp only [intervalDomainLift, dif_neg hy, abs_zero]
+            exact le_of_lt DT.hM
+        show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
+        exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
+      have hflux :
+          |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+            A_F + B_F * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+        by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+        · have hdiff_pos :
+              0 < intervalDomainLift (U n s) y →
+                DifferentiableAt ℝ (intervalDomainLift (U n s)) y := by
+            intro _hy_pos
+            exact (hprofile s hs_pos hs_lo).2 y hyIoo
+          have hb :=
+            truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+              (p := p) (w := U n s) (M := DT.M)
+              (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
+              DT.hM (hball_cont.2 s hs_pos hs_T) hball
+              (hprofile s hs_pos hs_lo).1 y hdiff_pos
+          convert hb using 1 <;>
+            (dsimp only [A_F, B_F, Γ_M, H_M, V_M] <;> ring)
+        · have hflux_zero :
+              deriv (truncatedChemFluxLifted p (U n s)) y = 0 :=
+            truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+              (p := p) (w := U n s) hyIoo
+          rw [hflux_zero, abs_zero]
+          exact add_nonneg hAF_nn (mul_nonneg hBF_nn hprofile_nonneg)
+      calc
+        |truncatedLogisticLifted p (U n s) y
+            - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y|
+            ≤ |truncatedLogisticLifted p (U n s) y|
+              + |p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y| := by
+                simpa using
+                  (abs_sub_le (truncatedLogisticLifted p (U n s) y) 0
+                    (p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y))
+        _ = |truncatedLogisticLifted p (U n s) y|
+              + |p.χ₀| * |deriv (truncatedChemFluxLifted p (U n s)) y| := by
+            rw [abs_mul]
+        _ ≤ A_L + |p.χ₀| *
+              (A_F + B_F * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) := by
+            exact add_le_add hlog
+              (mul_le_mul_of_nonneg_left hflux (abs_nonneg p.χ₀))
+        _ = truncLeftSourceConst A_L A_F p.χ₀
+              + truncLeftBeta B_F p.χ₀ *
+                truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+            simp [truncLeftSourceConst, truncLeftBeta]
+            ring
+    have kernel : ∀ n,
+        IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
+        (∀ s, 0 < s → s ≤ lo → ∀ y,
+          |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
+            truncLeftBeta B_F p.χ₀ *
+              truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
+        IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo (n + 1) := by
+      intro n hprev hsrc
+      have hball_cont_n := truncatedConjugatePicardIter_ball p u₀
+        DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+        DT.hbase_meas DT.hmeas_preserved n
+      have hU_joint : Measurable (fun q : ℝ × ℝ =>
+          intervalDomainLift (U n q.1) q.2) := by
+        simpa [U, HasJointMeasurability] using hmeas_iterates_grad n
+      have hsource_meas : ∀ (a' τ' : ℝ), 0 < a' → a' < τ' → τ' ≤ lo →
+          Measurable (Function.uncurry (truncatedWindowedSource Src n a' τ')) := by
+        intro a' τ' ha' _haτ hτ'lo
+        apply truncatedWindowedSource_measurable_of_abs_ball
+          (p := p) (w := fun s => U n s) (M := DT.M)
+          DT.hM hU_joint
+        · intro s has hsτ
+          have hspos : 0 < s := ha'.trans_le has
+          have hslo : s ≤ lo := hsτ.trans hτ'lo
+          exact hball_cont_n.2 s hspos (hslo.trans hloT)
+        · intro s has hsτ x
+          have hspos : 0 < s := ha'.trans_le has
+          have hslo : s ≤ lo := hsτ.trans hτ'lo
+          exact hball_cont_n.1 s hspos (hslo.trans hloT) x
+        · intro s has hsτ y hyIoo
+          exact (hprev s (ha'.trans_le has) (hsτ.trans hτ'lo)).2 y hyIoo
+        · intro s y
+          rfl
+      have hflux_reg : ∀ s, 0 < s → s ≤ lo →
+          ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+            (truncatedChemFluxLifted p (U n s)) := by
+        intro s hspos hslo
+        have hsT : s ≤ DT.T := hslo.trans hloT
+        have hw_cont := hball_cont_n.2 s hspos hsT
+        have hball := hball_cont_n.1 s hspos hsT
+        have hgrad_s := hprev s hspos hslo
+        have hprofile_nonneg :
+            0 ≤ truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s :=
+          (abs_nonneg (deriv (intervalDomainLift (U n s)) 0)).trans
+            (hgrad_s.1 0)
+        have hC_nonneg :
+            0 ≤ A_F + B_F * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s :=
+          add_nonneg hAF_nn (mul_nonneg hBF_nn hprofile_nonneg)
+        have hderiv_bound : ∀ y ∈ Icc (0 : ℝ) 1,
+            |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+              A_F + B_F * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+          intro y _hy
+          by_cases hyIoo : y ∈ Ioo (0 : ℝ) 1
+          · have hdiff_pos :
+                0 < intervalDomainLift (U n s) y →
+                  DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+              fun _ => hgrad_s.2 y hyIoo
+            have hb :=
+              truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                (p := p) (w := U n s) (M := DT.M)
+                (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
+                DT.hM hw_cont hball hgrad_s.1 y hdiff_pos
+            convert hb using 1 <;>
+              (dsimp only [Mw, A_F, B_F, Γ_M, H_M, V_M] <;> ring)
+          · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                (p := p) (w := U n s) hyIoo, abs_zero]
+            exact hC_nonneg
+        exact truncatedChemFluxLifted_ibpRegularity_of_abs_ball
+          p DT.hM hw_cont hball hgrad_s.2 hderiv_bound
+      simpa [Mw] using
+        ((truncatedConjugatePicardIter_succ_left_profile
+          (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
+          (by intro n s y; rfl)
+          hAL_nn hAF_nn hBF_nn hlo_pos hloT hleftContr)
+          n hsource_meas hflux_reg hsrc)
+    exact IterGradOnWindow.of_left_profile hM ha
+      (truncLeftProfile_all_of_wiring ⟨base, source, kernel⟩) hPaG
+  have hbuild : ∀ k, k ≤ C.N →
+      (∀ n : ℕ, IterGradOnWindow U (C.a k) (C.lo k) n Gw) →
+        TruncatedGradientWindowWiring
+          p U Src Mw A_L A_F B_F (C.a k) (C.lo k) (C.hi k) Gw := by
+    intro k hk hleft_k
+    have hak_pos : 0 < C.a k := C.a_pos k
+    have haklo : C.a k < C.lo k := C.a_lt_lo k
+    have hlokhi : C.lo k ≤ C.hi k := C.lo_le_hi k
+    have hhikT : C.hi k ≤ DT.T := (C.hi_le_target hk).trans htT
+    have hBcontr_k : truncWindowB B_F p.χ₀ (C.a k) (C.hi k) < 1 :=
+      C.window_contraction k
+    exact
+      { hM_nonneg := le_of_lt DT.hM
+        hAL_nonneg := hAL_nn
+        hAF_nonneg := hAF_nn
+        hBF_nonneg := hBF_nn
+        hG_nonneg := hGw_nn
+        ha_lt_lo := haklo
+        hlo_le_hi := hlokhi
+        hclosed := by
+          rw [C.affine_eq_zero k]
+          dsimp only [Gw]
+          exact affine_fixed_closes hBcontr
+        hleft := hleft_k
+        hbase := by
+          have hraw := truncatedConjugatePicardIter_zero_window_gradient
+            (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
+            hAL_nn hAF_nn hBF_nn hak_pos haklo hlokhi hhikT hBcontr_k
+          rw [C.fixedG_eq_zero k] at hraw
+          simpa only [Mw, Gw, a, lo, hi] using hraw
+        hsource_of_grad := by
+          intro n hgrad s ha_s hs_hi y
+          have hball_cont := truncatedConjugatePicardIter_ball p u₀
+            DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+            DT.hbase_meas DT.hmeas_preserved n
+          have hs_pos : 0 < s := hak_pos.trans_le ha_s
+          have hs_T : s ≤ DT.T := hs_hi.trans hhikT
+          have hball : ∀ x, |U n s x| ≤ DT.M :=
+            hball_cont.1 s hs_pos hs_T
+          apply abs_logistic_sub_chi_flux_le
+          · have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
+              by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+              · simp only [intervalDomainLift, dif_pos hy]
+                exact hball ⟨y, hy⟩
+              · simp only [intervalDomainLift, dif_neg hy, abs_zero]
+                exact le_of_lt DT.hM
+            show |truncatedLogisticLifted p (U n s) y| ≤ A_L
+            show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
+            exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
+          · by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+            · have hgrad_s := hgrad s ha_s hs_hi
+              have hdiff_pos :
+                  0 < intervalDomainLift (U n s) y →
+                    DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                fun _ => hgrad_s.2 y hyIoo
+              have hb :=
+                truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                  (p := p) (w := U n s) (M := DT.M) (G := Gw)
+                  DT.hM (hball_cont.2 s hs_pos hs_T) hball
+                  hgrad_s.1 y hdiff_pos
+              convert hb using 1 <;>
+                (dsimp only [A_F, B_F, Γ_M, H_M, V_M] <;> ring)
+            · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                  (p := p) (w := U n s) hyIoo, abs_zero]
+              exact add_nonneg hAF_nn (mul_nonneg hBF_nn hGw_nn)
+        hkernel_step := by
+          intro n hprev hsrc
+          have hball_cont_n := truncatedConjugatePicardIter_ball p u₀
+            DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+            DT.hbase_meas DT.hmeas_preserved n
+          have hU_joint : Measurable (fun q : ℝ × ℝ =>
+              intervalDomainLift (U n q.1) q.2) := by
+            simpa [U, HasJointMeasurability] using hmeas_iterates_grad n
+          have hsource_meas : ∀ τ' : ℝ,
+              0 < C.a k → C.a k < τ' → τ' ≤ C.hi k →
+                Measurable (Function.uncurry
+                  (truncatedWindowedSource Src n (C.a k) τ')) := by
+            intro τ' ha' _haτ hτ'hi
+            apply truncatedWindowedSource_measurable_of_abs_ball
+              (p := p) (w := fun s => U n s) (M := DT.M)
+              DT.hM hU_joint
+            · intro s has hsτ
+              have hspos : 0 < s := ha'.trans_le has
+              have hshi : s ≤ C.hi k := hsτ.trans hτ'hi
+              exact hball_cont_n.2 s hspos (hshi.trans hhikT)
+            · intro s has hsτ x
+              have hspos : 0 < s := ha'.trans_le has
+              have hshi : s ≤ C.hi k := hsτ.trans hτ'hi
+              exact hball_cont_n.1 s hspos (hshi.trans hhikT) x
+            · intro s has hsτ y hyIoo
+              exact (hprev s has (hsτ.trans hτ'hi)).2 y hyIoo
+            · intro s y
+              rfl
+          have hflux_reg : ∀ s, C.a k ≤ s → s ≤ C.hi k →
+              ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+                (truncatedChemFluxLifted p (U n s)) := by
+            intro s has hshi
+            have hspos : 0 < s := hak_pos.trans_le has
+            have hsT : s ≤ DT.T := hshi.trans hhikT
+            have hw_cont := hball_cont_n.2 s hspos hsT
+            have hball := hball_cont_n.1 s hspos hsT
+            have hgrad_s := hprev s has hshi
+            have hC_nonneg : 0 ≤ A_F + B_F * Gw :=
+              add_nonneg hAF_nn (mul_nonneg hBF_nn hGw_nn)
+            have hderiv_bound : ∀ y ∈ Icc (0 : ℝ) 1,
+                |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+                  A_F + B_F * Gw := by
+              intro y _hy
+              by_cases hyIoo : y ∈ Ioo (0 : ℝ) 1
+              · have hdiff_pos :
+                    0 < intervalDomainLift (U n s) y →
+                      DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                  fun _ => hgrad_s.2 y hyIoo
+                have hb :=
+                  truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                    (p := p) (w := U n s) (M := DT.M) (G := Gw)
+                    DT.hM hw_cont hball hgrad_s.1 y hdiff_pos
+                convert hb using 1 <;>
+                  (dsimp only [Mw, A_F, B_F, Γ_M, H_M, V_M] <;> ring)
+              · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                    (p := p) (w := U n s) hyIoo, abs_zero]
+                exact hC_nonneg
+            exact truncatedChemFluxLifted_ibpRegularity_of_abs_ball
+              p DT.hM hw_cont hball hgrad_s.2 hderiv_bound
+          dsimp only [Mw]
+          exact (truncatedConjugatePicardIter_succ_window_gradient
+            (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
+            (by intro n s y; rfl)
+            hAL_nn hAF_nn hBF_nn hGw_nn hak_pos haklo hlokhi hhikT)
+            n hsource_meas hflux_reg hsrc }
+  have hall : ∀ k, k ≤ C.N → ∀ n : ℕ,
+      IterGradOnWindow U (C.lo k) (C.hi k) n Gw :=
+    truncatedGradientWindow_chain_all
+      (p := p) (U := U) (Src := Src)
+      (M := Mw) (A_L := A_L) (A_F := A_F) (B_F := B_F) (G := Gw)
+      (N := C.N) (a := fun k => C.a k) (lo := fun k => C.lo k)
+      (hi := fun k => C.hi k)
+      (fun k _ => C.next_a k) (fun k _ => C.overlap k)
+      (by simpa [a, lo] using hleft_zero) hbuild
+  have hlast : ∀ n : ℕ,
+      IterGradOnWindow
+        (fun n s => truncatedConjugatePicardIter p u₀ n s)
+        (C.lo C.N) (C.hi C.N) n Gw := by
+    simpa [U] using hall C.N le_rfl
+  have htlo : C.lo C.N ≤ t := by
+    calc
+      C.lo C.N ≤ C.hi C.N := C.lo_le_hi C.N
+      _ = t := C.hi_last
+  have hthi : t ≤ C.hi C.N := by rw [C.hi_last]
+  refine ⟨Gw, hGw_nn, ?_⟩
+  exact truncatedPicardLimit_lipschitzOn_of_window_grad
+    DT ht htT htlo hthi hGw_nn hlast
+
 /-! ## Flux boundary vanishing (needed before IBP) -/
 
 theorem truncatedChemFluxLifted_zero_left'
@@ -2418,7 +2859,7 @@ private theorem truncatedBFormSourceCoeff_bound_positive_time_window_core
   have ⟨CC, hCC, hchem⟩ : ∃ CC : ℝ, 0 ≤ CC ∧
       ∀ σ, 0 < σ → σ ≤ t → ∀ k,
         |truncatedChemDivSourceCoeff p u σ k| ≤ CC := by
-    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT ht htT sorry
+    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT ht htT
     sorry
   -- Triangle inequality
   exact ⟨2 * B + |p.χ₀| * CC,
