@@ -53,7 +53,7 @@ theorem exp_neg_maxLog_div_mul_le
       Real.exp_le_exp.mpr (neg_le_neg hlog)
     have hPU : 0 < P / U := div_pos hP hU
     have hexp_log : Real.exp (-(Real.log (P / U))) = U / P := by
-      rw [Real.exp_neg, Real.exp_log hPU, one_div_div]
+      rw [Real.exp_neg, Real.exp_log hPU, inv_div]
     calc Real.exp (-(max 0 (Real.log (P / U)))) * P
         ≤ Real.exp (-(Real.log (P / U))) * P :=
           mul_le_mul_of_nonneg_right hexp hP.le
@@ -88,8 +88,7 @@ theorem truncatedJensenStrictPosDataFor_of_strictPos
   constructor
   intro t ht htT x
   rcases
-      ShenWork.Paper2.BFormPositiveDatumNegPart.
-        exists_restartSliceSqrtSeed_of_initialTrace
+      ShenWork.Paper2.BFormPositiveDatumNegPart.exists_restartSliceSqrtSeed_of_initialTrace
         hu₀ htrace hcont hnonneg hbound ht htT with
     ⟨s, hs, hst, hsT, hseed⟩
   let σ : ℝ := t - s
@@ -113,8 +112,7 @@ theorem truncatedJensenStrictPosDataFor_of_strictPos
     rw [abs_of_nonneg (Real.sqrt_nonneg _)]
     exact Real.sqrt_le_sqrt huy_le
   have hjensen : FullKernelJensenInequality f :=
-    ShenWork.Paper2.Batch1FoundationalLemmas.
-      fullKernelJensenInequality_of_aestronglyMeasurable_bounded
+    ShenWork.Paper2.Batch1FoundationalLemmas.fullKernelJensenInequality_of_aestronglyMeasurable_bounded
         hf_meas hf_bdd
   have hseed' : SquareHeatSeed (intervalDomainLift (u s)) f := by
     simpa [f] using hseed
