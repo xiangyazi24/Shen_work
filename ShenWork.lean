@@ -530,3 +530,5 @@ import ShenWork.Paper2.IntervalJointContinuityFromHolder
 import ShenWork.Paper2.IntervalResolverWeightedTimeSeries
 import ShenWork.Paper2.IntervalConjugateMildTimeContinuity
 import ShenWork.Paper2.IntervalConjugateMildJointValue
+import ShenWork.Paper2.IntervalParametricSpatialDerivativeContinuity
+import ShenWork.Paper2.IntervalConjugateMildJointSpatialDerivative
