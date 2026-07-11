@@ -1069,4 +1069,146 @@ def truncatedLimit_standardHeatSemigroupDuhamelFacts_of_nonneg
     simp [negativePartTestedWeakLHS,
       negativePartTestedLegWeakContribution, htest]
 
+private theorem truncatedLimit_negativePartLift_eq_zero_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    negativePartLift
+        (truncatedConjugatePicardLimit p u₀ DT.T t) =
+      fun _ : ℝ => 0 := by
+  funext y
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · simp [negativePartLift, intervalDomainLift, hy,
+      negativePart_eq_zero_of_nonneg (hnonneg t ht htT ⟨y, hy⟩)]
+  · simp [negativePartLift, intervalDomainLift, hy,
+      negativePart_eq_zero_of_nonneg (le_refl (0 : ℝ))]
+
+private theorem truncatedLimit_negativePartEnergy_eq_zero_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T) t = 0 := by
+  rw [negativePartEnergy,
+    truncatedLimit_negativePartLift_eq_zero_of_nonneg DT hnonneg ht htT]
+  simp
+
+private theorem truncatedLimit_negativePartEnergy_eq_zero_on_Icc_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) DT.T) :
+    negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T) t = 0 := by
+  rcases lt_or_eq_of_le ht.1 with htpos | rfl
+  · exact truncatedLimit_negativePartEnergy_eq_zero_of_nonneg
+      DT hnonneg htpos ht.2
+  · simp [negativePartEnergy, negativePartLift,
+      truncatedConjugatePicardLimit, negativePart,
+      intervalDomainLift]
+
+private theorem truncatedLimit_negativePartEnergy_eq_zero_on_Ici_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x)
+    {t : ℝ} (ht : 0 ≤ t) :
+    Set.EqOn
+      (negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T))
+      (fun _ : ℝ => 0) (Set.Ici t) := by
+  intro s hts
+  rcases eq_or_lt_of_le (ht.trans hts) with rfl | hspos
+  · simp [negativePartEnergy, negativePartLift,
+      truncatedConjugatePicardLimit, negativePart,
+      intervalDomainLift]
+  by_cases hsT : s ≤ DT.T
+  · exact truncatedLimit_negativePartEnergy_eq_zero_of_nonneg
+      DT hnonneg hspos hsT
+  · have hslice : truncatedConjugatePicardLimit p u₀ DT.T s =
+        fun _ : intervalDomainPoint => 0 := by
+      funext x
+      simp [truncatedConjugatePicardLimit, not_le.mp hsT]
+    simp [negativePartEnergy, negativePartLift, hslice, negativePart,
+      intervalDomainLift]
+
+/-- The exact DT-indexed legacy energy record becomes canonical once the
+open-time variational argument has supplied nonnegativity.  Every energy and
+test field is then the zero certificate; this is the endpoint-safe second
+stage of the direct weak-form route. -/
+def truncatedNegativePartEnergyCoreRegularData_of_nonneg
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hnonneg : ∀ t, 0 < t → t ≤ DT.T → ∀ x : intervalDomainPoint,
+      0 ≤ truncatedConjugatePicardLimit p u₀ DT.T t x) :
+    TruncatedNegativePartEnergyCoreRegularData p DT where
+  weak_regular :=
+    truncatedNegativePartMildToWeakRegularData_of_standardFacts DT
+      (truncatedLimit_standardHeatSemigroupDuhamelFacts_of_nonneg DT hnonneg)
+  ell := 0
+  hell_nonneg := le_rfl
+  E' := fun _ => 0
+  estimate := by
+    refine
+      { neg_deriv_zero_on_pos := ?_
+        time_chain := ?_
+        diffusion_chain := ?_
+        diffusion_nonneg := ?_
+        reaction_bound := ?_ }
+    · intro t ht htT
+      have hneg := truncatedLimit_negativePartLift_eq_zero_of_nonneg
+        DT hnonneg ht htT
+      filter_upwards [] with x
+      simp [hneg]
+    · intro t ht htT
+      have htest := negativePartTest_eq_zero_of_slice_nonneg
+        (hnonneg t ht htT)
+      simp [htest]
+    · intro t ht htT
+      have htest := negativePartTest_eq_zero_of_slice_nonneg
+        (hnonneg t ht htT)
+      have hneg := truncatedLimit_negativePartLift_eq_zero_of_nonneg
+        DT hnonneg ht htT
+      simp [negativePartDissipation, htest, hneg]
+    · intro t ht htT
+      have hneg := truncatedLimit_negativePartLift_eq_zero_of_nonneg
+        DT hnonneg ht htT
+      simp [negativePartDissipation, hneg]
+    · intro t ht htT
+      have htest := negativePartTest_eq_zero_of_slice_nonneg
+        (hnonneg t ht htT)
+      have henergy := truncatedLimit_negativePartEnergy_eq_zero_of_nonneg
+        DT hnonneg ht htT
+      simp [htest, henergy]
+  energy_cont := by
+    have heq : Set.EqOn
+        (negativePartEnergy (truncatedConjugatePicardLimit p u₀ DT.T))
+        (fun _ : ℝ => 0) (Set.Icc (0 : ℝ) DT.T) := by
+      intro t ht
+      exact truncatedLimit_negativePartEnergy_eq_zero_on_Icc_of_nonneg
+        DT hnonneg ht
+    exact continuousOn_const.congr heq
+  energy_has_deriv := by
+    intro t ht
+    have heq := truncatedLimit_negativePartEnergy_eq_zero_on_Ici_of_nonneg
+      DT hnonneg ht.1
+    exact (hasDerivWithinAt_const (x := t) (s := Set.Ici t) (c := (0 : ℝ))).congr
+      heq (heq (Set.mem_Ici.mpr le_rfl))
+  energy_integrable := by
+    intro t ht htT
+    have hneg := truncatedLimit_negativePartLift_eq_zero_of_nonneg
+      DT hnonneg ht htT
+    simp [hneg]
+  initial_vanishes := by
+    intro ε hε
+    exact ⟨1, by norm_num, fun s hs _hs1 hsT => by
+      rw [truncatedLimit_negativePartEnergy_eq_zero_of_nonneg
+        DT hnonneg hs hsT.le]
+      exact hε⟩
+  zero_energy_to_pointwise_nonneg := by
+    intro t ht htT _hzero
+    exact hnonneg t ht htT
+
 end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
