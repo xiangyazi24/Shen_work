@@ -544,3 +544,4 @@ import ShenWork.Paper2.IntervalConjugateMildTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildChemTimeDerivativeClosed
 import ShenWork.Paper2.IntervalConjugateMildTimeDerivativeClosed
 import ShenWork.Paper2.IntervalResolverTimeFromJointUT
+import ShenWork.Paper2.IntervalConjugateMildClassicalRegularityFromJointUT
