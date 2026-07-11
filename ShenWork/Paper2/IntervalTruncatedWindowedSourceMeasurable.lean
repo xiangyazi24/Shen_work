@@ -253,21 +253,38 @@ theorem truncatedChemFluxLifted_joint_measurable_of_lift_joint
     {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
     (hw : Measurable (fun q : ℝ × ℝ => intervalDomainLift (w q.1) q.2)) :
     Measurable (Function.uncurry (fun s => truncatedChemFluxLifted p (w s))) := by
-  have hR := resolver_lift_joint_measurable_of_lift_joint (p := p) (w := w) hw
-  have hG := resolverGrad_joint_measurable_of_lift_joint (p := p) (w := w) hw
   have hpos : Measurable (fun q : ℝ × ℝ =>
       positivePart (intervalDomainLift (w q.1) q.2)) := by
     simpa [positivePart] using hw.max measurable_const
+  -- ρ₊ flux: the resolver is evaluated at the positive part of the slice, so the
+  -- resolver measurability is obtained at `fun z => positivePart (w · z)`.
+  have hwp_meas : Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (fun z => positivePart (w q.1 z)) q.2) := by
+    have heq : (fun q : ℝ × ℝ =>
+          intervalDomainLift (fun z => positivePart (w q.1 z)) q.2)
+        = (fun q : ℝ × ℝ => positivePart (intervalDomainLift (w q.1) q.2)) := by
+      funext q
+      by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+      · simp [intervalDomainLift, hy]
+      · simp [intervalDomainLift, hy, positivePart]
+    rw [heq]; exact hpos
+  have hR := resolver_lift_joint_measurable_of_lift_joint (p := p)
+    (w := fun s z => positivePart (w s z)) hwp_meas
+  have hG := resolverGrad_joint_measurable_of_lift_joint (p := p)
+    (w := fun s z => positivePart (w s z)) hwp_meas
   have hden_base : Measurable (fun q : ℝ × ℝ =>
-      1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) :=
+      1 + intervalDomainLift
+        (ShenWork.PDE.intervalNeumannResolverR p (fun z => positivePart (w q.1 z))) q.2) :=
     measurable_const.add hR
   have h_rpow : Measurable (fun x : ℝ => x ^ p.β) := by fun_prop
   have hden : Measurable (fun q : ℝ × ℝ =>
-      (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) ^ p.β) :=
+      (1 + intervalDomainLift
+        (ShenWork.PDE.intervalNeumannResolverR p (fun z => positivePart (w q.1 z)))
+          q.2) ^ p.β) :=
     h_rpow.comp hden_base
   have hnum : Measurable (fun q : ℝ × ℝ =>
       positivePart (intervalDomainLift (w q.1) q.2) *
-        ShenWork.Paper2.resolverGradReal p (w q.1) q.2) :=
+        ShenWork.Paper2.resolverGradReal p (fun z => positivePart (w q.1 z)) q.2) :=
     hpos.mul hG
   simpa [Function.uncurry, truncatedChemFluxLifted] using hnum.div hden
 
@@ -278,8 +295,10 @@ theorem truncatedChemFluxLifted_deriv_eq_zero_outside_Ioo
     (hy : y ∉ Set.Ioo (0 : ℝ) 1) :
     deriv (truncatedChemFluxLifted p w) y = 0 := by
   let F : intervalDomainPoint → ℝ := fun x =>
-    positivePart (w x) * ShenWork.Paper2.resolverGradReal p w x.1 /
-      (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) x.1) ^ p.β
+    positivePart (w x) *
+        ShenWork.Paper2.resolverGradReal p (fun z => positivePart (w z)) x.1 /
+      (1 + intervalDomainLift
+        (ShenWork.PDE.intervalNeumannResolverR p (fun z => positivePart (w z))) x.1) ^ p.β
   have hflux_eq : truncatedChemFluxLifted p w = intervalDomainLift F := by
     funext z
     by_cases hz : z ∈ Set.Icc (0 : ℝ) 1
