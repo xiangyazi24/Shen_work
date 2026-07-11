@@ -534,3 +534,4 @@ import ShenWork.Paper2.IntervalParametricSpatialDerivativeContinuity
 import ShenWork.Paper2.IntervalConjugateMildJointSpatialDerivative
 import ShenWork.Paper2.IntervalConjugateMildJointSpatialDerivativeClosed
 import ShenWork.Paper2.IntervalConjugateMildCoupledJointValue
+import ShenWork.Paper2.IntervalFullDuhamelTimeDerivativeHolder
