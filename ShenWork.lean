@@ -540,3 +540,4 @@ import ShenWork.Paper2.IntervalConjugateMildLogisticTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildChemDivJointContinuity
 import ShenWork.Paper2.IntervalConjugateSemigroupTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildChemTimeDerivative
+import ShenWork.Paper2.IntervalConjugateMildTimeDerivative
