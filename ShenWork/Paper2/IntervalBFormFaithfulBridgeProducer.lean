@@ -43,8 +43,11 @@ theorem truncatedChemFluxLifted_eq_chemFluxLifted_of_nonneg
   funext y
   have hy_nonneg : 0 ≤ intervalDomainLift w y :=
     intervalDomainLift_nonneg_of_slice_nonneg hw y
-  simp [truncatedChemFluxLifted, chemFluxLifted,
-    positivePart_eq_self_of_nonneg hy_nonneg, hpositivePart]
+  -- `simp only` avoids unfolding `positivePart` inside the resolver argument
+  -- `fun x => positivePart (w x)`, so `hpositivePart` can still rewrite it to `w`
+  -- (full `simp` rewrites it to `max (w ·) 0` first and the match is lost).
+  simp only [truncatedChemFluxLifted, chemFluxLifted, hpositivePart,
+    positivePart_eq_self_of_nonneg hy_nonneg]
 
 /-- On nonnegative slices, the truncated logistic source is the original source. -/
 theorem truncatedLogisticLifted_eq_logisticLifted_of_nonneg
