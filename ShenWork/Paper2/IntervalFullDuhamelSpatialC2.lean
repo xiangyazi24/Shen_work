@@ -112,7 +112,7 @@ theorem intervalFullDuhamel_firstDeriv_continuousOn_Icc_of_bounded
 /-- The time integral of the first spatial derivative of a full-semigroup
 Duhamel leg is differentiable when the source is uniformly Holder only on the
 late half of the time interval. -/
-theorem intervalFullDuhamel_deriv_hasDerivAt_of_late_holder
+theorem intervalFullDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_holder
     {t theta CQ HQ : ℝ} (ht : 0 < t)
     (htheta0 : 0 < theta) (htheta1 : theta < 1)
     (hCQ : 0 ≤ CQ) (hHQ : 0 ≤ HQ)
@@ -124,12 +124,16 @@ theorem intervalFullDuhamel_deriv_hasDerivAt_of_late_holder
       ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
         |F s a - F s b| ≤ HQ * |a - b| ^ theta)
     {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    HasDerivAt
-      (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
-        (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y)
-      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
-        (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y) x)
-      x := by
+    (IntervalIntegrable
+        (fun s ↦ deriv (fun y ↦ deriv
+          (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y) x)
+        volume 0 t ∧
+      HasDerivAt
+        (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
+          (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y)
+        (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+          (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y) x)
+        x) := by
   set Cmix : ℝ := 5 * Real.sqrt 2 / 2 with hCmix
   set Cearly : ℝ := Cmix * (t / 2) ^ (-(1 : ℝ)) * CQ with hCearly
   set Clate : ℝ := weightedHeatHessConst theta * HQ with hClate
@@ -248,7 +252,30 @@ theorem intervalFullDuhamel_deriv_hasDerivAt_of_late_holder
     (hF_meas := hmeas_evt) (hF_int := hfirst_int x)
     (hF'_meas := hP'_meas) (h_bound := hBound)
     (bound_integrable := hbound_int) (h_diff := hDiff)
-  exact hresult.2
+  exact hresult
+
+/-- Derivative-only compatibility wrapper for
+`intervalFullDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_holder`. -/
+theorem intervalFullDuhamel_deriv_hasDerivAt_of_late_holder
+    {t theta CQ HQ : ℝ} (ht : 0 < t)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hCQ : 0 ≤ CQ) (hHQ : 0 ≤ HQ)
+    {F : ℝ → ℝ → ℝ}
+    (hF_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, Integrable (F s) (intervalMeasure 1))
+    (hF_bound : ∀ s y, |F s y| ≤ CQ)
+    (hF_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |F s a - F s b| ≤ HQ * |a - b| ^ theta)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt
+      (fun y ↦ ∫ s in (0 : ℝ)..t, deriv
+        (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y)
+      (∫ s in (0 : ℝ)..t, deriv (fun y ↦ deriv
+        (fun z ↦ intervalFullSemigroupOperator (t - s) (F s) z) y) x)
+      x :=
+  (intervalFullDuhamel_deriv_hasDerivAt_and_secondDeriv_intervalIntegrable_of_late_holder
+    ht htheta0 htheta1 hCQ hHQ hF_meas hF_int hF_bound hF_holder hx).2
 
 /-- The integrated Hessian in the preceding theorem is continuous on the
 open physical interval. -/
