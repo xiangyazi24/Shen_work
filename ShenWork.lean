@@ -541,3 +541,4 @@ import ShenWork.Paper2.IntervalConjugateMildChemDivJointContinuity
 import ShenWork.Paper2.IntervalConjugateSemigroupTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildChemTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildTimeDerivative
+import ShenWork.Paper2.IntervalConjugateMildChemTimeDerivativeClosed
