@@ -63,6 +63,13 @@ theorem a_lt_lo {t B_F χ : ℝ}
   unfold a lo
   nlinarith [C.h_pos]
 
+theorem a_pos {t B_F χ : ℝ}
+    (C : EqualStepGradientWindowChain t B_F χ) (k : ℕ) :
+    0 < C.a k := by
+  unfold a
+  have hk : 0 < (k : ℝ) + 1 := by positivity
+  exact mul_pos hk C.h_pos
+
 theorem lo_le_hi {t B_F χ : ℝ}
     (C : EqualStepGradientWindowChain t B_F χ) (k : ℕ) :
     C.lo k ≤ C.hi k := by
