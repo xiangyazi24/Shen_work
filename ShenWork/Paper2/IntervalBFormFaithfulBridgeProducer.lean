@@ -37,11 +37,14 @@ theorem truncatedChemFluxLifted_eq_chemFluxLifted_of_nonneg
     (p : CM2Params) {w : intervalDomainPoint → ℝ}
     (hw : ∀ x : intervalDomainPoint, 0 ≤ w x) :
     truncatedChemFluxLifted p w = chemFluxLifted p w := by
+  have hpositivePart : (fun x : intervalDomainPoint => positivePart (w x)) = w := by
+    funext x
+    exact positivePart_eq_self_of_nonneg (hw x)
   funext y
   have hy_nonneg : 0 ≤ intervalDomainLift w y :=
     intervalDomainLift_nonneg_of_slice_nonneg hw y
   simp [truncatedChemFluxLifted, chemFluxLifted,
-    positivePart_eq_self_of_nonneg hy_nonneg]
+    positivePart_eq_self_of_nonneg hy_nonneg, hpositivePart]
 
 /-- On nonnegative slices, the truncated logistic source is the original source. -/
 theorem truncatedLogisticLifted_eq_logisticLifted_of_nonneg
