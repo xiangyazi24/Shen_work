@@ -167,6 +167,34 @@ theorem restartBase_coeff_bound
   exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
     hcontOn S.hM.le hbdd
 
+/-- **The ladder base: `WindowCoefficientEnvelope 0` for the solution coefficients.**
+
+From bounded, continuous slices (`S.hbound`, `S.hcont`) the cosine coefficients
+of `S.u` are uniformly bounded by `2 * S.M` on every interior window — the
+order-`0` solution envelope that seeds the spatial ladder.  Unconditional; no
+source stub, no `cq31` dependency.  (The first *smoothing* step `0 → 1` is the
+separate free-part heat-smoothing lemma; this is just the honest starting
+point.) -/
+def windowCoefficientEnvelope_zero_of_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    {c T' : ℝ} (hc : 0 < c) (hT' : T' < S.T) :
+    ShenWork.Paper2.IntervalCoeffLadderFull.WindowCoefficientEnvelope 0 c T'
+      (fun σ n => cosineCoeffs (intervalDomainLift (S.u σ)) n) where
+  env := fun _ => 2 * S.M
+  C := 2 * S.M + 1
+  hC := by have := S.hM.le; positivity
+  henv := by
+    intro s hs k
+    have hs0 : 0 < s := lt_of_lt_of_le hc hs.1
+    have hsT : s < S.T := lt_of_le_of_lt hs.2 hT'
+    exact restartBase_coeff_bound S hs0 hsT k
+  hdecay := by
+    intro k _hk
+    have := S.hM.le
+    simp only [pow_zero, div_one]
+    linarith
+
 /-- The explicit interior-slice cosine coefficient of `S.u σ`: the restart
 coefficient based at `σ/2` with the B-form source, evaluated at increment
 `σ/2`.  Used as the realization witness below. -/
