@@ -114,28 +114,4 @@ theorem exists_resolverLapPhysical_bound_of_bounded
   · intro y
     exact resolverLapPhysical_abs_le_of_bounded p hUcont hlb hub y
 
-/-- Green/ODE regularity bridge: continuous source → resolver is C² → R'' = μR - ρ(u).
-Uses the 1D Neumann Green kernel or weak-to-classical ODE regularity, NOT the spectral
-R'' Fourier series (which requires SourceCoeffQuadraticDecay). -/
-theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn
-    (p : CM2Params) {u : intervalDomainPoint → ℝ}
-    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
-    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
-    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    HasDerivAt (fun z : ℝ => resolverGradReal p u z)
-      (resolverLapPhysical p u ⟨x, Set.Ioo_subset_Icc_self hx⟩) x := by
-  sorry
-
-theorem deriv_resolverGradReal_abs_le_of_bounded
-    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M : ℝ}
-    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
-    (hlb : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u y)
-    (hub : ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u y ≤ M)
-    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    |deriv (fun z : ℝ => resolverGradReal p u z) x| ≤ resolverWeakLapBound p M := by
-  have hder := resolverGradReal_hasDerivAt_physicalLap_of_continuousOn p hUcont hlb hx
-  rw [hder.deriv]
-  exact resolverLapPhysical_abs_le_of_bounded p hUcont hlb hub
-    ⟨x, Set.Ioo_subset_Icc_self hx⟩
-
 end ShenWork.IntervalResolverWeakBounds

@@ -16,15 +16,18 @@
 
 import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
 import ShenWork.Paper2.IntervalConjugateKernelIBP
+import ShenWork.Paper2.IntervalFullDuhamelRestart
 import ShenWork.Paper2.IntervalCompactSliceGradientBounds
+import ShenWork.Paper2.IntervalTruncatedChemFluxBound
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.PDE.IntervalFullKernelLeibniz
 import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
 import ShenWork.PDE.IntervalSemigroupAtZero
+import ShenWork.Paper2.IntervalTruncatedWindowedSourceMeasurable
 
-open MeasureTheory Set
+open MeasureTheory Set Filter
 open scoped BigOperators Topology Real
 
 noncomputable section
@@ -364,10 +367,6 @@ gradient estimates.  The theorem below consumes this atom and proves the window
 monotonicity and constant arithmetic without any further analytic gap.
 -/
 
-private def truncatedWindowedSource
-    (Src : ℕ → ℝ → ℝ → ℝ) (n : ℕ) (a hi : ℝ) : ℝ → ℝ → ℝ :=
-  fun s y => if a ≤ s ∧ s ≤ hi then Src n s y else 0
-
 private theorem measurable_tsum_nat {α : Type*} [MeasurableSpace α]
     {f : ℕ → α → ℝ} (hf : ∀ n, Measurable (f n)) :
     Measurable (fun a : α => ∑' n : ℕ, f n a) := by
@@ -665,74 +664,6 @@ private theorem truncatedWindowedSource_integrable_of_source_bound
     · intro y
       simp [truncatedWindowedSource, hs, hCsrc_nonneg]
 
-private theorem truncatedWindowedSource_measurable_of_source_formula
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (DT : TruncatedConjugateMildExistenceData p u₀)
-    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
-    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
-    (Src : ℕ → ℝ → ℝ → ℝ)
-    (hSrc : ∀ n s y,
-      Src n s y =
-        truncatedLogisticLifted p (U n s) y
-          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
-    (n : ℕ) {a hi : ℝ} :
-    Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)) := by
-  have hmeas_iterates : ∀ k,
-      ShenWork.IntervalMildPicard.HasJointMeasurability
-        (truncatedConjugatePicardIter p u₀ k) := by
-    intro k
-    induction k with
-    | zero => exact DT.hbase_meas
-    | succ k ih => exact DT.hmeas_preserved _ ih
-  have hU_joint :
-      ShenWork.IntervalMildPicard.HasJointMeasurability (fun s => U n s) := by
-    have hfield :
-        (fun q : ℝ × ℝ => intervalDomainLift ((fun s => U n s) q.1) q.2)
-          =
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (truncatedConjugatePicardIter p u₀ n q.1) q.2) := by
-      funext q
-      rw [hU n q.1]
-    rw [hfield]
-    exact hmeas_iterates n
-  have hU_meas_n : Measurable (fun q : ℝ × ℝ =>
-      intervalDomainLift (U n q.1) q.2) := hU_joint
-  have hpos_meas : Measurable (fun q : ℝ × ℝ =>
-      positivePart (intervalDomainLift (U n q.1) q.2)) := by
-    simpa [positivePart] using hU_meas_n.max measurable_const
-  have hpow_meas : Measurable (fun q : ℝ × ℝ =>
-      (positivePart (intervalDomainLift (U n q.1) q.2)) ^ p.α) := by
-    have hrpow : Measurable (fun r : ℝ => r ^ p.α) := by fun_prop
-    exact hrpow.comp hpos_meas
-  have hlog_meas : Measurable (fun q : ℝ × ℝ =>
-      truncatedLogisticLifted p (U n q.1) q.2) := by
-    simpa [truncatedLogisticLifted, truncatedLogisticLocal] using
-      hU_meas_n.mul (measurable_const.sub (measurable_const.mul hpow_meas))
-  have hflux_meas :
-      Measurable (Function.uncurry (fun s => truncatedChemFluxLifted p (U n s))) :=
-    truncatedChemFluxLifted_joint_measurable (p := p) (w := fun s => U n s) hU_joint
-  have hflux_deriv_meas : Measurable (fun q : ℝ × ℝ =>
-      deriv (truncatedChemFluxLifted p (U n q.1)) q.2) := by
-    simpa [Function.uncurry] using
-      (measurable_deriv_with_param
-        (f := fun s : ℝ => truncatedChemFluxLifted p (U n s)) hflux_meas)
-  have hsrc_formula :
-      (fun q : ℝ × ℝ => Src n q.1 q.2)
-        =
-      (fun q : ℝ × ℝ =>
-        truncatedLogisticLifted p (U n q.1) q.2
-          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n q.1)) q.2) := by
-    funext q
-    exact hSrc n q.1 q.2
-  have hSrcn_meas : Measurable (fun q : ℝ × ℝ => Src n q.1 q.2) := by
-    rw [hsrc_formula]
-    exact hlog_meas.sub (measurable_const.mul hflux_deriv_meas)
-  change Measurable (fun q : ℝ × ℝ =>
-    if a ≤ q.1 ∧ q.1 ≤ hi then Src n q.1 q.2 else 0)
-  refine Measurable.ite ?_ hSrcn_meas measurable_const
-  exact (measurableSet_le measurable_const measurable_fst).inter
-    (measurableSet_le measurable_fst measurable_const)
-
 private theorem truncatedConjugatePicardIter_succ_restart_meas_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
@@ -811,7 +742,14 @@ private theorem truncatedConjugatePicardIter_succ_restart_value_identity_residua
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       intervalDomainLift (U (n + 1) τ) x =
         intervalFullSemigroupOperator (τ - a)
@@ -819,7 +757,296 @@ private theorem truncatedConjugatePicardIter_succ_restart_value_identity_residua
           + ∫ s in a..τ,
               intervalFullSemigroupOperator (τ - s)
                 (truncatedWindowedSource Src n a hi s) x := by
-  sorry
+  intro x hx
+  have hτ_pos : 0 < τ := ha_pos.trans ha_lt_τ
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  let q : ℝ → ℝ → ℝ := fun s y =>
+    if 0 < s ∧ s ≤ τ then truncatedChemFluxLifted p (U n s) y else 0
+  let ell : ℝ → ℝ → ℝ := fun s y =>
+    if 0 < s ∧ s ≤ τ then truncatedLogisticLifted p (U n s) y else 0
+  let Cq : ℝ := DT.M *
+      (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ))) *
+      (1 - Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ))) ^ (-p.β)
+  let Cell : ℝ := DT.M * (p.a + p.b * DT.M ^ p.α)
+  have hball_cont :=
+    ShenWork.Paper2.BFormPositiveDatumNegPart.truncatedConjugatePicardIter_ball p u₀
+      DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+      DT.hbase_meas DT.hmeas_preserved n
+  have hU_ball : ∀ s, 0 < s → s ≤ τ → ∀ z : intervalDomainPoint,
+      |U n s z| ≤ DT.M := by
+    intro s hs hsτ z
+    rw [hU n s]
+    exact hball_cont.1 s hs (hsτ.trans hτT) z
+  have hU_cont : ∀ s, 0 < s → s ≤ τ → Continuous (U n s) := by
+    intro s hs hsτ
+    rw [hU n s]
+    exact hball_cont.2 s hs (hsτ.trans hτT)
+  have hmeas_iterates : ∀ k,
+      ShenWork.IntervalMildPicard.HasJointMeasurability
+        (truncatedConjugatePicardIter p u₀ k) := by
+    intro k
+    induction k with
+    | zero => exact DT.hbase_meas
+    | succ k ih => exact DT.hmeas_preserved _ ih
+  have hU_joint : Measurable (fun z : ℝ × ℝ =>
+      intervalDomainLift (U n z.1) z.2) := by
+    have heq : (fun z : ℝ × ℝ => intervalDomainLift (U n z.1) z.2) =
+        (fun z : ℝ × ℝ => intervalDomainLift
+          (truncatedConjugatePicardIter p u₀ n z.1) z.2) := by
+      funext z
+      rw [hU n z.1]
+    rw [heq]
+    exact hmeas_iterates n
+  have hq_raw_meas : Measurable (Function.uncurry
+      (fun s => truncatedChemFluxLifted p (U n s))) :=
+    truncatedChemFluxLifted_joint_measurable_of_lift_joint (p := p) hU_joint
+  have hell_raw_meas : Measurable (Function.uncurry
+      (fun s => truncatedLogisticLifted p (U n s))) :=
+    truncatedLogisticLifted_joint_measurable_of_lift_joint (p := p) hU_joint
+  have htime : MeasurableSet {z : ℝ × ℝ | 0 < z.1 ∧ z.1 ≤ τ} :=
+    (measurableSet_lt measurable_const measurable_fst).inter
+      (measurableSet_le measurable_fst measurable_const)
+  have hq_meas : Measurable (Function.uncurry q) := by
+    change Measurable (fun z : ℝ × ℝ =>
+      if 0 < z.1 ∧ z.1 ≤ τ then
+        truncatedChemFluxLifted p (U n z.1) z.2 else 0)
+    exact Measurable.ite htime hq_raw_meas measurable_const
+  have hell_meas : Measurable (Function.uncurry ell) := by
+    change Measurable (fun z : ℝ × ℝ =>
+      if 0 < z.1 ∧ z.1 ≤ τ then
+        truncatedLogisticLifted p (U n z.1) z.2 else 0)
+    exact Measurable.ite htime hell_raw_meas measurable_const
+  have hGamma : 0 ≤ Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+      (2 * (p.ν * DT.M ^ p.γ)) :=
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg DT.hM.le _)))
+  have hden : 0 ≤ 1 - Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+      (2 * (p.ν * DT.M ^ p.γ)) := (sub_pos.mpr hresolver_small).le
+  have hCq : 0 ≤ Cq := by
+    dsimp [Cq]
+    exact mul_nonneg (mul_nonneg DT.hM.le hGamma)
+      (Real.rpow_nonneg hden _)
+  have hCell : 0 ≤ Cell := by
+    dsimp [Cell]
+    exact mul_nonneg DT.hM.le
+      (add_nonneg p.ha
+        (mul_nonneg p.hb (Real.rpow_nonneg DT.hM.le _)))
+  have hq_bound : ∀ s y, |q s y| ≤ Cq := by
+    intro s y
+    by_cases hs : 0 < s ∧ s ≤ τ
+    · simpa [q, Cq, hs] using
+        (truncatedChemFluxLifted_abs_le_of_abs_ball p DT.hM
+          (hU_cont s hs.1 hs.2) (hU_ball s hs.1 hs.2)
+          hresolver_small y)
+    · simp [q, hs, hCq]
+  have hell_bound : ∀ s y, |ell s y| ≤ Cell := by
+    intro s y
+    by_cases hs : 0 < s ∧ s ≤ τ
+    · simpa [ell, Cell, hs] using
+        (truncatedLogisticLifted_abs_le_of_abs_ball p DT.hM
+          (hU_ball s hs.1 hs.2) y)
+    · simp [ell, hs, hCell]
+  have hq_int : ∀ s, Integrable (q s) (intervalMeasure 1) := fun s =>
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      (hq_meas.comp
+        (measurable_const.prodMk measurable_id)).aestronglyMeasurable
+      (hq_bound s)
+  have hell_int : ∀ s, Integrable (ell s) (intervalMeasure 1) := fun s =>
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      (hell_meas.comp
+        (measurable_const.prodMk measurable_id)).aestronglyMeasurable
+      (hell_bound s)
+  have hf_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      DT.hbase_lift_meas DT.hbase_lift_bound
+  have hB0τ :
+      (∫ s in (0 : ℝ)..τ,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (τ - s) (q s) x) =
+      ∫ s in (0 : ℝ)..τ,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (τ - s) (truncatedChemFluxLifted p (U n s)) x := by
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with s hs
+    have hsIoc : s ∈ Set.Ioc (0 : ℝ) τ := by
+      simpa [Set.uIoc_of_le hτ_pos.le] using hs
+    simp [q, hsIoc.1, hsIoc.2]
+  have hL0τ :
+      (∫ s in (0 : ℝ)..τ,
+        intervalFullSemigroupOperator (τ - s) (ell s) x) =
+      ∫ s in (0 : ℝ)..τ,
+        intervalFullSemigroupOperator (τ - s)
+          (truncatedLogisticLifted p (U n s)) x := by
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with s hs
+    have hsIoc : s ∈ Set.Ioc (0 : ℝ) τ := by
+      simpa [Set.uIoc_of_le hτ_pos.le] using hs
+    simp [ell, hsIoc.1, hsIoc.2]
+  have hB0a : ∀ y,
+      (∫ s in (0 : ℝ)..a,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (a - s) (q s) y) =
+      ∫ s in (0 : ℝ)..a,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (a - s) (truncatedChemFluxLifted p (U n s)) y := by
+    intro y
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with s hs
+    have hsIoc : s ∈ Set.Ioc (0 : ℝ) a := by
+      simpa [Set.uIoc_of_le ha_pos.le] using hs
+    simp [q, hsIoc.1, hsIoc.2.trans ha_lt_τ.le]
+  have hL0a : ∀ y,
+      (∫ s in (0 : ℝ)..a,
+        intervalFullSemigroupOperator (a - s) (ell s) y) =
+      ∫ s in (0 : ℝ)..a,
+        intervalFullSemigroupOperator (a - s)
+          (truncatedLogisticLifted p (U n s)) y := by
+    intro y
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with s hs
+    have hsIoc : s ∈ Set.Ioc (0 : ℝ) a := by
+      simpa [Set.uIoc_of_le ha_pos.le] using hs
+    simp [ell, hsIoc.1, hsIoc.2.trans ha_lt_τ.le]
+  have hU_formula : ∀ t z, z ∈ Set.Icc (0 : ℝ) 1 →
+      intervalDomainLift (U (n + 1) t) z =
+        intervalFullSemigroupOperator t (intervalDomainLift u₀) z +
+        (-p.χ₀) * (∫ s in (0 : ℝ)..t,
+          ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+            (t - s) (truncatedChemFluxLifted p (U n s)) z) +
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s)
+            (truncatedLogisticLifted p (U n s)) z := by
+    intro t z hz
+    rw [intervalDomainLift, dif_pos hz, hU (n + 1) t]
+    change truncatedConjugateDuhamelMap p u₀
+      (truncatedConjugatePicardIter p u₀ n) t ⟨z, hz⟩ = _
+    have hn : truncatedConjugatePicardIter p u₀ n = fun s => U n s := by
+      funext s
+      exact (hU n s).symm
+    rw [hn]
+    rfl
+  let inner : ℝ → ℝ := fun y =>
+    intervalFullSemigroupOperator a (intervalDomainLift u₀) y +
+    (-p.χ₀) * (∫ s in (0 : ℝ)..a,
+      ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+        (a - s) (q s) y) +
+    ∫ s in (0 : ℝ)..a,
+      intervalFullSemigroupOperator (a - s) (ell s) y
+  have hinner : Set.EqOn inner (intervalDomainLift (U (n + 1) a))
+      (Set.Icc (0 : ℝ) 1) := by
+    intro y hy
+    dsimp [inner]
+    rw [hB0a y, hL0a y]
+    exact (hU_formula a y hy).symm
+  have hSinner : intervalFullSemigroupOperator (τ - a) inner x =
+      intervalFullSemigroupOperator (τ - a)
+        (intervalDomainLift (U (n + 1) a)) x := by
+    unfold intervalFullSemigroupOperator
+    apply integral_congr_ae
+    simp only [ShenWork.IntervalDomain.intervalMeasure,
+      ShenWork.IntervalDomain.intervalSet]
+    filter_upwards [ae_restrict_mem measurableSet_Icc] with y hy
+    rw [hinner hy]
+  have hrestart :=
+    ShenWork.Paper2.IntervalFullDuhamelRestart.intervalBFormDuhamel_restart
+      ha_pos ha_lt_τ DT.hbase_lift_meas hf_int DT.hM.le
+      DT.hbase_lift_bound hq_meas hq_int hCq hq_bound
+      hell_meas hell_int hCell hell_bound (-p.χ₀) hxIcc
+  change intervalFullSemigroupOperator τ (intervalDomainLift u₀) x +
+      (-p.χ₀) * (∫ s in (0 : ℝ)..τ,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (τ - s) (q s) x) +
+      ∫ s in (0 : ℝ)..τ,
+        intervalFullSemigroupOperator (τ - s) (ell s) x =
+    intervalFullSemigroupOperator (τ - a) inner x +
+      (-p.χ₀) * (∫ s in a..τ,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (τ - s) (q s) x) +
+      ∫ s in a..τ,
+        intervalFullSemigroupOperator (τ - s) (ell s) x at hrestart
+  have hleft : intervalDomainLift (U (n + 1) τ) x =
+      intervalFullSemigroupOperator τ (intervalDomainLift u₀) x +
+      (-p.χ₀) * (∫ s in (0 : ℝ)..τ,
+        ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+          (τ - s) (q s) x) +
+      ∫ s in (0 : ℝ)..τ,
+        intervalFullSemigroupOperator (τ - s) (ell s) x := by
+    rw [hB0τ, hL0τ]
+    exact hU_formula τ x hxIcc
+  have hqreg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity (q s) := by
+    intro s has hsτ
+    have hspos : 0 < s := ha_pos.trans_le has
+    simpa [q, hspos, hsτ] using hflux_reg s has hsτ
+  have hq0 : ∀ s, q s 0 = 0 := by
+    intro s
+    by_cases hs : 0 < s ∧ s ≤ τ
+    · simp only [q, hs]
+      unfold truncatedChemFluxLifted
+      rw [ShenWork.Paper2.resolverGradReal_zero]
+      simp
+    · simp [q, hs]
+  have hq1 : ∀ s, q s 1 = 0 := by
+    intro s
+    by_cases hs : 0 < s ∧ s ≤ τ
+    · simp only [q, hs]
+      unfold truncatedChemFluxLifted
+      rw [ShenWork.Paper2.resolverGradReal_one]
+      simp
+    · simp [q, hs]
+  have hrepr : ∀ s, a ≤ s → s ≤ τ → ∀ y,
+      truncatedWindowedSource Src n a hi s y =
+        ell s y - p.χ₀ * deriv (q s) y := by
+    intro s has hsτ y
+    have hspos : 0 < s := ha_pos.trans_le has
+    have hshi : s ≤ hi := hsτ.trans hτhi
+    have hqeq : q s = truncatedChemFluxLifted p (U n s) := by
+      funext z
+      simp [q, hspos, hsτ]
+    have helleq : ell s = truncatedLogisticLifted p (U n s) := by
+      funext z
+      simp [ell, hspos, hsτ]
+    rw [hqeq, helleq]
+    simp [truncatedWindowedSource, has, hshi, hSrc n s y]
+  have htail :=
+    ShenWork.Paper2.IntervalFullDuhamelRestart.intervalBFormTail_eq_fullSource_of_regularity
+      ha_pos.le hτ_pos ha_lt_τ hq_meas hq_int hCq hq_bound
+      hell_meas hell_int hCell hell_bound hqreg hq0 hq1 hrepr x
+  calc
+    intervalDomainLift (U (n + 1) τ) x =
+        intervalFullSemigroupOperator τ (intervalDomainLift u₀) x +
+          (-p.χ₀) * (∫ s in (0 : ℝ)..τ,
+            ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+              (τ - s) (q s) x) +
+          ∫ s in (0 : ℝ)..τ,
+            intervalFullSemigroupOperator (τ - s) (ell s) x := hleft
+    _ = intervalFullSemigroupOperator (τ - a) inner x +
+          (-p.χ₀) * (∫ s in a..τ,
+            ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+              (τ - s) (q s) x) +
+          ∫ s in a..τ,
+            intervalFullSemigroupOperator (τ - s) (ell s) x := hrestart
+    _ = intervalFullSemigroupOperator (τ - a)
+          (intervalDomainLift (U (n + 1) a)) x +
+          ((-p.χ₀) * (∫ s in a..τ,
+            ShenWork.IntervalConjugateDuhamelMap.intervalConjugateKernelOperator
+              (τ - s) (q s) x) +
+          ∫ s in a..τ,
+            intervalFullSemigroupOperator (τ - s) (ell s) x) := by
+            rw [hSinner]
+            ring
+    _ = intervalFullSemigroupOperator (τ - a)
+          (intervalDomainLift (U (n + 1) a)) x +
+          ∫ s in a..τ, intervalFullSemigroupOperator (τ - s)
+            (truncatedWindowedSource Src n a hi s) x := by rw [htail]
+
 
 /- Residual: spatial Leibniz rule for a shifted full-kernel Duhamel integral.
 This is the analytic dominated-convergence step with the integrable
@@ -949,7 +1176,9 @@ private theorem truncatedConjugatePicardIter_succ_gradientIntegrand_intervalInte
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi))) :
     ∀ x : ℝ, IntervalIntegrable
       (fun s : ℝ => deriv
         (fun z : ℝ =>
@@ -967,8 +1196,7 @@ private theorem truncatedConjugatePicardIter_succ_gradientIntegrand_intervalInte
       (mul_nonneg (abs_nonneg p.χ₀)
         (add_nonneg _hAF_nonneg (mul_nonneg _hBF_nonneg _hG_nonneg)))
   have hq_meas : Measurable (Function.uncurry q) := by
-    exact truncatedWindowedSource_measurable_of_source_formula
-      DT U hU Src hSrc n
+    exact hsource_meas
   have hqshift_meas : Measurable (Function.uncurry qshift) := by
     change Measurable (fun q' : ℝ × ℝ => q (q'.1 + a) q'.2)
     exact hq_meas.comp ((measurable_fst.add_const a).prodMk measurable_snd)
@@ -1020,7 +1248,16 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       HasDerivAt (intervalDomainLift (U (n + 1) τ))
         (deriv
@@ -1043,8 +1280,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
       DT U hU Src hSrc _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg n hsrc
   have hq_meas :
       Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)) :=
-    truncatedWindowedSource_measurable_of_source_formula
-      DT U hU Src hSrc n
+    hsource_meas
   have hCsrc_nonneg :
       0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
     unfold truncWindowSourceCL
@@ -1114,7 +1350,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
     truncatedConjugatePicardIter_succ_restart_value_identity_residual
       DT U hU Src hSrc
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos ha_lt_τ hτhi hτT n hsrc
+      ha_pos ha_lt_τ hτhi hτT n hsrc hflux_reg hresolver_small
   have heq :
       intervalDomainLift (U (n + 1) τ)
         =ᶠ[𝓝 x]
@@ -1146,7 +1382,16 @@ private theorem truncatedConjugatePicardIter_succ_restart_deriv_identity_residua
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       deriv (intervalDomainLift (U (n + 1) τ)) x =
         deriv
@@ -1162,7 +1407,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_deriv_identity_residua
     (truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
       DT U hU Src hSrc
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos ha_lt_τ hτhi hτT n hsrc x hx).deriv
+      ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small x hx).deriv
 
 /- Residual: prove the value-level restarted B-form identity on the open
 interior and justify the full-kernel spatial Leibniz step as a genuine
@@ -1186,7 +1431,16 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_residual
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       HasDerivAt (intervalDomainLift (U (n + 1) τ))
         (deriv
@@ -1202,7 +1456,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_residual
     truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
       DT U hU Src hSrc
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos ha_lt_τ hτhi hτT n hsrc
+      ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small
 
 /- Residual: prove interior differentiability of the successor truncated Picard
 slice from the restarted B-form identity and full-kernel smoothing. -/
@@ -1223,7 +1477,16 @@ private theorem truncatedConjugatePicardIter_succ_interior_differentiableAt_resi
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
   intro x hx
@@ -1231,9 +1494,9 @@ private theorem truncatedConjugatePicardIter_succ_interior_differentiableAt_resi
     (truncatedConjugatePicardIter_succ_restart_hasDerivAt_residual
       DT U hU Src hSrc
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos ha_lt_τ hτhi hτT n hsrc x hx).differentiableAt
+      ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small x hx).differentiableAt
 
-/- Analytic helper sorry, isolated from the arithmetic estimate below.
+/- Analytic helper isolated from the arithmetic estimate below.
 
 This is the precise restart/IBP/Leibniz package needed by the raw gradient
 atom: restart the successor Picard iterate at time `a`, replace the B-kernel
@@ -1256,7 +1519,16 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_split
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     AEStronglyMeasurable (intervalDomainLift (U (n + 1) a)) (intervalMeasure 1)
       ∧ (∀ y : ℝ, |intervalDomainLift (U (n + 1) a) y| ≤ DT.M)
       ∧ (∀ s, Integrable (truncatedWindowedSource Src n a hi s) (intervalMeasure 1))
@@ -1295,7 +1567,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_split
       truncatedConjugatePicardIter_succ_gradientIntegrand_intervalIntegrable_residual
         DT U hU Src hSrc
         _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-        ha_pos ha_lt_τ hτhi hτT n hsrc
+        ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas
     have hsplit :
         ∀ x ∈ Set.Ioo (0 : ℝ) 1,
             deriv (intervalDomainLift (U (n + 1) τ)) x =
@@ -1310,14 +1582,14 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_split
       truncatedConjugatePicardIter_succ_restart_deriv_identity_residual
         DT U hU Src hSrc
         _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-        ha_pos ha_lt_τ hτhi hτT n hsrc
+        ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small
     have hdiff :
         ∀ x ∈ Set.Ioo (0 : ℝ) 1,
             DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x :=
       truncatedConjugatePicardIter_succ_interior_differentiableAt_residual
         DT U hU Src hSrc
         _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-        ha_pos ha_lt_τ hτhi hτT n hsrc
+        ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small
     exact ⟨hrestart_meas, hrestart_bound, hq_int, hg_int, hsplit, hdiff⟩
 
 private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
@@ -1337,7 +1609,16 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
     (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
     (n : ℕ)
     (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
-      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    (hsource_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)))
+    (hflux_reg : ∀ s, a ≤ s → s ≤ τ →
+      ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+        (truncatedChemFluxLifted p (U n s)))
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     (∀ x : ℝ,
       |deriv (intervalDomainLift (U (n + 1) τ)) x|
         ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
@@ -1368,7 +1649,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
   rcases truncatedConjugatePicardIter_succ_restart_gradient_split
       DT U hU Src hSrc
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos ha_lt_τ hτhi hτT n hsrc with
+      ha_pos ha_lt_τ hτhi hτT n hsrc hsource_meas hflux_reg hresolver_small with
     ⟨hrestart_meas, hrestart_bound, hq_int, hg_int, hsplit, hdiff⟩
   refine ⟨?_, hdiff⟩
   intro x
@@ -1564,7 +1845,7 @@ private theorem gradDuhamel_left_profile_bound
     calc
       ∫ s in a..τ, dom s
           = K * (L0 + beta * D)
-              * ∫ s in a..τ, (τ - s) ^ (-(1 / 2 : ℝ))
+              * (∫ s in a..τ, (τ - s) ^ (-(1 / 2 : ℝ)))
             + K * beta * C
               * ∫ s in a..τ,
                   (τ - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) := by
@@ -1799,14 +2080,23 @@ theorem truncatedConjugatePicardIter_succ_left_profile
     (hAL_nonneg : 0 ≤ A_L) (hAF_nonneg : 0 ≤ A_F)
     (hBF_nonneg : 0 ≤ B_F)
     (hlo_pos : 0 < lo) (hloT : lo ≤ DT.T)
-    (hcontr : truncLeftB B_F p.χ₀ lo < 1) :
+    (hcontr : truncLeftB B_F p.χ₀ lo < 1)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ n : ℕ,
+      (∀ (a τ' : ℝ), 0 < a → a < τ' → τ' ≤ lo →
+        Measurable (Function.uncurry (truncatedWindowedSource Src n a τ'))) →
+      (∀ s, 0 < s → s ≤ lo →
+        ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+          (truncatedChemFluxLifted p (U n s))) →
       (∀ s, 0 < s → s ≤ lo → ∀ y : ℝ,
         |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀
           + truncLeftBeta B_F p.χ₀
             * truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo s) →
       IterGradLeftProfile U DT.M A_L A_F B_F p.χ₀ lo (n + 1) := by
-  intro n hsrc τ hτ_pos hτlo
+  intro n hsource_meas hflux_reg hsrc τ hτ_pos hτlo
   have hτT : τ ≤ DT.T := hτlo.trans hloT
   have hM_nonneg : 0 ≤ DT.M := le_of_lt DT.hM
   have hlo_nonneg : 0 ≤ lo := hlo_pos.le
@@ -1851,9 +2141,7 @@ theorem truncatedConjugatePicardIter_succ_left_profile
       _ ≤ truncLeftSourceConst A_L A_F p.χ₀
               + truncLeftBeta B_F p.χ₀
                 * truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a := by
-            exact add_le_add_left
-              (mul_le_mul_of_nonneg_left hmono hbeta_nonneg)
-              (truncLeftSourceConst A_L A_F p.χ₀)
+            linarith [mul_le_mul_of_nonneg_left hmono hbeta_nonneg]
       _ = truncWindowSourceCL A_L A_F B_F p.χ₀
               (truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a) := by
             simp [truncWindowSourceCL, truncLeftSourceConst, truncLeftBeta]
@@ -1879,7 +2167,10 @@ theorem truncatedConjugatePicardIter_succ_left_profile
           (G := truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a)
           (τ := τ)
           hAL_nonneg hAF_nonneg hBF_nonneg hG_nonneg
-          ha_pos haτ le_rfl hτT n hsrc_flat with
+          ha_pos haτ le_rfl hτT n hsrc_flat
+          (hsource_meas a τ ha_pos haτ hτlo)
+          (fun s has hsτ => hflux_reg s (ha_pos.trans_le has) (hsτ.trans hτlo))
+          hresolver_small with
         ⟨hrestart_meas, hrestart_abs, hq_int, hg_int, hsplit, _hdiff⟩
       have hD_step :
           ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
@@ -1950,10 +2241,7 @@ theorem truncatedConjugatePicardIter_succ_left_profile
                 intervalFullSemigroupOperator (τ - s)
                   (truncatedWindowedSource Src n a τ s) z) x)).trans
             (add_le_add hhom hduh)
-        exact hsum.trans
-          (add_le_add_left hD_step
-            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              / Real.sqrt (τ - a) * DT.M))
+        exact hsum.trans (by linarith [hD_step])
       · have hzero :
             deriv (intervalDomainLift (U (n + 1) τ)) x = 0 :=
           intervalDomainLift_deriv_eq_zero_off_Ioo (U (n + 1) τ) hxIoo
@@ -1997,7 +2285,10 @@ theorem truncatedConjugatePicardIter_succ_left_profile
         (G := truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a0)
         (τ := τ)
         hAL_nonneg hAF_nonneg hBF_nonneg hG0_nonneg
-        ha0_pos ha0τ le_rfl hτT n hsrc_flat0 with
+        ha0_pos ha0τ le_rfl hτT n hsrc_flat0
+        (hsource_meas a0 τ ha0_pos ha0τ hτlo)
+        (fun s has hsτ => hflux_reg s (ha0_pos.trans_le has) (hsτ.trans hτlo))
+        hresolver_small with
       ⟨_, _, _, _, _, hdiff⟩
     exact hdiff
 
@@ -2022,15 +2313,24 @@ theorem truncatedConjugatePicardIter_succ_window_gradient
     (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
     (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
     (ha_pos : 0 < a) (_ha_lt_lo : a < lo)
-    (_hlo_le_hi : lo ≤ hi) (_hhiT : hi ≤ DT.T) :
+    (_hlo_le_hi : lo ≤ hi) (_hhiT : hi ≤ DT.T)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * DT.M ^ p.γ)) < 1) :
     ∀ n : ℕ,
+      (∀ (τ' : ℝ), 0 < a → a < τ' → τ' ≤ hi →
+        Measurable (Function.uncurry (truncatedWindowedSource Src n a τ'))) →
+      (∀ s, a ≤ s → s ≤ hi →
+        ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+          (truncatedChemFluxLifted p (U n s))) →
       (∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
         |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) →
         IterGradOnWindow U lo hi (n + 1)
           (truncWindowAffine DT.M A_L A_F B_F p.χ₀ a lo hi G) := by
   -- The hypotheses `hU` and `hSrc` identify the abstract wiring variables with
   -- the actual truncated Picard iterates and the post-IBP source.
-  intro n hsrc τ hτlo hτhi
+  intro n hsource_meas hflux_reg hsrc τ hτlo hτhi
   have hK_nonneg :
       0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
     ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
@@ -2051,9 +2351,13 @@ theorem truncatedConjugatePicardIter_succ_window_gradient
     truncatedConjugatePicardIter_succ_restart_gradient_raw
       (p := p) (u₀ := u₀) DT U hU Src hSrc
       (A_L := A_L) (A_F := A_F) (B_F := B_F)
-      (a := a) (hi := hi) (G := G) (τ := τ)
+      (a := a) (hi := τ) (G := G) (τ := τ)
       _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
-      ha_pos hτa hτhi hτT n hsrc
+      ha_pos hτa le_rfl hτT n
+      (fun s has hsτ y => hsrc s has (hsτ.trans hτhi) y)
+      (hsource_meas τ ha_pos hτa hτhi)
+      (fun s has hsτ => hflux_reg s has (hsτ.trans hτhi))
+      hresolver_small
   refine ⟨fun x => ?_, hraw.2⟩
   have hhom :
       ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant

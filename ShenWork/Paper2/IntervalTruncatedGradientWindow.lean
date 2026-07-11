@@ -113,6 +113,7 @@ structure TruncatedGradientWindowWiring
       ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
         |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G
   hkernel_step : ∀ n : ℕ,
+    IterGradOnWindow U a hi n G →
     (∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
       |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) →
       IterGradOnWindow U lo hi (n + 1)
@@ -130,7 +131,7 @@ theorem truncatedGradientWindow_succ
   have HsrcInterval : IterGradOnWindow U a hi n G :=
     IterGradOnWindow.glue_left (W.hleft n) IH
   have Hsrc := W.hsource_of_grad n HsrcInterval
-  have Hraw := W.hkernel_step n Hsrc
+  have Hraw := W.hkernel_step n HsrcInterval Hsrc
   exact IterGradOnWindow.mono W.hclosed Hraw
 
 theorem truncatedGradientWindow_all

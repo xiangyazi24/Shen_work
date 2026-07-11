@@ -31,8 +31,10 @@ import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalResolverWeakLapBound
 import ShenWork.Paper2.IntervalResolverWeakODEBridge
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
+import ShenWork.Paper2.IntervalTruncatedChemFluxBound
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
+import ShenWork.Paper2.IntervalTransversalZeroSet
 import ShenWork.PDE.CosineSpectrum
 
 open MeasureTheory Set Asymptotics
@@ -107,7 +109,9 @@ private theorem hasDerivAt_mul_zero_of_continuousAt_zero_hasDerivAt_zero
     HasDerivAt (fun y : ℝ => a y * b y) 0 x := by
   rw [hasDerivAt_iff_isLittleO]
   have ha_o : a =o[𝓝 x] (fun _ : ℝ => (1 : ℝ)) := by
-    exact (isLittleO_one_iff ℝ).2 (by simpa [hax] using ha)
+    refine (isLittleO_one_iff ℝ).2 ?_
+    rw [← hax]
+    exact ha
   have hb_O : b =O[𝓝 x] fun y : ℝ => y - x := by
     simpa [hbx] using hb.isBigO_sub
   have hmul : (fun y : ℝ => a y * b y) =o[𝓝 x] fun y : ℝ => y - x := by
@@ -339,7 +343,7 @@ ANALYTIC GAP: for the signed truncated Picard iterates used here the repository
 does not currently expose the resolver nonnegativity / ODE-Hessian bridge under
 only `|w| ≤ M`.  The nonnegative-source API is insufficient because these
 iterates may be negative. -/
-private theorem resolverGrad_abs_le_of_abs_ball
+private theorem resolverGrad_abs_le_of_abs_ball_legacy
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
     (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
@@ -552,7 +556,7 @@ private theorem resolverGrad_abs_le_of_abs_ball
           (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
           (2 * (p.ν * M ^ p.γ)) := by ring
 
-private theorem resolverValueSeries_abs_le_of_abs_ball
+private theorem resolverValueSeries_abs_le_of_abs_ball_legacy
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
     (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
@@ -874,7 +878,7 @@ private theorem intervalDomainLift_pos_mem_Ioo_of_differentiableAt
     exact hne (tendsto_nhds_unique hlim hzero)
   exact ⟨lt_of_le_of_ne hyIcc.1 (Ne.symm hy0), lt_of_le_of_ne hyIcc.2 hy1⟩
 
-private theorem resolverR_lift_abs_le_of_abs_ball
+private theorem resolverR_lift_abs_le_of_abs_ball_legacy
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
     (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
@@ -947,7 +951,110 @@ private theorem truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
     {y : ℝ}
     (hy_nonpos : intervalDomainLift w y ≤ 0) :
     deriv (truncatedChemFluxLifted p w) y = 0 := by
-  sorry
+  classical
+  by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+  · have hw_lift_cont :
+        ContinuousAt (intervalDomainLift w) y :=
+      intervalDomainLift_continuousAt_of_continuous_of_mem_Ioo' hw_cont hyIoo
+    by_cases hy_neg : intervalDomainLift w y < 0
+    · have hneg_ev :
+          ∀ᶠ z in 𝓝 y, intervalDomainLift w z < 0 :=
+        hw_lift_cont.tendsto.eventually (isOpen_Iio.mem_nhds hy_neg)
+      have hflux_zero_ev :
+          truncatedChemFluxLifted p w =ᶠ[𝓝 y] fun _ : ℝ => 0 := by
+        filter_upwards [hneg_ev] with z hz
+        simp [truncatedChemFluxLifted, positivePart_eq_zero_of_nonpos hz.le]
+      rw [hflux_zero_ev.deriv_eq]
+      simp
+    · have hy_zero : intervalDomainLift w y = 0 :=
+        le_antisymm hy_nonpos (le_of_not_gt hy_neg)
+      let R : ℝ → ℝ :=
+        fun z => intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) z
+      let g : ℝ → ℝ := fun z => resolverGradReal p w z
+      let a : ℝ → ℝ := fun z => positivePart (intervalDomainLift w z)
+      let den : ℝ → ℝ := fun z => (1 + R z) ^ p.β
+      let A : ℝ → ℝ := fun z => g z / den z
+      have hflux_eq : truncatedChemFluxLifted p w =
+          fun z : ℝ => a z * A z := by
+        funext z
+        simp [truncatedChemFluxLifted, a, A, den, g, R, mul_div_assoc]
+      have hbase_pos : 0 < 1 + R y := by
+        simpa [R] using resolverR_lift_one_add_pos_of_abs_ball
+          (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
+      obtain ⟨_src, hg_raw, _hsrc⟩ :=
+        resolverGradReal_hasDerivAt_signed_ellipticBound_of_abs_ball
+          (p := p) (w := w) (M := M) hM hw_cont hball hyIoo
+      have hg_has : HasDerivAt g (deriv g y) y := by
+        simpa [g, hg_raw.deriv] using hg_raw
+      have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+        lift_continuousOn_Icc_of_continuous hw_cont
+      have hR_has : HasDerivAt R (g y) y := by
+        simpa [R, g] using
+          ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverR_lift_hasDerivAt_resolverGradReal_of_continuousOn
+            (p := p) (u := w) hUcont hyIoo
+      have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
+        hR_has.const_add 1
+      have hden_has : HasDerivAt den
+          (g y * p.β * (1 + R y) ^ (p.β - 1)) y := by
+        simpa [den, sub_eq_add_neg] using
+          hbase_has.rpow_const (p := p.β) (Or.inl (ne_of_gt hbase_pos))
+      have hden_ne : den y ≠ 0 := by
+        dsimp [den]
+        exact ne_of_gt (Real.rpow_pos_of_pos hbase_pos p.β)
+      have hA_has_exists : ∃ A' : ℝ, HasDerivAt A A' y := by
+        exact ⟨_, hg_has.div hden_has hden_ne⟩
+      obtain ⟨A', hA_has⟩ := hA_has_exists
+      have hA_cont : ContinuousAt A y := hA_has.continuousAt
+      by_cases hA_pos : 0 < A y
+      · have hA_pos_ev : ∀ᶠ z in 𝓝 y, 0 < A z :=
+          hA_cont.tendsto.eventually (isOpen_Ioi.mem_nhds hA_pos)
+        have hmin : IsLocalMin (truncatedChemFluxLifted p w) y := by
+          unfold IsLocalMin IsMinFilter
+          filter_upwards [hA_pos_ev] with z hz
+          have hz_nonneg : 0 ≤ truncatedChemFluxLifted p w z := by
+            rw [hflux_eq]
+            exact mul_nonneg (positivePart_nonneg _) hz.le
+          have hy_val : truncatedChemFluxLifted p w y = 0 := by
+            rw [hflux_eq]
+            simp [a, hy_zero,
+              positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ))]
+          linarith
+        exact hmin.deriv_eq_zero
+      · by_cases hA_neg : A y < 0
+        · have hA_neg_ev : ∀ᶠ z in 𝓝 y, A z < 0 :=
+            hA_cont.tendsto.eventually (isOpen_Iio.mem_nhds hA_neg)
+          have hmax : IsLocalMax (truncatedChemFluxLifted p w) y := by
+            unfold IsLocalMax IsMaxFilter
+            filter_upwards [hA_neg_ev] with z hz
+            have hz_nonpos : truncatedChemFluxLifted p w z ≤ 0 := by
+              rw [hflux_eq]
+              exact mul_nonpos_of_nonneg_of_nonpos (positivePart_nonneg _) hz.le
+            have hy_val : truncatedChemFluxLifted p w y = 0 := by
+              rw [hflux_eq]
+              simp [a, hy_zero,
+                positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ))]
+            linarith
+          exact hmax.deriv_eq_zero
+        · have hA_zero : A y = 0 :=
+            le_antisymm (le_of_not_gt hA_pos) (le_of_not_gt hA_neg)
+          have ha_cont : ContinuousAt a y := by
+            have hpos_cont : Continuous fun r : ℝ => positivePart r := by
+              simpa [positivePart] using (continuous_id.max continuous_const)
+            exact hpos_cont.continuousAt.comp hw_lift_cont
+          have ha_zero : a y = 0 := by
+            simp [a, hy_zero,
+              positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ))]
+          have hprod_has :
+              HasDerivAt (fun z : ℝ => a z * A z) 0 y :=
+            hasDerivAt_mul_zero_of_continuousAt_zero_hasDerivAt_zero
+              ha_cont ha_zero hA_has hA_zero
+          have hflux_has :
+              HasDerivAt (truncatedChemFluxLifted p w) 0 y := by
+            rw [hflux_eq]
+            exact hprod_has
+          exact hflux_has.deriv
+  · exact truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+      (p := p) (w := w) hyIoo
 
 private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
@@ -1165,6 +1272,64 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
     · simp [hflux_zero, hpp_zero]
     · simp
 
+private theorem truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M G : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (hgrad : ∀ x : ℝ, |deriv (intervalDomainLift w) x| ≤ G)
+    (y : ℝ)
+    (hdiff : 0 < intervalDomainLift w y →
+      DifferentiableAt ℝ (intervalDomainLift w) y) :
+    |deriv (truncatedChemFluxLifted p w) y| ≤
+      (M *
+          (p.μ * (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) + p.ν * M ^ p.γ) *
+          (1 - Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ (-p.β)
+        + p.β * M *
+          (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ 2 *
+          (1 - Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ (-p.β - 1))
+        + (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) * G *
+          (1 - Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ (-p.β) := by
+  let Γ : ℝ := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+        * (2 * (p.ν * M ^ p.γ))
+  let V : ℝ := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+        * (2 * (p.ν * M ^ p.γ))
+  let H : ℝ := p.μ * V + p.ν * M ^ p.γ
+  let Q : ℝ := (1 - V) ^ (-p.β)
+  let QDen : ℝ := (1 - V) ^ (-p.β - 1)
+  obtain ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩ :=
+    truncatedChemFluxLifted_deriv_terms_of_abs_ball
+      p hM hw_cont hball hsmall y hdiff
+  have hV_lt_one : V < 1 := by simpa [V] using hsmall
+  have hQ_nonneg : 0 ≤ Q :=
+    (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V) _).le
+  have hQDen_nonneg : 0 ≤ QDen :=
+    (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V) _).le
+  simpa [Γ, V, H, Q, QDen] using
+    (truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+      (p := p) (w := w) (M := M) (Γ := Γ) (H := H) (G := G)
+      (Q := Q) (QDen := QDen) hM hball hgrad y hderiv hdpos
+      (by simpa [Γ] using hgradR) (by simpa [H, V] using hgp)
+      hQ_nonneg hQDen_nonneg (by simpa [Q, V] using hq)
+      (by simpa [QDen, V] using hqDen))
+
 private theorem truncatedChemFluxLifted_continuousOn_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
@@ -1225,6 +1390,143 @@ private theorem truncatedChemFluxLifted_continuousOn_of_abs_ball
   simpa [truncatedChemFluxLifted] using
     (hpp_cont.mul hgrad_cont).div hden_cont hden_ne
 
+private theorem truncatedChemFluxLifted_hasDerivAt_off_transversal_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (hdiff : ∀ y ∈ Ioo (0 : ℝ) 1,
+      DifferentiableAt ℝ (intervalDomainLift w) y) :
+    ∀ y ∈ Ioo (0 : ℝ) 1 \
+        picardTransversalZeroSet (intervalDomainLift w),
+      HasDerivAt (truncatedChemFluxLifted p w)
+        (deriv (truncatedChemFluxLifted p w) y) y := by
+  classical
+  intro y hy
+  have hyIoo : y ∈ Ioo (0 : ℝ) 1 := hy.1
+  have hy_not_bad :
+      intervalDomainLift w y = 0 → deriv (intervalDomainLift w) y = 0 := by
+    intro hzero
+    by_contra hne
+    exact hy.2 ⟨hyIoo, hzero, hne⟩
+  have hw_has : HasDerivAt (intervalDomainLift w)
+      (deriv (intervalDomainLift w) y) y :=
+    (hdiff y hyIoo).hasDerivAt
+  let R : ℝ → ℝ :=
+    fun z => intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) z
+  let g : ℝ → ℝ := fun z => resolverGradReal p w z
+  let a : ℝ → ℝ := fun z => positivePart (intervalDomainLift w z)
+  let q : ℝ → ℝ := fun z => (1 + R z) ^ (-p.β)
+  have hflux_eq : truncatedChemFluxLifted p w =
+      fun z => a z * g z * q z := by
+    funext z
+    have hbase_nonneg : 0 ≤ 1 + R z := by
+      simpa [R] using resolverR_lift_one_add_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall z
+    unfold truncatedChemFluxLifted
+    rw [div_eq_mul_inv, ← Real.rpow_neg hbase_nonneg]
+  obtain ⟨dpos, ha_has⟩ :=
+    positivePart_comp_hasDerivAt_of_hasDerivAt_not_bad hw_has hy_not_bad
+  obtain ⟨_src, hg_raw, _hsrc⟩ :=
+    resolverGradReal_hasDerivAt_signed_ellipticBound_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball hyIoo
+  have hg_has : HasDerivAt g (deriv g y) y := by
+    simpa [g, hg_raw.deriv] using hg_raw
+  have hUcont : ContinuousOn (intervalDomainLift w) (Icc (0 : ℝ) 1) :=
+    lift_continuousOn_Icc_of_continuous hw_cont
+  have hR_has : HasDerivAt R (g y) y := by
+    simpa [R, g] using
+      ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverR_lift_hasDerivAt_resolverGradReal_of_continuousOn
+        (p := p) (u := w) hUcont hyIoo
+  have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
+    hR_has.const_add 1
+  have hbase_pos : 0 < 1 + R y := by
+    simpa [R] using resolverR_lift_one_add_pos_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
+  have hq_has :
+      HasDerivAt q (g y * (-p.β) * (1 + R y) ^ (-p.β - 1)) y := by
+    simpa [q, sub_eq_add_neg] using
+      hbase_has.rpow_const (p := -p.β) (Or.inl (ne_of_gt hbase_pos))
+  have hag_has : HasDerivAt (fun z : ℝ => a z * g z)
+      (dpos * g y + a y * deriv g y) y := by
+    simpa using ha_has.mul hg_has
+  have hprod_has : HasDerivAt (fun z : ℝ => a z * g z * q z)
+      ((dpos * g y + a y * deriv g y) * q y
+        + (a y * g y) * (g y * (-p.β) * (1 + R y) ^ (-p.β - 1))) y := by
+    simpa only [Pi.mul_apply] using hag_has.mul hq_has
+  have hflux_has : HasDerivAt (truncatedChemFluxLifted p w)
+      ((dpos * g y + a y * deriv g y) * q y
+        + (a y * g y) * (g y * (-p.β) * (1 + R y) ^ (-p.β - 1))) y := by
+    rw [hflux_eq]
+    exact hprod_has
+  rw [hflux_has.deriv]
+  exact hflux_has
+
+private theorem truncatedChemFluxLifted_ibpRegularity_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M C : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (hdiff : ∀ y ∈ Ioo (0 : ℝ) 1,
+      DifferentiableAt ℝ (intervalDomainLift w) y)
+    (hderiv_bound : ∀ y ∈ Icc (0 : ℝ) 1,
+      |deriv (truncatedChemFluxLifted p w) y| ≤ C) :
+    ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+      (truncatedChemFluxLifted p w) := by
+  let bad := picardTransversalZeroSet (intervalDomainLift w)
+  refine ⟨bad, ?_, ?_, ?_, ?_⟩
+  · simpa [bad] using
+      picardTransversalZeroSet_countable_of_differentiableAt hdiff
+  · exact truncatedChemFluxLifted_continuousOn_of_abs_ball
+      p hM hw_cont hball hsmall
+  · simpa [bad] using
+      truncatedChemFluxLifted_hasDerivAt_off_transversal_of_abs_ball
+        p hM hw_cont hball hsmall hdiff
+  · rw [intervalIntegrable_iff_integrableOn_Ioc_of_le
+      (by norm_num : (0 : ℝ) ≤ 1)]
+    refine Integrable.mono' (integrable_const C)
+      ((measurable_deriv _).aestronglyMeasurable) ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioc] with y hy
+    rw [Real.norm_eq_abs]
+    exact hderiv_bound y ⟨hy.1.le, hy.2⟩
+
+private theorem truncatedWindowedSource_measurable_of_abs_ball
+    (p : CM2Params)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {Src : ℕ → ℝ → ℝ → ℝ} {n : ℕ} {a hi M : ℝ}
+    (hM : 0 < M)
+    (hw_joint : Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (w q.1) q.2))
+    (hw_cont : ∀ s, a ≤ s → s ≤ hi → Continuous (w s))
+    (hball : ∀ s, a ≤ s → s ≤ hi →
+      ∀ x : intervalDomainPoint, |w s x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (hdiff : ∀ s, a ≤ s → s ≤ hi → ∀ y ∈ Ioo (0 : ℝ) 1,
+      DifferentiableAt ℝ (intervalDomainLift (w s)) y)
+    (hSrc : ∀ s y,
+      Src n s y = truncatedLogisticLifted p (w s) y
+        - p.χ₀ * deriv (truncatedChemFluxLifted p (w s)) y) :
+    Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)) := by
+  apply truncatedWindowedSource_measurable_of_truncated_formula hw_joint
+  · intro s has hshi y hyIoo hpos
+    apply truncatedChemFluxLifted_hasDerivAt_off_transversal_of_abs_ball
+      p hM (hw_cont s has hshi) (hball s has hshi) hsmall
+      (hdiff s has hshi) y
+    exact ⟨hyIoo, fun hybad => (ne_of_gt hpos) hybad.2.1⟩
+  · intro s has hshi y _hyIoo hnonpos
+    exact truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
+      p hM (hw_cont s has hshi) (hball s has hshi) hsmall hnonpos
+  · exact hSrc
+
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
 The Picard limit is spatially Lipschitz at positive time.  This is the
@@ -1260,6 +1562,12 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
        intervalDomainLift
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
+  have hmeas_iterates_grad : ∀ k,
+      HasJointMeasurability (truncatedConjugatePicardIter p u₀ k) := by
+    intro k
+    induction k with
+    | zero => exact DT.hbase_meas
+    | succ k ih => exact DT.hmeas_preserved _ ih
   -- Step 1a: Uniform iterate gradient bound from gradient window contraction
   have hiter_grad : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
       ∀ s, t / 2 ≤ s → s ≤ t →
@@ -1496,11 +1804,93 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                         * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
                     simp [truncLeftSourceConst, truncLeftBeta]
                     ring
-            have kernel : ∀ n, (∀ s, 0 < s → s ≤ lo → ∀ y,
-                |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
-                  truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
+            have kernel : ∀ n,
+                IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
+                (∀ s, 0 < s → s ≤ lo → ∀ y,
+                  |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
+                    truncLeftBeta B_F p.χ₀ *
+                      truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
                 IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo (n + 1) := by
-              sorry
+              intro n _hprev hsrc
+              have hball_cont_n := truncatedConjugatePicardIter_ball p u₀
+                DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+                DT.hbase_meas DT.hmeas_preserved n
+              have hU_joint : Measurable (fun q : ℝ × ℝ =>
+                  intervalDomainLift (U n q.1) q.2) := by
+                simpa [U, HasJointMeasurability] using hmeas_iterates_grad n
+              have hsource_meas : ∀ (a' τ' : ℝ), 0 < a' → a' < τ' → τ' ≤ lo →
+                  Measurable
+                    (Function.uncurry (truncatedWindowedSource Src n a' τ')) := by
+                intro a' τ' ha' _haτ hτ'lo
+                apply truncatedWindowedSource_measurable_of_abs_ball
+                  (p := p) (w := fun s => U n s) (M := DT.M)
+                  DT.hM hU_joint
+                · intro s has hsτ
+                  have hspos : 0 < s := ha'.trans_le has
+                  have hslo : s ≤ lo := hsτ.trans hτ'lo
+                  have hsT : s ≤ DT.T := by
+                    have hlo_t : lo ≤ t := by dsimp [lo]; linarith
+                    exact hslo.trans (hlo_t.trans htT)
+                  exact hball_cont_n.2 s hspos hsT
+                · intro s has hsτ x
+                  have hspos : 0 < s := ha'.trans_le has
+                  have hslo : s ≤ lo := hsτ.trans hτ'lo
+                  have hsT : s ≤ DT.T := by
+                    have hlo_t : lo ≤ t := by dsimp [lo]; linarith
+                    exact hslo.trans (hlo_t.trans htT)
+                  exact hball_cont_n.1 s hspos hsT x
+                · exact hresolver_small
+                · intro s has hsτ y hyIoo
+                  exact (_hprev s (ha'.trans_le has) (hsτ.trans hτ'lo)).2 y hyIoo
+                · intro s y
+                  rfl
+              have hflux_reg : ∀ s, 0 < s → s ≤ lo →
+                  ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+                    (truncatedChemFluxLifted p (U n s)) := by
+                intro s hspos hslo
+                have hsT : s ≤ DT.T := by
+                  have hlo_t : lo ≤ t := by dsimp [lo]; linarith
+                  exact hslo.trans (hlo_t.trans htT)
+                have hw_cont := hball_cont_n.2 s hspos hsT
+                have hball := hball_cont_n.1 s hspos hsT
+                have hgrad_s := _hprev s hspos hslo
+                have hprofile_nonneg :
+                    0 ≤ truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s :=
+                  (abs_nonneg (deriv (intervalDomainLift (U n s)) 0)).trans
+                    (hgrad_s.1 0)
+                have hC_nonneg : 0 ≤ A_F + B_F *
+                    truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s :=
+                  add_nonneg hAF_nn (mul_nonneg hBF_nn hprofile_nonneg)
+                have hderiv_bound : ∀ y ∈ Icc (0 : ℝ) 1,
+                    |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+                      A_F + B_F *
+                        truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+                  intro y _hy
+                  by_cases hyIoo : y ∈ Ioo (0 : ℝ) 1
+                  · have hdiff_pos : 0 < intervalDomainLift (U n s) y →
+                        DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                      fun _ => hgrad_s.2 y hyIoo
+                    have hb :=
+                      truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                        (p := p) (w := U n s) (M := DT.M)
+                        (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
+                        DT.hM hw_cont hball hresolver_small hgrad_s.1 y hdiff_pos
+                    convert hb using 1 <;>
+                      (dsimp only [Mw, A_F, B_F, Γ_M, H_M, V_M, Q_M, QDen_M] <;>
+                        ring)
+                  · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                      (p := p) (w := U n s) hyIoo, abs_zero]
+                    exact hC_nonneg
+                exact truncatedChemFluxLifted_ibpRegularity_of_abs_ball
+                  p DT.hM hw_cont hball hresolver_small hgrad_s.2 hderiv_bound
+              simpa [Mw] using
+                ((truncatedConjugatePicardIter_succ_left_profile
+                  (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
+                  (by intro n s y; rfl)
+                  hAL_nn hAF_nn hBF_nn
+                  (by dsimp [lo]; linarith)
+                  (by dsimp [lo]; linarith)
+                  hleftContr hresolver_small) n hsource_meas hflux_reg hsrc)
             exact IterGradOnWindow.of_left_profile hM ha
               (truncLeftProfile_all_of_wiring ⟨base, source, kernel⟩) hPaG
           hbase := by
@@ -1537,35 +1927,18 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
               exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
             · by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
-              · dsimp only [A_F, B_F]
-                have hflux_terms :
-                    ∃ dpos gp q qDen : ℝ,
-                      deriv (truncatedChemFluxLifted p (U n s)) y =
-                        dpos * resolverGradReal p (U n s) y * q
-                          + positivePart (intervalDomainLift (U n s) y) * gp * q
-                          - p.β * positivePart (intervalDomainLift (U n s) y)
-                              * (resolverGradReal p (U n s) y) ^ 2 * qDen
-                      ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
-                      ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
-                      ∧ |gp| ≤ H_M
-                      ∧ |q| ≤ Q_M
-                      ∧ |qDen| ≤ QDen_M := by
-                  have hdiff_pos :
-                      0 < intervalDomainLift (U n s) y →
-                        DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
-                    fun _ => (hgrad s ha_s hs_hi).2 y hyIoo
-                  simpa [Γ_M, H_M, V_M, Q_M, QDen_M] using
-                    truncatedChemFluxLifted_deriv_terms_of_abs_ball
-                      (p := p) (w := U n s) (M := DT.M) DT.hM
-                      (hball_cont.2 s hs_pos hs_T) hball hresolver_small y hdiff_pos
-                rcases hflux_terms with
-                  ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
-                simpa [A_F, B_F, mul_assoc, mul_comm, mul_left_comm] using
-                  truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
-                    (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
-                    (H := H_M) (Q := Q_M) (QDen := QDen_M) (G := Gw) DT.hM hball
-                    (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp
-                    hQ_M_nn hQDen_M_nn hq hqDen
+              · have hgrad_s := hgrad s ha_s hs_hi
+                have hdiff_pos : 0 < intervalDomainLift (U n s) y →
+                    DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                  fun _ => hgrad_s.2 y hyIoo
+                have hb :=
+                  truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                    (p := p) (w := U n s) (M := DT.M) (G := Gw)
+                    DT.hM (hball_cont.2 s hs_pos hs_T) hball hresolver_small
+                    hgrad_s.1 y hdiff_pos
+                convert hb using 1 <;>
+                  (dsimp only [A_F, B_F, Γ_M, H_M, V_M, Q_M, QDen_M] <;>
+                    ring)
               · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo (p := p) (w := U n s) hyIoo,
                     abs_zero]
                 exact add_nonneg hAF_nn (mul_nonneg hBF_nn hGw_nn)
@@ -1573,15 +1946,76 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
             -- The gradient bound follows from gradDuhamel_shifted_sup_bound.
+            intro n _hprev hsrc
+            have hball_cont_n := truncatedConjugatePicardIter_ball p u₀
+              DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+              DT.hbase_meas DT.hmeas_preserved n
+            have hU_joint : Measurable (fun q : ℝ × ℝ =>
+                intervalDomainLift (U n q.1) q.2) := by
+              simpa [U, HasJointMeasurability] using hmeas_iterates_grad n
+            have hsource_meas : ∀ τ' : ℝ, 0 < a → a < τ' → τ' ≤ hi →
+                Measurable
+                  (Function.uncurry (truncatedWindowedSource Src n a τ')) := by
+              intro τ' ha' _haτ hτ'hi
+              apply truncatedWindowedSource_measurable_of_abs_ball
+                (p := p) (w := fun s => U n s) (M := DT.M)
+                DT.hM hU_joint
+              · intro s has hsτ
+                have hspos : 0 < s := ha'.trans_le has
+                have hshi : s ≤ hi := hsτ.trans hτ'hi
+                have hsT : s ≤ DT.T := by simpa [hi] using hshi.trans htT
+                exact hball_cont_n.2 s hspos hsT
+              · intro s has hsτ x
+                have hspos : 0 < s := ha'.trans_le has
+                have hshi : s ≤ hi := hsτ.trans hτ'hi
+                have hsT : s ≤ DT.T := by simpa [hi] using hshi.trans htT
+                exact hball_cont_n.1 s hspos hsT x
+              · exact hresolver_small
+              · intro s has hsτ y hyIoo
+                exact (_hprev s has (hsτ.trans hτ'hi)).2 y hyIoo
+              · intro s y
+                rfl
+            have hflux_reg : ∀ s, a ≤ s → s ≤ hi →
+                ShenWork.Paper2.IntervalConjugateKernelIBP.IntervalIBPRegularity
+                  (truncatedChemFluxLifted p (U n s)) := by
+              intro s has hshi
+              have ha_pos_window : 0 < a := by dsimp [a]; linarith
+              have hspos : 0 < s := ha_pos_window.trans_le has
+              have hsT : s ≤ DT.T := by simpa [hi] using hshi.trans htT
+              have hw_cont := hball_cont_n.2 s hspos hsT
+              have hball := hball_cont_n.1 s hspos hsT
+              have hgrad_s := _hprev s has hshi
+              have hC_nonneg : 0 ≤ A_F + B_F * Gw :=
+                add_nonneg hAF_nn (mul_nonneg hBF_nn hGw_nn)
+              have hderiv_bound : ∀ y ∈ Icc (0 : ℝ) 1,
+                  |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+                    A_F + B_F * Gw := by
+                intro y _hy
+                by_cases hyIoo : y ∈ Ioo (0 : ℝ) 1
+                · have hdiff_pos : 0 < intervalDomainLift (U n s) y →
+                      DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                    fun _ => hgrad_s.2 y hyIoo
+                  have hb :=
+                    truncatedChemFluxLifted_deriv_abs_le_of_abs_ball_grad'
+                      (p := p) (w := U n s) (M := DT.M) (G := Gw)
+                      DT.hM hw_cont hball hresolver_small hgrad_s.1 y hdiff_pos
+                  convert hb using 1 <;>
+                    (dsimp only [Mw, A_F, B_F, Γ_M, H_M, V_M, Q_M,
+                      QDen_M] <;> ring)
+                · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                    (p := p) (w := U n s) hyIoo, abs_zero]
+                  exact hC_nonneg
+              exact truncatedChemFluxLifted_ibpRegularity_of_abs_ball
+                p DT.hM hw_cont hball hresolver_small hgrad_s.2 hderiv_bound
             dsimp only [Mw]
-            exact truncatedConjugatePicardIter_succ_window_gradient
+            exact (truncatedConjugatePicardIter_succ_window_gradient
               (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
               (by intro n s y; rfl)
               hAL_nn hAF_nn hBF_nn hGw_nn
               (by dsimp [a]; linarith)
               (by dsimp [a, lo]; linarith)
               (by dsimp [lo, hi]; linarith)
-              htT }
+              htT hresolver_small) n hsource_meas hflux_reg hsrc }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi =>
       truncatedGradientWindow_all W n s hslo hshi⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
@@ -2295,10 +2729,26 @@ theorem truncatedBFormSourceCoeff_bound_on_positive_time_interval
     have hzero :
         truncatedBFormSourceCoeff p
           (truncatedConjugatePicardLimit p u₀ DT.T) 0 k = 0 := by
+      have hslice_zero :
+          (truncatedConjugatePicardLimit p u₀ DT.T) 0 = fun _ => 0 := by
+        funext x
+        simp [truncatedConjugatePicardLimit]
+      have hlog_zero :
+          truncatedLogisticLifted p
+            ((truncatedConjugatePicardLimit p u₀ DT.T) 0) = fun _ => 0 := by
+        rw [hslice_zero]
+        funext y
+        simp [truncatedLogisticLifted, truncatedLogisticLocal,
+          intervalDomainLift,
+          positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ))]
+      have hcoeff_zero : cosineCoeffs (fun _ : ℝ => (0 : ℝ)) k = 0 := by
+        rw [ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral]
+        simp
       simp [truncatedBFormSourceCoeff, truncatedLogisticSourceCoeff,
         truncatedChemDivSourceCoeff, truncatedConjugatePicardLimit,
         truncatedLogisticLifted, truncatedLogisticLocal, truncatedChemFluxLifted,
-        intervalSineInner, intervalDomainLift]
+        intervalSineInner, intervalDomainLift,
+        positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ)), hlog_zero, hcoeff_zero]
     simpa [hzero] using hC
   · have hspos : 0 < s := by
       rcases lt_or_eq_of_le hs with hlt | heq
@@ -2720,51 +3170,6 @@ private theorem neg_negativePart_eq_sub_positivePart (r : ℝ) :
       positivePart_eq_zero_of_nonpos hr_nonpos]
     ring
 
-private theorem positivePart_comp_hasDerivAt_zero_of_hasDerivAt_zero
-    {f : ℝ → ℝ} {x : ℝ}
-    (hf : HasDerivAt f 0 x) (hfx : f x = 0) :
-    HasDerivAt (fun y : ℝ => positivePart (f y)) 0 x := by
-  rw [hasDerivAt_iff_isLittleO]
-  have hf_little :
-      (fun y : ℝ => f y) =o[𝓝 x] fun y : ℝ => y - x := by
-    simpa [hfx] using hf.isLittleO
-  have hpp_bigO :
-      (fun y : ℝ => positivePart (f y)) =O[𝓝 x] fun y : ℝ => f y := by
-    refine Asymptotics.IsBigO.of_bound' (Filter.Eventually.of_forall ?_)
-    intro y
-    rw [Real.norm_eq_abs, Real.norm_eq_abs]
-    simpa [abs_of_nonneg (positivePart_nonneg (f y))] using
-      positivePart_le_abs' (f y)
-  have hpp_little :
-      (fun y : ℝ => positivePart (f y)) =o[𝓝 x] fun y : ℝ => y - x :=
-    hpp_bigO.trans_isLittleO hf_little
-  simpa [hfx, positivePart_eq_zero_of_nonpos (le_refl (0 : ℝ))] using hpp_little
-
-private theorem positivePart_comp_hasDerivAt_of_hasDerivAt_not_bad
-    {f : ℝ → ℝ} {x f' : ℝ}
-    (hf : HasDerivAt f f' x)
-    (hnot_bad : f x = 0 → f' = 0) :
-    ∃ d : ℝ, HasDerivAt (fun y : ℝ => positivePart (f y)) d x := by
-  by_cases hpos : 0 < f x
-  · have hpos_ev : ∀ᶠ y in 𝓝 x, 0 < f y :=
-      hf.continuousAt.tendsto.eventually (isOpen_Ioi.mem_nhds hpos)
-    have hev : (fun y : ℝ => positivePart (f y)) =ᶠ[𝓝 x] f := by
-      filter_upwards [hpos_ev] with y hy
-      exact positivePart_eq_self_of_nonneg hy.le
-    exact ⟨f', hf.congr_of_eventuallyEq hev⟩
-  · by_cases hneg : f x < 0
-    · have hneg_ev : ∀ᶠ y in 𝓝 x, f y < 0 :=
-        hf.continuousAt.tendsto.eventually (isOpen_Iio.mem_nhds hneg)
-      have hev : (fun y : ℝ => positivePart (f y)) =ᶠ[𝓝 x] fun _ : ℝ => 0 := by
-        filter_upwards [hneg_ev] with y hy
-        exact positivePart_eq_zero_of_nonpos hy.le
-      exact ⟨0, (hasDerivAt_const (x := x) (c := (0 : ℝ))).congr_of_eventuallyEq hev⟩
-    · have hzero : f x = 0 :=
-        le_antisymm (le_of_not_gt hpos) (le_of_not_gt hneg)
-      have hf0 : HasDerivAt f 0 x := by
-        simpa [hnot_bad hzero] using hf
-      exact ⟨0, positivePart_comp_hasDerivAt_zero_of_hasDerivAt_zero hf0 hzero⟩
-
 private theorem neg_negativePartLift_hasDerivAt_of_lift_hasDerivAt_not_bad
     {w : intervalDomainPoint → ℝ} {x : ℝ}
     (hw : HasDerivAt (intervalDomainLift w)
@@ -2792,27 +3197,6 @@ private theorem neg_negativePartLift_hasDerivAt_of_lift_hasDerivAt_not_bad
   rw [hφ.deriv]
   exact hφ
 
-private def transversalZeroSet (f : ℝ → ℝ) : Set ℝ :=
-  {x : ℝ | x ∈ Set.Ioo (0 : ℝ) 1 ∧ f x = 0 ∧ deriv f x ≠ 0}
-
-private theorem transversalZeroSet_countable_of_differentiableAt
-    {f : ℝ → ℝ}
-    (hf : ∀ x ∈ Set.Ioo (0 : ℝ) 1, DifferentiableAt ℝ f x) :
-    (transversalZeroSet f).Countable := by
-  let S : Set ℝ := transversalZeroSet f
-  have hdisc : IsDiscrete S := by
-    rw [isDiscrete_iff_nhdsNE]
-    intro x hx
-    rw [← Filter.mem_iff_inf_principal_compl]
-    have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := hx.1
-    have hxderiv : deriv f x ≠ 0 := hx.2.2
-    have hev : ∀ᶠ z in 𝓝[≠] x, f z ≠ (0 : ℝ) :=
-      (hf x hxIoo).hasDerivAt.eventually_ne hxderiv
-    filter_upwards [hev] with z hz hzS
-    exact hz hzS.2.1
-  simpa [S] using
-    (HereditarilyLindelofSpace.isLindelof S).countable_of_isDiscrete hdisc
-
 /-- The negative-part test `φ = -u_-` is differentiable off a countable set
 when the solution is C¹.  The non-differentiability points of `max(-f, 0)`
 that must be removed are the transversal zeros `f = 0`, `f' ≠ 0`; these are
@@ -2837,9 +3221,9 @@ theorem negativePartTest_diff_off_countable_of_gradient_bound
     simpa [w] using
       (truncatedPicardLimit_level5_series_reconstruction_positive_time
         DT ht htT).2.2 x hx
-  let s : Set ℝ := transversalZeroSet (intervalDomainLift w)
+  let s : Set ℝ := picardTransversalZeroSet (intervalDomainLift w)
   refine ⟨s, ?_, ?_⟩
-  · exact transversalZeroSet_countable_of_differentiableAt
+  · exact picardTransversalZeroSet_countable_of_differentiableAt
       (f := intervalDomainLift w) hdiff_Ioo
   · intro x hx
     have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := hx.1
@@ -2854,9 +3238,12 @@ theorem negativePartTest_diff_off_countable_of_gradient_bound
       intro hzero
       by_contra hne
       exact hx_not_s ⟨hxIoo, hzero, hne⟩
-    simpa [negativePartTest, w] using
-      neg_negativePartLift_hasDerivAt_of_lift_hasDerivAt_not_bad
-        (w := w) hw_has hnot_bad
+    change HasDerivAt
+      (fun y : ℝ => -BFormPositiveDatumNegPart.negativePartLift w y)
+      (deriv
+        (fun y : ℝ => -BFormPositiveDatumNegPart.negativePartLift w y) x) x
+    exact neg_negativePartLift_hasDerivAt_of_lift_hasDerivAt_not_bad
+      (w := w) hw_has hnot_bad
 
 /-- The negative-part test has a bounded derivative.  Since
 `|(-f)_+'| ≤ |f'|`, the bound is the gradient bound of `u`. -/
@@ -3036,9 +3423,9 @@ theorem truncatedChemFlux_diff_off_countable_positive_time
     simpa [w, SD] using SD.hbound t ht htT x
   have hw_cont : Continuous w := by
     simpa [w, SD] using SD.hcont t ht htT
-  let s_chem : Set ℝ := transversalZeroSet (intervalDomainLift w)
+  let s_chem : Set ℝ := picardTransversalZeroSet (intervalDomainLift w)
   refine ⟨s_chem, ?_, ?_⟩
-  · exact transversalZeroSet_countable_of_differentiableAt
+  · exact picardTransversalZeroSet_countable_of_differentiableAt
       (f := intervalDomainLift w) hdiff_Ioo
   · intro x hx
     have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := hx.1

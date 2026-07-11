@@ -78,6 +78,7 @@ structure TruncatedLeftProfileWiring
             + truncLeftBeta B_F chi
               * truncLeftProfile M A_L A_F B_F chi lo s
   hkernel_step : ∀ n : ℕ,
+    IterGradLeftProfile U M A_L A_F B_F chi lo n →
     (∀ s, 0 < s → s ≤ lo → ∀ y : ℝ,
       |Src n s y| ≤
         truncLeftSourceConst A_L A_F chi
@@ -96,6 +97,6 @@ theorem truncLeftProfile_all_of_wiring
   induction n with
   | zero => exact W.hbase
   | succ n IH =>
-      exact W.hkernel_step n (W.hsource_of_profile n IH)
+      exact W.hkernel_step n IH (W.hsource_of_profile n IH)
 
 end ShenWork.Paper2.TruncatedGradientWindow

@@ -122,10 +122,20 @@ private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
           (s : ℂ) ^ (-(2 : ℂ)⁻¹) := by
       simpa [one_div, neg_div] using
         Complex.ofReal_cpow hs0 (-(1 / 2 : ℝ))
-    dsimp
-    rw [hmul, h1, h2]
-    rw [show ((1 / 2 : ℂ) - 1) = (-(2 : ℂ)⁻¹) by norm_num]
-    ring
+    calc
+      (fun x : ℝ =>
+          (((r - x) ^ (-(1 / 2 : ℝ)) * x ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)) s
+          =
+          (((r - s : ℝ) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) := rfl
+      _ =
+          (((r - s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)
+            * (((s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) := hmul
+      _ = ((r : ℂ) - s) ^ (-(2 : ℂ)⁻¹) * (s : ℂ) ^ (-(2 : ℂ)⁻¹) := by
+        rw [h1, h2]
+      _ = (fun x : ℝ =>
+          (x : ℂ) ^ ((1 / 2 : ℂ) - 1) *
+            ((r : ℂ) - x) ^ ((1 / 2 : ℂ) - 1)) s := by
+        norm_num [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc]
   rw [htoC]
   have hscaled := Complex.betaIntegral_scaled (s := (1/2 : ℂ)) (t := (1/2 : ℂ)) (a := r) hr
   rw [show ((1 / 2 : ℂ) + (1 / 2 : ℂ) - 1) = 0 by norm_num] at hscaled

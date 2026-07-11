@@ -1030,7 +1030,11 @@ theorem resolverGradReal_eventually_eq_primitive
     p hUcont hUnonneg hx hz
   linarith
 
-theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
+/-- Green/ODE regularity bridge: continuous source gives
+`R'' = μR - ρ(u)` on the open interval.  The proof uses the integrated weak
+ODE identity and FTC, rather than termwise differentiating the gradient
+series. -/
+theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
     (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
@@ -1065,6 +1069,29 @@ theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
     simp [q, resolverLapPhysicalReal, Set.Ioo_subset_Icc_self hx]
   rw [← hq_x]
   exact hprim.congr_of_eventuallyEq hev
+
+/-- Backwards-compatible name recording the FTC implementation route. -/
+theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt (fun z : ℝ => resolverGradReal p u z)
+      (resolverLapPhysical p u ⟨x, Set.Ioo_subset_Icc_self hx⟩) x :=
+  resolverGradReal_hasDerivAt_physicalLap_of_continuousOn p hUcont hUnonneg hx
+
+theorem deriv_resolverGradReal_abs_le_of_bounded
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M : ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hlb : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u y)
+    (hub : ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u y ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    |deriv (fun z : ℝ => resolverGradReal p u z) x| ≤ resolverWeakLapBound p M := by
+  have hder :=
+    resolverGradReal_hasDerivAt_physicalLap_of_continuousOn p hUcont hlb hx
+  rw [hder.deriv]
+  exact resolverLapPhysical_abs_le_of_bounded p hUcont hlb hub
+    ⟨x, Set.Ioo_subset_Icc_self hx⟩
 
 /-! ### Signed-source variant
 
