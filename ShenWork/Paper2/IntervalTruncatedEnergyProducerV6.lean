@@ -16,6 +16,7 @@ import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergyA3
 import ShenWork.Paper2.IntervalBFormCron2EnergyRegularityConcrete
 import ShenWork.Paper2.IntervalTruncatedPicardIterJointContinuity
 import ShenWork.Paper2.IntervalTruncatedPicardLimitJointContinuity
+import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
 
 open Filter Topology Set MeasureTheory
 open scoped BigOperators Topology ENNReal
@@ -488,5 +489,135 @@ def coefficientWeakTestData_of_weakIdentity
     NegativePartCoefficientWeakTestData p u t :=
   Classical.choice
     (coefficientWeakTestData_nonempty_of_weakIdentity hweak hcont)
+
+/-! ## DT-level direct weak-form wiring -/
+
+private theorem positivePartSlice_continuous
+    {w : intervalDomainPoint → ℝ} (hw : Continuous w) :
+    Continuous (positivePartSlice w) := by
+  simpa [positivePartSlice, positivePart] using hw.max continuous_const
+
+private theorem truncatedLimit_test_continuousOn
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ContinuousOn
+      (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t)
+      (Set.Icc (0 : ℝ) 1) := by
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  have hslice : Continuous
+      (truncatedConjugatePicardLimit p u₀ DT.T t) := by
+    simpa [SD] using SD.hcont t ht htT
+  have hlift : ContinuousOn
+      (intervalDomainLift (truncatedConjugatePicardLimit p u₀ DT.T t))
+      (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : Set.restrict (Set.Icc (0 : ℝ) 1)
+        (intervalDomainLift (truncatedConjugatePicardLimit p u₀ DT.T t)) =
+        truncatedConjugatePicardLimit p u₀ DT.T t := by
+      funext ⟨x, hx⟩
+      simp only [Set.restrict_apply, intervalDomainLift, dif_pos hx]
+      exact congrArg _ (Subtype.ext rfl)
+    rw [heq]
+    exact hslice
+  exact (negativePart_continuous.continuousOn.comp hlift
+    (fun _ _ => Set.mem_univ _)).neg
+
+private def truncatedLimit_fluxTestDualityData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t s : ℝ} (ht : 0 < t) (htT : t ≤ DT.T)
+    (hs : 0 < s) (hst : s < t) :
+    BNDualityForFluxTestAt p
+      (truncatedConjugatePicardLimit p u₀ DT.T) t s
+      (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let SD := truncatedConjugateMildSolutionData_of_data DT
+  have hsT : s ≤ DT.T := (le_of_lt hst).trans htT
+  have hs_cont : Continuous (U s) := by
+    simpa [U, SD] using SD.hcont s hs hsT
+  have hs_bound : ∀ x : intervalDomainPoint, |U s x| ≤ DT.M := by
+    intro x
+    simpa [U, SD] using SD.hbound s hs hsT x
+  have hpos_bound : ∀ x : intervalDomainPoint,
+      |positivePartSlice (U s) x| ≤ DT.M := by
+    intro x
+    exact (abs_positivePart_le_abs (U s x)).trans (hs_bound x)
+  have hflux_int : Integrable (truncatedChemFluxLifted p (U s))
+      (intervalMeasure 1) := by
+    rw [truncatedChemFluxLifted_eq_chemFluxLifted_positivePartSlice]
+    exact
+      ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+        p hpos_bound DT.hM.le (positivePartSlice_continuous hs_cont)
+        (positivePartSlice_nonneg (U s))
+  let CQ : ℝ := DT.M *
+    (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * DT.M ^ p.γ)))
+  have hflux_bound : ∀ y : ℝ, |truncatedChemFluxLifted p (U s) y| ≤ CQ := by
+    intro y
+    rw [truncatedChemFluxLifted_eq_chemFluxLifted_positivePartSlice]
+    exact
+      ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+        p DT.hM.le hpos_bound (positivePartSlice_nonneg (U s))
+        (positivePartSlice_continuous hs_cont) y
+  have htest_cont := truncatedLimit_test_continuousOn DT ht htT
+  have htest_meas : AEStronglyMeasurable (negativePartTest U t)
+      (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
+      (by simpa [U] using htest_cont)
+  have ht_bound : ∀ x : intervalDomainPoint, |U t x| ≤ DT.M := by
+    intro x
+    simpa [U, SD] using SD.hbound t ht htT x
+  have htest_bound : ∀ y : ℝ, |negativePartTest U t y| ≤ DT.M := by
+    intro y
+    have hlift : |intervalDomainLift (U t) y| ≤ DT.M := by
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simpa [intervalDomainLift, hy] using ht_bound ⟨y, hy⟩
+      · simp [intervalDomainLift, hy, DT.hM.le]
+    exact (by
+      simpa [negativePartTest, negativePartLift, abs_neg] using
+        (negativePart_abs_le_abs (intervalDomainLift (U t) y)).trans hlift)
+  exact
+    { flux_bounded :=
+        { measurable := hflux_int.aestronglyMeasurable
+          boundConstant := CQ
+          bound := hflux_bound }
+      test_bounded :=
+        { measurable := htest_meas
+          boundConstant := DT.M
+          bound := htest_bound } }
+
+/-- The standard heat-Duhamel bundle, the already-proved restricted B_N
+duality, and the mild fixed-point equation give the negative-part weak
+identity at every active time. -/
+theorem truncatedLimit_weakIdentity_of_standardFacts
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (H : NegativePartStandardHeatSemigroupDuhamelFacts p DT.T u₀
+      (truncatedConjugatePicardLimit p u₀ DT.T))
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    NegativePartWeakTestIdentityAt p
+      (truncatedConjugatePicardLimit p u₀ DT.T) t := by
+  apply
+    negativePartMildSemigroupWeakAfterFluxTestDuality_of_standardHeatSemigroupDuhamelFacts
+      H (truncatedConjugateMildSolutionData_of_data DT).hmild t ht htT
+  intro s hs hst
+  exact (truncatedLimit_fluxTestDualityData DT ht htT hs hst).duality hst
+
+/-- Exact DT-indexed legacy weak record obtained from the direct semigroup
+weak form.  Its coefficient certificates are finite-support encodings of the
+weak identity and do not use the spectral bootstrap. -/
+def truncatedNegativePartMildToWeakRegularData_of_standardFacts
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (H : NegativePartStandardHeatSemigroupDuhamelFacts p DT.T u₀
+      (truncatedConjugatePicardLimit p u₀ DT.T)) :
+    TruncatedNegativePartMildToWeakRegularData p DT where
+  coeff_weak := by
+    intro t ht htT
+    exact coefficientWeakTestData_of_weakIdentity
+      (truncatedLimit_weakIdentity_of_standardFacts DT H ht htT)
+      (truncatedLimit_test_continuousOn DT ht htT)
 
 end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
