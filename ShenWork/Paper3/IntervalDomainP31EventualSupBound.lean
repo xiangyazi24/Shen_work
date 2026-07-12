@@ -78,6 +78,65 @@ theorem eventualSupBound_of_global_zeroAB
   have htmem : t ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨by linarith, by linarith⟩
   exact hmono 1 h1mem t htmem ht
 
+/-- **Gap A, degenerate regime `a = 0, 0 < b`.**  Pure damping (no growth): at a
+spatial max the time slope is `≤ L·(0 − b·L^α) = −(L·b·L^α) ≤ 0` (with `L = max u >
+0`), so the sup norm is non-increasing on every window and eventually bounded by its
+value at the interior reference time `1`. -/
+theorem eventualSupBound_of_global_zeroA_posB
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : 0 < p.b)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    ∃ T₀ M : ℝ, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M := by
+  refine ⟨1, intervalDomain.supNorm (u 1), ?_⟩
+  intro t ht
+  have hmono :
+      SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) (t + 1)) := by
+    have hsol := hglobal (t + 1) (by linarith)
+    refine Lemma31Closure.supNorm_nonincr_core hsol ?_
+    intro s hs xs hxs hargmax
+    have hmax : ∀ y, u s y ≤ u s ⟨xs, hxs⟩ := by
+      intro y
+      have hcontU : ContinuousOn (intervalDomainLift (u s)) (Set.Icc (0 : ℝ) 1) := by
+        obtain ⟨_, _, _, _, hClosed, _, _⟩ := hsol.regularity
+        exact (hClosed s hs).1.1.continuousOn
+      have hbdd : BddAbove (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) :=
+        (isCompact_Icc.image_of_continuousOn hcontU).bddAbove
+      have huy : u s y = intervalDomainLift (u s) y.1 := by
+        rw [intervalDomainLift,
+          dif_pos (show (y.1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 from y.2), Subtype.coe_eta]
+      have huq : u s ⟨xs, hxs⟩ = intervalDomainLift (u s) xs := by
+        rw [intervalDomainLift, dif_pos hxs]
+      rw [huy, huq, hargmax]
+      exact le_csSup hbdd (Set.mem_image_of_mem _ y.2)
+    have hsl := Lemma31Closure.max_point_slope_bound hχ hsol hs.1 hs.2 hmax
+    have htd : intervalDomain.timeDeriv u s ⟨xs, hxs⟩
+        = deriv (fun r => intervalDomainLift (u r) xs) s := by
+      show deriv (fun r => u r ⟨xs, hxs⟩) s
+        = deriv (fun r => intervalDomainLift (u r) xs) s
+      congr 1; funext r; rw [intervalDomainLift, dif_pos hxs]
+    rw [htd, ha] at hsl
+    have hLeq : intervalDomainLift (u s) xs = u s ⟨xs, hxs⟩ := by
+      rw [intervalDomainLift, dif_pos hxs]
+    have hLpos : 0 < intervalDomainLift (u s) xs := by
+      rw [hLeq]; exact hsol.u_pos' hs.1 hs.2
+    have hLα : (0 : ℝ) < (intervalDomainLift (u s) xs) ^ p.α :=
+      Real.rpow_pos_of_pos hLpos p.α
+    have hrhs :
+        intervalDomainLift (u s) xs
+            * (0 - p.b * (intervalDomainLift (u s) xs) ^ p.α) ≤ 0 := by
+      have hpos : 0 < intervalDomainLift (u s) xs
+          * (p.b * (intervalDomainLift (u s) xs) ^ p.α) :=
+        mul_pos hLpos (mul_pos hb hLα)
+      have heq : intervalDomainLift (u s) xs
+            * (0 - p.b * (intervalDomainLift (u s) xs) ^ p.α)
+          = -(intervalDomainLift (u s) xs
+              * (p.b * (intervalDomainLift (u s) xs) ^ p.α)) := by ring
+      rw [heq]; linarith
+    linarith [hsl, hrhs]
+  have h1mem : (1 : ℝ) ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨by norm_num, by linarith⟩
+  have htmem : t ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨by linarith, by linarith⟩
+  exact hmono 1 h1mem t htmem ht
+
 /-- **Field-by-field assembly of the P3.1 negative-sensitivity residual
 (logistic regime `0 < a, 0 < b`).**  The `eventualSupBound` field (Gap A) is
 DISCHARGED here from the invariant region; the `globalSolution` (existence +
