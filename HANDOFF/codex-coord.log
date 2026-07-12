@@ -272,3 +272,14 @@ itself prove the legacy `hcriticalGlobalBound` conclusion
 `IsPaper2Bounded ...` at `atTop`; that still needs one eventual sup constant
 uniform in the horizon.  Do not connect these propositions by an existential-
 constant choice per `T`.
+
+2026-07-12 [Codex] LINKER NOTE (resolver-source acyclicity):
+`H1PhysicalChemResolverSupBefore p u v T V1 V2 M` itself contains
+`u_abs_le : |lift (u tau) x| <= M` for every `0 < tau < T`.  Consequently the
+new ABS/capstone theorem is a sound reducer from an independently supplied
+resolver package, but sourcing that package from `IsPaper2BoundedBefore` (as
+the existing `...of_boundedBefore...` producers do) would be circular and
+cannot close the headline.  A headline consumer must provide the resolver/core
+bound independently, or replace this interface by estimates based on weaker
+uniform quantities.  Compact bounds on each strict sub-horizon are also not
+enough for the full open interval `(0,T)`.
