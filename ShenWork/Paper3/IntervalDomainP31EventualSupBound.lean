@@ -23,6 +23,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalLemma31Closure
+import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
 import ShenWork.Paper3.IntervalDomainStatementAssembly
 
 open ShenWork.IntervalDomain
@@ -113,5 +114,24 @@ theorem proposition_1_2_of_globalSolution_posAB
     Proposition_1_2 intervalDomain p :=
   Proposition_1_2_of_negativeSensitivityGlobalEventualBound intervalDomain p
     (negativeSensitivityGlobalEventualBound_of_globalSolution_posAB p ha hb hGlobal)
+
+/-- **P3.1 fully UNCONDITIONAL for the zero-sensitivity case `χ₀ = 0`.**  Both P3.1
+fields are discharged with no residual: `globalSolution` from the axiom-clean
+`intervalDomain_theorem_1_1_chiZero_unconditional` (Paper 2 Theorem 1.1, PPID-typed,
+so it feeds Proposition 1.2's PaperPositiveInitialDatum quantifier directly, avoiding
+the PID datum-class gap), and the eventual `IsPaper2Bounded` from Gap A.  This is a
+genuine new Paper 3 headline, independent of the χ<0 existence work. -/
+theorem proposition_1_2_intervalDomain_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Proposition_1_2 intervalDomain p := by
+  intro hχ hm u₀ hu₀
+  obtain ⟨hposBranch, _⟩ :=
+    intervalDomain_theorem_1_1_chiZero_unconditional p hχ0 ha hb hα hγ hχ
+  obtain ⟨_Tmax, _hTmax, u, v, _hsol, htrace, _hbound, hglobalImp⟩ :=
+    hposBranch ha hb u₀ hu₀
+  have hglobal := hglobalImp hm
+  obtain ⟨_T₀, _M, hM⟩ := eventualSupBound_of_global_posAB p hχ ha hb hglobal
+  exact ⟨u, v, hglobal, htrace, IsPaper2Bounded.of_forall_ge_supNorm_le hM⟩
 
 end ShenWork.Paper3.P31EventualSupBound
