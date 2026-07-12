@@ -146,3 +146,20 @@ C2, joint spatial/time continuity, direct mild differentiation, and the
 physical parabolic PDE without a global endpoint source package.  The
 authoritative uisai2 root build at `0229d1f8` passed (`BUILD OK`, 9303 jobs,
 375s).
+
+## MILESTONE 2026-07-12: unconditional V6 closure and cold gate
+
+`IntervalChiNegV6DirectClassical.lean` closes the strict-negative datum through
+the direct positive-time reduced classical core (`8bf24baa`), avoiding the
+false global closed-endpoint source package.  `IntervalChiNegV6Headline.lean`
+then assembles the produced map certificate, negative-part energy, and Jensen
+strict positivity, and splits the nonpositive case against the existing chi=0
+theorem (`b369505c`).  The old conditional spectral theorem remains available
+as `paper2_chiNeg_v6_spectral`.
+
+The uisai2 cold root build rebuilt the full project closure successfully: 9306
+jobs, `BUILD OK` in 1121s.  The initial cold attempt revealed two missing
+Mathlib `.olean.server` cache shards (`Init` and `Tactic`); after restoring
+those matching-toolchain artifacts, no linker, stale-olean, or source error
+remained.  The independent headline check passed in 54s, and all three printed
+axiom sets are exactly `propext`, `Classical.choice`, and `Quot.sound`.

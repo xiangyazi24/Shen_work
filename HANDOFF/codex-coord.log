@@ -76,3 +76,22 @@ public time-continuity helpers at the sole add/add seam.  The authoritative
 uisai2 root build at `0229d1f8` passed all 9303 jobs in 375s.  This also
 confirms that the added modules are in the root import closure; no linker or
 stale-olean failure occurred.
+2026-07-12 chi-negative V6 final assembly: the endpoint-faithful direct
+classical route was committed at `8bf24baa`, and the unconditional strict-
+negative/nonpositive headlines at `b369505c`.  The former retains the old
+global-source spectral theorem under the `_spectral` name but does not depend
+on its false truncated closed-endpoint interface.  The root import closure
+contains all energy, Jensen, map-certificate, weak-H2/envelope, direct
+regularity, and headline modules.
+2026-07-12 uisai2 cold-gate linker/cache incident: after moving the project
+`.lake/build`, the first cold attempt exposed a Mathlib dependency-cache race.
+`lake exe cache get` restored the official cache but omitted exactly two Lean
+server shards, `Mathlib/Init.olean.server` and
+`Mathlib/Tactic.olean.server`; imports then failed before ShenWork source
+elaboration.  The missing shards were copied from the Mac cache built with the
+same Lean v4.29.1 toolchain.  With the project build directory moved aside
+again, the authoritative cold root build completed all 9306 jobs successfully
+(`BUILD OK` in 1121s).  A separate uisai2 single-file axiom gate for
+`IntervalChiNegV6Headline.lean` also passed (`BUILD OK` in 54s); the producer,
+strict-negative headline, and nonpositive headline depend only on `propext`,
+`Classical.choice`, and `Quot.sound`.
