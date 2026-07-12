@@ -105,12 +105,30 @@ theorem crossDiffusion_weighted_factor_rpow
   rw [show |vx| ^ (2 : ℕ) = |vx| ^ (2 : ℝ) by simp [Real.rpow_natCast],
     ← Real.rpow_mul habs]
 
-theorem intervalDomain_crossDiffusionBootstrapEstimate_sharp
+/-- Explicit coefficient in the sharp `rho = gamma` cross-diffusion
+estimate.  It is independent of the solution and its time horizon. -/
+def intervalDomainSharpCrossDiffusionConstant
+    (p : CM2Params) (pExp eps : ℝ) : ℝ :=
+  let q : ℝ := (pExp + p.γ) / p.γ
+  let r : ℝ := (pExp + p.γ) / pExp
+  let beta2 : ℝ := 2 * p.β - 1
+  (1 / (4 * eps)) *
+    (1 / r + (Theta_beta beta2) ^ q *
+      intervalDomainWeightedGradientConstant p q / q)
+
+/-- Pointwise-in-time sharp cross-diffusion estimate with its fixed
+coefficient exposed. -/
+theorem intervalDomain_crossDiffusionBootstrapEstimate_sharp_explicit
     {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    (hbeta : 1 ≤ p.β) :
-    CrossDiffusionBootstrapEstimate intervalDomain p T p.γ u v := by
-  intro eps heps pExp hpExp
+    (hbeta : 1 ≤ p.β) {eps pExp : ℝ}
+    (heps : 0 < eps) (hpExp : 1 < pExp) :
+    ∀ t, 0 < t → t < T →
+      intervalDomain.crossDiffusionEnergyTerm p pExp (u t) (v t) ≤
+        eps * intervalDomain.integral (fun x =>
+          (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) +
+        intervalDomainSharpCrossDiffusionConstant p pExp eps *
+          intervalDomain.integral (fun x => (u t x) ^ (pExp + p.γ)) := by
   let q : ℝ := (pExp + p.γ) / p.γ
   let r : ℝ := (pExp + p.γ) / pExp
   let beta2 : ℝ := 2 * p.β - 1
@@ -124,12 +142,12 @@ theorem intervalDomain_crossDiffusionBootstrapEstimate_sharp
     rw [one_lt_div hp]
     linarith [p.hγ]
   have hbeta2 : 0 ≤ beta2 := by dsimp [beta2]; linarith
-  obtain ⟨Mstar, hMstar, hweighted⟩ :=
-    intervalDomain_weightedGradientEstimate_of_classical_beta
+  let Mstar : ℝ := intervalDomainWeightedGradientConstant p q
+  have hweighted :=
+    intervalDomain_weightedGradientEstimate_of_classical_beta_explicit
       hsol hq hbeta2
   let Ceps : ℝ := (1 / (4 * eps)) *
     (1 / r + (Theta_beta beta2) ^ q * Mstar / q)
-  refine ⟨Ceps, ?_⟩
   intro t ht0 htT
   let U : ℝ → ℝ := intervalDomainLift (u t)
   let V : ℝ → ℝ := intervalDomainLift (v t)
@@ -327,8 +345,20 @@ theorem intervalDomain_crossDiffusionBootstrapEstimate_sharp
     Ceps * intervalDomain.integral (fun x => (u t x) ^ (pExp + p.γ))
   rw [intervalDomain_weightedGradient_integral_lift,
     intervalDomain_integral_power_lift]
-  simpa [Cross, Grad, High, U, V, UX, VX, Den] using hfinalRaw
+  simpa [Cross, Grad, High, U, V, UX, VX, Den, Ceps, Mstar,
+    intervalDomainSharpCrossDiffusionConstant, q, r, beta2] using hfinalRaw
 
+theorem intervalDomain_crossDiffusionBootstrapEstimate_sharp
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hbeta : 1 ≤ p.β) :
+    CrossDiffusionBootstrapEstimate intervalDomain p T p.γ u v := by
+  intro eps heps pExp hpExp
+  exact ⟨intervalDomainSharpCrossDiffusionConstant p pExp eps,
+    intervalDomain_crossDiffusionBootstrapEstimate_sharp_explicit
+      hsol hbeta heps hpExp⟩
+
+#print axioms intervalDomain_crossDiffusionBootstrapEstimate_sharp_explicit
 #print axioms intervalDomain_crossDiffusionBootstrapEstimate_sharp
 
 end ShenWork.Paper2

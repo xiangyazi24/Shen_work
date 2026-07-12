@@ -589,19 +589,54 @@ theorem intervalDomain_power_integral_lift'
   rw [Set.uIcc_of_le (show (0 : ℝ) ≤ 1 by norm_num)] at hy
   simp [intervalDomainLift, hy]
 
-theorem intervalDomain_weightedGradientEstimate_of_classical_beta
+/-- A fixed Young coefficient for the elliptic source estimate.  The
+definition depends only on the equation parameters and the exponent, not on
+the solution or its time horizon. -/
+def ellipticSourceYoungConstant (p : CM2Params) (q : ℝ) : ℝ :=
+  if hq : 1 < q then
+    Classical.choose (elliptic_source_young_exists p.hμ p.hν hq)
+  else 1
+
+theorem ellipticSourceYoungConstant_pos
+    (p : CM2Params) {q : ℝ} (hq : 1 < q) :
+    0 < ellipticSourceYoungConstant p q := by
+  simp only [ellipticSourceYoungConstant, dif_pos hq]
+  exact (Classical.choose_spec
+    (elliptic_source_young_exists p.hμ p.hν hq)).1
+
+theorem ellipticSourceYoungConstant_bound
+    (p : CM2Params) {q : ℝ} (hq : 1 < q) :
+    ∀ A B : ℝ, 0 ≤ A → 0 ≤ B →
+      p.ν * A * B ^ (q - 1) ≤
+        p.μ / 2 * B ^ q + ellipticSourceYoungConstant p q * A ^ q := by
+  simp only [ellipticSourceYoungConstant, dif_pos hq]
+  exact (Classical.choose_spec
+    (elliptic_source_young_exists p.hμ p.hν hq)).2
+
+/-- Explicit horizon-independent coefficient in the weighted elliptic
+gradient estimate. -/
+def intervalDomainWeightedGradientConstant (p : CM2Params) (q : ℝ) : ℝ :=
+  p.μ ^ q * (2 * ellipticSourceYoungConstant p q / p.μ)
+
+theorem intervalDomainWeightedGradientConstant_pos
+    (p : CM2Params) {q : ℝ} (hq : 1 < q) :
+    0 < intervalDomainWeightedGradientConstant p q := by
+  unfold intervalDomainWeightedGradientConstant
+  exact mul_pos (Real.rpow_pos_of_pos p.hμ _)
+    (div_pos (mul_pos (by norm_num) (ellipticSourceYoungConstant_pos p hq)) p.hμ)
+
+/-- Explicit-coefficient version of the weighted gradient estimate. -/
+theorem intervalDomain_weightedGradientEstimate_of_classical_beta_explicit
     {p : CM2Params} {T q beta : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hq : 1 < q) (hbeta : 0 ≤ beta) :
-    ∃ Mstar > 0, WeightedGradientEstimate intervalDomain q beta p.γ Mstar T u v := by
-  obtain ⟨C0, hC0, hY⟩ := elliptic_source_young_exists p.hμ p.hν hq
-  let Mstar : ℝ := p.μ ^ q * (2 * C0 / p.μ)
-  have hMstar : 0 < Mstar := by
-    dsimp [Mstar]
-    exact mul_pos (Real.rpow_pos_of_pos p.hμ _)
-      (div_pos (mul_pos (by norm_num) hC0) p.hμ)
-  refine ⟨Mstar, hMstar, ?_⟩
+    WeightedGradientEstimate intervalDomain q beta p.γ
+      (intervalDomainWeightedGradientConstant p q) T u v := by
+  let C0 : ℝ := ellipticSourceYoungConstant p q
+  have hC0 : 0 < C0 := ellipticSourceYoungConstant_pos p hq
+  have hY := ellipticSourceYoungConstant_bound p hq
+  let Mstar : ℝ := intervalDomainWeightedGradientConstant p q
   intro t ht0 htT
   let V : ℝ → ℝ := intervalDomainLift (v t)
   let U : ℝ → ℝ := intervalDomainLift (u t)
@@ -659,7 +694,7 @@ theorem intervalDomain_weightedGradientEstimate_of_classical_beta
         mul_le_mul_of_nonneg_left (by simpa [V, U] using hpower)
           (Real.rpow_nonneg p.hμ.le q)
       _ = Mstar * (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)) := by
-        dsimp [Mstar]
+        dsimp [Mstar, intervalDomainWeightedGradientConstant, C0]
         ring
   have hbaseCont : ContinuousOn (fun x => 1 + V x) (Set.Icc (0 : ℝ) 1) :=
     continuousOn_const.add hVcont
@@ -720,7 +755,7 @@ theorem intervalDomain_weightedGradientEstimate_of_classical_beta
             (Real.rpow_nonneg p.hμ.le q)) htheta_nonneg
       _ = (Theta_beta beta) ^ q * Mstar *
           (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)) := by
-        dsimp [Mstar]
+        dsimp [Mstar, intervalDomainWeightedGradientConstant, C0]
         ring
   constructor
   · rw [intervalDomain_weighted_v_integral_lift,
@@ -729,6 +764,17 @@ theorem intervalDomain_weightedGradientEstimate_of_classical_beta
   · rw [intervalDomain_weighted_one_add_v_integral_lift,
       intervalDomain_power_integral_lift']
     simpa [V, U] using hsecondFinal
+
+theorem intervalDomain_weightedGradientEstimate_of_classical_beta
+    {p : CM2Params} {T q beta : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hq : 1 < q) (hbeta : 0 ≤ beta) :
+    ∃ Mstar > 0, WeightedGradientEstimate intervalDomain q beta p.γ Mstar T u v := by
+  exact ⟨intervalDomainWeightedGradientConstant p q,
+    intervalDomainWeightedGradientConstant_pos p hq,
+    intervalDomain_weightedGradientEstimate_of_classical_beta_explicit
+      hsol hq hbeta⟩
 
 theorem intervalDomain_weightedGradientEstimate_of_classical
     {p : CM2Params} {T q : ℝ}

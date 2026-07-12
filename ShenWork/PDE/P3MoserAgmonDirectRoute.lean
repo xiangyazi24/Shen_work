@@ -462,7 +462,7 @@ theorem intervalDomain_Proposition_2_5_of_agmon
   exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
     (hQuantEndpoint hAll)
 
-private def scalarSeedAgmonAbsorbConstant
+def scalarSeedAgmonAbsorbConstant
     (M p p0 rho eps : ℝ) : ℝ :=
   let theta : ℝ := (p - p0) / p
   let alpha : ℝ := (p + rho - p0) / p
@@ -510,7 +510,7 @@ private lemma sqrt_seed_product_eq
           congr 2
           ring
 
-private lemma scalar_seed_agmon_absorb
+lemma scalar_seed_agmon_absorb
     {M S G p p0 rho eps : ℝ}
     (hM : 0 ≤ M) (hS : 0 ≤ S) (hG : 0 ≤ G)
     (hp0 : 0 < p0) (hp : p0 ≤ p)
