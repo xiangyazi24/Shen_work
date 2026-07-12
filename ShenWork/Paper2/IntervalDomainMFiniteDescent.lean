@@ -36,19 +36,19 @@ def descentMixed
       |deriv (intervalDomainLift (v t)) x| *
       (1 + intervalDomainLift (v t) x) ^ (-beta)
 
-theorem elliptic_multiplier_hasDerivAt
-    {p : CM2Params} {T t r : ℝ}
+theorem elliptic_multiplier_hasDerivAt_eta
+    {p : CM2Params} {T t r eta : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (ht0 : 0 < t) (htT : t < T)
     {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
     let U := intervalDomainLift (u t)
     let V := intervalDomainLift (v t)
-    let H := fun y => U y ^ r * (1 + V y) ^ (-p.β)
+    let H := fun y => U y ^ r * (1 + V y) ^ (-eta)
     HasDerivAt H
-      (r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-p.β) -
-        p.β * U x ^ r * deriv V x *
-          (1 + V x) ^ (-(p.β + 1))) x := by
+      (r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-eta) -
+        eta * U x ^ r * deriv V x *
+          (1 + V x) ^ (-(eta + 1))) x := by
   dsimp
   have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
   have hU2 := (hsol.regularity.2.2.2.2.1 t ht).1.1
@@ -75,31 +75,46 @@ theorem elliptic_multiplier_hasDerivAt
   have hB : HasDerivAt (fun y => 1 + intervalDomainLift (v t) y)
       (deriv (intervalDomainLift (v t)) x) x := by
     convert (hasDerivAt_const x (1 : ℝ)).add hV using 1 <;> simp
-  have hBpow := hB.rpow_const (p := -p.β) (Or.inl (ne_of_gt hBx))
+  have hBpow := hB.rpow_const (p := -eta) (Or.inl (ne_of_gt hBx))
   convert hUr.mul hBpow using 1 <;> ring
 
-theorem elliptic_multiplier_ibp_identity
+theorem elliptic_multiplier_hasDerivAt
     {p : CM2Params} {T t r : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    let U := intervalDomainLift (u t)
+    let V := intervalDomainLift (v t)
+    let H := fun y => U y ^ r * (1 + V y) ^ (-p.β)
+    HasDerivAt H
+      (r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-p.β) -
+        p.β * U x ^ r * deriv V x *
+          (1 + V x) ^ (-(p.β + 1))) x := by
+  exact elliptic_multiplier_hasDerivAt_eta hsol ht0 htT hx
+
+theorem elliptic_multiplier_ibp_identity_eta
+    {p : CM2Params} {T t r eta : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (ht0 : 0 < t) (htT : t < T) :
     let U := intervalDomainLift (u t)
     let V := intervalDomainLift (v t)
     let Signed := ∫ x in (0 : ℝ)..1,
-      U x ^ (r - 1) * deriv U x * deriv V x * (1 + V x) ^ (-p.β)
-    p.β * descentVGradient r (p.β + 1) u v t =
+      U x ^ (r - 1) * deriv U x * deriv V x * (1 + V x) ^ (-eta)
+    eta * descentVGradient r (eta + 1) u v t =
       r * Signed +
         p.μ * (∫ x in (0 : ℝ)..1,
-          U x ^ r * V x * (1 + V x) ^ (-p.β)) -
+          U x ^ r * V x * (1 + V x) ^ (-eta)) -
         p.ν * (∫ x in (0 : ℝ)..1,
-          U x ^ (r + p.γ) * (1 + V x) ^ (-p.β)) := by
+          U x ^ (r + p.γ) * (1 + V x) ^ (-eta)) := by
   dsimp only
   let U : ℝ → ℝ := intervalDomainLift (u t)
   let V : ℝ → ℝ := intervalDomainLift (v t)
-  let H : ℝ → ℝ := fun x => U x ^ r * (1 + V x) ^ (-p.β)
+  let H : ℝ → ℝ := fun x => U x ^ r * (1 + V x) ^ (-eta)
   let H' : ℝ → ℝ := fun x =>
-    r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-p.β) -
-      p.β * U x ^ r * deriv V x * (1 + V x) ^ (-(p.β + 1))
+    r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-eta) -
+      eta * U x ^ r * deriv V x * (1 + V x) ^ (-(eta + 1))
   have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
   have hU2 : ContDiffOn ℝ 2 U (Set.Icc (0 : ℝ) 1) := by
     simpa [U] using (hsol.regularity.2.2.2.2.1 t ht).1.1
@@ -134,26 +149,27 @@ theorem elliptic_multiplier_ibp_identity
     have hUr : ContinuousOn (fun x => U x ^ r) (Set.Icc (0 : ℝ) 1) :=
       hU2.continuousOn.rpow_const
         (fun x hx => Or.inl (ne_of_gt (hUpos x hx)))
-    have hB1 : ContinuousOn (fun x => (1 + V x) ^ (-p.β))
+    have hB1 : ContinuousOn (fun x => (1 + V x) ^ (-eta))
         (Set.Icc (0 : ℝ) 1) :=
       hbase.rpow_const (fun x hx => Or.inl
         (ne_of_gt (show 0 < 1 + V x by linarith [hVnonneg x hx])))
-    have hB2 : ContinuousOn (fun x => (1 + V x) ^ (-(p.β + 1)))
+    have hB2 : ContinuousOn (fun x => (1 + V x) ^ (-(eta + 1)))
         (Set.Icc (0 : ℝ) 1) :=
       hbase.rpow_const (fun x hx => Or.inl
         (ne_of_gt (show 0 < 1 + V x by linarith [hVnonneg x hx])))
     have hterm1 : ContinuousOn
-        (fun x => r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-p.β))
+        (fun x => r * U x ^ (r - 1) * deriv U x * (1 + V x) ^ (-eta))
         (Set.Icc (0 : ℝ) 1) :=
       ((continuousOn_const.mul hUr1).mul hdUcont).mul hB1
     have hterm2 : ContinuousOn
-        (fun x => p.β * U x ^ r * deriv V x * (1 + V x) ^ (-(p.β + 1)))
+        (fun x => eta * U x ^ r * deriv V x * (1 + V x) ^ (-(eta + 1)))
         (Set.Icc (0 : ℝ) 1) :=
       ((continuousOn_const.mul hUr).mul hdVcont).mul hB2
     exact hterm1.sub hterm2
   have hHderiv : ∀ x ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt H (H' x) x := by
     intro x hx
-    simpa [U, V, H, H'] using elliptic_multiplier_hasDerivAt hsol ht0 htT hx
+    simpa [U, V, H, H'] using
+      elliptic_multiplier_hasDerivAt_eta hsol ht0 htT hx
   have hVderiv : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       HasDerivAt (deriv V) (deriv (deriv V) x) x := by
     intro x hx
@@ -174,13 +190,13 @@ theorem elliptic_multiplier_ibp_identity
       (by simpa [Set.uIcc_of_le zero_le_one] using hHcont)
       (by simpa [Set.uIcc_of_le zero_le_one] using hdVcont)
       hHderiv hVderiv hH'int hV2int hNeu0 hNeu1
-  have hBneg : ContinuousOn (fun x => (1 + V x) ^ (-p.β))
+  have hBneg : ContinuousOn (fun x => (1 + V x) ^ (-eta))
       (Set.Icc (0 : ℝ) 1) := by
     have hbase : ContinuousOn (fun x => 1 + V x) (Set.Icc (0 : ℝ) 1) :=
       continuousOn_const.add hV2.continuousOn
     exact hbase.rpow_const (fun x hx => Or.inl
       (ne_of_gt (show 0 < 1 + V x by linarith [hVnonneg x hx])))
-  have hBneg1 : ContinuousOn (fun x => (1 + V x) ^ (-(p.β + 1)))
+  have hBneg1 : ContinuousOn (fun x => (1 + V x) ^ (-(eta + 1)))
       (Set.Icc (0 : ℝ) 1) := by
     have hbase : ContinuousOn (fun x => 1 + V x) (Set.Icc (0 : ℝ) 1) :=
       continuousOn_const.add hV2.continuousOn
@@ -200,12 +216,12 @@ theorem elliptic_multiplier_ibp_identity
     simpa [U] using (deriv_lift_contDiffOn_one_Icc hU2
       (derivWithin_left_zero hsol ht0 htT u (Or.inl rfl))
       (derivWithin_right_zero hsol ht0 htT u (Or.inl rfl))).continuousOn
-  let A : ℝ → ℝ := fun x => U x ^ r * V x * (1 + V x) ^ (-p.β)
-  let B : ℝ → ℝ := fun x => U x ^ (r + p.γ) * (1 + V x) ^ (-p.β)
+  let A : ℝ → ℝ := fun x => U x ^ r * V x * (1 + V x) ^ (-eta)
+  let B : ℝ → ℝ := fun x => U x ^ (r + p.γ) * (1 + V x) ^ (-eta)
   let S : ℝ → ℝ := fun x =>
-    U x ^ (r - 1) * deriv U x * deriv V x * (1 + V x) ^ (-p.β)
+    U x ^ (r - 1) * deriv U x * deriv V x * (1 + V x) ^ (-eta)
   let J : ℝ → ℝ := fun x =>
-    U x ^ r * |deriv V x| ^ 2 * (1 + V x) ^ (-(p.β + 1))
+    U x ^ r * |deriv V x| ^ 2 * (1 + V x) ^ (-(eta + 1))
   have hAint : IntervalIntegrable A volume 0 1 := by
     apply ContinuousOn.intervalIntegrable
     rw [Set.uIcc_of_le zero_le_one]
@@ -236,12 +252,12 @@ theorem elliptic_multiplier_ibp_identity
       dsimp [H, A, B]
       rw [hpde]
       calc
-        U x ^ r * (1 + V x) ^ (-p.β) *
+        U x ^ r * (1 + V x) ^ (-eta) *
             (p.μ * V x - p.ν * U x ^ p.γ) =
-          p.μ * (U x ^ r * V x * (1 + V x) ^ (-p.β)) -
-            p.ν * ((U x ^ r * U x ^ p.γ) * (1 + V x) ^ (-p.β)) := by ring
-        _ = p.μ * (U x ^ r * V x * (1 + V x) ^ (-p.β)) -
-            p.ν * (U x ^ (r + p.γ) * (1 + V x) ^ (-p.β)) := by rw [hpow]
+          p.μ * (U x ^ r * V x * (1 + V x) ^ (-eta)) -
+            p.ν * ((U x ^ r * U x ^ p.γ) * (1 + V x) ^ (-eta)) := by ring
+        _ = p.μ * (U x ^ r * V x * (1 + V x) ^ (-eta)) -
+            p.ν * (U x ^ (r + p.γ) * (1 + V x) ^ (-eta)) := by rw [hpow]
     calc
       _ = ∫ x in (0 : ℝ)..1, p.μ * A x - p.ν * B x := by
         apply intervalIntegral.integral_congr_ae
@@ -260,9 +276,9 @@ theorem elliptic_multiplier_ibp_identity
   have hrightEq :
       (∫ x in (0 : ℝ)..1, H' x * deriv V x) =
         r * (∫ x in (0 : ℝ)..1, S x) -
-          p.β * (∫ x in (0 : ℝ)..1, J x) := by
+          eta * (∫ x in (0 : ℝ)..1, J x) := by
     calc
-      _ = ∫ x in (0 : ℝ)..1, r * S x - p.β * J x := by
+      _ = ∫ x in (0 : ℝ)..1, r * S x - eta * J x := by
         apply intervalIntegral.integral_congr
         intro x hx
         rw [Set.uIcc_of_le zero_le_one] at hx
@@ -271,15 +287,32 @@ theorem elliptic_multiplier_ibp_identity
         ring
       _ = _ := by
         rw [intervalIntegral.integral_sub (hSint.const_mul r)
-            (hJint.const_mul p.β),
+            (hJint.const_mul eta),
           intervalIntegral.integral_const_mul,
           intervalIntegral.integral_const_mul]
   rw [hleftEq, hrightEq] at hIBP
-  change p.β * (∫ x in (0 : ℝ)..1, J x) =
+  change eta * (∫ x in (0 : ℝ)..1, J x) =
     r * (∫ x in (0 : ℝ)..1, S x) +
       p.μ * (∫ x in (0 : ℝ)..1, A x) -
       p.ν * (∫ x in (0 : ℝ)..1, B x)
   linarith
+
+theorem elliptic_multiplier_ibp_identity
+    {p : CM2Params} {T t r : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    let U := intervalDomainLift (u t)
+    let V := intervalDomainLift (v t)
+    let Signed := ∫ x in (0 : ℝ)..1,
+      U x ^ (r - 1) * deriv U x * deriv V x * (1 + V x) ^ (-p.β)
+    p.β * descentVGradient r (p.β + 1) u v t =
+      r * Signed +
+        p.μ * (∫ x in (0 : ℝ)..1,
+          U x ^ r * V x * (1 + V x) ^ (-p.β)) -
+        p.ν * (∫ x in (0 : ℝ)..1,
+          U x ^ (r + p.γ) * (1 + V x) ^ (-p.β)) := by
+  exact elliptic_multiplier_ibp_identity_eta hsol ht0 htT
 
 theorem descentVGradient_intervalIntegrable
     {p : CM2Params} {T t r eta : ℝ}
@@ -364,23 +397,28 @@ theorem descentMixed_nonneg_of_solution
         have hv := lift_v_nonneg_Icc hsol ht0 htT x hx
         linarith) _))
 
-theorem theta_beta_sub_one_bound
-    {p : CM2Params} (hbeta : 1 ≤ p.β) {V : ℝ} (hV : 0 ≤ V) :
-    V * (1 + V) ^ (-p.β) ≤ Theta_beta (p.β - 1) := by
+theorem theta_sub_one_bound
+    {eta V : ℝ} (heta : 1 ≤ eta) (hV : 0 ≤ V) :
+    V * (1 + V) ^ (-eta) ≤ Theta_beta (eta - 1) := by
   have hbase : 0 < 1 + V := by linarith
   rw [Real.rpow_neg hbase.le]
-  change V / (1 + V) ^ p.β ≤ Theta_beta (p.β - 1)
-  have hb : 0 ≤ p.β - 1 := by linarith
+  change V / (1 + V) ^ eta ≤ Theta_beta (eta - 1)
+  have hb : 0 ≤ eta - 1 := by linarith
   rcases lt_or_eq_of_le hb with hbpos | hbzero
   · by_cases hV0 : V = 0
     · subst V
       simp [Theta_beta_nonneg hb]
     · have hVpos : 0 < V := lt_of_le_of_ne hV (Ne.symm hV0)
-      simpa [show 1 + (p.β - 1) = p.β by ring] using
+      simpa [show 1 + (eta - 1) = eta by ring] using
         Lemma_2_5_normalized_Theta_bound hbpos hVpos
-  · have hpβ : p.β = 1 := by linarith
-    rw [hpβ, show (1 : ℝ) - 1 = 0 by ring, Theta_beta_zero, Real.rpow_one]
+  · have heta : eta = 1 := by linarith
+    rw [heta, show (1 : ℝ) - 1 = 0 by ring, Theta_beta_zero, Real.rpow_one]
     exact (div_le_one hbase).2 (by linarith)
+
+theorem theta_beta_sub_one_bound
+    {p : CM2Params} (hbeta : 1 ≤ p.β) {V : ℝ} (hV : 0 ≤ V) :
+    V * (1 + V) ^ (-p.β) ≤ Theta_beta (p.β - 1) :=
+  theta_sub_one_bound hbeta hV
 
 /-- One elliptic descent step before Young splitting. -/
 theorem elliptic_descent_estimate
@@ -572,17 +610,17 @@ theorem descent_pointwise_young
           (U ^ (2 * r - pExp) * |VX| ^ 2 * B ^ (-(2 * beta))) := by
       rw [hX2, hY2]
 
-theorem descentMixed_young
-    {p : CM2Params} {T t pExp r C eps : ℝ}
+theorem descentMixed_young_beta
+    {p : CM2Params} {T t pExp r C eps beta : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (ht0 : 0 < t) (htT : t < T) (heps : 0 < eps) :
-    C * descentMixed r p.β u v t ≤
+    C * descentMixed r beta u v t ≤
       eps * (∫ x in (0 : ℝ)..1,
         intervalDomainLift (u t) x ^ (pExp - 2) *
           |deriv (intervalDomainLift (u t)) x| ^ 2) +
         (C ^ 2 / (4 * eps)) *
-          descentVGradient (2 * r - pExp) (2 * p.β) u v t := by
+          descentVGradient (2 * r - pExp) (2 * beta) u v t := by
   let U : ℝ → ℝ := intervalDomainLift (u t)
   let V : ℝ → ℝ := intervalDomainLift (v t)
   have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
@@ -600,9 +638,9 @@ theorem descentMixed_young
     exact (hU2.continuousOn.rpow_const
       (fun x hx => Or.inl (ne_of_gt (hUpos x hx)))).mul (hdU.abs.pow 2)
   have hMixInt := descentMixed_intervalIntegrable
-    (r := r) (beta := p.β) hsol ht0 htT
+    (r := r) (beta := beta) hsol ht0 htT
   have hIInt := descentVGradient_intervalIntegrable
-    (r := 2 * r - pExp) (eta := 2 * p.β) hsol ht0 htT
+    (r := 2 * r - pExp) (eta := 2 * beta) hsol ht0 htT
   unfold descentMixed descentVGradient
   rw [← intervalIntegral.integral_const_mul]
   rw [← intervalIntegral.integral_const_mul,
@@ -611,31 +649,44 @@ theorem descentMixed_young
       eps * (U x ^ (pExp - 2) * |deriv U x| ^ 2) +
         (C ^ 2 / (4 * eps)) *
           (U x ^ (2 * r - pExp) * |deriv V x| ^ 2 *
-            (1 + V x) ^ (-(2 * p.β)))) volume 0 1 :=
+            (1 + V x) ^ (-(2 * beta)))) volume 0 1 :=
     (hDint.const_mul eps).add (hIInt.const_mul (C ^ 2 / (4 * eps)))
   have hpoint : ∀ x ∈ Set.Icc (0 : ℝ) 1,
       C * (U x ^ (r - 1) * |deriv U x| * |deriv V x| *
-        (1 + V x) ^ (-p.β)) ≤
+        (1 + V x) ^ (-beta)) ≤
       eps * (U x ^ (pExp - 2) * |deriv U x| ^ 2) +
         (C ^ 2 / (4 * eps)) *
           (U x ^ (2 * r - pExp) * |deriv V x| ^ 2 *
-            (1 + V x) ^ (-(2 * p.β))) := by
+            (1 + V x) ^ (-(2 * beta))) := by
     intro x hx
     simpa [mul_assoc] using descent_pointwise_young
       (U := U x) (UX := deriv U x) (VX := deriv V x) (B := 1 + V x)
-      (C := C) (eps := eps) (pExp := pExp) (r := r) (beta := p.β)
+      (C := C) (eps := eps) (pExp := pExp) (r := r) (beta := beta)
       (hUpos x hx) (by linarith [hVnonneg x hx]) heps
   calc
     _ ≤ ∫ x in (0 : ℝ)..1,
         eps * (U x ^ (pExp - 2) * |deriv U x| ^ 2) +
           (C ^ 2 / (4 * eps)) *
             (U x ^ (2 * r - pExp) * |deriv V x| ^ 2 *
-              (1 + V x) ^ (-(2 * p.β))) :=
+              (1 + V x) ^ (-(2 * beta))) :=
       intervalIntegral.integral_mono_on (by norm_num)
         (hMixInt.const_mul C) hright hpoint
     _ = _ := by
       rw [intervalIntegral.integral_add (hDint.const_mul eps)
         (hIInt.const_mul (C ^ 2 / (4 * eps)))]
+
+theorem descentMixed_young
+    {p : CM2Params} {T t pExp r C eps : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T) (heps : 0 < eps) :
+    C * descentMixed r p.β u v t ≤
+      eps * (∫ x in (0 : ℝ)..1,
+        intervalDomainLift (u t) x ^ (pExp - 2) *
+          |deriv (intervalDomainLift (u t)) x| ^ 2) +
+        (C ^ 2 / (4 * eps)) *
+          descentVGradient (2 * r - pExp) (2 * p.β) u v t := by
+  exact descentMixed_young_beta hsol ht0 htT heps
 
 /-- A complete recursive step: `r` is replaced by `2r-pExp`; the lower
 `r`-moment is bounded by the target `pExp`-moment plus the unit volume. -/

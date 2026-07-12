@@ -216,3 +216,11 @@ upper bound, compact slab maximum, and sublinear scalar absorption.  The
 capstone `IntervalDomainM.slow_bounded_before` is single-file green, contains
 no sorry/admit, and its axiom audit is exactly propext, Classical.choice, and
 Quot.sound.  The new module is root-imported.  Full builds remain remote-only.
+
+2026-07-12 [Codex] Faithful critical-Lp seed milestone: generalized the
+elliptic multiplier and mixed-term Young identities to arbitrary signal
+weights, then formalized the paper's `eta = 2*beta-1` coefficient gap.  Under
+positive sensitivity below `chiBeta`, the new module selects an exponent above
+`max 1 (gamma*N/2)`, proves its uniform finite-horizon Lp bound, and transports
+the existing sharp `rho=gamma` bootstrap through the proved `m=1` faithful-to-
+linear domain bridge.  Local single-file verification is green; root-imported.
