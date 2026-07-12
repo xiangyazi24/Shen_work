@@ -64,11 +64,7 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (paperLowerRawParamRotheSeqFromTrap hpar) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
@@ -144,11 +140,7 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (paperLowerRawParamRotheSeqFromTrap hpar) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
@@ -231,11 +223,7 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (paperLowerRawParamRotheSeqFromTrap hpar) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
@@ -275,11 +263,7 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (paperLowerRawParamRotheSeqFromTrap hpar) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧

@@ -742,6 +742,30 @@ def rotheSeqOfPaper (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : ℕ → ℝ → ℝ :=
   fun k => (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
 
+/-- The paper Rothe sequence when the producer is available only on the
+monotone wave trap.  As in `rotheSeqFromTrap`, values outside the domain used
+by the Schauder argument are filled with the upper barrier. -/
+def rotheSeqOfPaperFromTrap (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  fun u => by
+    classical
+    exact
+      if hu : InMonotoneWaveTrapSet κ M u then
+        rotheSeqOfPaper p c lam M κ Λ u (hprodTrap u hu) hκ hM
+      else
+        fun _ => upperBarrier κ M
+
+@[simp] theorem rotheSeqOfPaperFromTrap_eq
+    (hprodTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hu : InMonotoneWaveTrapSet κ M u) :
+    rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM u =
+      rotheSeqOfPaper p c lam M κ Λ u (hprodTrap u hu) hκ hM := by
+  simp [rotheSeqOfPaperFromTrap, hu]
+
 @[simp] theorem rotheSeqOfPaper_zero
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
@@ -939,6 +963,49 @@ theorem paperRotheOrbitData
       limitLip := ?_ }
   intro x y
   exact rotheSeqOfPaper_limitLip (hprodAll u) hκ hM hΛ0 hΛM hbarLip x y
+
+/-- Orbit data for the trap-indexed paper sequence.  This is the paper-side
+counterpart of `rotheOrbitData_fromTrap`; it avoids a fictitious producer for
+profiles outside the Schauder domain. -/
+theorem paperRotheOrbitData_fromTrap
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hu : InMonotoneWaveTrapSet κ M u) :
+    PaperRotheOrbitData p c lam M κ
+      (rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM) u := by
+  let hprod := hprodTrap u hu
+  refine
+    { iterate_cont := ?_
+      anti_k := ?_
+      anti_x := ?_
+      nonneg := ?_
+      le_M := ?_
+      le_upperBarrier := ?_
+      bddBelow := ?_
+      equiLip := ?_
+      limitLip := ?_ }
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_cont hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_anti_k hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_anti_x hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_nonneg hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_le_M hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_le_barrier hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_bddBelow hprod hκ hM
+  · simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_equiLip hprod hκ hM hΛ0 hΛM hbarLip
+  · intro x y
+    simpa only [rotheSeqOfPaperFromTrap_eq hprodTrap hκ hM hu] using
+      rotheSeqOfPaper_limitLip hprod hκ hM hΛ0 hΛM hbarLip x y
 
 theorem paperTmap_maps_trap
     (p : CMParams) (c lam M κ : ℝ) (hM : 0 ≤ M)
@@ -1970,10 +2037,12 @@ section AxiomAudit
 
 #print axioms rotheSeqOf
 #print axioms rotheSeqOfPaper
+#print axioms rotheSeqOfPaperFromTrap_eq
 #print axioms rotheSeqOfPaper_stepFacts
 #print axioms rotheSeqOfPaper_contDiff2_or_barrier
 #print axioms rotheSeqOfPaper_lowerPinned_base
 #print axioms paperRotheOrbitData
+#print axioms paperRotheOrbitData_fromTrap
 #print axioms paperTmap_maps_trap
 #print axioms paperTmap_compactRange
 #print axioms PaperRotheTailUniform.toAlongConvergentSeq
