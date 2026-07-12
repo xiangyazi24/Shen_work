@@ -255,4 +255,58 @@ theorem cosineCoeff_deriv_abs_le_of_secondDeriv_bound
   rw [le_div_iff₀ hkpos, mul_comm]
   exact hle
 
+/-- **Source (divergence) coefficient decay, order 2 — the WSE-2 ladder endpoint**:
+the chemotaxis source `S = ∂ₓQ = Q'` has `|∫₀¹ Q'·cos(kπx)| ≤ B/(kπ)²` when `|Q'''| ≤ B`
+(flux `Q ∈ C³`) **and** the Neumann compatibility `Q''(0) = Q''(1) = 0` holds.  This is
+the pointwise-bound input `restartCoeff_eigenvalue_weighted_summable_of_pass2_envelope`
+consumes (source `O(k⁻²)` = `WindowSourceEnvelope 2`).  Adversarially confirmed
+(Q4405) that `C²` alone cannot reach this endpoint. -/
+theorem cosineCoeff_deriv_abs_le_of_thirdDeriv_bound
+    {Q' Q'' Q''' : ℝ → ℝ} {k : ℕ} {B : ℝ} (hk : 1 ≤ k)
+    (hQ' : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q' (Q'' x) x)
+    (hQ'' : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q'' (Q''' x) x)
+    (hQ''i : IntervalIntegrable Q'' volume 0 1)
+    (hQ'''i : IntervalIntegrable Q''' volume 0 1)
+    (hc0 : Q'' 0 = 0) (hc1 : Q'' 1 = 0)
+    (hB : ∀ x ∈ Set.uIcc (0 : ℝ) 1, |Q''' x| ≤ B) :
+    |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| ≤ B / (k * Real.pi) ^ 2 := by
+  have hkpos : 0 < (k : ℝ) * Real.pi := by
+    have hk0 : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+    positivity
+  have hk2pos : 0 < ((k : ℝ) * Real.pi) ^ 2 := by positivity
+  -- (kπ)²·∫Q'cos = -∫Q'''cos
+  have hid1 := kpi_mul_integral_deriv_mul_cos (k := k) hQ' hQ''i
+  have hid2 := kpi_mul_integral_mul_sin (k := k) hQ'' hQ'''i hc0 hc1
+  have hchain : ((k : ℝ) * Real.pi) ^ 2 * (∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x))
+      = - ∫ x in (0 : ℝ)..1, Q''' x * Real.cos (k * Real.pi * x) := by
+    have hsq : ((k : ℝ) * Real.pi) ^ 2 * (∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x))
+        = (k * Real.pi) * ((k * Real.pi) * ∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)) := by
+      ring
+    rw [hsq, hid1, mul_neg, hid2]
+  -- |∫ Q''' cos| ≤ B
+  have hbd : ∀ x ∈ Set.uIoc (0 : ℝ) 1,
+      ‖Q''' x * Real.cos (k * Real.pi * x)‖ ≤ B := by
+    intro x hx
+    have hxIcc : x ∈ Set.uIcc (0 : ℝ) 1 := by
+      rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+      rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+      exact Set.Ioc_subset_Icc_self hx
+    have hb := hB x hxIcc
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |Q''' x| * |Real.cos (k * Real.pi * x)|
+        ≤ B * 1 :=
+          mul_le_mul hb (Real.abs_cos_le_one _) (abs_nonneg _)
+            (le_trans (abs_nonneg _) hb)
+      _ = B := mul_one B
+  have hcosbd : |∫ x in (0 : ℝ)..1, Q''' x * Real.cos (k * Real.pi * x)| ≤ B := by
+    have h := intervalIntegral.norm_integral_le_of_norm_le_const hbd
+    simpa [Real.norm_eq_abs, sub_zero, abs_one, mul_one] using h
+  have habs : ((k : ℝ) * Real.pi) ^ 2 * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)|
+      = |∫ x in (0 : ℝ)..1, Q''' x * Real.cos (k * Real.pi * x)| := by
+    rw [← abs_of_pos hk2pos, ← abs_mul, hchain, abs_neg]
+  have hle : ((k : ℝ) * Real.pi) ^ 2 * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| ≤ B :=
+    habs ▸ hcosbd
+  rw [le_div_iff₀ hk2pos, mul_comm]
+  exact hle
+
 end ShenWork.Paper2.ChemFluxCosineDivergence
