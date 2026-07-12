@@ -589,12 +589,12 @@ theorem intervalDomain_power_integral_lift'
   rw [Set.uIcc_of_le (show (0 : ℝ) ≤ 1 by norm_num)] at hy
   simp [intervalDomainLift, hy]
 
-theorem intervalDomain_weightedGradientEstimate_of_classical
-    {p : CM2Params} {T q : ℝ}
+theorem intervalDomain_weightedGradientEstimate_of_classical_beta
+    {p : CM2Params} {T q beta : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    (hq : 1 < q) :
-    ∃ Mstar > 0, WeightedGradientEstimate intervalDomain q p.β p.γ Mstar T u v := by
+    (hq : 1 < q) (hbeta : 0 ≤ beta) :
+    ∃ Mstar > 0, WeightedGradientEstimate intervalDomain q beta p.γ Mstar T u v := by
   obtain ⟨C0, hC0, hY⟩ := elliptic_source_young_exists p.hμ p.hν hq
   let Mstar : ℝ := p.μ ^ q * (2 * C0 / p.μ)
   have hMstar : 0 < Mstar := by
@@ -664,61 +664,61 @@ theorem intervalDomain_weightedGradientEstimate_of_classical
   have hbaseCont : ContinuousOn (fun x => 1 + V x) (Set.Icc (0 : ℝ) 1) :=
     continuousOn_const.add hVcont
   have hdenCont : ContinuousOn
-      (fun x => (1 + V x) ^ ((1 + p.β) * q)) (Set.Icc (0 : ℝ) 1) :=
+      (fun x => (1 + V x) ^ ((1 + beta) * q)) (Set.Icc (0 : ℝ) 1) :=
     hbaseCont.rpow_const (fun x hx => Or.inl (by
       have := hVpos x hx
       positivity))
   have hsecondCont : ContinuousOn
-      (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + p.β) * q))
+      (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + beta) * q))
       (Set.Icc (0 : ℝ) 1) :=
     hnumcont.div hdenCont (fun x hx => ne_of_gt
       (Real.rpow_pos_of_pos (by have := hVpos x hx; linarith) _))
   have hsecondInt : IntervalIntegrable
-      (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + p.β) * q))
+      (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + beta) * q))
       volume 0 1 := by
     have hc : ContinuousOn
-        (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + p.β) * q))
+        (fun x => |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + beta) * q))
         (Set.uIcc (0 : ℝ) 1) := by
       simpa [Set.uIcc_of_le (show (0 : ℝ) ≤ 1 by norm_num)] using hsecondCont
     exact hc.intervalIntegrable
-  have htheta_nonneg : 0 ≤ Theta_beta p.β ^ q :=
-    Real.rpow_nonneg (Theta_beta_pos_of_nonneg p.hβ).le _
+  have htheta_nonneg : 0 ≤ Theta_beta beta ^ q :=
+    Real.rpow_nonneg (Theta_beta_pos_of_nonneg hbeta).le _
   have hsecondRaw :
       (∫ x in (0 : ℝ)..1,
-        |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + p.β) * q)) ≤
-      (Theta_beta p.β) ^ q *
+        |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + beta) * q)) ≤
+      (Theta_beta beta) ^ q *
         (p.μ ^ q * (∫ x in (0 : ℝ)..1, V x ^ q)) := by
     calc
       _ ≤ ∫ x in (0 : ℝ)..1,
-          (Theta_beta p.β) ^ q * (p.μ ^ q * V x ^ q) :=
+          (Theta_beta beta) ^ q * (p.μ ^ q * V x ^ q) :=
         intervalIntegral.integral_mono_on (by norm_num) hsecondInt
           (by simpa [mul_assoc] using
-            hVqint.const_mul ((Theta_beta p.β) ^ q * p.μ ^ q))
+            hVqint.const_mul ((Theta_beta beta) ^ q * p.μ ^ q))
           (fun x hx => by
             simpa [mul_assoc] using elliptic_denominator_weight_pointwise
-              p.hμ p.hβ hq (hVpos x hx) (hlog x hx))
-      _ = (Theta_beta p.β) ^ q *
+              p.hμ hbeta hq (hVpos x hx) (hlog x hx))
+      _ = (Theta_beta beta) ^ q *
           (p.μ ^ q * (∫ x in (0 : ℝ)..1, V x ^ q)) := by
-        rw [show (fun x => (Theta_beta p.β) ^ q * (p.μ ^ q * V x ^ q)) =
-            fun x => ((Theta_beta p.β) ^ q * p.μ ^ q) * V x ^ q by
+        rw [show (fun x => (Theta_beta beta) ^ q * (p.μ ^ q * V x ^ q)) =
+            fun x => ((Theta_beta beta) ^ q * p.μ ^ q) * V x ^ q by
               funext x; ring,
           intervalIntegral.integral_const_mul]
         ring
   have hsecondFinal :
       (∫ x in (0 : ℝ)..1,
-        |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + p.β) * q)) ≤
-      (Theta_beta p.β) ^ q * Mstar *
+        |deriv V x| ^ (2 * q) / (1 + V x) ^ ((1 + beta) * q)) ≤
+      (Theta_beta beta) ^ q * Mstar *
         (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)) := by
     calc
-      _ ≤ (Theta_beta p.β) ^ q *
+      _ ≤ (Theta_beta beta) ^ q *
           (p.μ ^ q * (∫ x in (0 : ℝ)..1, V x ^ q)) := hsecondRaw
-      _ ≤ (Theta_beta p.β) ^ q *
+      _ ≤ (Theta_beta beta) ^ q *
           (p.μ ^ q * ((2 * C0 / p.μ) *
             (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)))) :=
         mul_le_mul_of_nonneg_left
           (mul_le_mul_of_nonneg_left (by simpa [V, U] using hpower)
             (Real.rpow_nonneg p.hμ.le q)) htheta_nonneg
-      _ = (Theta_beta p.β) ^ q * Mstar *
+      _ = (Theta_beta beta) ^ q * Mstar *
           (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)) := by
         dsimp [Mstar]
         ring
@@ -729,6 +729,14 @@ theorem intervalDomain_weightedGradientEstimate_of_classical
   · rw [intervalDomain_weighted_one_add_v_integral_lift,
       intervalDomain_power_integral_lift']
     simpa [V, U] using hsecondFinal
+
+theorem intervalDomain_weightedGradientEstimate_of_classical
+    {p : CM2Params} {T q : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hq : 1 < q) :
+    ∃ Mstar > 0, WeightedGradientEstimate intervalDomain q p.β p.γ Mstar T u v :=
+  intervalDomain_weightedGradientEstimate_of_classical_beta hsol hq p.hβ
 
 /-- Concrete interval-domain realization of Paper 2, Proposition 2.2. -/
 theorem intervalDomain_Proposition_2_2 (p : CM2Params) :
