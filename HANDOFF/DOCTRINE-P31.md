@@ -54,3 +54,13 @@ named residual and pivot to Gap B/C + scaffolding.
 ## Build
 Single-file: `cd ~/repos/shen_work && env PATH="/Library/TeX/texbin:$PATH" lake env lean <file>`.
 NEVER local `lake build`. Cold gate: `REMOTE_BUILD_SERVER=uisai2 bash scripts/remote-build.sh shen_work`.
+
+## STATUS 2026-07-12 — avenue (a) Gap A COMPLETE for the paper regime
+- eventualSupBound proven for {0<a,0<b} (posAB), {a=b=0} (zeroAB), {a=0,0<b} (zeroA_posB) — all axiom-clean.
+  Only a>0,b=0 excluded (eventualSupBound genuinely FALSE there: pure growth). Root machinery = Lemma_3_1_intervalDomain.
+- proposition_1_2_of_theorem_1_1_posAB : Theorem_1_1 → Proposition_1_2 (the clean reduction).
+- proposition_1_2_intervalDomain_chiZero : P3.1 UNCONDITIONAL for χ₀=0.
+- χ<0 auto-closes via proposition_1_2_of_theorem_1_1_posAB ∘ (Codex's Theorem_1_1(χ<0)); one-liner recorded.
+- PENDING: audit Q4558 (interior-time argument second-opinion, in flight); cold uisai2 gate on new file;
+  full χ₀≤0 headline waits on Codex χ<0.
+- Commits: 3f4fce99 6314f552 0fe943de 4cd21cda 70cc4c51 67206469.
