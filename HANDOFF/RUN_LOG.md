@@ -20,3 +20,19 @@
 - parallel: Codex owns χ<0 (tmux win 6, 3h43m in, HSpectral wiring); I do NOT re-drive it.
 - end: <fill on close>
 - final result: <fill on close>
+
+### P3.1 results (2026-07-12, session = shen window) — COMMITTED
+- Gap A eventualSupBound DISCHARGED for the paper regime, axiom-clean:
+  eventualSupBound_of_global_posAB (0<a,0<b), _zeroAB (a=b=0). Proof = Lemma_3_1_intervalDomain
+  invariant region + INTERIOR reference time t=1 (no initial-trace approach dep). commit 3f4fce99.
+- proposition_1_2_of_theorem_1_1_posAB : Theorem_1_1 intervalDomain p → Proposition_1_2 intervalDomain p
+  (0<a,0<b). The clean P3.1 reduction to Paper 2's main theorem, PPID-typed (no PID datum-class detour). commit 0fe943de.
+- proposition_1_2_intervalDomain_chiZero : P3.1 UNCONDITIONAL for χ₀=0, 0<a,0<b,1≤α,1≤γ (axiom-clean).
+  FIRST Paper 3 headline closed. commit 6314f552.
+- χ<0 / full χ₀≤0 closure recorded as ready one-liner (proposition_1_2_of_theorem_1_1_posAB ∘
+  paper2_theorem_1_1_intervalDomain_chiNonpos_..._of_reducedCoreData) — deferred to cold build
+  (EWA import not single-file-compilable). commit 4cd21cda. Auto-closes when Codex lands Theorem_1_1(χ<0).
+- OPEN (low priority): a=0,b>0 corner of eventualSupBound (degenerate no-growth; helpers max_point_slope_bound/
+  supNorm_nonincr_core are non-private so ~30-line follow-up); a>0,b=0 genuinely FALSE (pure growth) — field
+  over-stated there, honestly scope to {0<a,0<b}∪{a=b=0}. Cold uisai2 gate on new file still pending.
+- All verified single-file (lake env lean) + #print axioms = propext/Classical.choice/Quot.sound.
