@@ -124,3 +124,9 @@ energy differential inequality for the bounded-interval Neumann chemotaxis-growt
 −c∫|∇u^{p/2}|²) + (chemotaxis cross-term, absorbed via Young + elliptic ∇v bound) + (logistic), yielding
 y'(t) ≤ C·y(t)+C' for y=∫u^p, then Prop 2.5 lifts one large finite p to L∞ via the mild formula. This is the target
 for IntervalDomainEnergyStep / the Lᵖ producer when step 2 executes.
+
+## P3.1 is pure existence, NOT a semiflow (v_p31/Q4436, 2026-07-11)
+The repo's Paper 3 P3.1 global-existence floor is NOT a semiflow/continuous-dependence theorem — the public target
+is a plain "∀u₀ ∃ global solution" existence statement. So P3.1 needs NO beyond-Paper-2 structure (no Φ_t
+continuity); it is a direct application of Paper 2 χ≤0 existence. Confirms step-1 is the cheapest floor. Exact
+target type in /tmp/gpt_Q4436.md.
