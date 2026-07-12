@@ -90,3 +90,14 @@ H1Window) is GENERIC — it consumes a scalar DI `deriv(H1energy u τ) ≤ A·H1
   H1lapL2Norm·H1gradL2Norm + Young; chiBeta is exactly the absorption threshold). Everything downstream reuses:
   scalar DI → H¹ window machinery → 1D bypass → boundedBefore → Corollary_2_1/hcriticalGlobalBound → Theorem_1_2.
   This is the genuinely-hard heart (NOT the cross estimate, which is done) — Codex-scale, χ<0 H1Bridge is the template.
+
+## PROGRESS 2026-07-12 turn — Theorem_1_2 χ₀<chiBeta H1-DI core: 3 verified pieces (all axiom-clean)
+Chain built (ShenWork/Paper2/IntervalH1DIChiBetaAbsorption.lean):
+  h1_diffIneq_of_sup_bounds_abs (c9a0fbcf) → H1IdentityRHSBoundBefore_of_supBoundDIDataAbs (3a216d4e)
+  → H1SupBoundDIDataAbsBefore_of_absTermBounds (c1a67e48).
+Full chain: [abs resolver term bounds] → H1SupBoundDIDataAbsBefore → H1IdentityRHSBoundBefore
+  → (GENERIC) H1ScalarDIOnBefore_of_identityRHSBound → scalar DI → H1 window machinery → 1D bypass
+  → IsPaper2BoundedBefore → Cor21/hcriticalGlobalBound → Theorem_1_2 (damped regime, all γ).
+RESIDUAL (Codex's domain — physical resolver): the ABS term bounds |taxisX|≤V₁‖Δu‖‖∇u‖,
+  |uvxx|≤M V₂‖Δu‖, reactX≤L‖∇u‖². χ<0 route builds these via private H1PhysicalTaxisX_le_of_l2_bound
+  (×(-χ₀)). Codex exposes the abs form (sign-agnostic, trivial variant of its χ<0 resolver bounds).
