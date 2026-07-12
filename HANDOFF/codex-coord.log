@@ -283,3 +283,26 @@ cannot close the headline.  A headline consumer must provide the resolver/core
 bound independently, or replace this interface by estimates based on weaker
 uniform quantities.  Compact bounds on each strict sub-horizon are also not
 enough for the full open interval `(0,T)`.
+
+2026-07-12 [Codex] POSITIVE-CHI THEOREM 1.2 GLOBAL LINK CLOSED.  The acyclic
+route now quantifies every analytic constant before the horizon: commit
+`c89929ae` exposes the carrying-capacity mass constant; `090bf768` gives the
+global critical seed; `b54013f8` exposes the sharp elliptic/cross-diffusion and
+Agmon scalar coefficients; `87e43c8b` consumes an explicit lower-rung seed to
+produce one global power above gamma.  The endpoint in `2e4d8ade` takes the
+maximum on the whole past slab and restarts exactly one time unit before its
+maximizer, so neither the far chemical term nor the logistic term contains the
+observation horizon.  `d057bdc2` realizes the exact positive-chi
+`hcriticalGlobalBound` type, and `b8a66d7d` wires it through the existing
+Theorem 1.2 critical-branch assembly.  All local single-file axiom audits are
+exactly `propext`, `Classical.choice`, `Quot.sound`.
+
+2026-07-12 [Codex] BRANCH GUARD NOTE: the cheap H1/Sobolev bypass from the
+Fable acyclicity handoff applies only under gamma < 2 (and the existing
+`IntervalDomainBoundednessHyp` is stronger still).  Neither legacy
+`Theorem_1_2` nor amended `CorrectedTheorem_1_2` assumes gamma < 2, so it cannot
+close the headline.  The landed general branch instead uses the lower-rung
+global seed explicitly in the type and a single p > gamma semigroup endpoint;
+it does not require a uniform-in-p Moser limit.  The legacy theorem also remains
+false at a > 0, b = 0; the positive critical wrapper therefore carries the
+paper-faithful guard `a = 0 or b > 0`.
