@@ -1193,8 +1193,76 @@ lemma MGeOneFiniteHorizonAlternative.apply
     ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x :=
   h M
 
+/-! ### Paper-faithful maximal-continuation carrier
+
+The main theorems in the source paper concern the distinguished maximal
+classical solution.  A bare existential solution on one short time interval
+does not encode that object.  The carrier below records the two branches of
+the standard continuation theorem: either a finite maximal horizon carrying
+the paper's blow-up/vanishing alternative, or one global classical solution.
+-/
+
+/-- A maximal-continuation branch for the Paper 2 system and one initial
+datum.  In the finite branch, the extra `mge` field records Proposition 1.1's
+sharper alternative when `m ≥ 1`: finite maximal time forces upper blow-up,
+not merely loss of the positive lower floor. -/
+inductive Paper2MaximalContinuation
+    (D : BoundedDomainData) (p : CM2Params) (u₀ : D.Point → ℝ) : Type
+  | finite
+      (Tmax : ℝ) (u v : ℝ → D.Point → ℝ)
+      (Tmax_pos : 0 < Tmax)
+      (solution : IsPaper2ClassicalSolution D p Tmax u v)
+      (initialTrace : InitialTrace D u₀ u)
+      (alternative : FiniteHorizonAlternative D Tmax u)
+      (mge : 1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u)
+  | global
+      (u v : ℝ → D.Point → ℝ)
+      (solution : IsPaper2GlobalClassicalSolution D p u v)
+      (initialTrace : InitialTrace D u₀ u)
+
+namespace Paper2MaximalContinuation
+
+/-- Whether a maximal-continuation carrier is on its global branch. -/
+def IsGlobal
+    {D : BoundedDomainData} {p : CM2Params} {u₀ : D.Point → ℝ} :
+    Paper2MaximalContinuation D p u₀ → Prop
+  | .finite .. => False
+  | .global .. => True
+
+/-- The paper's boundedness assertion on either maximal-continuation branch:
+uniformly before the finite maximal horizon, or eventually uniformly on a
+global trajectory. -/
+def IsBounded
+    {D : BoundedDomainData} {p : CM2Params} {u₀ : D.Point → ℝ} :
+    Paper2MaximalContinuation D p u₀ → Prop
+  | .finite Tmax u _v _hT _hsol _htrace _halt _hmge =>
+      IsPaper2BoundedBefore D Tmax u
+  | .global u _v _hsol _htrace => IsPaper2Bounded D u
+
+end Paper2MaximalContinuation
+
 def chiBeta (p : CM2Params) : ℝ :=
   2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
+
+/-- Paper-faithful amended Theorem 1.2.
+
+The guard `a = 0 ∨ 0 < b` excludes exactly the false nonnegative-parameter
+branch `0 < a ∧ b = 0`.  Unlike the legacy repository statement, the slow
+branch is a statement about every branch of the maximal continuation, and it
+also requires that such a branch exists.  In the critical `m = 1` case every
+maximal branch is global and bounded. -/
+def CorrectedTheorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  (p.a = 0 ∨ 0 < p.b) → 1 ≤ p.β →
+    ((0 < p.m → p.m < 1 →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
+        Nonempty (Paper2MaximalContinuation D p u₀) ∧
+          ∀ branch : Paper2MaximalContinuation D p u₀,
+            branch.IsBounded) ∧
+    (p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
+        Nonempty (Paper2MaximalContinuation D p u₀) ∧
+          ∀ branch : Paper2MaximalContinuation D p u₀,
+            branch.IsGlobal ∧ branch.IsBounded))
 
 lemma chiBeta_denom_pos (p : CM2Params) :
     0 < max (2 : ℝ) (p.γ * (p.N : ℝ)) :=

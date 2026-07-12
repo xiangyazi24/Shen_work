@@ -2928,10 +2928,36 @@ def intervalDomainChemotaxisDiv (p : CM2Params)
         (1 + intervalDomainLift v y) ^ p.β)
     x.1
 
+/-- Paper-faithful chemotaxis divergence on the unit interval.
+
+The published system has flux
+`u ^ m * vₓ / (1 + v) ^ β`.  The older `intervalDomainChemotaxisDiv`
+specializes this flux to its linear, `m = 1`, form.  This declaration keeps
+that legacy operator stable while exposing the actual general-`m` operator
+needed by Paper 2, Theorems 1.2 and 1.3. -/
+def intervalDomainChemotaxisDivM (p : CM2Params)
+    (u v : intervalDomainPoint → ℝ) (x : intervalDomainPoint) : ℝ :=
+  deriv
+    (fun y : ℝ =>
+      (intervalDomainLift u y) ^ p.m * deriv (intervalDomainLift v) y /
+        (1 + intervalDomainLift v y) ^ p.β)
+    x.1
+
 def intervalDomainCrossDiffusionEnergyTerm (p : CM2Params)
     (pExp : ℝ) (u v : intervalDomainPoint → ℝ) : ℝ :=
   ∫ x in (0 : ℝ)..1,
     (intervalDomainLift u x) ^ (pExp - 1) *
+      |deriv (intervalDomainLift u) x| * |deriv (intervalDomainLift v) x| /
+        (1 + intervalDomainLift v x) ^ p.β
+
+/-- Absolute cross-diffusion test term for the paper-faithful `u ^ m` flux.
+
+Testing the parabolic equation by `u ^ (pExp - 1)` produces the power
+`u ^ (pExp + m - 2)` in front of `|uₓ| |vₓ|`. -/
+def intervalDomainCrossDiffusionEnergyTermM (p : CM2Params)
+    (pExp : ℝ) (u v : intervalDomainPoint → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1,
+    (intervalDomainLift u x) ^ (pExp + p.m - 2) *
       |deriv (intervalDomainLift u) x| * |deriv (intervalDomainLift v) x| /
         (1 + intervalDomainLift v x) ^ p.β
 
@@ -2997,6 +3023,31 @@ def intervalDomain : ShenWork.Paper2.BoundedDomainData where
   crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTerm
   normalDeriv := intervalDomainNormalDeriv
   initialAdmissible := fun u₀ => BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
+  classicalRegularity := intervalDomainClassicalRegularity
+
+/-- The paper-faithful unit-interval domain data.
+
+It differs from the legacy `intervalDomain` only in the two fields that carry
+the nonlinear chemotaxis flux: the divergence uses `u ^ p.m`, and its tested
+absolute energy term uses `u ^ (pExp + p.m - 2)`.  Keeping a separate domain
+prevents existing results about the linear-flux specialization from being
+silently reinterpreted as general-`m` results. -/
+def intervalDomainM : ShenWork.Paper2.BoundedDomainData where
+  Point := intervalDomainPoint
+  inside := {x : intervalDomainPoint | (x.1 : ℝ) ∈ Set.Ioo 0 1}
+  boundary := {x : intervalDomainPoint | x.1 = 0 ∨ x.1 = 1}
+  volume := 1
+  supNorm := intervalDomainSupNorm
+  infValue := fun f => sInf (Set.range f)
+  integral := intervalDomainIntegral
+  gradNorm := intervalDomainGradNorm
+  timeDeriv := fun u t x => deriv (fun s : ℝ => u s x) t
+  laplacian := intervalDomainLaplacian
+  chemotaxisDiv := intervalDomainChemotaxisDivM
+  crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTermM
+  normalDeriv := intervalDomainNormalDeriv
+  initialAdmissible := fun u₀ =>
+    BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
   classicalRegularity := intervalDomainClassicalRegularity
 
 end ShenWork.IntervalDomain

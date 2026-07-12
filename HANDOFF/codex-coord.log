@@ -157,3 +157,10 @@ in isolated files and only the root gate is sent to uisai2.  Added the concrete
 interval Proposition 2.2 producer (`IntervalDomainWeightedGradientEstimate`),
 locally clean with the standard three axioms; it is root-imported for the next
 remote gate.
+2026-07-12 [Codex] Theorem 1.2 fidelity correction: the legacy concrete
+`intervalDomainChemotaxisDiv` is definitionally independent of `p.m` and thus
+models only the linear `u` flux.  The slow `0<m<1` branch of the source paper
+cannot soundly use it.  Added a separate `intervalDomainM` with the published
+`u^m` flux, plus a maximal-continuation carrier and corrected headline
+specification.  This isolates the repair without silently changing the 9300+
+legacy build targets.
