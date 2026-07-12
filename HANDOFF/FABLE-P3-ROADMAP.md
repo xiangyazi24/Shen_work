@@ -54,3 +54,20 @@ of sigmaCriticalChiPaperFormula). REPO sigma (Statements:339) = −λ − aα + 
 REAL OPEN Paper 3 core = the NONLINEAR half: ExponentialC1ConvergenceWith + spectralSemigroupOrbitBound
 (IntervalDomainSectorial.lean:107/136 raw). Fable L5 Duhamel contraction is the hard core; needs modal-semigroup
 infra (X^s + diagonal e^{σ_k t}) wired to unitIntervalNeumannSpectrum, fed by my L2-smoothing + entropy/Young.
+
+## Q4577 (ChatGPT) — Paper 3 global-stability (Thm 2.3-2.5) entropy route diagnosis
+- The requested relative entropy is NOT the existing chemotaxisEntropyDensity (repo's h_m). Confirmed distinct.
+- Entropy half IS formalizable from IsPaper2ClassicalSolution API (carries C² slices, time derivs, joint
+  continuity, u>0, v≥0, Neumann at all t∈(0,T)) — NO positive-time regularity gap. Needs: 1 new entropy
+  time-Leibniz lemma + 1 new weighted-PDE-under-integral lemma + 2 already-landed spatial IBP engines.
+- MISSING leaf: ∫|v_x|² ≤ C∫|u_x|² is NOT a single repo theorem (static_v_grad_L2_le_Eu is the two-solution
+  DIFFERENCE version). Need a weighted cosine/sine Parseval multiplier estimate; sharp first-mode const
+  = (γνu*^{γ-1})²/(π²+μ)² (from 1/(λ_k+μ)²≤1/(π²+μ)² for k≥1). My weighted_young feeds the absorption.
+- INTERFACE ISSUE #2: IntervalDomainStabilityChain wrappers ask for a derivative inequality on
+  chemotaxisThetaDissipation itself — STRONGER than the paper route. Replace with integrated relative-entropy
+  dissipation package + sequential basin-entry.
+- Closing (NO LaSalle): D(tₙ)→0 (integrated dissipation) + time-translate precompactness + zero-dissipation
+  rigidity → basin entry. BUT D(tₙ)→0 alone ≠ basin entry: need coercivity D→basin-norm OR compactness+rigidity.
+## ⇒ BOTH Paper 3 dynamical routes have INTERFACE issues needing statement-level repair (Thm 2.2: over-stated
+## rate/zero-mode/t↓0; Thm 2.3: too-strong dissipation input). After repair, build analytic leaves (Parseval
+## multiplier, entropy time-Leibniz, uniform gap, Duhamel) from the classical-solution API.
