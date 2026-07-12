@@ -81,4 +81,13 @@ theorem rpow_mul_exp_neg_mul_le {x p t : ℝ} (hx : 0 ≤ x) (hp : 0 < p) (ht : 
     field_simp
   rwa [hrw] at hstep
 
+/-- **Fable L1 per-mode decay core:** if a modal rate `s ≤ −δ` then its semigroup
+factor decays at rate `δ`: `exp(s·t) ≤ exp(−δ·t)` for `t ≥ 0`.  Applied to
+`s = σ_k ≤ −δ` (from the spectral gap) this gives the diagonal decay
+`‖e^{tL}φ‖_s ≤ e^{−δt}‖φ‖_s` mode by mode. -/
+theorem exp_mul_le_of_rate_le {s delta t : ℝ} (hs : s ≤ -delta) (ht : 0 ≤ t) :
+    Real.exp (s * t) ≤ Real.exp (-delta * t) := by
+  apply Real.exp_le_exp.mpr
+  exact mul_le_mul_of_nonneg_right hs ht
+
 end ShenWork.Paper3.SmoothingBound
