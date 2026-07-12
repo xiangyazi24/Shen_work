@@ -73,3 +73,20 @@ NOTE: cross question lpQ_cross is MOOT (heart done); lpQ_seed / lpQ_abstract sti
 - hcriticalGlobalBound (Lᵖ bound → IsPaper2Bounded eventual sup).
 - hlocal / hglobalExtension (local existence + bounded-before⇒global) — shared with the existence machinery.
 This is Codex-scale multi-piece ASSEMBLY (exact signatures), best done fresh-context or by Codex — NOT new analysis.
+
+## ⚠️ REVISED PIN (2026-07-12, after Q4562 + deep trace) — the ONE deep core
+Q4562: the L²(p0=2) seed only clears the Moser threshold p0>γN for γ<2, and Theorem_1_2 has no γ<2 hyp.
+BUT the interval AVOIDS the Moser γ-threshold via the **1D Sobolev bypass** (P3Moser1DBypassAssembly.lean, 0-sorry):
+  1D H¹↪L∞ ⇒ L² bound + H¹ gradient-energy bound → IsPaper2BoundedBefore, FOR ALL γ.
+  Chain (intervalDomain_boundedBefore_of_paperPositive_H1local_average): mass (free, Prop 2.4) + L² seed
+  frontier (P3MoserLemmas:156) + H¹ sliding-window bounds (hlocal/havg) → boundedBefore.
+The H¹ window/averaged/local machinery (IntervalChiNegH1AverageWiring: H1_backward_bound_of_scalarDI_before,
+H1Window) is GENERIC — it consumes a scalar DI `deriv(H1energy u τ) ≤ A·H1energy u τ + B` and outputs havg/hlocal.
+
+### THE ONE genuinely-new remaining lemma for Theorem_1_2 critical branch (χ₀<chiBeta, m=1):
+  **The H¹ energy scalar differential inequality  deriv(H1energy u τ) ≤ A·H1energy u τ + B  for χ₀ < chiBeta p.**
+  χ<0 template: IntervalChiNegH1Bridge.lean (terms (-p.χ₀)·(H1PhysicalTaxisX + H1PhysicalUvxxX)).
+  For 0≤χ₀<chiBeta the chemotaxis term is "bad-sign" but absorbed by the smallness χ₀<chiBeta (Cauchy-Schwarz
+  H1lapL2Norm·H1gradL2Norm + Young; chiBeta is exactly the absorption threshold). Everything downstream reuses:
+  scalar DI → H¹ window machinery → 1D bypass → boundedBefore → Corollary_2_1/hcriticalGlobalBound → Theorem_1_2.
+  This is the genuinely-hard heart (NOT the cross estimate, which is done) — Codex-scale, χ<0 H1Bridge is the template.
