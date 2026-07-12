@@ -52,6 +52,97 @@ def PaperGreenRotheCompactClosedGraph
                 (rotheSeqOfPaper p c lam M κ Λ u
                   (hprodAll u) hκ hM) K)
 
+/-- The irreducible Green-kernel identification statement.
+
+All compactness is deliberately absent from this predicate: a candidate
+subsequence is already assumed to converge locally uniformly.  The analytic
+content is exactly that passing the parameterized Green step to that limit
+identifies it with the finite target iterate, or with the limiting Rothe state
+when the outer indices move to infinity. -/
+def PaperGreenRotheLimitIdentification
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      (hu : InMonotoneWaveTrapSet κ M u) →
+      LocallyUniformConverges seq u →
+        ∀ (ks : ℕ → ℕ) (K : Option ℕ),
+          PaperRotheIndexConverges ks K →
+            ∀ (subseq : ℕ → ℕ), StrictMono subseq →
+              ∀ W : ℝ → ℝ,
+                LocallyUniformConverges
+                  (fun n => rotheSeqOfPaper p c lam M κ Λ (seq (subseq n))
+                    (hprodAll (seq (subseq n))) hκ hM (ks (subseq n))) W →
+                  W = paperRotheExtendedOrbitValue
+                    (rotheSeqOfPaper p c lam M κ Λ u
+                      (hprodAll u) hκ hM) K
+
+namespace PaperGreenRotheLimitIdentification
+
+variable {p : CMParams} {c lam M κ Λ : ℝ}
+  {hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v}
+  {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+
+/-- Helly compactness plus unique Green-limit identification gives convergence
+of the whole joint parameter/index sequence. -/
+theorem compactClosedGraph
+    (hident : PaperGreenRotheLimitIdentification
+      p c lam M κ Λ hprodAll hκ hM)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
+    PaperGreenRotheCompactClosedGraph
+      p c lam M κ Λ hprodAll hκ hM := by
+  intro seq u hseq hu hconv ks K hks
+  let Z : (ℝ → ℝ) → ℕ → ℝ → ℝ := fun v =>
+    rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM
+  let target : ℝ → ℝ := paperRotheExtendedOrbitValue (Z u) K
+  have horbit : ∀ v, PaperRotheOrbitData p c lam M κ Z v := by
+    intro v
+    simpa [Z] using
+      (paperRotheOrbitData (p := p) (c := c) (lam := lam) (M := M)
+        (κ := κ) (Λ := Λ) (u := v) hprodAll hκ hM hΛ0 hΛM hbarLip)
+  intro R hR ε hε
+  by_contra hnot
+  have hfreq : ∃ᶠ n in atTop,
+      ¬ ∀ x : ℝ, x ∈ Set.Icc (-R) R →
+        |Z (seq n) (ks n) x - target x| < ε := by
+    exact (not_eventually.mp hnot)
+  obtain ⟨bad, hbad_mono, hbad⟩ := extraction_of_frequently_atTop hfreq
+  let gs : ℕ → ℝ → ℝ := fun n => Z (seq (bad n)) (ks (bad n))
+  have hgsL : ∀ n, ∀ x y, |gs n x - gs n y| ≤ M * |x - y| := by
+    intro n x y
+    exact (horbit (seq (bad n))).equiLip (ks (bad n)) x y
+  have hgsB : ∀ n x, |gs n x| ≤ M := by
+    intro n x
+    rw [abs_le]
+    exact ⟨by linarith [(horbit (seq (bad n))).nonneg (ks (bad n)) x],
+      (horbit (seq (bad n))).le_M (ks (bad n)) x⟩
+  obtain ⟨sub, hsub_mono, g, hpoint, hgL⟩ :=
+    helly_pointwise_selection M gs hgsL hgsB
+  have hLU : LocallyUniformConverges (fun n => gs (sub n)) g :=
+    locallyUniform_of_helly_pointwise hM hpoint hgsL hgL
+  let total : ℕ → ℕ := bad ∘ sub
+  have htotal_mono : StrictMono total := hbad_mono.comp hsub_mono
+  have hLUtotal : LocallyUniformConverges
+      (fun n => Z (seq (total n)) (ks (total n))) g := by
+    simpa [total, gs, Function.comp_apply] using hLU
+  have hg : g = target := by
+    have hi := hident seq u hseq hu hconv ks K hks total htotal_mono g
+    simpa [Z, target] using hi hLUtotal
+  have htargetLU : LocallyUniformConverges
+      (fun n => Z (seq (total n)) (ks (total n))) target := by
+    simpa [hg] using hLUtotal
+  have hevent := htargetLU R hR ε hε
+  obtain ⟨n, hn⟩ := hevent.exists
+  have hbadn := hbad (sub n)
+  have htotal_eq : total n = bad (sub n) := rfl
+  rw [← htotal_eq] at hbadn
+  exact hbadn (hn)
+
+end PaperGreenRotheLimitIdentification
+
 namespace PaperGreenRotheCompactClosedGraph
 
 variable {p : CMParams} {c lam M κ Λ : ℝ}
@@ -204,6 +295,7 @@ end PaperGreenRotheCompactClosedGraph
 
 section AxiomAudit
 
+#print axioms PaperGreenRotheLimitIdentification.compactClosedGraph
 #print axioms PaperGreenRotheCompactClosedGraph.stepDependence
 #print axioms PaperGreenRotheCompactClosedGraph.tailAlongConvergentSeq
 #print axioms PaperGreenRotheCompactClosedGraph.stepDependence_and_tailAlong
