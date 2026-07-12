@@ -179,4 +179,80 @@ theorem sineCoeff_abs_le_of_deriv_bound
   rw [le_div_iff₀ hkpos, mul_comm]
   exact hle
 
+/-- **Cosine IBP against a derivative** (no-division form): for `Q'` with derivative
+`Q''`, `kπ · ∫₀¹ Q'·cos(kπx) = -∫₀¹ Q''·sin(kπx)`.  The boundary trace vanishes
+automatically (`sin(kπ·0) = sin(kπ·1) = 0`) — no endpoint hypothesis on `Q'`. -/
+theorem kpi_mul_integral_deriv_mul_cos
+    {Q' Q'' : ℝ → ℝ} {k : ℕ}
+    (hQ' : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q' (Q'' x) x)
+    (hQ'' : IntervalIntegrable Q'' volume 0 1) :
+    (k * Real.pi) * (∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x))
+      = - ∫ x in (0 : ℝ)..1, Q'' x * Real.sin (k * Real.pi * x) := by
+  set c : ℝ := (k : ℝ) * Real.pi with hc
+  -- v(x) = sin(c x),  v'(x) = c·cos(c x)
+  have hv : ∀ x ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt (fun x => Real.sin (c * x)) (c * Real.cos (c * x)) x := by
+    intro x _
+    have hlin : HasDerivAt (fun x : ℝ => c * x) c x := by
+      simpa using (hasDerivAt_id x).const_mul c
+    have h := (Real.hasDerivAt_sin (c * x)).comp x hlin
+    have heq : Real.cos (c * x) * c = c * Real.cos (c * x) := by ring
+    rwa [heq] at h
+  have hv' : IntervalIntegrable (fun x => c * Real.cos (c * x)) volume 0 1 :=
+    (by fun_prop : Continuous (fun x => c * Real.cos (c * x))).intervalIntegrable _ _
+  have IBP := integral_mul_deriv_eq_deriv_mul hQ' hv hQ'' hv'
+  have hs1 : Real.sin (c * 1) = 0 := by rw [mul_one, hc]; exact Real.sin_nat_mul_pi k
+  have hs0 : Real.sin (c * 0) = 0 := by rw [mul_zero, Real.sin_zero]
+  rw [hs1, hs0] at IBP
+  have hpull : (∫ x in (0 : ℝ)..1, Q' x * (c * Real.cos (c * x)))
+      = c * ∫ x in (0 : ℝ)..1, Q' x * Real.cos (c * x) := by
+    rw [← intervalIntegral.integral_const_mul]; congr 1; funext x; ring
+  rw [hpull] at IBP
+  simpa using IBP
+
+/-- **Source (divergence) coefficient decay, order 1**: the chemotaxis source
+`S = ∂ₓQ = Q'` has cosine coefficients `|∫₀¹ Q'·cos(kπx)| ≤ B/(kπ)` when `|Q''| ≤ B`
+(i.e. flux `Q ∈ C²`).  This is the ledger punchline: flux `C²` ⇒ source `O(k⁻¹)`. -/
+theorem cosineCoeff_deriv_abs_le_of_secondDeriv_bound
+    {Q' Q'' : ℝ → ℝ} {k : ℕ} {B : ℝ} (hk : 1 ≤ k)
+    (hQ' : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q' (Q'' x) x)
+    (hQ'' : IntervalIntegrable Q'' volume 0 1)
+    (hB : ∀ x ∈ Set.uIcc (0 : ℝ) 1, |Q'' x| ≤ B) :
+    |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| ≤ B / (k * Real.pi) := by
+  have hkpos : 0 < (k : ℝ) * Real.pi := by
+    have hk0 : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+    positivity
+  -- |∫ Q'' sin| ≤ B
+  have hbd : ∀ x ∈ Set.uIoc (0 : ℝ) 1,
+      ‖Q'' x * Real.sin (k * Real.pi * x)‖ ≤ B := by
+    intro x hx
+    have hxIcc : x ∈ Set.uIcc (0 : ℝ) 1 := by
+      rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+      rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+      exact Set.Ioc_subset_Icc_self hx
+    have hb := hB x hxIcc
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |Q'' x| * |Real.sin (k * Real.pi * x)|
+        ≤ B * 1 :=
+          mul_le_mul hb (Real.abs_sin_le_one _) (abs_nonneg _)
+            (le_trans (abs_nonneg _) hb)
+      _ = B := mul_one B
+  have hsinbd : |∫ x in (0 : ℝ)..1, Q'' x * Real.sin (k * Real.pi * x)| ≤ B := by
+    have h := intervalIntegral.norm_integral_le_of_norm_le_const hbd
+    simpa [Real.norm_eq_abs, sub_zero, abs_one, mul_one] using h
+  have hid := kpi_mul_integral_deriv_mul_cos (k := k) hQ' hQ''
+  have habs : (k * Real.pi) * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)|
+      = |∫ x in (0 : ℝ)..1, Q'' x * Real.sin (k * Real.pi * x)| := by
+    calc (k * Real.pi) * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)|
+        = |k * Real.pi| * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| := by
+            rw [abs_of_pos hkpos]
+      _ = |(k * Real.pi) * ∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| :=
+            (abs_mul _ _).symm
+      _ = |-∫ x in (0 : ℝ)..1, Q'' x * Real.sin (k * Real.pi * x)| := by rw [hid]
+      _ = |∫ x in (0 : ℝ)..1, Q'' x * Real.sin (k * Real.pi * x)| := abs_neg _
+  have hle : (k * Real.pi) * |∫ x in (0 : ℝ)..1, Q' x * Real.cos (k * Real.pi * x)| ≤ B :=
+    habs ▸ hsinbd
+  rw [le_div_iff₀ hkpos, mul_comm]
+  exact hle
+
 end ShenWork.Paper2.ChemFluxCosineDivergence
