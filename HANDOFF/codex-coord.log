@@ -249,4 +249,26 @@ locally.  The finite-power bootstrap controls the critical flux in spatial
 `Linfinity` near part.  Choosing terminal width
 `a*(M+1)^(-2/5)` yields the absorbable slab inequality with exponent `4/5`.
 The compact-slab maximum argument now proves finite-horizon boundedness for
-`m=1`, `0<chi0<chiBeta`.  The module is root-imported and single-file green.
+ `m=1`, `0<chi0<chiBeta`.  The module is root-imported and single-file green.
+
+2026-07-12 [Codex] Positive-chi H1 ABS resolver wiring complete.  Commit
+`713a51b8` exposes public sign-agnostic absolute-value estimates for the
+physical taxis and `u v_xx` scalars.  Commit `8326d784` threads classical
+fixed-time integrability plus `H1PhysicalChemResolverSupBefore` into all three
+ABS term bounds, including the reaction term, without `hchi`.  Commit
+`0045b819` adds the closed-zero and strict-positive-time scalar-DI/capstone
+wrappers and root import.  Every new capstone audits to exactly `propext`,
+`Classical.choice`, and `Quot.sound`; uisai2 root build passed at `0045b819`
+(9327 jobs, `BUILD OK` in 582s).
+
+2026-07-12 [Codex] LINKER NOTE for Theorem 1.2: the physical ABS route now
+proves `IsPaper2BoundedBefore` from the advertised resolver sup and standard
+frontiers.  Two distinct endpoint facts must not be conflated downstream:
+(1) `IsPaper2ClassicalSolution` only carries regularity on `(0,T)`, so a full
+`H1ScalarRegularityBefore` needs `H1InitialEndpointData` plus a zero-window RHS
+majorant; the new strict wrapper avoids both and is the preferred finite-
+horizon route.  (2) `IsPaper2BoundedBefore` for each finite horizon does not by
+itself prove the legacy `hcriticalGlobalBound` conclusion
+`IsPaper2Bounded ...` at `atTop`; that still needs one eventual sup constant
+uniform in the horizon.  Do not connect these propositions by an existential-
+constant choice per `T`.
