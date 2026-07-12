@@ -71,6 +71,13 @@ theorem paper3ConstantEquilibrium_minimal
         minimalEquilibrium_reaction_zero_of_a_b_zero p uStar ha hb
       elliptic_relation := minimalEquilibrium_elliptic_relation p uStar }
 
+/-- Initial mass compatibility needed only when the logistic reaction
+vanishes and the constant mode is conserved. -/
+def EquilibriumInitialMassCompatible
+    (D : BoundedDomainData) (p : CM2Params)
+    (uStar : ℝ) (u₀ : D.Point → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 → D.integral u₀ = D.volume * uStar
+
 /-- Raw sectorial local stability with decay required only after an
 existential positive smoothing time. -/
 def EventualSectorialLocalExponentialRaw
@@ -84,6 +91,7 @@ def EventualSectorialLocalExponentialRaw
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
         ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
           xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+          EquilibriumInitialMassCompatible D p uStar u₀ →
             ∀ u v : ℝ → D.Point → ℝ,
               IsPaper2GlobalClassicalSolution D p u v →
               InitialTrace D u₀ u →
@@ -107,6 +115,7 @@ lemma EventualSectorialLocalExponentialRaw.local_exponential_stability
     ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+        EquilibriumInitialMassCompatible D p uStar u₀ →
           ∀ u v : ℝ → D.Point → ℝ,
             IsPaper2GlobalClassicalSolution D p u v →
             InitialTrace D u₀ u →
@@ -154,6 +163,7 @@ theorem EventualSectorialLocalExponentialRaw.locally_from_sup_control
         D p S N.c1Distance N.xpSigmaDistance)
     (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
     (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a)
     (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hstable : LinearlyStable S p uStar vStar)
     (hcontrol : SupControlsXpSigmaDistance D N sigma pNorm uStar)
@@ -168,7 +178,9 @@ theorem EventualSectorialLocalExponentialRaw.locally_from_sup_control
   rcases hexist delta hdelta u₀ hu₀ hclose with
     ⟨u, v, hglobal, htrace⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
-  exact hdecay u₀ hu₀ (hdist u₀ hclose) u v hglobal htrace
+  exact hdecay u₀ hu₀ (hdist u₀ hclose)
+    (fun ha0 _hb0 => False.elim ((ne_of_gt ha) ha0))
+    u v hglobal htrace
 
 /-- Convert the eventual raw estimate into the mass-constrained sup-norm
 local stability package. -/
@@ -197,7 +209,8 @@ theorem EventualSectorialLocalExponentialRaw.massConstrained_from_sup_control
   rcases hexist delta hdelta u₀ hu₀ hclose hmass with
     ⟨u, v, hglobal, htrace⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
-  exact hdecay u₀ hu₀ (hdist u₀ hclose) u v hglobal htrace
+  exact hdecay u₀ hu₀ (hdist u₀ hclose) (fun _ha _hb => hmass)
+    u v hglobal htrace
 
 /-- Additive eventual-exponential variant of Paper3 Theorem 2.2.
 
@@ -321,7 +334,7 @@ theorem Theorem_2_2_EventualExponentialStability_full_critical_spectrum_of_raw
           (positiveEquilibrium p ⟨ha, hb⟩).1
           (positiveEquilibrium p ⟨ha, hb⟩).2 :=
       hraw.locally_from_sup_control
-        hsigma_low hsigma_high hpNorm
+        hsigma_low hsigma_high hpNorm ha
         (paper3ConstantEquilibrium_positive p ha hb) hstable
         (hcontrol (positiveEquilibrium p ⟨ha, hb⟩).1)
         (hexist (positiveEquilibrium p ⟨ha, hb⟩).1)

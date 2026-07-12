@@ -235,6 +235,7 @@ def IntervalDomainSpectralSemigroupOrbitBoundCorrected
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
         ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
           N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+          EquilibriumInitialMassCompatible intervalDomain p uStar u₀ →
             ∀ u v : ℝ → intervalDomain.Point → ℝ,
               IsPaper2GlobalClassicalSolution intervalDomain p u v →
               InitialTrace intervalDomain u₀ u →
