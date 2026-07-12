@@ -224,3 +224,14 @@ positive sensitivity below `chiBeta`, the new module selects an exponent above
 `max 1 (gamma*N/2)`, proves its uniform finite-horizon Lp bound, and transports
 the existing sharp `rho=gamma` bootstrap through the proved `m=1` faithful-to-
 linear domain bridge.  Local single-file verification is green; root-imported.
+
+2026-07-12 [Codex] Faithful critical-seed authoritative gate: the uisai2 root
+build at `e6fe67f1` completed successfully (9321 jobs, `BUILD OK` in 202s).
+The general-m slow chain and critical seed are verified through `ShenWork.lean`.
+
+2026-07-12 [Codex] Faithful critical finite-Lp bootstrap: added
+`IntervalDomainMCriticalLpBootstrap.lean`.  It uses the committed seed-relative
+Agmon absorption (`gamma < 2*p0`), the concrete Lp energy inequality, and a
+positive-time linear-damping threshold closure; no relative weighted-gradient
+or dissipation-drop frontier is used.  It yields a uniform exponent above
+`max 1 gamma`.  Local single-file and standard-three axiom gates pass.

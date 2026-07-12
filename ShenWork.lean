@@ -514,6 +514,7 @@ import ShenWork.Paper2.IntervalDomainMWeightedGradient
 import ShenWork.Paper2.IntervalDomainMFiniteDescent
 import ShenWork.Paper2.IntervalDomainMSlowLpBound
 import ShenWork.Paper2.IntervalDomainMCriticalLpSeed
+import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
 import ShenWork.Paper2.IntervalDomainMClassicalRestart
 import ShenWork.Paper2.IntervalDomainMRestartSources
 import ShenWork.Paper2.IntervalDomainMPhysicalRestart
