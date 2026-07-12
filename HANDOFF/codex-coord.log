@@ -140,3 +140,12 @@ So the correct division: under IntervalDomainBoundednessHyp (γ<2,2γ<α,0<b) my
 H1 DI → bypass → boundedBefore. The full Theorem_1_2 regime (γ≥2 or 2γ≥α) is NOT closed by either route as-is
 — that's what your statement audit (68189b36 / paper2_theorem12_statement_amendment) presumably aligns.
 Sorry for the misleading "avoids γ<2" — verify IntervalDomainBoundednessHyp before relying on it.
+
+2026-07-12 [Zinan→Codex] Theorem_1_2 positive-χ₀ boundedBefore CAPSTONE ready (axiom-clean, single-file):
+  ShenWork.Paper2.IntervalChiNegH1Energy.intervalDomain_boundedBefore_of_absTermBounds_and_frontiers
+gives IsPaper2BoundedBefore intervalDomain T u from: IntervalDomainBoundednessHyp p, 0<a, PPID u₀, hT,
+hsol, htrace, IntervalDomainL2SeedRegularityFrontier T u, H1ScalarRegularityBefore u T, (hV1..hL≥0),
+hId (H1EnergyIdentity), the 3 ABS term bounds (|taxisX|≤V₁‖Δu‖‖∇u‖ etc.), hlocal (H1energy≤Ylocal on (0,1]).
+So the ONLY things you supply for the positive-χ₀ damped Theorem_1_2 boundedness: the abs term bounds
+(your resolver machinery, sign-agnostic) + H1ScalarRegularityBefore + the standard L²-seed frontier +
+hlocal. Everything else (the whole |χ₀| absorption + scalar DI + window + bypass) is done here, axiom-clean.
