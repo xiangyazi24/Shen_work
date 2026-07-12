@@ -506,6 +506,9 @@ import ShenWork.Paper2.IntervalChemDivSourceWeakH2AssemblyV6
 import ShenWork.Paper2.IntervalBFormSourceWeakH2EnvelopeV6
 import ShenWork.Paper2.IntervalDomainWeightedGradientEstimate
 import ShenWork.Paper2.IntervalDomainSharpCrossDiffusionBootstrap
+import ShenWork.Paper2.IntervalDomainMFlux
+import ShenWork.Paper2.IntervalDomainMLpTimeLeibniz
+import ShenWork.Paper2.IntervalDomainMLpEnergy
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
 import ShenWork.Paper2.IntervalTruncatedTestedSpectral
 import ShenWork.Paper2.IntervalConjugateKernelHolder
