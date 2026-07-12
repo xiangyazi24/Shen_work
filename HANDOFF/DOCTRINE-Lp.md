@@ -101,3 +101,13 @@ Full chain: [abs resolver term bounds] → H1SupBoundDIDataAbsBefore → H1Ident
 RESIDUAL (Codex's domain — physical resolver): the ABS term bounds |taxisX|≤V₁‖Δu‖‖∇u‖,
   |uvxx|≤M V₂‖Δu‖, reactX≤L‖∇u‖². χ<0 route builds these via private H1PhysicalTaxisX_le_of_l2_bound
   (×(-χ₀)). Codex exposes the abs form (sign-agnostic, trivial variant of its χ<0 resolver bounds).
+
+## ⚠️ CORRECTION 2026-07-12 (two-way-audit caught my over-claim)
+I wrongly claimed the 1D-Sobolev bypass "avoids the γ<2 Moser wall". FALSE. The bypass entry
+(intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local) requires
+IntervalDomainBoundednessHyp = SharpL2AbsorptionThreshold ∧ 0<b ∧ 2γ<α ∧ 0<γ ∧ γ·N<2.
+So γN<2 (+2γ<α, 0<b) is required by the bypass too — it comes from the L² absorbing seed, NOT the Moser
+iteration; BOTH routes need it. My 3 |χ₀| absorption pieces remain VALID + useful: they extend the H1
+scalar-DI to POSITIVE χ₀ (0<χ₀<chiBeta), which the χ₀≤0 route didn't cover. Corrected division: under
+IntervalDomainBoundednessHyp, my chain → bypass → boundedBefore for positive χ₀. Full γ≥2/2γ≥α regime is
+genuinely open in both routes → Codex's Theorem 1.2 statement amendment (68189b36) aligns the stated hyps.
