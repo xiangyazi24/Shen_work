@@ -21,9 +21,11 @@
 -/
 import ShenWork.Paper2.IntervalChiNegH1Energy
 import ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
+import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
+open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 
 noncomputable section
 
@@ -108,5 +110,41 @@ theorem H1IdentityRHSBoundBefore_of_supBoundDIDataAbs
     refine ⟨taxisX, uvxx, reactX, hEnergy, ?_⟩
     exact h1_diffIneq_of_sup_bounds_abs
       hdata.hV1 hdata.hV2 hdata.hM hdata.hL hXsq hZsq hXnn htaxis huvxx hreact
+
+/-- **Produce the |χ₀|-form DI data from χ-AGNOSTIC absolute-value resolver term
+bounds.**  `|taxisX| ≤ V₁·‖Δu‖·‖∇u‖` etc. are sign-independent physical resolver
+estimates (the H¹ chemotaxis/uvxx bounds), so this producer works for ANY `χ₀`
+(incl. `0 < χ₀ < chiBeta`): it derives `(-χ₀)·taxisX ≤ |χ₀|·(V₁·X·Z)` from the abs
+bound.  This reduces the χ₀<chiBeta Theorem 1.2 H¹-DI residual to exactly the abs
+resolver term bounds (which the physical resolver machinery supplies). -/
+theorem H1SupBoundDIDataAbsBefore_of_absTermBounds
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hV1 : 0 ≤ V₁) (hV2 : 0 ≤ V₂) (hM : 0 ≤ M) (hL : 0 ≤ L)
+    (hId : ∀ τ, 0 < τ → τ < T →
+      H1EnergyIdentity p u τ (taxisX τ) (uvxx τ) (reactX τ))
+    (htaxisAbs : ∀ τ, 0 < τ → τ < T →
+      |taxisX τ| ≤ V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ))
+    (huvxxAbs : ∀ τ, 0 < τ → τ < T →
+      |uvxx τ| ≤ M * (V₂ * H1lapL2Norm u τ))
+    (hreactB : ∀ τ, 0 < τ → τ < T →
+      reactX τ ≤ L * (H1gradL2Norm u τ) ^ 2) :
+    H1SupBoundDIDataAbsBefore p u T V₁ V₂ M L := by
+  refine { hV1 := hV1, hV2 := hV2, hM := hM, hL := hL, point := ?_ }
+  intro τ hτ0 hτT
+  refine ⟨taxisX τ, uvxx τ, reactX τ, H1lapL2Norm u τ, H1gradL2Norm u τ,
+    hId τ hτ0 hτT, lapL2sq_eq_H1lapL2Norm_sq u τ, H1gradL2Norm_sq u τ,
+    H1lapL2Norm_nonneg u τ, ?_, ?_, hreactB τ hτ0 hτT⟩
+  · calc (-p.χ₀) * taxisX τ
+        ≤ |(-p.χ₀) * taxisX τ| := le_abs_self _
+      _ = |p.χ₀| * |taxisX τ| := by rw [abs_mul, abs_neg]
+      _ ≤ |p.χ₀| * (V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ)) :=
+          mul_le_mul_of_nonneg_left (htaxisAbs τ hτ0 hτT) (abs_nonneg _)
+  · calc (-p.χ₀) * uvxx τ
+        ≤ |(-p.χ₀) * uvxx τ| := le_abs_self _
+      _ = |p.χ₀| * |uvxx τ| := by rw [abs_mul, abs_neg]
+      _ ≤ |p.χ₀| * (M * (V₂ * H1lapL2Norm u τ)) :=
+          mul_le_mul_of_nonneg_left (huvxxAbs τ hτ0 hτT) (abs_nonneg _)
 
 end ShenWork.Paper2.IntervalChiNegH1Energy
