@@ -513,6 +513,7 @@ import ShenWork.Paper2.IntervalDomainMMass
 import ShenWork.Paper2.IntervalDomainMWeightedGradient
 import ShenWork.Paper2.IntervalDomainMFiniteDescent
 import ShenWork.Paper2.IntervalDomainMSlowLpBound
+import ShenWork.Paper2.IntervalDomainMClassicalRestart
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
 import ShenWork.Paper2.IntervalTruncatedTestedSpectral
 import ShenWork.Paper2.IntervalConjugateKernelHolder
