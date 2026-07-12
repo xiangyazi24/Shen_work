@@ -1,5 +1,6 @@
 import ShenWork.Paper1.IntervalP1PerStepFixedSource
 import ShenWork.Paper1.WaveLemma42G1Discharge
+import ShenWork.Paper1.WavePaperRotheCompactness
 
 open Filter Topology
 
@@ -104,11 +105,8 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
   producer :
     ∀ u, PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u
-  step :
-    PaperRotheSeqStepDependence p c lam M κ Λ
-      (fun u => paperLowerRawRouteAParamProducer (producer u)) hκ hM
-  tail :
-    PaperRotheTailUniformAlongConvergentSeq p c lam M κ Λ
+  compactClosedGraph :
+    PaperGreenRotheCompactClosedGraph p c lam M κ Λ
       (fun u => paperLowerRawRouteAParamProducer (producer u)) hκ hM
 
 /-- Forget the explicit source-box parameter layer at the per-profile producer
@@ -144,6 +142,8 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   let hprodAll := paperLowerRawStepProducerAll_of_paramCoreNoBar hpar
+  have hgraph := hpar.compactClosedGraph.stepDependence_and_tailAlong
+    hΛ0 hΛM hcond.upperBarrier_barLip
   b1_chiNeg_existence_paper_of_cubeApproxData
     p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
     (fun u => (hprodAll u).producer) hcond.upperBarrier_barLip
@@ -154,7 +154,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         paperRotheContinuousDependence_of_tailAlongConvergentSeq
           p c lam M κ Λ
           (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))
-          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hgraph.1 hgraph.2)
     (hauxData_of_conditions hcond hD hD_ge_one hprodAll)
     (by
       simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
@@ -185,6 +185,8 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   let hprodAll := paperLowerRawStepProducerAll_of_paramCoreNoBar hpar
+  have hgraph := hpar.compactClosedGraph.stepDependence_and_tailAlong
+    hΛ0 hΛM hcond.upperBarrier_barLip
   b1_chiPos_existence_paper_of_cubeApproxData
     p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
     (fun u => (hprodAll u).producer) hcond.upperBarrier_barLip
@@ -195,7 +197,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         paperRotheContinuousDependence_of_tailAlongConvergentSeq
           p c lam M κ Λ
           (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))
-          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hgraph.1 hgraph.2)
     (hauxData_of_positive_conditions hcond hD hD_ge_one hprodAll)
     (by
       simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
