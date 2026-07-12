@@ -17,6 +17,8 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainM
 open ShenWork.PDE.SectorialOperator
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.IntervalConjugateCosineSeries
 
 noncomputable section
 
@@ -39,6 +41,50 @@ def paper3FullModeNonlinearRemainderCoeffM
     (unitIntervalCosineEigenvalue k +
       unitIntervalLinearizedGrowth p uStar vStar k) *
         paper3PerturbationCoeffM u uStar t k
+
+/-- Modal logistic remainder after extracting `-a*alpha`. -/
+def paper3LogisticRemainderCoeffM
+    (p : CM2Params) (uStar : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) (k : ℕ) : ℝ :=
+  cosineCoeffs (logisticLiftedM p (u t)) k +
+    p.a * p.α * paper3PerturbationCoeffM u uStar t k
+
+/-- Modal chemotaxis remainder after subtracting the complete eliminated
+linear chemotaxis multiplier. -/
+def paper3ChemotaxisRemainderCoeffM
+    (p : CM2Params) (uStar vStar : ℝ)
+    (u v : ℝ → intervalDomainPoint → ℝ) (t : ℝ) (k : ℕ) : ℝ :=
+  -p.χ₀ * (((k : ℝ) * Real.pi) *
+      intervalSineInner (intervalFluxM p (u t) (v t)) k) -
+    (unitIntervalCosineEigenvalue k +
+      unitIntervalLinearizedGrowth p uStar vStar k + p.a * p.α) *
+        paper3PerturbationCoeffM u uStar t k
+
+/-- Exact separation of the full residual into chemotaxis and logistic
+remainders.  Quadratic estimates may therefore be proved for the two physical
+mechanisms independently. -/
+theorem paper3FullModeNonlinearRemainderCoeffM_eq_parts
+    (p : CM2Params) (uStar vStar : ℝ)
+    (u v : ℝ → intervalDomainPoint → ℝ) (t : ℝ) (k : ℕ) :
+    paper3FullModeNonlinearRemainderCoeffM
+        p uStar vStar u v t k =
+      paper3ChemotaxisRemainderCoeffM
+          p uStar vStar u v t k +
+        paper3LogisticRemainderCoeffM p uStar u t k := by
+  simp only [paper3FullModeNonlinearRemainderCoeffM,
+    paper3ChemotaxisRemainderCoeffM,
+    paper3LogisticRemainderCoeffM, sourceCoeffM]
+  ring
+
+/-- Chemotaxis contributes neither forcing nor a linear correction to the
+zeroth mode. -/
+@[simp] theorem paper3ChemotaxisRemainderCoeffM_zero
+    (p : CM2Params) (uStar vStar : ℝ)
+    (u v : ℝ → intervalDomainPoint → ℝ) (t : ℝ) :
+    paper3ChemotaxisRemainderCoeffM p uStar vStar u v t 0 = 0 := by
+  simp [paper3ChemotaxisRemainderCoeffM,
+    unitIntervalCosineEigenvalue, unitIntervalLinearizedGrowth,
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum.zero_eigenvalue, sigma]
 
 lemma unitIntervalCosineEigenvalue_mul_equilibriumCoeff
     (uStar : ℝ) (k : ℕ) :
@@ -150,6 +196,8 @@ theorem paper3PerturbationCoeffM_full_restart
   simp
 
 #print axioms paper3PerturbationCoeffM_hasDerivAt_full
+#print axioms paper3FullModeNonlinearRemainderCoeffM_eq_parts
+#print axioms paper3ChemotaxisRemainderCoeffM_zero
 #print axioms paper3FullModeNonlinearRemainderCoeffM_continuousOn
 #print axioms paper3PerturbationCoeffM_full_restart
 
