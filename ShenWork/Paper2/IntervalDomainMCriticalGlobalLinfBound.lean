@@ -356,8 +356,44 @@ theorem critical_bounded_global_positive
   rw [abs_of_pos (u_pos hsol ht0 htT x)]
   exact (hutM x).trans hMbound
 
+/-- At `m = 1`, a legacy global classical solution is also a faithful global
+classical solution. -/
+theorem globalClassicalSolution_intervalDomainM_of_m_eq_one
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hm : p.m = 1)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    IsPaper2GlobalClassicalSolution intervalDomainM p u v := by
+  intro T hT
+  simpa [IsPaper2ClassicalSolution, intervalDomainM, intervalDomain,
+    intervalDomainChemotaxisDivM, intervalDomainChemotaxisDiv, hm] using
+      hglobal.classical hT
+
+/-- Legacy-domain form of the positive critical global bound.  This is the
+exact boundedness half consumed by the Theorem 1.2 critical branch. -/
+theorem critical_bounded_global_positive_intervalDomain
+    {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2Bounded intervalDomain u := by
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  have hboundedM : IsPaper2Bounded intervalDomainM u :=
+    critical_bounded_global_positive hguard hu₀M
+      (globalClassicalSolution_intervalDomainM_of_m_eq_one hm hglobal)
+      htraceM hbeta hm hchi hthreshold
+  simpa [IsPaper2Bounded, intervalDomainM, intervalDomain] using hboundedM
+
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard_window
 #print axioms critical_bounded_global_positive
+#print axioms critical_bounded_global_positive_intervalDomain
 
 end ShenWork.Paper2.IntervalDomainM
 
