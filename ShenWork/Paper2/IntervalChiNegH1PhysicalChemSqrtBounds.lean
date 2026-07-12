@@ -25,6 +25,7 @@ open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 open ShenWork.Paper2.IntervalChiNegH1PhysicalScalarContinuity
 open ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 open ShenWork.Paper2.IntervalChiNegH1PhysicalReactionBound
+open ShenWork.Paper2.IntervalChiNegH1PhysicalSqrtBounds
 
 noncomputable section
 
@@ -68,6 +69,57 @@ structure H1PhysicalChemResolverSupBefore
           (1 + intervalDomainLift (v τ) x) ^ p.β -
         p.β * (deriv (intervalDomainLift (v τ)) x) ^ 2 /
           (1 + intervalDomainLift (v τ) x) ^ (p.β + 1)| ≤ V₂
+
+/-- Sign-agnostic fixed-time L² data for the two physical chemotaxis
+scalars.  This is the absolute-value analogue of
+`H1PhysicalChemL2SqrtBoundDataBefore`, with no hypothesis on `p.χ₀`. -/
+structure H1PhysicalChemL2AbsBoundDataBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T V₁ V₂ M : ℝ) : Prop where
+  hV1 : 0 ≤ V₁
+  hV2 : 0 ≤ V₂
+  hM : 0 ≤ M
+  lap_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable (fun x => (liftDeriv2 u τ x) ^ 2) volume (0 : ℝ) 1
+  taxis_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => (H1PhysicalChemTaxisPart p u v τ x) ^ 2) volume (0 : ℝ) 1
+  uvxx_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => (H1PhysicalChemUvxxPart p u v τ x) ^ 2) volume (0 : ℝ) 1
+  taxis_prod_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x|)
+      volume (0 : ℝ) 1
+  uvxx_prod_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x|)
+      volume (0 : ℝ) 1
+  taxis_l2_bound : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+      ≤ V₁ * H1gradL2Norm u τ
+  uvxx_l2_bound : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+      ≤ M * V₂
+
+/-- The three sign-agnostic physical H¹ scalar bounds consumed by the
+`|χ₀|` absorption route. -/
+structure H1PhysicalRHSAbsTermBoundsBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T V₁ V₂ M L : ℝ) : Prop where
+  hV1 : 0 ≤ V₁
+  hV2 : 0 ≤ V₂
+  hM : 0 ≤ M
+  hL : 0 ≤ L
+  taxis_abs : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    |H1PhysicalTaxisX p u v τ| ≤
+      V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ)
+  uvxx_abs : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    |H1PhysicalUvxxX p u v τ| ≤ M * (V₂ * H1lapL2Norm u τ)
+  react_bound : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    H1PhysicalReactX p u τ ≤ L * (H1gradL2Norm u τ) ^ 2
 
 /-- Explicit source-side bound for the `u v_xx`/denominator-derivative core
 once `u`, `v`, and the resolver gradient have fixed-before-`T` sup bounds. -/
@@ -586,22 +638,19 @@ private theorem H1PhysicalChemUvxxPart_l2_bound_of_factorBound
         rw [Real.sqrt_sq_eq_abs, abs_of_nonneg hcoef_nonneg]
 
 /-- Classical fixed-time regularity plus source-side chem factor bounds produce
-the chemotaxis-side L² sqrt data package.  This is still a source-side theorem:
-the fixed-before-`T` constants are supplied by `hchem`, not derived from
-per-time classical bounds. -/
-theorem H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+the sign-agnostic chemotaxis-side L² data package.  The fixed-before-`T`
+constants are supplied by `hchem`, and no sign of `p.χ₀` is used. -/
+theorem H1PhysicalChemL2AbsBoundDataBefore_of_classical_factorBounds
     {p : CM2Params} {T V₁ V₂ M : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    (hchi : 0 ≤ -p.χ₀)
     (hchem : H1PhysicalChemFactorBoundsBefore p u v T V₁ V₂ M) :
-    H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M := by
+    H1PhysicalChemL2AbsBoundDataBefore p u v T V₁ V₂ M := by
   have hRep :=
     H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
       (p := p) (u := u) (v := v) (T := T) hsol
   refine
-    { hchi := hchi
-      hV1 := hchem.hV1
+    { hV1 := hchem.hV1
       hV2 := hchem.hV2
       hM := hchem.hM
       lap_sq_int := ?_
@@ -705,6 +754,104 @@ theorem H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
         hchem.hM hchem.hV2
         (hchem.uvxx_factor_le τ hτ)
 
+/-- Add the downstream `χ₀ ≤ 0` sign hypothesis to the sign-agnostic L² data,
+recovering the older square-root route package. -/
+theorem H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+    {p : CM2Params} {T V₁ V₂ M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hchem : H1PhysicalChemFactorBoundsBefore p u v T V₁ V₂ M) :
+    H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M := by
+  have h :=
+    H1PhysicalChemL2AbsBoundDataBefore_of_classical_factorBounds
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hchem
+  exact
+    { hchi := hchi
+      hV1 := h.hV1
+      hV2 := h.hV2
+      hM := h.hM
+      lap_sq_int := h.lap_sq_int
+      taxis_sq_int := h.taxis_sq_int
+      uvxx_sq_int := h.uvxx_sq_int
+      taxis_prod_int := h.taxis_prod_int
+      uvxx_prod_int := h.uvxx_prod_int
+      taxis_l2_bound := h.taxis_l2_bound
+      uvxx_l2_bound := h.uvxx_l2_bound }
+
+/-- Sign-agnostic L² chemotaxis data and the classical reaction estimate
+produce exactly the three absolute term bounds used by the positive-`χ₀`
+H¹ absorption route. -/
+theorem H1PhysicalRHSAbsTermBoundsBefore_of_chemL2AbsBoundData
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hL : p.a ≤ L)
+    (hchem : H1PhysicalChemL2AbsBoundDataBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSAbsTermBoundsBefore p u v T V₁ V₂ M L := by
+  refine
+    { hV1 := hchem.hV1
+      hV2 := hchem.hV2
+      hM := hchem.hM
+      hL := le_trans p.ha hL
+      taxis_abs := ?_
+      uvxx_abs := ?_
+      react_bound := ?_ }
+  · intro τ hτ
+    exact
+      H1PhysicalTaxisX_abs_le_of_l2_bound
+        (p := p) (u := u) (v := v) (τ := τ) (V₁ := V₁)
+        (hchem.lap_sq_int τ hτ)
+        (hchem.taxis_sq_int τ hτ)
+        (hchem.taxis_prod_int τ hτ)
+        (hchem.taxis_l2_bound τ hτ)
+  · intro τ hτ
+    exact
+      H1PhysicalUvxxX_abs_le_of_l2_bound
+        (p := p) (u := u) (v := v) (τ := τ) (V₂ := V₂) (M := M)
+        (hchem.lap_sq_int τ hτ)
+        (hchem.uvxx_sq_int τ hτ)
+        (hchem.uvxx_prod_int τ hτ)
+        (hchem.uvxx_l2_bound τ hτ)
+  · intro τ hτ
+    exact
+      H1PhysicalReactX_le_L_H1gradL2Norm_sq_of_classicalSolution
+        (p := p) (T := T) (τ := τ) (L := L)
+        (u := u) (v := v) hsol hτ hL
+
+/-- Classical regularity and pointwise chemotaxis factor bounds produce the
+three sign-agnostic physical H¹ term estimates. -/
+theorem H1PhysicalRHSAbsTermBoundsBefore_of_classical_factorBounds
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hL : p.a ≤ L)
+    (hchem : H1PhysicalChemFactorBoundsBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSAbsTermBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSAbsTermBoundsBefore_of_chemL2AbsBoundData
+    (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
+    (u := u) (v := v) hsol hL
+    (H1PhysicalChemL2AbsBoundDataBefore_of_classical_factorBounds
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hchem)
+
+/-- Resolver/core sup bounds lower directly to the three sign-agnostic
+physical H¹ term estimates. -/
+theorem H1PhysicalRHSAbsTermBoundsBefore_of_classical_resolverSup
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hL : p.a ≤ L)
+    (hres : H1PhysicalChemResolverSupBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSAbsTermBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSAbsTermBoundsBefore_of_classical_factorBounds
+    (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
+    (u := u) (v := v) hsol hL
+    (H1PhysicalChemFactorBoundsBefore_of_resolverSup
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hres)
+
 /-- Classical fixed-time regularity and source-side chem factor bounds, together
 with the classical logistic reaction reducer, produce the concrete physical H¹
 sqrt-bound frontier. -/
@@ -760,6 +907,10 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_resolverSup
 #print axioms H1PhysicalChemUvxxCore_le_of_valueGradSup
 #print axioms H1PhysicalChemFactorBoundsBefore_of_resolverSup
 #print axioms H1PhysicalChemResolverSupBefore_of_valueGradSup
+#print axioms H1PhysicalChemL2AbsBoundDataBefore_of_classical_factorBounds
+#print axioms H1PhysicalRHSAbsTermBoundsBefore_of_chemL2AbsBoundData
+#print axioms H1PhysicalRHSAbsTermBoundsBefore_of_classical_factorBounds
+#print axioms H1PhysicalRHSAbsTermBoundsBefore_of_classical_resolverSup
 #print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
 #print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_resolverSup
