@@ -41,3 +41,16 @@
 ## HARD CORE ranked: L5 Duhamel contraction (elementary once L1/L2/L4) > L7 sharp absorption > L4 deriv-loss > L8 bridge.
 ## Sectorial theory needed NOWHERE — only L2 (one line of modal calculus). Toolbox: Young(1/u), 1D Neumann-Poincaré
 ## ‖w−w̄‖≤(1/π)‖∇w‖, sup_λ λ^{θ/2}e^{−λt}, Arzelà-Ascoli via Hölder-½, Sobolev H^s↪C⁰ s>1/2.
+
+## PROGRESS + RECONCILE 2026-07-12 (check-existing)
+Built (axiom-clean, ShenWork/Paper3/): IntervalDomainSmoothingBound (L2), IntervalDomainSpectralGapThreshold (L3),
+IntervalDomainRelativeEntropy (entropy nonneg + reaction sign, D/L6), IntervalDomainWeightedYoung (D/L7 core).
+CHECK-EXISTING CATCH: LinearlyStable is ALREADY discharged from χ₀<chiCritical in the repo
+(Statements.lean: sigma_neg_of_chi_lt_sigmaCriticalChi:747, LinearlyStable_of_chi_lt_sigmaCriticalChi:1585,
+positiveEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann:1662). So the LINEAR dichotomy half of
+Theorem_2_2 is DONE. My L3 threshold overlaps it (correct + gives closed-form (√μ+√aα)², repo uses per-mode sInf
+of sigmaCriticalChiPaperFormula). REPO sigma (Statements:339) = −λ − aα + κλ/(μ+λ), κ=χ₀νγu*^{m+γ-1}/(1+v*)^β
+— matches Fable exactly (m=1⟹m+γ-1=γ). sigma<0 ⟺ κλ<(λ+μ)(λ+aα) = my L3.
+REAL OPEN Paper 3 core = the NONLINEAR half: ExponentialC1ConvergenceWith + spectralSemigroupOrbitBound
+(IntervalDomainSectorial.lean:107/136 raw). Fable L5 Duhamel contraction is the hard core; needs modal-semigroup
+infra (X^s + diagonal e^{σ_k t}) wired to unitIntervalNeumannSpectrum, fed by my L2-smoothing + entropy/Young.
