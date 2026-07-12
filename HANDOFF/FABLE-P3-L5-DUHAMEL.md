@@ -38,3 +38,15 @@
 ##   · L8 ContractingWith fixed point · L9 identify mild=classical + assemble frontier.  HARDEST=L6.
 ## Gaps: (1) δ vs π² [aα≥κ, aα≥π²] · (2) t↓0 C¹ from X^σ data (short-time reg, t^{p₀} weight) · (3) bilinear not X^σ²
 ##   · (4) partial mean-zero (logistic mean via scalar ODE) · (5) A self-adjoint (symmetric multiplier R'[u*]).
+
+## ★★★ CONFIRMED FINDING 2026-07-12 (verify-frontier-satisfiability, Fable+repo): FRONTIER OVER-STATED
+IntervalDomainSpectralSemigroupOrbitBoundRaw demands c1Distance(u,uStar) ≤ C·‖(I−P₀) heat semigroup‖ = C·e^{−π²t}.
+But c1Distance (IntervalDomainSectorial:55) = supNorm(f−g)+supNorm(∂ₓ(f−g)) — FULL C¹, mean included (no P₀).
+u's MEAN mode relaxes at rate aα only (logistic ODE φ̄'=−aα φ̄+…; mass NOT conserved). For small u₀ with nonzero
+mean deviation m₀: c1Dist ≳ |m₀|e^{−aα t}; frontier needs ≤ C e^{−π²t} ⟹ |m₀| ≤ C e^{−(π²−aα)t}→0 — FALSE for
+m₀≠0 when aα<π². Regime is only 0<a,0<b,χ₀<chiCritical — NO hypothesis forces aα≥π² (a=α=1 ⟹ aα=1<π²≈9.87).
+⇒ Frontier UNPROVABLE for aα<π². True rate δ=min(π²−(κ−aα)⁺, aα). STATEMENT-LEVEL FIX (Xiang's call):
+  (1) restrict Thm 2.2 + frontier to aα≥π² AND aα≥κ (⟹ δ=π², frontier provable as written); OR
+  (2) weaken frontier RHS to mean-inclusive C·e^{−δt}, fix downstream intervalDomain_sectorialLocalExponentialRaw_
+      of_spectralSemigroupOrbitBound (currently hardcodes Real.pi^2 at line 183) to carry δ.
+Once corrected, Fable's 10-lemma DAG (above) builds toward the true target. DO NOT build L5 toward e^{−π²t} until fixed.
