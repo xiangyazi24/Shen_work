@@ -14,8 +14,58 @@ namespace ShenWork.Paper3
 open MeasureTheory Set Real
 open ShenWork.IntervalDomain
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.PDE
+open ShenWork.PDE.ResolventEstimate
 
 noncomputable section
+
+/-- Additivity of the normalized cosine coefficient under the minimal
+interval-integrability hypotheses. -/
+theorem cosineCoeffs_add_of_intervalIntegrable
+    {f g : ℝ → ℝ} (k : ℕ)
+    (hf : IntervalIntegrable f volume 0 1)
+    (hg : IntervalIntegrable g volume 0 1) :
+    cosineCoeffs (fun x => f x + g x) k =
+      cosineCoeffs f k + cosineCoeffs g k := by
+  rw [ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral,
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral,
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral]
+  let w : ℝ → ℝ := fun x => Real.cos ((k : ℝ) * Real.pi * x)
+  have hw : ContinuousOn w (Set.uIcc (0 : ℝ) 1) := by
+    exact (Real.continuous_cos.comp (by fun_prop)).continuousOn
+  have hfw : IntervalIntegrable (fun x => w x * f x) volume 0 1 :=
+    hf.continuousOn_mul hw
+  have hgw : IntervalIntegrable (fun x => w x * g x) volume 0 1 :=
+    hg.continuousOn_mul hw
+  have hsplit :
+      (∫ x in (0 : ℝ)..1, w x * (f x + g x)) =
+        (∫ x in (0 : ℝ)..1, w x * f x) +
+          ∫ x in (0 : ℝ)..1, w x * g x := by
+    rw [← intervalIntegral.integral_add hfw hgw]
+    refine intervalIntegral.integral_congr (fun x _ => ?_)
+    ring
+  rw [hsplit]
+  ring
+
+/-- Cosine coefficients only depend on values on the physical unit interval. -/
+theorem paper3_cosineCoeffs_congr_on_Icc
+    {f g : ℝ → ℝ}
+    (hfg : ∀ x ∈ Set.Icc (0 : ℝ) 1, f x = g x) (k : ℕ) :
+    cosineCoeffs f k = cosineCoeffs g k := by
+  simp only [cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  have hint : ∀ m : ℕ,
+      (∫ x in (0 : ℝ)..1,
+        (Real.cos ((m : ℝ) * Real.pi * x) : ℂ) * (f x : ℂ)) =
+      ∫ x in (0 : ℝ)..1,
+        (Real.cos ((m : ℝ) * Real.pi * x) : ℂ) * (g x : ℂ) := by
+    intro m
+    refine intervalIntegral.integral_congr (fun x hx => ?_)
+    have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := by
+      rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx
+    rw [hfg x hxIcc]
+  simp only [hint]
 
 /-- A pointwise `|f| <= B |g|` bound on the unit interval transfers to the
 normalized Neumann cosine coefficients with the explicit Bessel constant `2`.
@@ -97,6 +147,142 @@ def paper3IntervalEllipticRemainderProfile
     (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
   paper3EllipticSourceRemainder p uStar (intervalDomainLift u x)
 
+/-- Linear part of the elliptic source perturbation. -/
+def paper3IntervalEllipticLinearProfile
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  p.ν * paper3PowerDeriv p.γ uStar *
+    paper3IntervalPerturbationProfile uStar u x
+
+/-- Exact pointwise Taylor splitting of the eliminated elliptic source. -/
+theorem paper3IntervalEllipticSource_pointwise_split
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    p.ν * intervalDomainLift u x ^ p.γ =
+      p.ν * uStar ^ p.γ +
+        paper3IntervalEllipticLinearProfile p uStar u x +
+          paper3IntervalEllipticRemainderProfile p uStar u x := by
+  simp only [paper3IntervalEllipticLinearProfile,
+    paper3IntervalPerturbationProfile,
+    paper3IntervalEllipticRemainderProfile,
+    paper3EllipticSourceRemainder,
+    paper3PowerLinearizationRemainder]
+  ring
+
+/-- Cosine coefficient of the exact nonlinear source remainder. -/
+def paper3IntervalEllipticRemainderSourceCoeff
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ) : ℂ :=
+  (cosineCoeffs
+    (paper3IntervalEllipticRemainderProfile p uStar u) k : ℂ)
+
+/-- Cosine coefficient of the exact linear source perturbation. -/
+def paper3IntervalEllipticLinearSourceCoeff
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ) : ℂ :=
+  (cosineCoeffs
+    (paper3IntervalEllipticLinearProfile p uStar u) k : ℂ)
+
+/-- Exact source-coefficient split used by the eliminated Duhamel equation. -/
+theorem intervalNeumannResolverSourceCoeff_split
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ)
+    (hlin : IntervalIntegrable
+      (paper3IntervalEllipticLinearProfile p uStar u) volume 0 1)
+    (hrem : IntervalIntegrable
+      (paper3IntervalEllipticRemainderProfile p uStar u) volume 0 1) :
+    intervalNeumannResolverSourceCoeff p u k =
+      intervalNeumannResolverSourceCoeff p (fun _ => uStar) k +
+        paper3IntervalEllipticLinearSourceCoeff p uStar u k +
+          paper3IntervalEllipticRemainderSourceCoeff p uStar u k := by
+  let c : ℝ → ℝ := fun _ => p.ν * uStar ^ p.γ
+  have hc : IntervalIntegrable c volume 0 1 := intervalIntegrable_const
+  have hcl : IntervalIntegrable
+      (fun x => c x + paper3IntervalEllipticLinearProfile p uStar u x)
+      volume 0 1 := hc.add hlin
+  have hadd1 := cosineCoeffs_add_of_intervalIntegrable k hc hlin
+  have hadd2 := cosineCoeffs_add_of_intervalIntegrable k hcl hrem
+  have hsource : cosineCoeffs
+      (fun x => p.ν * intervalDomainLift u x ^ p.γ) k =
+      cosineCoeffs c k +
+        cosineCoeffs (paper3IntervalEllipticLinearProfile p uStar u) k +
+          cosineCoeffs
+            (paper3IntervalEllipticRemainderProfile p uStar u) k := by
+    calc
+      cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k =
+          cosineCoeffs
+            (fun x =>
+              (c x + paper3IntervalEllipticLinearProfile p uStar u x) +
+                paper3IntervalEllipticRemainderProfile p uStar u x) k := by
+            apply congrArg (fun f : ℝ → ℝ => cosineCoeffs f k)
+            funext x
+            exact (paper3IntervalEllipticSource_pointwise_split
+              p uStar u x).trans (by rfl)
+      _ = cosineCoeffs
+            (fun x => c x + paper3IntervalEllipticLinearProfile p uStar u x) k +
+          cosineCoeffs
+            (paper3IntervalEllipticRemainderProfile p uStar u) k := hadd2
+      _ = _ := by rw [hadd1]
+  have hconstLift : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (fun _ : intervalDomainPoint => uStar) x = uStar := by
+    intro x hx
+    simp [intervalDomainLift, hx]
+  have hconstCoeff :
+      intervalNeumannResolverSourceCoeff p (fun _ => uStar) k =
+        (cosineCoeffs c k : ℂ) := by
+    change (cosineCoeffs
+      (fun x => p.ν * intervalDomainLift
+        (fun _ : intervalDomainPoint => uStar) x ^ p.γ) k : ℂ) =
+      (cosineCoeffs c k : ℂ)
+    exact_mod_cast paper3_cosineCoeffs_congr_on_Icc
+      (fun x hx => by simp [c, hconstLift x hx]) k
+  rw [hconstCoeff]
+  have hsourceCoeff :
+      intervalNeumannResolverSourceCoeff p u k =
+        (cosineCoeffs
+          (fun x => p.ν * intervalDomainLift u x ^ p.γ) k : ℂ) := by
+    rfl
+  rw [hsourceCoeff]
+  simp only [paper3IntervalEllipticLinearSourceCoeff,
+    paper3IntervalEllipticRemainderSourceCoeff]
+  exact_mod_cast hsource
+
+/-- The resolved coefficient of the nonlinear elliptic remainder. -/
+def paper3IntervalEllipticRemainderResolvedCoeff
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ) : ℂ :=
+  shiftedNeumannResolventCoeff 0 (p.μ : ℂ)
+    (paper3IntervalEllipticRemainderSourceCoeff p uStar u) k
+
+/-- The resolved coefficient of the linear elliptic perturbation. -/
+def paper3IntervalEllipticLinearResolvedCoeff
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ) : ℂ :=
+  shiftedNeumannResolventCoeff 0 (p.μ : ℂ)
+    (paper3IntervalEllipticLinearSourceCoeff p uStar u) k
+
+/-- Exact resolved-coefficient split, inherited from diagonal linearity of the
+Neumann elliptic resolvent. -/
+theorem intervalNeumannResolverCoeff_split
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ) (k : ℕ)
+    (hlin : IntervalIntegrable
+      (paper3IntervalEllipticLinearProfile p uStar u) volume 0 1)
+    (hrem : IntervalIntegrable
+      (paper3IntervalEllipticRemainderProfile p uStar u) volume 0 1) :
+    intervalNeumannResolverCoeff p u k =
+      intervalNeumannResolverCoeff p (fun _ => uStar) k +
+        paper3IntervalEllipticLinearResolvedCoeff p uStar u k +
+          paper3IntervalEllipticRemainderResolvedCoeff p uStar u k := by
+  have hsource := intervalNeumannResolverSourceCoeff_split
+    p uStar u k hlin hrem
+  unfold intervalNeumannResolverCoeff
+    paper3IntervalEllipticLinearResolvedCoeff
+    paper3IntervalEllipticRemainderResolvedCoeff
+    shiftedNeumannResolventCoeff
+  rw [hsource]
+  ring
+
 /-- On a fixed positive neighborhood of the equilibrium, the elliptic source
 remainder has coefficient `ell^2` norm bounded by one sup factor times the
 physical `L^2` perturbation. -/
@@ -147,6 +333,8 @@ theorem paper3IntervalEllipticRemainder_coeff_l2
       (B := K * M) (mul_nonneg hK.le hM) hphi hrem_meas hpoint)
 
 #print axioms cosineCoeffs_l2_norm_le_of_pointwise_mul
+#print axioms intervalNeumannResolverSourceCoeff_split
+#print axioms intervalNeumannResolverCoeff_split
 #print axioms paper3IntervalEllipticRemainder_coeff_l2
 
 end
