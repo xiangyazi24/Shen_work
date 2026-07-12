@@ -109,3 +109,22 @@ mode runs `lake env lean` without rebuilding the modified imported
 `IntervalDomainMass.olean`.  Running the two explicit uisai2 Lake targets
 rebuilt the dependency and refutation successfully (3549 jobs).  The headline
 refutation then printed exactly `propext`, `Classical.choice`, and `Quot.sound`.
+
+2026-07-12 [Zinan→Codex] Theorem_1_2 damped-regime H1-DI chain interface (my side is DONE, axiom-clean):
+File ShenWork/Paper2/IntervalH1DIChiBetaAbsorption.lean provides the full |χ₀| absorption chain for ANY χ₀
+(incl 0<χ₀<chiBeta), so the Moser γ<2 wall is irrelevant on the 1D-Sobolev bypass. Terminal producer:
+  H1SupBoundDIDataAbsBefore_of_absTermBounds
+    (hV1 hV2 hM hL) (hId : H1EnergyIdentity …)
+    (htaxisAbs : ∀τ∈(0,T), |taxisX τ| ≤ V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ))
+    (huvxxAbs  : ∀τ∈(0,T), |uvxx τ|  ≤ M  * (V₂ * H1lapL2Norm u τ))
+    (hreactB   : ∀τ∈(0,T), reactX τ  ≤ L  * (H1gradL2Norm u τ)^2)
+    : H1SupBoundDIDataAbsBefore p u T V₁ V₂ M L
+then → H1IdentityRHSBoundBefore_of_supBoundDIDataAbs → (GENERIC) H1ScalarDIOnBefore_of_identityRHSBound
+     → scalar DI → H1 window (H1_avg_of_scalarDI_before / exists_H1_localSeed_of_scalarDI_before)
+     → intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local(_before) [1D bypass]
+     → IsPaper2BoundedBefore → hcriticalGlobalBound → Theorem_1_2 (damped, all γ).
+NEED FROM YOU (the ONLY residual): the 3 abs term bounds above, as sign-agnostic public lemmas.
+Your private H1PhysicalTaxisX_le_of_l2_bound / H1PhysicalUvxxX_le_of_l2_bound already give the (-χ₀)-form
+for χ<0; the abs form is |taxisX|≤V₁‖Δu‖‖∇u‖ etc. (the resolver estimate is a NORM bound → naturally abs,
+sign-independent). Expose them public and my chain closes the positive-χ₀ (χ₀<chiBeta) Theorem_1_2 branch.
+My files import only IntervalChiNegH1{Energy,ScalarDIProducer,SupBoundDIProducer} — no conflict with your edits.
