@@ -208,3 +208,11 @@ uniform finite-Lp bound for faithful `intervalDomainM`, and selects a
 power-of-two exponent above `max 1 (max m gamma)`.  Axiom audit: only propext,
 Classical.choice, Quot.sound.  Root import added.  Full build remains remote
 only because local root builds exhaust the Mac mini.
+
+2026-07-12 [Codex] Faithful slow-Linf milestone: added the fixed-positive-lag
+Neumann L1-to-sup bound, the chemical-mass/primitive estimate
+`|v_x| <= 2*nu*(C+1)`, guarded one-sided logistic control, physical restart
+upper bound, compact slab maximum, and sublinear scalar absorption.  The
+capstone `IntervalDomainM.slow_bounded_before` is single-file green, contains
+no sorry/admit, and its axiom audit is exactly propext, Classical.choice, and
+Quot.sound.  The new module is root-imported.  Full builds remain remote-only.
