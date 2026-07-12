@@ -2022,18 +2022,22 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time_of_contraction
     (hlim_x.sub hlim_y).abs
   exact le_of_tendsto hlim_diff (Filter.Eventually.of_forall (fun n => hiter n x hx y hy))
 
-/-- At every positive time, the lifted truncated Picard-limit slice is
-Lipschitz on `[0,1]`.  The proof starts from the near-zero left profile and
-chains finitely many equal-width contracting restart windows up to `t`. -/
-theorem truncatedPicardLimit_lipschitzOn_positive_time
+/-- On a whole terminal positive-time window, the lifted truncated
+Picard-limit slices share one Lipschitz constant on `[0,1]`.  The proof starts
+from the near-zero left profile and chains finitely many equal-width
+contracting restart windows up to `t`; the last chained window is retained in
+the conclusion instead of being evaluated only at its right endpoint. -/
+theorem truncatedPicardLimit_lipschitzOn_positive_window
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
-    ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
-      |intervalDomainLift
-        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
-       intervalDomainLift
-        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
+    ∃ lo G : ℝ, 0 < lo ∧ lo < t ∧ 0 ≤ G ∧
+      ∀ s, lo ≤ s → s ≤ t →
+        ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+          |intervalDomainLift
+            ((truncatedConjugatePicardLimit p u₀ DT.T) s) x -
+           intervalDomainLift
+            ((truncatedConjugatePicardLimit p u₀ DT.T) s) y| ≤ G * |x - y| := by
   have hmeas_iterates_grad : ∀ k,
       HasJointMeasurability (truncatedConjugatePicardIter p u₀ k) := by
     intro k
@@ -2452,14 +2456,34 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         (fun n s => truncatedConjugatePicardIter p u₀ n s)
         (C.lo C.N) (C.hi C.N) n Gw := by
     simpa [U] using hall C.N le_rfl
-  have htlo : C.lo C.N ≤ t := by
+  have hlast_lo_pos : 0 < C.lo C.N :=
+    (C.a_pos C.N).trans (C.a_lt_lo C.N)
+  have hlast_lo_t : C.lo C.N < t := by
     calc
-      C.lo C.N ≤ C.hi C.N := C.lo_le_hi C.N
-      _ = t := C.hi_last
-  have hthi : t ≤ C.hi C.N := by rw [C.hi_last]
-  refine ⟨Gw, hGw_nn, ?_⟩
+      C.lo C.N < ((C.N : ℝ) + 4) * C.h := by
+        dsimp [EqualStepGradientWindowChain.lo]
+        nlinarith [C.h_pos]
+      _ = t := C.target
+  refine ⟨C.lo C.N, Gw, hlast_lo_pos, hlast_lo_t, hGw_nn, ?_⟩
+  intro s hlos hst x hx y hy
   exact truncatedPicardLimit_lipschitzOn_of_window_grad
-    DT ht htT htlo hthi hGw_nn hlast
+    DT (hlast_lo_pos.trans_le hlos) (hst.trans htT) hlos
+      (by simpa [C.hi_last] using hst) hGw_nn hlast x hx y hy
+
+/-- At every positive time, the lifted truncated Picard-limit slice is
+Lipschitz on `[0,1]`. -/
+theorem truncatedPicardLimit_lipschitzOn_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+      |intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
+       intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
+  obtain ⟨lo, G, _hlo, hlot, hG, hwindow⟩ :=
+    truncatedPicardLimit_lipschitzOn_positive_window DT ht htT
+  exact ⟨G, hG, hwindow t hlot.le le_rfl⟩
 
 /-! ## Flux boundary vanishing (needed before IBP) -/
 

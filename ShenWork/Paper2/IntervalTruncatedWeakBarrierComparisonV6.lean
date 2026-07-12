@@ -429,7 +429,7 @@ private theorem intervalFullSemigroup_time_hasDerivAt_secondDeriv_weak
   exact intervalFullSemigroup_time_hasDerivAt_laplacian_weak hq hf hK hl2
     (Set.Ioo_subset_Icc_self hx)
 
-private theorem intervalFullSemigroup_pairing_hasDerivAt_dirichlet
+theorem intervalFullSemigroup_pairing_hasDerivAt_dirichlet
     {f φ : ℝ → ℝ} {q Cf Cφ Gf Gφ : ℝ}
     (hq : 0 < q) (hf_cont : Continuous f)
     (hCf : 0 ≤ Cf) (hf_bound : ∀ y, |f y| ≤ Cf)
@@ -1647,7 +1647,7 @@ theorem truncatedLimit_logistic_pairing_tendsto
 
 /-- Fubini for an ordinary-source tail against an arbitrary bounded measurable
 test. -/
-private theorem truncatedLimit_logistic_tail_pairing
+theorem truncatedLimit_logistic_tail_pairing
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {a t Cφ : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T)
@@ -1753,7 +1753,7 @@ private theorem truncatedLimit_logistic_tail_pairing
 set_option maxHeartbeats 0 in
 /-- Fubini and the regular B-form adjoint identity for a chemotaxis tail
 against an arbitrary bounded measurable test. -/
-private theorem truncatedLimit_chem_tail_pairing
+theorem truncatedLimit_chem_tail_pairing
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {a t Cφ : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T)
@@ -1934,7 +1934,7 @@ private theorem truncatedLimit_chem_tail_pairing
     exact hswap.symm.trans (by simpa [BF, CP] using htime_eq)
 
 /-- Restart the faithful truncated mild equation at a positive earlier time. -/
-private theorem truncatedLimit_backward_restart
+theorem truncatedLimit_backward_restart
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {a t : ℝ} (ha : 0 < a) (hat : a < t) (htT : t ≤ DT.T)
@@ -2059,7 +2059,7 @@ private theorem intervalFullSemigroupOperator_neg
 negative-part energy argument.  The homogeneous Neumann heat step is Markov
 contractive; only the restart remainder is paired with the final positive
 part. -/
-private theorem positivePartEnergy_sub_le_remainder_pairing
+theorem positivePartEnergy_sub_le_remainder_pairing
     {h : ℝ} (hh : 0 < h) {f u z : ℝ → ℝ} {M : ℝ}
     (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
     (hf_bdd : ∀ y, |f y| ≤ M)
@@ -2272,7 +2272,7 @@ private theorem truncatedDriftFactor_hasDerivAt
   rw [heq]
   simpa [h.deriv] using h
 
-private theorem truncatedDriftFactor_abs_le
+theorem truncatedDriftFactor_abs_le
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M x : ℝ}
     (hw : Continuous w) (_hM : 0 ≤ M)
     (hbound : ∀ X, |w X| ≤ M) (hx : x ∈ Set.Icc (0 : ℝ) 1) :

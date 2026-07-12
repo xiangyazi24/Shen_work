@@ -30,3 +30,11 @@ authoritative root build completed successfully (9245 jobs, `BUILD OK` in
 built in 29s.  The earlier local single-file failure was solely the already
 documented missing untracked `IntervalTruncatedEnergyProducerV6.olean`; the
 root remote build found no linker, stale-olean, rsync, or cache failure.
+2026-07-12 Jensen closure local-build note: after the new closure source passed
+`lake env lean`, importing it from the producer initially failed because a
+single-file source check does not emit the dependency `.olean`.  Explicitly
+emitting `IntervalTruncatedWeakBarrierComparisonClosureV6.olean` made the
+downstream producer check succeed.  This is the same standalone-file olean
+availability issue documented for the energy chain, not a source/linker error;
+the root import has now been wired through `ShenWork.lean`, and the uisai2 root
+build is the authoritative integration check.

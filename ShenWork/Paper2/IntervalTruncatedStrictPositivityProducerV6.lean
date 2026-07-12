@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalTruncatedJensenLocalProducer
+import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6
 
 /-!
 # Strict-positivity producer for the V6 Jensen field (χ₀ < 0 branch)
@@ -24,12 +25,19 @@ open ShenWork.IntervalMildPicard
   (HasContinuousSlices)
 open ShenWork.IntervalMildPicardThreshold
   (unitClip unitClip_of_mem)
+open ShenWork.IntervalConjugatePicard
+  (UniformConjugateMildExistenceCore)
 open ShenWork.IntervalNeumannFullKernel
-  (intervalFullSemigroupOperator)
+  (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.Paper2.BFormPositiveDatumNegPart
   (FullKernelJensenInequality SquareHeatSeed
+   TruncatedConjugateMildExistenceData
+   UniformTruncatedConjugateMapCertificateData
    heat_seed_strict_pos_of_squareHeatSeed
-   restartSliceSqrtSeed restartSliceSqrtSeed_continuous)
+   restartSliceSqrtSeed restartSliceSqrtSeed_continuous squareHeatBarrier
+   truncatedConjugatePicardLimit
+   truncatedConjugatePicardLimit_initialTrace_of_truncated_data
+   uniformTruncatedConjugateMildExistenceCore_of_uniformCore)
 
 noncomputable section
 
@@ -136,5 +144,127 @@ theorem truncatedJensenStrictPosDataFor_of_strictPos
               (fun y => u s (unitClip y)) x.1) / u t x)) / σ,
       s, σ, f, hσ, htime, hjensen, hseed_after_heat, ?_, hS_pos⟩
   exact exp_neg_maxLog_div_mul_le hσ hU
+
+/-! ## Strict positivity from the matched-divergence weak barrier -/
+
+/-- The nonnegative truncated Picard limit dominates a strictly positive
+squared Neumann heat barrier at every positive time. -/
+theorem truncatedConjugatePicardLimit_strictPos_v6
+    {p : CM2Params} {M : ℝ} (hM : 0 < M)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hbound₀ : ∀ X, |u₀ X| ≤ M)
+    (DT : TruncatedConjugateMildExistenceData p u₀) :
+    ∀ t, 0 < t → t ≤ DT.T → ∀ X : intervalDomainPoint,
+      0 < truncatedConjugatePicardLimit p u₀ DT.T t X := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  let f : ℝ → ℝ := restartSliceSqrtSeed u₀
+  let Cf : ℝ := Real.sqrt M
+  let K : ℝ := 2 * Cf
+  have hu₀_nonneg : ∀ X : intervalDomainPoint, 0 ≤ u₀ X := by
+    intro X
+    simpa [intervalDomainLift, X.2] using
+      ShenWork.Paper2.BFormPositiveDatumNegPart.positiveInitialDatum_intervalDomainLift_nonneg
+        hu₀ X.1 X.2
+  have hf : Continuous f := by
+    simpa [f] using restartSliceSqrtSeed_continuous hu₀.admissible.2
+  have hCf : 0 ≤ Cf := Real.sqrt_nonneg _
+  have hf_bound : ∀ y, |f y| ≤ Cf := by
+    intro y
+    have huM : u₀ (unitClip y) ≤ M :=
+      (le_abs_self _).trans (hbound₀ (unitClip y))
+    change |Real.sqrt (u₀ (unitClip y))| ≤ Real.sqrt M
+    rw [abs_of_nonneg (Real.sqrt_nonneg _)]
+    exact Real.sqrt_le_sqrt huM
+  have hK : ∀ n, |cosineCoeffs f n| ≤ K := by
+    simpa [K, Cf] using
+      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6.cosineCoeffs_abs_le_of_continuous_bounded
+        hf.continuousOn (Real.sqrt_nonneg M)
+        (fun y _hy => by simpa [Cf] using hf_bound y))
+  have hl2 : Summable fun n : ℕ => (cosineCoeffs f n) ^ 2 :=
+    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6.cosineCoeffs_sq_summable_of_continuousOn
+      hf.continuousOn
+  have hfsq : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      f y ^ 2 = intervalDomainLift u₀ y := by
+    intro y hy
+    have hclip : u₀ (unitClip y) = intervalDomainLift u₀ y := by
+      simp [intervalDomainLift, hy, unitClip_of_mem hy]
+    have hnonneg : 0 ≤ u₀ (unitClip y) := hu₀_nonneg _
+    change Real.sqrt (u₀ (unitClip y)) ^ 2 = intervalDomainLift u₀ y
+    rw [Real.sq_sqrt hnonneg, hclip]
+  have htrace : InitialTrace intervalDomain u₀ U := by
+    simpa [U] using
+      truncatedConjugatePicardLimit_initialTrace_of_truncated_data
+        p hu₀.admissible.2 DT
+  have hnonneg : ∀ r, 0 < r → r ≤ DT.T →
+      ∀ X : intervalDomainPoint, 0 ≤ U r X := by
+    intro r hr hrT X
+    simpa [U] using
+      ShenWork.Paper2.IntervalTruncatedEnergyProducerV6.truncatedConjugatePicardLimit_nonneg_v6
+        hu₀ DT r hr hrT X
+  have hcompare :=
+    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6.truncatedSquareHeatBarrier_le_truncatedLimit
+      hu₀ DT htrace hnonneg hf hCf hf_bound hK hl2 hfsq
+  have hseed : SquareHeatSeed (intervalDomainLift u₀) f := by
+    have hpos : ∃ X : intervalDomainPoint, 0 < u₀ X := by
+      let X : intervalDomainPoint :=
+        ⟨(1 : ℝ) / 2, by constructor <;> norm_num⟩
+      exact ⟨X, hu₀.pos (by
+        change ((1 : ℝ) / 2) ∈ Set.Ioo (0 : ℝ) 1
+        constructor <;> norm_num)⟩
+    simpa [f] using
+      ShenWork.Paper2.BFormPositiveDatumNegPart.restartSliceSqrtSeed_squareHeatSeed
+        hu₀.admissible.2 hu₀_nonneg hpos
+  intro t ht htT X
+  have hS : 0 < intervalFullSemigroupOperator t f X.1 :=
+    heat_seed_strict_pos_of_squareHeatSeed ht hseed
+  have hbar : 0 < squareHeatBarrier
+      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6.truncatedBarrierDiscount
+        p DT.M) f t X.1 := by
+    exact mul_pos (Real.exp_pos _) (sq_pos_of_pos hS)
+  exact hbar.trans_le (by simpa [U] using hcompare t ht htT X)
+
+/-- Exact type of the V6 `jensenStrictPos` field. -/
+abbrev UniformTruncatedJensenStrictPosDataV6 (p : CM2Params) : Prop :=
+  ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
+    PositiveInitialDatum intervalDomain u₀ → (∀ X, |u₀ X| ≤ M) →
+    ∀ C : UniformConjugateMildExistenceCore p u₀,
+      TruncatedJensenStrictPosDataFor C.T
+        (truncatedConjugatePicardLimit p u₀ C.T)
+
+/-- Uniform Jensen strict-positivity producer, using the same truncated-map
+certificate that supplies the mild existence datum in the V6 assembly. -/
+def uniformTruncatedJensenStrictPosDataV6_producer
+    (p : CM2Params) (Hmap : UniformTruncatedConjugateMapCertificateData p) :
+    UniformTruncatedJensenStrictPosDataV6 p := by
+  intro M hM u₀ hu₀ hbound₀ C
+  let A := Hmap hM hu₀ hbound₀ C
+  let HT := uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A
+  let DT : TruncatedConjugateMildExistenceData p u₀ := HT.toData
+  let U := truncatedConjugatePicardLimit p u₀ C.T
+  have htrace : InitialTrace intervalDomain u₀ U := by
+    simpa [U, DT, HT] using
+      truncatedConjugatePicardLimit_initialTrace_of_truncated_data
+        p hu₀.admissible.2 DT
+  have hcont : HasContinuousSlices C.T U := by
+    simpa [U, DT, HT] using HT.solutionData.hcont
+  have hnonneg : ∀ r, 0 < r → r ≤ C.T →
+      ∀ X : intervalDomainPoint, 0 ≤ U r X := by
+    intro r hr hrT X
+    simpa [U, DT, HT] using
+      ShenWork.Paper2.IntervalTruncatedEnergyProducerV6.truncatedConjugatePicardLimit_nonneg_v6
+        hu₀ DT r hr hrT X
+  have hbound : ∀ r, 0 < r → r ≤ C.T →
+      ∀ X : intervalDomainPoint, |U r X| ≤ C.R := by
+    intro r hr hrT X
+    simpa [U, DT, HT] using HT.solutionData.hbound r hr hrT X
+  have hpos : ∀ r, 0 < r → r ≤ C.T →
+      ∀ X : intervalDomainPoint, 0 < U r X := by
+    intro r hr hrT X
+    simpa [U, DT, HT] using
+      truncatedConjugatePicardLimit_strictPos_v6 hM hu₀ hbound₀ DT
+        r hr hrT X
+  exact truncatedJensenStrictPosDataFor_of_strictPos
+    hu₀ htrace hcont hnonneg hbound hpos
 
 end ShenWork.Paper2.IntervalChiNegV6Assembly
