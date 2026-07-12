@@ -412,6 +412,41 @@ theorem mass_le_max_initial_threshold_of_b_pos
     linarith [hlt _ hε]
   exact hMle.trans (le_max_left _ _)
 
+/-- The horizon-independent carrying-capacity bound used by the faithful
+mass comparison. -/
+def uniformMassBoundConstant
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : ℝ :=
+  max |intervalDomain.integral u₀| (massThreshold p)
+
+theorem uniformMassBoundConstant_nonneg
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    0 ≤ uniformMassBoundConstant p u₀ := by
+  exact (abs_nonneg _).trans (le_max_left _ _)
+
+/-- The same explicit mass constant works on every finite restriction of a
+solution.  In particular, the witness does not depend on the horizon `T`. -/
+theorem mass_le_uniformMassBoundConstant_of_guard
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomainM u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (htrace : InitialTrace intervalDomainM u₀ u) :
+    ∀ t, 0 < t → t < T →
+      intervalDomain.integral (u t) ≤ uniformMassBoundConstant p u₀ := by
+  intro t ht0 htT
+  have htarget : max (intervalDomain.integral u₀) (massThreshold p) ≤
+      uniformMassBoundConstant p u₀ :=
+    max_le_max (le_abs_self _) le_rfl
+  by_cases hbpos : 0 < p.b
+  · exact (mass_le_max_initial_threshold_of_b_pos hbpos hu₀ hsol htrace ht0 htT).trans
+      htarget
+  · have hbzero : p.b = 0 := le_antisymm (le_of_not_gt hbpos) p.hb
+    have hazero : p.a = 0 := hguard.resolve_right hbpos
+    exact (mass_le_initial_of_a_eq_b_eq_zero hazero hbzero hu₀ hsol htrace ht0 htT).trans
+      ((le_abs_self _).trans (le_max_left _ _))
+
 /-- Uniform mass bound under the corrected theorem guard. -/
 theorem uniform_mass_bound_of_guard
     {p : CM2Params} {T : ℝ}
@@ -423,19 +458,12 @@ theorem uniform_mass_bound_of_guard
     (htrace : InitialTrace intervalDomainM u₀ u) :
     ∃ C, 0 ≤ C ∧ ∀ t, 0 < t → t < T →
       intervalDomain.integral (u t) ≤ C := by
-  let C := max |intervalDomain.integral u₀| (massThreshold p)
-  have hC : 0 ≤ C := (abs_nonneg _).trans (le_max_left _ _)
-  refine ⟨C, hC, ?_⟩
-  intro t ht0 htT
-  have htarget : max (intervalDomain.integral u₀) (massThreshold p) ≤ C :=
-    max_le_max (le_abs_self _) le_rfl
-  by_cases hbpos : 0 < p.b
-  · exact (mass_le_max_initial_threshold_of_b_pos hbpos hu₀ hsol htrace ht0 htT).trans
-      htarget
-  · have hbzero : p.b = 0 := le_antisymm (le_of_not_gt hbpos) p.hb
-    have hazero : p.a = 0 := hguard.resolve_right hbpos
-    exact (mass_le_initial_of_a_eq_b_eq_zero hazero hbzero hu₀ hsol htrace ht0 htT).trans
-      ((le_abs_self _).trans (le_max_left _ _))
+  exact ⟨uniformMassBoundConstant p u₀,
+    uniformMassBoundConstant_nonneg p u₀,
+    mass_le_uniformMassBoundConstant_of_guard hguard hu₀ hsol htrace⟩
+
+#print axioms mass_le_uniformMassBoundConstant_of_guard
+#print axioms uniform_mass_bound_of_guard
 
 end
 
