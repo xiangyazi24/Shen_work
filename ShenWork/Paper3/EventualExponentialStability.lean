@@ -33,6 +33,44 @@ lemma EventualExponentialC1ConvergenceWith.bound_at
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t) :=
   h t ht
 
+/-- The two constants are a positive spatially homogeneous steady state of
+the parabolic-elliptic Paper3 system. -/
+structure Paper3ConstantEquilibrium
+    (p : CM2Params) (uStar vStar : ℝ) : Prop where
+  u_pos : 0 < uStar
+  v_nonneg : 0 ≤ vStar
+  reaction_eq_zero :
+    uStar * (p.a - p.b * uStar ^ p.α) = 0
+  elliptic_relation :
+    p.μ * vStar = p.ν * uStar ^ p.γ
+
+/-- The positive logistic equilibrium is a constant PDE equilibrium. -/
+theorem paper3ConstantEquilibrium_positive
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    Paper3ConstantEquilibrium p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact
+    { u_pos := positiveEquilibrium_fst_pos p ⟨ha, hb⟩
+      v_nonneg := (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+      reaction_eq_zero := positiveEquilibrium_reaction_zero p ⟨ha, hb⟩
+      elliptic_relation := positiveEquilibrium_elliptic_relation p ⟨ha, hb⟩ }
+
+/-- The mass-parametrized equilibrium is a constant PDE equilibrium when the
+reaction coefficients vanish. -/
+theorem paper3ConstantEquilibrium_minimal
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0)
+    (uStar : ℝ) (huStar : 0 < uStar) :
+    Paper3ConstantEquilibrium p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact
+    { u_pos := by simpa [minimalEquilibrium] using huStar
+      v_nonneg := (minimalEquilibrium_snd_pos p huStar).le
+      reaction_eq_zero :=
+        minimalEquilibrium_reaction_zero_of_a_b_zero p uStar ha hb
+      elliptic_relation := minimalEquilibrium_elliptic_relation p uStar }
+
 /-- Raw sectorial local stability with decay required only after an
 existential positive smoothing time. -/
 def EventualSectorialLocalExponentialRaw
@@ -41,6 +79,7 @@ def EventualSectorialLocalExponentialRaw
     (xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ) : Prop :=
   ∀ sigma pNorm uStar vStar,
     1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    Paper3ConstantEquilibrium p uStar vStar →
     LinearlyStable S p uStar vStar →
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
         ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
@@ -63,6 +102,7 @@ lemma EventualSectorialLocalExponentialRaw.local_exponential_stability
     {sigma pNorm uStar vStar : ℝ}
     (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
     (hpNorm : 1 < pNorm)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hstable : LinearlyStable S p uStar vStar) :
     ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
@@ -74,7 +114,7 @@ lemma EventualSectorialLocalExponentialRaw.local_exponential_stability
                 c1Distance (u t) (fun _ => uStar) +
                   c1Distance (v t) (fun _ => vStar) ≤
                     C * Real.exp (-rate * t) :=
-  h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+  h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm heq hstable
 
 /-- Sup-norm local stability with exponential `C¹` decay after a positive
 smoothing time. -/
@@ -114,12 +154,13 @@ theorem EventualSectorialLocalExponentialRaw.locally_from_sup_control
         D p S N.c1Distance N.xpSigmaDistance)
     (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
     (hpNorm : 1 < pNorm)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hstable : LinearlyStable S p uStar vStar)
     (hcontrol : SupControlsXpSigmaDistance D N sigma pNorm uStar)
     (hexist : ∀ delta > 0, SmallDataGlobalExistence D p uStar delta) :
     EventualLocallyExponentiallyStableFromSup D p N uStar vStar := by
   rcases hraw.local_exponential_stability
-      hsigma_low hsigma_high hpNorm hstable with
+      hsigma_low hsigma_high hpNorm heq hstable with
     ⟨eps, heps, A, hA, rate, hrate, t₀, ht₀, hdecay⟩
   rcases hcontrol eps heps with ⟨delta, hdelta, hdist⟩
   refine ⟨delta, hdelta, A, hA, rate, hrate, t₀, ht₀, ?_⟩
@@ -139,6 +180,7 @@ theorem EventualSectorialLocalExponentialRaw.massConstrained_from_sup_control
         D p S N.c1Distance N.xpSigmaDistance)
     (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
     (hpNorm : 1 < pNorm)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hstable : LinearlyStable S p uStar vStar)
     (hcontrol : SupControlsXpSigmaDistance D N sigma pNorm uStar)
     (hexist :
@@ -147,7 +189,7 @@ theorem EventualSectorialLocalExponentialRaw.massConstrained_from_sup_control
     EventualMassConstrainedLocallyExponentiallyStableFromSup
       D p N uStar vStar := by
   rcases hraw.local_exponential_stability
-      hsigma_low hsigma_high hpNorm hstable with
+      hsigma_low hsigma_high hpNorm heq hstable with
     ⟨eps, heps, A, hA, rate, hrate, t₀, ht₀, hdecay⟩
   rcases hcontrol eps heps with ⟨delta, hdelta, hdist⟩
   refine ⟨delta, hdelta, A, hA, rate, hrate, t₀, ht₀, ?_⟩
@@ -279,7 +321,8 @@ theorem Theorem_2_2_EventualExponentialStability_full_critical_spectrum_of_raw
           (positiveEquilibrium p ⟨ha, hb⟩).1
           (positiveEquilibrium p ⟨ha, hb⟩).2 :=
       hraw.locally_from_sup_control
-        hsigma_low hsigma_high hpNorm hstable
+        hsigma_low hsigma_high hpNorm
+        (paper3ConstantEquilibrium_positive p ha hb) hstable
         (hcontrol (positiveEquilibrium p ⟨ha, hb⟩).1)
         (hexist (positiveEquilibrium p ⟨ha, hb⟩).1)
     rcases hlocal with
@@ -308,7 +351,8 @@ theorem Theorem_2_2_EventualExponentialStability_full_critical_spectrum_of_raw
           (minimalEquilibrium p uStar).1
           (minimalEquilibrium p uStar).2 :=
       hraw.massConstrained_from_sup_control
-        hsigma_low hsigma_high hpNorm hstable
+        hsigma_low hsigma_high hpNorm
+        (paper3ConstantEquilibrium_minimal p ha hb uStar huStar) hstable
         (hcontrol (minimalEquilibrium p uStar).1)
         (hmexist (minimalEquilibrium p uStar).1)
     rcases hlocal with

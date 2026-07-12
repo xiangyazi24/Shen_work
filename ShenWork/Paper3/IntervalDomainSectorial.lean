@@ -210,6 +210,7 @@ def IntervalDomainSpectralSemigroupOrbitBoundCorrected
     (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
   ∀ sigma pNorm uStar vStar,
     1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    Paper3ConstantEquilibrium p uStar vStar →
     LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
         ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
@@ -277,9 +278,9 @@ intervalDomain_eventualSectorialLocalExponentialRaw_of_spectralSemigroupOrbitBou
     EventualSectorialLocalExponentialRaw
       intervalDomain p unitIntervalNeumannSpectrum
         N.c1Distance N.xpSigmaDistance := by
-  intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+  intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm heq hstable
   rcases horbit sigma pNorm uStar vStar
-      hsigma_low hsigma_high hpNorm hstable with
+      hsigma_low hsigma_high hpNorm heq hstable with
     ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
   exact ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
 
