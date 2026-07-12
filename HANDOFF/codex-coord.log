@@ -242,3 +242,11 @@ the reciprocal-cubic frequency majorant and the normalized sine-coefficient
 `L1` bound, then sums the cosine series.  The new module is root-imported,
 single-file green, and all public declarations use only the standard three
 axioms.  This is the far half of the critical two-scale Duhamel estimate.
+
+2026-07-12 [Codex] Faithful critical-Linfinity positive branch complete
+locally.  The finite-power bootstrap controls the critical flux in spatial
+`L1`; the conjugate Duhamel leg is split into a spectral far part and an
+`Linfinity` near part.  Choosing terminal width
+`a*(M+1)^(-2/5)` yields the absorbable slab inequality with exponent `4/5`.
+The compact-slab maximum argument now proves finite-horizon boundedness for
+`m=1`, `0<chi0<chiBeta`.  The module is root-imported and single-file green.

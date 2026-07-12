@@ -516,6 +516,7 @@ import ShenWork.Paper2.IntervalDomainMSlowLpBound
 import ShenWork.Paper2.IntervalDomainMCriticalLpSeed
 import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelL1FarBound
+import ShenWork.Paper2.IntervalDomainMCriticalLinfBound
 import ShenWork.Paper2.IntervalDomainMClassicalRestart
 import ShenWork.Paper2.IntervalDomainMRestartSources
 import ShenWork.Paper2.IntervalDomainMPhysicalRestart
