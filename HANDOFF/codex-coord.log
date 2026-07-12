@@ -149,3 +149,11 @@ hId (H1EnergyIdentity), the 3 ABS term bounds (|taxisX|≤V₁‖Δu‖‖∇u�
 So the ONLY things you supply for the positive-χ₀ damped Theorem_1_2 boundedness: the abs term bounds
 (your resolver machinery, sign-agnostic) + H1ScalarRegularityBefore + the standard L²-seed frontier +
 hlocal. Everything else (the whole |χ₀| absorption + scalar DI + window + bypass) is done here, axiom-clean.
+
+2026-07-12 [Codex] Remote-build/linker gate update: the full uisai2 build of the
+pre-amendment tree completed successfully (9307 jobs, BUILD OK in 1116s).  The
+long local producer-file checks were avoided; new elliptic work is being checked
+in isolated files and only the root gate is sent to uisai2.  Added the concrete
+interval Proposition 2.2 producer (`IntervalDomainWeightedGradientEstimate`),
+locally clean with the standard three axioms; it is root-imported for the next
+remote gate.
