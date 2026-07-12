@@ -64,7 +64,7 @@ private theorem sigma_eq_bounded_multiplier
 
 /-- The non-diffusive part of every nonnegative mode is bounded uniformly in
 the eigenvalue. -/
-private theorem sigma_le_neg_lambda_add_abs_multiplier
+theorem sigma_le_neg_lambda_add_abs_chemMultiplier
     (p : CM2Params) {uStar vStar lambdaN : ℝ}
     (hvStar : 0 ≤ vStar) (hlambda : 0 ≤ lambdaN) :
     sigma p uStar vStar lambdaN ≤
@@ -134,7 +134,7 @@ theorem unitIntervalLinearMassSpectralGap_of_linearlyStable
       dsimp [unitIntervalNeumannSpectrum]
       exact (le_of_lt hAn).trans hsqpi
     have hsigma :=
-      sigma_le_neg_lambda_add_abs_multiplier p (uStar := uStar) heq.v_nonneg
+      sigma_le_neg_lambda_add_abs_chemMultiplier p (uStar := uStar) heq.v_nonneg
         (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
     change unitIntervalLinearizedGrowth p uStar vStar n ≤ -1
     change sigma p uStar vStar
