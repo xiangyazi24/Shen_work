@@ -521,6 +521,7 @@ import ShenWork.Paper2.IntervalDomainMCriticalGlobalLinfBound
 import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelL1FarBound
 import ShenWork.Paper2.IntervalDomainMCriticalLinfBound
+import ShenWork.Paper2.IntervalDomainTheorem12PositiveCritical
 import ShenWork.Paper2.IntervalDomainMClassicalRestart
 import ShenWork.Paper2.IntervalDomainMRestartSources
 import ShenWork.Paper2.IntervalDomainMPhysicalRestart
