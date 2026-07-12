@@ -95,3 +95,25 @@ REPO STATE (concrete): LyapunovFunction.lean already has scalar entropy positivi
 layer = the PDE identity (interchange ∂ₜ & spatial ∫, use the PDE). IntervalDomainStabilityChain.lean lists the
 unresolved global inputs: time-translate compactness, Lyapunov moment decay, moment→uniform convergence, C¹ exp
 upgrade. Full analysis /tmp/gpt_Q4384.md. (Bibliographic note: source is Part II "Persistence and stabilization".)
+
+## Paper 2 Lᵖ mountain — detail (Q4383, 2026-07-11) — sharpens step 2
+ACHIEVABLE & ACYCLIC, but a SUBSTANTIAL new analytic development — does NOT follow from the χ₀≤0 mild/L²/spectral
+route. THE GENUINELY-NEW HEART = one concrete WEIGHTED Lᵖ chemotaxis energy estimate + branch-specific ABSORPTION
+(NOT the generic Moser bookkeeping, which the repo already has). Conclusion is boundedness before Tmax (not global
+classical existence).
+What bounded-interval buys (why abstract-refuted but interval-OK): finite measure, mass bounds, Ehrling/Gagliardo–
+Nirenberg, elliptic estimates, semigroup smoothing. (Poincaré controls only mean-zero part; zero mode via mass
+conservation / logistic mass inequality.)
+Core: master weighted Lᵖ identity → FINITE-p bootstrap (NOT full Alikakos to ∞); Prop 2.5 converts one large finite
+exponent to L∞ via mild formula + analytic-semigroup. Thm 1.2 branches differ: 0<m<1 central new result = finite
+cross-term descent (paper eqs 4.1–4.5), not generic Moser.
+REPO REUSE: IntervalDomainMoserActualAtoms.lean + IntervalDomainMoserLadderAtoms.lean (generic Moser), root-tower
+algebra, IntervalDomainTheorem12/13.lean, Corollary21, EnergyStep — substantial transfer, but mostly BELOW/AFTER
+the decisive Lᵖ estimate. The one new lemma to build = the weighted Lᵖ energy estimate + absorption. Full: /tmp/gpt_Q4383.md.
+
+## SCOUTING COMPLETE (2026-07-11)
+All mountains scouted: attack order (Q4388), P3 floors (Q4381), P3 dynamics (Q4384), P1 Rothe (Q4382), P2 Lᵖ (Q4383).
+Each step now has a concrete "genuinely-new heart" + repo-reuse map. Execute in the DEFINITIVE ATTACK ORDER above
+once χ<0 lands. The single new lemma per mountain: P2-Lᵖ = weighted Lᵖ energy+absorption; P3-engine = diagonal
+cosine-mode dichotomy (reuse Paper 2, not Krein–Rutman); P3-global = nonlinear stable semigroup + Lyapunov PDE
+identity; P1 = Green-kernel compactness + tail.
