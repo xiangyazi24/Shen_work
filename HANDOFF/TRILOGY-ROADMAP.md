@@ -117,3 +117,10 @@ Each step now has a concrete "genuinely-new heart" + repo-reuse map. Execute in 
 once χ<0 lands. The single new lemma per mountain: P2-Lᵖ = weighted Lᵖ energy+absorption; P3-engine = diagonal
 cosine-mode dichotomy (reuse Paper 2, not Krein–Rutman); P3-global = nonlinear stable semigroup + Lyapunov PDE
 identity; P1 = Green-kernel compactness + tail.
+
+## Paper 2 Lᵖ weighted-energy step — the target lemma (Q4409/rm2, 2026-07-11)
+The ONE genuinely-new Lᵖ lemma, concretized (see /tmp/gpt_Q4409.md for the full derivation): the weighted finite-p
+energy differential inequality for the bounded-interval Neumann chemotaxis-growth system — d/dt∫u^p ≤ (diffusion
+−c∫|∇u^{p/2}|²) + (chemotaxis cross-term, absorbed via Young + elliptic ∇v bound) + (logistic), yielding
+y'(t) ≤ C·y(t)+C' for y=∫u^p, then Prop 2.5 lifts one large finite p to L∞ via the mild formula. This is the target
+for IntervalDomainEnergyStep / the Lᵖ producer when step 2 executes.
