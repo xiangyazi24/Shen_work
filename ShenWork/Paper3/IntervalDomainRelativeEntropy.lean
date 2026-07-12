@@ -14,6 +14,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 noncomputable section
 
@@ -45,5 +46,32 @@ theorem relEntropy_integrand_nonneg {s u : ℝ} (hs : 0 < s) (hu : 0 < u) :
   rw [key, key2]
   have hmul := mul_le_mul_of_nonneg_left hcore hu.le   -- u·(s/u−1) ≤ u·((s/u)·log(s/u))
   linarith
+
+/-- **Entropy dissipation reaction-term sign (Fable D):**
+`0 ≤ log(s/u*) · (s^α − u*^α)` for `s, u*, α > 0` — the two factors share the sign
+of `(s − u*)`, so the logistic reaction term `−b∫ u·log(u/u*)·(u^α−u*^α)` in `dH/dt`
+is dissipative (≤ 0). -/
+theorem log_mul_rpow_diff_nonneg {s u alpha : ℝ}
+    (hs : 0 < s) (hu : 0 < u) (ha : 0 < alpha) :
+    0 ≤ Real.log (s / u) * (s ^ alpha - u ^ alpha) := by
+  have hlogeq : Real.log (s / u) = Real.log s - Real.log u :=
+    Real.log_div (ne_of_gt hs) (ne_of_gt hu)
+  rw [hlogeq]
+  rcases le_total s u with h | h
+  · have hlog : Real.log s - Real.log u ≤ 0 := by
+      have : Real.log s ≤ Real.log u := by gcongr
+      linarith
+    have hrpow : s ^ alpha - u ^ alpha ≤ 0 := by
+      have : s ^ alpha ≤ u ^ alpha := by gcongr
+      linarith
+    have := mul_nonneg (neg_nonneg.mpr hlog) (neg_nonneg.mpr hrpow)
+    rwa [neg_mul_neg] at this
+  · have hlog : 0 ≤ Real.log s - Real.log u := by
+      have : Real.log u ≤ Real.log s := by gcongr
+      linarith
+    have hrpow : 0 ≤ s ^ alpha - u ^ alpha := by
+      have : u ^ alpha ≤ s ^ alpha := by gcongr
+      linarith
+    exact mul_nonneg hlog hrpow
 
 end ShenWork.Paper3.RelativeEntropy
