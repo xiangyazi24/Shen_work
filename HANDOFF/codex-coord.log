@@ -95,3 +95,17 @@ again, the authoritative cold root build completed all 9306 jobs successfully
 `IntervalChiNegV6Headline.lean` also passed (`BUILD OK` in 54s); the producer,
 strict-negative headline, and nonpositive headline depend only on `propext`,
 `Classical.choice`, and `Quot.sound`.
+2026-07-12 Paper2 Theorem 1.2 audit correction: the source statement permits
+the mixed branch `a > 0`, `b = 0`.  This is genuinely false even on the actual
+unit interval, not merely missing Lp wiring.  The new interval-domain
+refutation uses the concrete mass identity: for the critical parameters
+`a=1`, `b=0`, `m=beta=1`, `chi0=0`, every claimed global classical solution
+has positive mass `M` with `M'=M`, hence unbounded mass, contradicting the
+eventual sup-norm conclusion.  The corrected parameter guard is
+`not (0 < a and b = 0)`, equivalently under nonnegativity: `a=0` or `b>0`.
+2026-07-12 Theorem 1.2 remote-check cache note: `remote-build.sh --file`
+initially reported the two newly public mass lemmas as unknown because that
+mode runs `lake env lean` without rebuilding the modified imported
+`IntervalDomainMass.olean`.  Running the two explicit uisai2 Lake targets
+rebuilt the dependency and refutation successfully (3549 jobs).  The headline
+refutation then printed exactly `propext`, `Classical.choice`, and `Quot.sound`.

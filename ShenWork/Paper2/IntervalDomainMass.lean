@@ -452,6 +452,66 @@ private theorem intervalDomain_solution_slice_abs_bddAbove
     simp [intervalDomainLift]
   simpa [hlift] using hx
 
+/-- A positive classical interval-domain slice has strictly positive mass. -/
+theorem intervalDomain_classicalSolution_mass_pos
+    {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    0 < intervalDomain.integral (u t) := by
+  unfold intervalDomain intervalDomainIntegral
+  exact intervalIntegral.integral_pos (show (0 : ℝ) < 1 by norm_num)
+    (intervalDomain_solution_lift_continuousOn_Icc hsol ht)
+    (fun y hy => (intervalDomain_solution_lift_pos_Icc hsol ht y
+      ⟨le_of_lt hy.1, hy.2⟩).le)
+    ⟨(1 : ℝ) / 2, ⟨by norm_num, by norm_num⟩,
+      intervalDomain_solution_lift_pos_Icc hsol ht ((1 : ℝ) / 2)
+        ⟨by norm_num, by norm_num⟩⟩
+
+/-- On the unit interval, the mass of a positive classical slice is bounded by
+its concrete supremum norm. -/
+theorem intervalDomain_classicalSolution_mass_le_supNorm
+    {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    intervalDomain.integral (u t) ≤ intervalDomain.supNorm (u t) := by
+  have hu_cont := intervalDomain_solution_lift_continuousOn_Icc hsol ht
+  have hu_int : IntervalIntegrable (intervalDomainLift (u t)) volume 0 1 := by
+    have hu_cont_uIcc : ContinuousOn (intervalDomainLift (u t))
+        (Set.uIcc (0 : ℝ) 1) := by
+      simpa [Set.uIcc_of_le (zero_le_one : (0 : ℝ) ≤ 1)] using hu_cont
+    exact hu_cont_uIcc.intervalIntegrable
+  have hzero_int : IntervalIntegrable
+      (intervalDomainLift (fun _ : intervalDomain.Point => (0 : ℝ))) volume 0 1 := by
+    have hzero : intervalDomainLift (fun _ : intervalDomain.Point => (0 : ℝ)) =
+        fun _ => 0 := by
+      funext y
+      simp [intervalDomainLift]
+    rw [hzero]
+    exact intervalIntegral.intervalIntegrable_const
+  have hbdd := intervalDomain_solution_slice_abs_bddAbove hsol ht
+  have hbdd_diff :
+      BddAbove (Set.range (fun x : intervalDomain.Point => |u t x - 0|)) := by
+    simpa using hbdd
+  have hle := intervalDomain_integral_abs_sub_le_supNorm
+    (f := u t) (g := fun _ => 0) hu_int hzero_int hbdd_diff
+  have hzero_mass :
+      intervalDomain.integral (fun _ : intervalDomain.Point => (0 : ℝ)) = 0 := by
+    change intervalDomainIntegral (fun _ : intervalDomain.Point => (0 : ℝ)) = 0
+    unfold intervalDomainIntegral
+    have hzero : intervalDomainLift (fun _ : intervalDomain.Point => (0 : ℝ)) =
+        fun _ => 0 := by
+      funext y
+      simp [intervalDomainLift]
+    rw [hzero]
+    simp
+  rw [hzero_mass] at hle
+  have habs :
+      |intervalDomain.integral (u t)| ≤ intervalDomain.supNorm (u t) := by
+    simpa using hle
+  exact (le_abs_self _).trans habs
+
 private theorem bddAbove_range_abs_diff_of_bddAbove
     {f g : intervalDomain.Point → ℝ}
     (hf : BddAbove (Set.range (fun x => |f x|)))

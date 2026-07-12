@@ -60,6 +60,7 @@ import ShenWork.Paper2.IntervalDomainTheorem11
 import ShenWork.Paper2.IntervalDomainTierChain
 import ShenWork.Paper2.IntervalDomainClassicalUniqueness
 import ShenWork.Paper2.IntervalDomainTheorem12
+import ShenWork.Paper2.IntervalDomainTheorem12Refutation
 import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
 import ShenWork.Paper3.StatementAssembly
