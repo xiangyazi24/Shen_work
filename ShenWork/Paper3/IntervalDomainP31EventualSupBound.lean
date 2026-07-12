@@ -1,0 +1,117 @@
+/-
+  ShenWork/Paper3/IntervalDomainP31EventualSupBound.lean
+
+  **Paper 3 Proposition 1.2 (P3.1) — the `eventualSupBound` analytic field (Gap A).**
+
+  For the χ₀ ≤ 0 interval system, ANY global classical solution is eventually
+  bounded in sup norm.  This is the genuinely-new analytic content of P3.1 that
+  does NOT follow definitionally from Paper 2 Theorem 1.1's finite-`Tmax` bound
+  (cf. `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`).
+
+  The key observation: for χ₀ ≤ 0 the chemotaxis term has the "good" sign, and the
+  already-proved invariant region `Lemma_3_1_intervalDomain` (sup-norm
+  non-increasing above the carrying capacity `(a/b)^{1/α}`) upgrades — via an
+  INTERIOR reference time `t = 1` — to an eventual global bound.  Using an interior
+  time means the argument needs NO initial-trace "approach" condition and is
+  entirely INDEPENDENT of the χ<0 existence work: it takes the global solution as
+  a hypothesis.
+
+  This lets us discharge the `eventualSupBound` field of
+  `IntervalDomainPaper3NegativeSensitivityFrontierData`, isolating the whole
+  remaining P3.1 residual to the `globalSolution` (existence) field.
+
+  No `sorry`/`admit`/custom `axiom`.
+-/
+import ShenWork.Paper2.IntervalLemma31Closure
+import ShenWork.Paper3.IntervalDomainStatementAssembly
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open Filter Topology
+
+noncomputable section
+
+namespace ShenWork.Paper3.P31EventualSupBound
+
+/-- **Gap A, logistic regime `0 < a, 0 < b`.**  Any global classical solution of
+the χ₀ ≤ 0 interval system is eventually bounded in sup norm.  `T₀ = 1` and
+`M = max (‖u 1‖∞) ((a/b)^{1/α})`: above the carrying capacity the sup norm is
+non-increasing (`Lemma_3_1_intervalDomain`), so it can never exceed its value at
+the interior reference time `1`. -/
+theorem eventualSupBound_of_global_posAB
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    ∃ T₀ M : ℝ, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M := by
+  refine ⟨1, max (intervalDomain.supNorm (u 1))
+      ((p.a / p.b) ^ (1 / p.α)), ?_⟩
+  intro t ht
+  by_cases hbelow :
+      intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
+  · exact le_trans hbelow (le_max_right _ _)
+  · push_neg at hbelow
+    have hmono :
+        SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t) :=
+      (Lemma31Closure.Lemma_3_1_intervalDomain p hχ).1 ha hb (t + 1)
+        (by linarith) u v (hglobal (t + 1) (by linarith)) t
+        (by linarith) (by linarith) hbelow
+    have h1mem : (1 : ℝ) ∈ Set.Ioc (0 : ℝ) t := ⟨by norm_num, ht⟩
+    have htmem : t ∈ Set.Ioc (0 : ℝ) t := ⟨by linarith, le_rfl⟩
+    exact le_trans (hmono 1 h1mem t htmem ht) (le_max_left _ _)
+
+/-- **Gap A, degenerate regime `a = 0, b = 0`.**  With no reaction the sup norm is
+non-increasing on every window, so it is eventually bounded by its value at the
+interior reference time `1`. -/
+theorem eventualSupBound_of_global_zeroAB
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    ∃ T₀ M : ℝ, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M := by
+  refine ⟨1, intervalDomain.supNorm (u 1), ?_⟩
+  intro t ht
+  have hmono :
+      SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) (t + 1)) :=
+    (Lemma31Closure.Lemma_3_1_intervalDomain p hχ).2 ha hb (t + 1)
+      (by linarith) u v (hglobal (t + 1) (by linarith))
+  have h1mem : (1 : ℝ) ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨by norm_num, by linarith⟩
+  have htmem : t ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨by linarith, by linarith⟩
+  exact hmono 1 h1mem t htmem ht
+
+/-- **Field-by-field assembly of the P3.1 negative-sensitivity residual
+(logistic regime `0 < a, 0 < b`).**  The `eventualSupBound` field (Gap A) is
+DISCHARGED here from the invariant region; the `globalSolution` (existence +
+initial trace) field is CARRIED as the hypothesis `hGlobal` — that is the entire
+remaining P3.1 residual, supplied by Paper 2 χ≤0 existence once packaged. -/
+theorem negativeSensitivityGlobalEventualBound_of_globalSolution_posAB
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hGlobal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+            ∃ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+              InitialTrace intervalDomain u₀ u) :
+    NegativeSensitivityGlobalEventualBound intervalDomain p := by
+  intro hχ hm u₀ hu₀
+  obtain ⟨u, v, hglobal, htrace⟩ := hGlobal hχ hm u₀ hu₀
+  obtain ⟨T₀, M, hM⟩ := eventualSupBound_of_global_posAB p hχ ha hb hglobal
+  exact ⟨u, v, hglobal, htrace, M, eventually_atTop.mpr ⟨T₀, hM⟩⟩
+
+/-- **P3.1 (`Proposition_1_2 intervalDomain p`) in the logistic regime, reduced to
+existence.**  Combines the field-by-field residual with the existing bridge
+`Proposition_1_2_of_negativeSensitivityGlobalEventualBound`.  The only hypothesis
+beyond `0 < a, 0 < b` is `hGlobal` (Paper 2 χ≤0 global existence + initial trace). -/
+theorem proposition_1_2_of_globalSolution_posAB
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hGlobal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+            ∃ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+              InitialTrace intervalDomain u₀ u) :
+    Proposition_1_2 intervalDomain p :=
+  Proposition_1_2_of_negativeSensitivityGlobalEventualBound intervalDomain p
+    (negativeSensitivityGlobalEventualBound_of_globalSolution_posAB p ha hb hGlobal)
+
+end ShenWork.Paper3.P31EventualSupBound

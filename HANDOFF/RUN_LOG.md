@@ -12,3 +12,11 @@
 - LESSON: count sorries as PROOF TERMS (`:= sorry` / `by sorry` / standalone), never `\bsorry\b` (matches docstrings). Re-audit any prior sorry-count claims.
 - end: <open>
 - final result: <open>
+
+## Run 2026-07-12 (resumed automode, session = shen window)
+- doctrine: HANDOFF/DOCTRINE-P31.md (Paper 3 P3.1)
+- approval: handoff /tmp/zinan_handoff_shen.md automode:yes + "不要等指示,立即继续推进"
+- starting avenue: (a) Gap A eventualSupBound [independent of Codex χ<0]
+- parallel: Codex owns χ<0 (tmux win 6, 3h43m in, HSpectral wiring); I do NOT re-drive it.
+- end: <fill on close>
+- final result: <fill on close>
