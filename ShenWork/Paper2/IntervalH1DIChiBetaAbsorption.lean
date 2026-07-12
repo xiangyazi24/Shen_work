@@ -20,8 +20,10 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalChiNegH1Energy
+import ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 
 open ShenWork.IntervalDomain
+open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 
 noncomputable section
 
@@ -63,5 +65,48 @@ theorem h1_diffIneq_of_sup_bounds_abs
       show (b * M * V₂) ^ 2 = b ^ 2 * M ^ 2 * V₂ ^ 2 by ring, hbsq]
   rw [hZ2] at ht; rw [hM2] at hu
   nlinarith [ht, hu, hr]
+
+/-- **|χ₀|-form sup-bound DI data** (no `hchi : 0 ≤ -χ₀` sign requirement): the
+absolute-value cross-term bounds, valid for ANY `χ₀` (incl. `0 < χ₀ < chiBeta`). -/
+structure H1SupBoundDIDataAbsBefore
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (T V₁ V₂ M L : ℝ) : Prop where
+  hV1 : 0 ≤ V₁
+  hV2 : 0 ≤ V₂
+  hM : 0 ≤ M
+  hL : 0 ≤ L
+  point : ∀ τ, 0 < τ → τ < T →
+    ∃ taxisX uvxx reactX X Z : ℝ,
+      H1EnergyIdentity p u τ taxisX uvxx reactX ∧
+      lapL2sq u τ = X ^ 2 ∧
+      Z ^ 2 = 2 * H1energy u τ ∧
+      0 ≤ X ∧
+      (-p.χ₀) * taxisX ≤ |p.χ₀| * (V₁ * (X * Z)) ∧
+      (-p.χ₀) * uvxx ≤ |p.χ₀| * (M * (V₂ * X)) ∧
+      reactX ≤ L * Z ^ 2
+
+/-- The |χ₀|-form DI data yields the SAME `H1IdentityRHSBoundBefore` RHS-bound
+package as the `χ₀ ≤ 0` route (constants depend only on `χ₀²`), via the |χ₀|
+absorption lemma.  This connects the positive-`χ₀` cross-term bounds to the
+GENERIC scalar-DI reducer `H1ScalarDIOnBefore_of_identityRHSBound`. -/
+theorem H1IdentityRHSBoundBefore_of_supBoundDIDataAbs
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hdata : H1SupBoundDIDataAbsBefore p u T V₁ V₂ M L) :
+    H1IdentityRHSBoundBefore p u T
+      (2 * (-p.χ₀) ^ 2 * V₁ ^ 2 + 2 * L)
+      ((-p.χ₀) ^ 2 * M ^ 2 * V₂ ^ 2) := by
+  refine { hA := ?_, hB := ?_, bound := ?_ }
+  · have h1 : 0 ≤ 2 * (-p.χ₀) ^ 2 * V₁ ^ 2 := by positivity
+    have h2 : 0 ≤ 2 * L := by linarith [hdata.hL]
+    linarith
+  · positivity
+  · intro τ hτ0 hτT
+    rcases hdata.point τ hτ0 hτT with
+      ⟨taxisX, uvxx, reactX, X, Z, hEnergy, hXsq, hZsq, hXnn,
+        htaxis, huvxx, hreact⟩
+    refine ⟨taxisX, uvxx, reactX, hEnergy, ?_⟩
+    exact h1_diffIneq_of_sup_bounds_abs
+      hdata.hV1 hdata.hV2 hdata.hM hdata.hL hXsq hZsq hXnn htaxis huvxx hreact
 
 end ShenWork.Paper2.IntervalChiNegH1Energy
