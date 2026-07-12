@@ -115,23 +115,34 @@ theorem proposition_1_2_of_globalSolution_posAB
   Proposition_1_2_of_negativeSensitivityGlobalEventualBound intervalDomain p
     (negativeSensitivityGlobalEventualBound_of_globalSolution_posAB p ha hb hGlobal)
 
-/-- **P3.1 fully UNCONDITIONAL for the zero-sensitivity case `χ₀ = 0`.**  Both P3.1
-fields are discharged with no residual: `globalSolution` from the axiom-clean
-`intervalDomain_theorem_1_1_chiZero_unconditional` (Paper 2 Theorem 1.1, PPID-typed,
-so it feeds Proposition 1.2's PaperPositiveInitialDatum quantifier directly, avoiding
-the PID datum-class gap), and the eventual `IsPaper2Bounded` from Gap A.  This is a
-genuine new Paper 3 headline, independent of the χ<0 existence work. -/
-theorem proposition_1_2_intervalDomain_chiZero
-    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+/-- **The key P3.1 reduction: `Proposition_1_2` from Paper 2 `Theorem_1_1`
+(logistic regime `0 < a, 0 < b`).**  Paper 2's main theorem is PPID-typed and, for
+`1 ≤ m`, supplies a GLOBAL classical solution + initial trace for every
+`PaperPositiveInitialDatum`; Gap A upgrades its finite-window bound to the eventual
+`IsPaper2Bounded`.  So P3.1 is a direct corollary of Paper 2 Theorem 1.1 — no PID
+frontier/datum-class detour.  This closes P3.1 for ANY χ₀≤0 branch as soon as the
+corresponding `Theorem_1_1 intervalDomain p` is available (χ₀=0 now; χ<0 when Codex
+lands it). -/
+theorem proposition_1_2_of_theorem_1_1_posAB
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hT11 : Theorem_1_1 intervalDomain p) :
     Proposition_1_2 intervalDomain p := by
   intro hχ hm u₀ hu₀
-  obtain ⟨hposBranch, _⟩ :=
-    intervalDomain_theorem_1_1_chiZero_unconditional p hχ0 ha hb hα hγ hχ
+  obtain ⟨hposBranch, _⟩ := hT11 hχ
   obtain ⟨_Tmax, _hTmax, u, v, _hsol, htrace, _hbound, hglobalImp⟩ :=
     hposBranch ha hb u₀ hu₀
   have hglobal := hglobalImp hm
   obtain ⟨_T₀, _M, hM⟩ := eventualSupBound_of_global_posAB p hχ ha hb hglobal
   exact ⟨u, v, hglobal, htrace, IsPaper2Bounded.of_forall_ge_supNorm_le hM⟩
+
+/-- **P3.1 fully UNCONDITIONAL for the zero-sensitivity case `χ₀ = 0`.**  Corollary of
+the Theorem 1.1 reduction applied to the axiom-clean χ₀=0 Paper 2 theorem.  A genuine
+new Paper 3 headline with NO residual, independent of the χ<0 existence work. -/
+theorem proposition_1_2_intervalDomain_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Proposition_1_2 intervalDomain p :=
+  proposition_1_2_of_theorem_1_1_posAB p ha hb
+    (intervalDomain_theorem_1_1_chiZero_unconditional p hχ0 ha hb hα hγ)
 
 end ShenWork.Paper3.P31EventualSupBound
