@@ -164,3 +164,12 @@ cannot soundly use it.  Added a separate `intervalDomainM` with the published
 `u^m` flux, plus a maximal-continuation carrier and corrected headline
 specification.  This isolates the repair without silently changing the 9300+
 legacy build targets.
+2026-07-12 [Codex] Faithful slow-branch finite-descent correction: the OCR of
+the source proof hid superscripts and suggested a linear `2*k` exponent.  The
+actual Young recurrence is `r_(k+1) = 2*r_k - p`, hence
+`r_k = p + 2^k*(m-1)` and the terminal choice is `p = 2^n*(1-m)`.
+`IntervalDomainMFiniteDescent.lean` now proves the elliptic multiplier/IBP
+identity, one-step Young descent, arbitrary finite iteration, and the terminal
+signed-cross estimate for the faithful `u^m` flux.  Its capstone passes the
+local single-file check and depends only on the standard three axioms; the
+module is root-imported for the next uisai2 gate.
