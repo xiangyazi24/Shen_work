@@ -103,6 +103,46 @@ theorem intervalDomainCosineSlice_conjunct7
             intervalDomainLift_deriv_right_endpoint_zero_of_ne hne1⟩
   exact ((cosineCoeffSeries_contDiff_two hb).contDiffOn).congr hagree
 
+/-- The endpoint `deriv = 0` conclusion does not actually require a nonzero
+endpoint value.  If the zero extension is not differentiable, this is the
+usual junk-value conclusion.  If it is differentiable, uniqueness of the
+one-sided derivative on `[0,1]` identifies it with the derivative of the
+cosine-series representative, which vanishes at both endpoints. -/
+theorem intervalDomainCosineSlice_conjunct7_unconditional
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (intervalDomainLift w) (Set.Icc (0 : ℝ) 1)
+      ∧ deriv (intervalDomainLift w) 0 = 0
+      ∧ deriv (intervalDomainLift w) 1 = 0 := by
+  let g : ℝ → ℝ := fun x => ∑' n, b n * cosineMode n x
+  have h0mem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by norm_num
+  have h1mem : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by norm_num
+  have hg0 : HasDerivWithinAt g 0 (Set.Icc (0 : ℝ) 1) 0 := by
+    have hder : HasDerivAt g 0 0 := by
+      simpa [g] using (cosineCoeffSeries_grad_hasDerivAt hb 0)
+    exact hder.hasDerivWithinAt
+  have hg1 : HasDerivWithinAt g 0 (Set.Icc (0 : ℝ) 1) 1 := by
+    have hder : HasDerivAt g 0 1 := by
+      simpa [g] using (cosineCoeffSeries_grad_hasDerivAt hb 1)
+    exact hder.hasDerivWithinAt
+  have hw0 : HasDerivWithinAt (intervalDomainLift w) 0
+      (Set.Icc (0 : ℝ) 1) 0 :=
+    hg0.congr_of_mem (fun x hx => by simpa [g] using hagree hx) h0mem
+  have hw1 : HasDerivWithinAt (intervalDomainLift w) 0
+      (Set.Icc (0 : ℝ) 1) 1 :=
+    hg1.congr_of_mem (fun x hx => by simpa [g] using hagree hx) h1mem
+  refine ⟨((cosineCoeffSeries_contDiff_two hb).contDiffOn).congr hagree, ?_, ?_⟩
+  · by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift w) 0
+    · exact (uniqueDiffOn_Icc_zero_one 0 h0mem).eq_deriv
+        (Set.Icc (0 : ℝ) 1) hdiff.hasDerivAt.hasDerivWithinAt hw0
+    · exact deriv_zero_of_not_differentiableAt hdiff
+  · by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift w) 1
+    · exact (uniqueDiffOn_Icc_zero_one 1 h1mem).eq_deriv
+        (Set.Icc (0 : ℝ) 1) hdiff.hasDerivAt.hasDerivWithinAt hw1
+    · exact deriv_zero_of_not_differentiableAt hdiff
+
 /-! ## Subgoal [B] — the remaining spatial conjuncts (3) and (6)
 
 Conjunct (3) is the open-interval `ContDiffOn` (a restriction of conjunct (7));

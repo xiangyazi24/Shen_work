@@ -498,3 +498,4 @@ import ShenWork.Paper2.IntervalChiNegH1DerivativeWindowProducer
 import ShenWork.Paper2.IntervalChiNegH1BridgeInitialWiring
 import ShenWork.Wiener.EWA.SourceChiNegUniformBridge
 import ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
+import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
