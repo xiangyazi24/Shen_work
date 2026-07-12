@@ -1,0 +1,141 @@
+# Roadmap/support prep answers — index (archived from /tmp 2026-07-12)
+# Each is a ChatGPT answer for a specific phase/piece; read the relevant one JUST-IN-TIME when executing that phase.
+- gpt_Q4400 — Route C, Block 4: exact finite local-image certificate
+- gpt_Q4401 — Verdict
+- gpt_Q4402 — Executive verdict
+- gpt_Q4404 — N18 Route C: top-level Lean assembly roadmap
+- gpt_Q4405 — Q4405 — adversarial check: can the ladder avoid the C³ flux bound?
+- gpt_Q4406 — Adversarial verdict
+- gpt_Q4407 — Definitive verdict
+- gpt_Q4408 — Verdict
+- gpt_Q4409 — Q4409: weighted / finite-`p` chemotaxis energy step for the Paper 2 `L^p` mountain
+- gpt_Q4410 — N18 Route C, Block 3: explicit Mumford-level push-pull formulas
+- gpt_Q4412 — Executive verdict
+- gpt_Q4413 — Executive verdict
+- gpt_Q4414 — Verdict
+- gpt_Q4415 — N18 Route C corpus self-consistency audit
+- gpt_Q4416 — Definitive verdict
+- gpt_Q4417 — Definitive verdict
+- gpt_Q4418 — Q4418: endgame chain after chem-div hH2
+- gpt_Q4419 — Block 5: the correct 3-adic formal-kernel separation lemma
+- gpt_Q4420 — Reference Lean 4 draft: N18 Route C, Block 4
+- gpt_Q4421 — Q4421: finish-line audit from chem-div `hH2` to χ<0 HSpectral / headline
+- gpt_Q4422 — Definitive verdict
+- gpt_Q4423 — Paper 2 χ ≤ 0 interval API: exact step-0 packaging spec
+- gpt_Q4424 — Executive verdict
+- gpt_Q4426 — Reference Lean 4 draft: N18 Route C, Block 5
+- gpt_Q4427 — Executive verdict
+- gpt_Q4429 — Reference Lean 4 draft: N18 Route C, Block 1
+- gpt_Q4430 — Executive verdict
+- gpt_Q4431 — N18 Route C: top-level Lean assembly contract
+- gpt_Q4432 — Verdict
+- gpt_Q4433 — Reference Lean 4 draft: N18 Route C, Block 6
+- gpt_Q4434 — Verdict
+- gpt_Q4435 — Verdict
+- gpt_Q4436 — Verdict
+- gpt_Q4437 — Definitive verdict
+- gpt_Q4438 — Verdict
+- gpt_Q4439 — Verdict
+- gpt_Q4440 — Definitive verdict
+- gpt_Q4441 — Paper 3 Theorem 2.2 linear-stability dichotomy: executable Lean spec
+- gpt_Q4442 — N18 Route C: reference Lean 4 base-change interface
+- gpt_Q4443 — Paper 1 Rothe step-9: executable `hprodAll` and orbit-compactness specification
+- gpt_Q4444 — Paper 3 steps 4–5: compactness + persistence execution prep
+- gpt_Q4445 — Executive verdict
+- gpt_Q4446 — Q4446 — Paper 3 small-threshold tails / P3.7 execution prep
+- gpt_Q4447 — Definitive verdict
+- gpt_Q4448 — Eliminating `exists_rational_two_isogeny_quotient`
+- gpt_Q4450 — N14 structural helper: replacing the `ZMod 2 × ZMod 14` bridge axiom
+- gpt_Q4451 — N18 Route C: exact Mathlib declaration survey
+- gpt_Q4452 — Capstone adversarial audit: χ<0 Theorem 1.1 closure plan
+- gpt_Q4453 — Verdict
+- gpt_Q4454 — Definitive verdict
+- gpt_Q4455 — Explicit Vélu degree-two quotient: Lean 4 reference draft
+- gpt_Q4456 — Jensen + final-assembly adversarial audit
+- gpt_Q4457 — Verdict
+- gpt_Q4458 — Layer-1 helper batch plan for the Mazur `|Torsion| ≤ 16` build
+- gpt_Q4459 — Definitive verdict
+- gpt_Q4460 — Adversarial audit: Vélu 2-isogeny formulas
+- gpt_Q4461 — Verdict
+- gpt_Q4462 — Reference Lean 4 draft for the Z/2 × Z/14 structural bridge
+- gpt_Q4463 — Executive verdict
+- gpt_Q4464 — N = 11: exact modular curve, Tate bridge, and Lean rank-zero route
+- gpt_Q4466 — Step-0 theorem-level API extraction for Paper 2 interval `χ₀ ≤ 0`
+- gpt_Q4467 — Verdict
+- gpt_Q4468 — Verdict
+- gpt_Q4469 — Executive verdict
+- gpt_Q4470 — Executive verdict
+- gpt_Q4471 — Definitive verdict
+- gpt_Q4472 — Verdict
+- gpt_Q4473 — Executive verdict
+- gpt_Q4474 — Definitive audit
+- gpt_Q4475 — Executive verdict
+- gpt_Q4476 — Verdict
+- gpt_Q4477 — Executive verdict
+- gpt_Q4478 — Executive verdict
+- gpt_Q4479 — Verdict
+- gpt_Q4480 — Capstone verdict
+- gpt_Q4481 — Executive verdict
+- gpt_Q4482 — N49 reference Lean draft: no_raw_order49_tate_obstruction
+- gpt_Q4483 — Executive verdict
+- gpt_Q4484 — Executive verdict
+- gpt_Q4486 — Paper 2 Lᵖ → Paper 3 bridge map
+- gpt_Q4487 — Verdict
+- gpt_Q4488 — Verdict
+- gpt_Q4489 — Definitive verdict
+- gpt_Q4490 — Executive verdict
+- gpt_Q4491 — Executive verdict
+- gpt_Q4492 — Verdict
+- gpt_Q4493 — Definitive verdict
+- gpt_Q4494 — Executive verdict
+- gpt_Q4495 — Mathlib infrastructure inventory for the uniform prime-torsion tail
+- gpt_Q4496 — Paper 3 step-6: nonlinear local exponential stability route
+- gpt_Q4497 — Paper 1 Rothe step+tail continuous-dependence: paste-ready target
+- gpt_Q4498 — Definitive verdict
+- gpt_Q4499 — `PrimeTailPackage p`: a precise replacement for the opaque prime-tail axiom
+- gpt_Q4500 — Definitive verdict
+- gpt_Q4501 — Rational elliptic-curve torsion is finite via two good primes
+- gpt_Q4502 — N17 fixed-case draft: `no_rational_point_of_order_17`
+- gpt_Q4503 — Paper 2 Theorem 1.3 regime map — paste-ready roadmap
+- gpt_Q4504 — Executive verdict
+- gpt_Q4505 — The single analytic-rank-to-Mordell–Weil input
+- gpt_Q4506 — Repository-grounded verdict
+- gpt_Q4507 — Paper 1 current-state audit: `WaveLemma42Paper` + `WaveLemma42ParamCore`
+- gpt_Q4508 — Final risk ranking
+- gpt_Q4509 — `A4Package` for the order-25 seam
+- gpt_Q4510 — N18 balanced-Mumford normal form: the exact correction and proof
+- gpt_Q4511 — N18 Block 5: the strict \(3\)-adic formal-kernel filtration and the \([21]\)-annihilator
+- gpt_Q4512 — N18 Block 3: concrete hyperelliptic negation and degree-two trace proofs
+- gpt_Q4513 — 
+- gpt_Q4514 — Verdict
+- gpt_Q4515 — Verdict
+- gpt_Q4516 — Definitive verification
+- gpt_Q4518 — Exact result
+- gpt_Q4519 — Verdict
+- gpt_Q4520 — Executive verdict
+- gpt_Q4521 — Independent verification of `C(ℚ) = cusps` for `X₁(18)`
+- gpt_Q4522 — Restart-slice square-root seed: what it gives and how to use it
+- gpt_Q4523 — Definitive verdict
+- gpt_Q4524 — Exact declaration
+- gpt_Q4525 — N18 Block 2: the two infinity orders and the oriented-class bridge
+- gpt_Q4526 — Definitive verdict
+- gpt_Q4527 — Verdict
+- gpt_Q4528 — Verdict
+- gpt_Q4529 — Definitive verdict
+- gpt_Q4530 — Definitive verdict
+- gpt_Q4531 — Verdict
+- gpt_Q4532 — Verdict
+- gpt_Q4533 — Definitive answer
+- gpt_Q4534 — Verdict
+- gpt_Q4535 — N18 Block 4 adversarial QA: the 3-isogeny constants
+- gpt_Q4536 — Verdict
+- gpt_Q4537 — Verdict
+- gpt_Q4538 — Verdict
+- gpt_Q4539 — Decisive verdict
+- gpt_Q4540 — Verdict
+- gpt_Q4542 — Definitive verdict
+- gpt_Q4544 — Verdict
+- gpt_Q4545 — Verdict
+- gpt_Q4548 — Verdict
+- gpt_Q4549 — Verdict
+- gpt_Q4551 — Verdict
