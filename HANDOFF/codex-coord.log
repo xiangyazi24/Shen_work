@@ -173,3 +173,10 @@ identity, one-step Young descent, arbitrary finite iteration, and the terminal
 signed-cross estimate for the faithful `u^m` flux.  Its capstone passes the
 local single-file check and depends only on the standard three axioms; the
 module is root-imported for the next uisai2 gate.
+
+2026-07-12 Codex: added `IntervalDomainMSlowLpBound.lean`.  Local single-file
+verification is green.  It closes the finite-descent terminal term, proves a
+uniform finite-Lp bound for faithful `intervalDomainM`, and selects a
+power-of-two exponent above `max 1 (max m gamma)`.  Axiom audit: only propext,
+Classical.choice, Quot.sound.  Root import added.  Full build remains remote
+only because local root builds exhaust the Mac mini.
