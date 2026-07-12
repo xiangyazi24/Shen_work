@@ -235,3 +235,10 @@ Agmon absorption (`gamma < 2*p0`), the concrete Lp energy inequality, and a
 positive-time linear-damping threshold closure; no relative weighted-gradient
 or dissipation-drop frontier is used.  It yields a uniform exponent above
 `max 1 gamma`.  Local single-file and standard-three axiom gates pass.
+
+2026-07-12 [Codex] Critical far-kernel atom: added a spectral positive-lag
+`L1 -> Linfinity` bound for the interval conjugate kernel.  The proof exports
+the reciprocal-cubic frequency majorant and the normalized sine-coefficient
+`L1` bound, then sums the cosine series.  The new module is root-imported,
+single-file green, and all public declarations use only the standard three
+axioms.  This is the far half of the critical two-scale Duhamel estimate.
