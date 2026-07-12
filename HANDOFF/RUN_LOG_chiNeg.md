@@ -120,3 +120,21 @@ audits passed.  The authoritative uisai2 root build passed (`BUILD OK`, 9256
 jobs, 666s), including the chi-zero regression path and all downstream V6/Jensen
 modules.  Next critical path: source-finish reconstruction, weak-H2 product
 representative, window-local source regularity, and HSpectral assembly.
+
+## MILESTONE 2026-07-12: source weak-H2 assembly (06adfd3e)
+Public C2-Neumann cosine reconstruction now identifies the solution series with
+the lifted interval slice on the closed interval without using the private
+level-5 bootstrap theorem.  The chem-div product representation is compared on
+the open interval and transferred a.e., so endpoint derivative values are not
+assumed.  This wires the even-C3 solution and resolver-C4 representatives into
+the weak-H2 witness.  The uisai2 root build passed (`BUILD OK`, 9261 jobs,
+143s), and the new theorem audits are clean-3.  Next: window-local source-time
+regularity plus the finite coefficient ladder, then HSpectral integration.
+
+## MILESTONE 2026-07-12: total-source quadratic window envelope
+`IntervalBFormSourceWeakH2EnvelopeV6.lean` combines separate logistic and
+chem-div weak-Neumann H2 witnesses and uniform compact-window second-derivative
+L1 bounds into `WindowSourceEnvelope 2` for the soft-clamped total B-form
+source `logistic - chi0 * chemDiv`.  The source file passes its local
+single-file check and clean-3 scan; uisai2 root verification follows the
+milestone commit.
