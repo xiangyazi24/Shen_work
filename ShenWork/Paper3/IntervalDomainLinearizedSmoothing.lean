@@ -139,8 +139,54 @@ theorem unitIntervalLinearizedGrowth_weighted_smoothing
       (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
       hgap.1 hB hgGap hgTail htheta ht)
 
+/-- Per-mode stable smoothing when the zero mode is also damped. -/
+theorem unitIntervalLinearizedGrowth_weighted_smoothing_full
+    (p : CM2Params) {uStar vStar gap theta t : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (htheta : 0 < theta) (ht : 0 < t) (n : ℕ) :
+    (1 + unitIntervalNeumannSpectrum.eigenvalue n) ^ theta *
+        Real.exp (t * unitIntervalLinearizedGrowth p uStar vStar n) ≤
+      (theta /
+          (Real.exp 1 *
+            ((gap /
+              (2 *
+                (gap +
+                  (|p.χ₀ * p.ν * p.γ *
+                      uStar ^ (p.m + p.γ - 1) /
+                    (1 + vStar) ^ p.β| + 1)))) * t))) ^ theta *
+        Real.exp (-(gap / 2) * t) := by
+  let B : ℝ :=
+    |p.χ₀ * p.ν * p.γ * uStar ^ (p.m + p.γ - 1) /
+      (1 + vStar) ^ p.β| + 1
+  have hB : 0 ≤ B := by dsimp [B]; positivity
+  have hgGap : unitIntervalLinearizedGrowth p uStar vStar n ≤ -gap :=
+    hgap.2 n
+  have hsigma :=
+    sigma_le_neg_lambda_add_abs_chemMultiplier p (uStar := uStar)
+      heq.v_nonneg
+      (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
+  have hgTail :
+      unitIntervalLinearizedGrowth p uStar vStar n ≤
+        -(1 + unitIntervalNeumannSpectrum.eigenvalue n) + B := by
+    change sigma p uStar vStar (unitIntervalNeumannSpectrum.eigenvalue n) ≤
+      -(1 + unitIntervalNeumannSpectrum.eigenvalue n) + B
+    change sigma p uStar vStar (unitIntervalNeumannSpectrum.eigenvalue n) ≤
+      -unitIntervalNeumannSpectrum.eigenvalue n +
+        |p.χ₀ * p.ν * p.γ * uStar ^ (p.m + p.γ - 1) /
+          (1 + vStar) ^ p.β| at hsigma
+    dsimp [B]
+    linarith
+  simpa [B] using
+    (stable_growth_weighted_smoothing
+      (lambda := unitIntervalNeumannSpectrum.eigenvalue n)
+      (gap := gap) (B := B) (theta := theta) (t := t)
+      (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
+      hgap.1 hB hgGap hgTail htheta ht)
+
 #print axioms stable_growth_weighted_smoothing
 #print axioms unitIntervalLinearizedGrowth_weighted_smoothing
+#print axioms unitIntervalLinearizedGrowth_weighted_smoothing_full
 
 end
 
