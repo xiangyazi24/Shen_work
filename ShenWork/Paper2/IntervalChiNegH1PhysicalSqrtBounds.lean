@@ -181,6 +181,105 @@ private theorem H1PhysicalUvxxX_le_of_l2_bound
     _ = M * (V₂ * H1lapL2Norm u τ) := by
         ring
 
+/-- The physical taxis scalar admits the sign-agnostic absolute-value bound
+obtained directly from the spatial Cauchy--Schwarz estimate.  In particular,
+this estimate does not use the sign of `p.χ₀`; that coefficient only enters
+when the H¹ identity is assembled downstream. -/
+theorem H1PhysicalTaxisX_abs_le_of_l2_bound
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {τ V₁ : ℝ}
+    (hlap : IntervalIntegrable
+      (fun x => (liftDeriv2 u τ x) ^ 2) volume (0 : ℝ) 1)
+    (htaxis : IntervalIntegrable
+      (fun x => (H1PhysicalChemTaxisPart p u v τ x) ^ 2) volume (0 : ℝ) 1)
+    (hprod : IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x|)
+      volume (0 : ℝ) 1)
+    (hbound :
+      Real.sqrt
+          (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+        ≤ V₁ * H1gradL2Norm u τ) :
+    |H1PhysicalTaxisX p u v τ| ≤
+      V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ) := by
+  have hcs :=
+    ShenWork.GagliardoNirenberg.integral_abs_mul_le_sqrt
+      (L := (1 : ℝ))
+      (f := fun x => liftDeriv2 u τ x)
+      (g := fun x => H1PhysicalChemTaxisPart p u v τ x)
+      (by norm_num) hlap htaxis hprod
+  have habs :
+      |∫ x in (0 : ℝ)..1,
+          liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x| ≤
+        ∫ x in (0 : ℝ)..1,
+          |liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x| :=
+    intervalIntegral.abs_integral_le_integral_abs
+      (by norm_num : (0 : ℝ) ≤ 1)
+  calc
+    |H1PhysicalTaxisX p u v τ|
+        = |∫ x in (0 : ℝ)..1,
+            liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x| := by
+          simp [H1PhysicalTaxisX]
+    _ ≤ ∫ x in (0 : ℝ)..1,
+          |liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x| :=
+        habs
+    _ ≤ H1lapL2Norm u τ *
+          Real.sqrt
+            (∫ x in (0 : ℝ)..1,
+              (H1PhysicalChemTaxisPart p u v τ x) ^ 2) := by
+        simpa [H1lapL2Norm, lapL2sq] using hcs
+    _ ≤ H1lapL2Norm u τ * (V₁ * H1gradL2Norm u τ) :=
+        mul_le_mul_of_nonneg_left hbound (H1lapL2Norm_nonneg u τ)
+    _ = V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ) := by
+        ring
+
+/-- The physical `u vₓₓ` scalar admits the corresponding sign-agnostic
+absolute-value bound. -/
+theorem H1PhysicalUvxxX_abs_le_of_l2_bound
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {τ V₂ M : ℝ}
+    (hlap : IntervalIntegrable
+      (fun x => (liftDeriv2 u τ x) ^ 2) volume (0 : ℝ) 1)
+    (huvxx : IntervalIntegrable
+      (fun x => (H1PhysicalChemUvxxPart p u v τ x) ^ 2) volume (0 : ℝ) 1)
+    (hprod : IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x|)
+      volume (0 : ℝ) 1)
+    (hbound :
+      Real.sqrt
+          (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+        ≤ M * V₂) :
+    |H1PhysicalUvxxX p u v τ| ≤ M * (V₂ * H1lapL2Norm u τ) := by
+  have hcs :=
+    ShenWork.GagliardoNirenberg.integral_abs_mul_le_sqrt
+      (L := (1 : ℝ))
+      (f := fun x => liftDeriv2 u τ x)
+      (g := fun x => H1PhysicalChemUvxxPart p u v τ x)
+      (by norm_num) hlap huvxx hprod
+  have habs :
+      |∫ x in (0 : ℝ)..1,
+          liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x| ≤
+        ∫ x in (0 : ℝ)..1,
+          |liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x| :=
+    intervalIntegral.abs_integral_le_integral_abs
+      (by norm_num : (0 : ℝ) ≤ 1)
+  calc
+    |H1PhysicalUvxxX p u v τ|
+        = |∫ x in (0 : ℝ)..1,
+            liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x| := by
+          simp [H1PhysicalUvxxX]
+    _ ≤ ∫ x in (0 : ℝ)..1,
+          |liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x| :=
+        habs
+    _ ≤ H1lapL2Norm u τ *
+          Real.sqrt
+            (∫ x in (0 : ℝ)..1,
+              (H1PhysicalChemUvxxPart p u v τ x) ^ 2) := by
+        simpa [H1lapL2Norm, lapL2sq] using hcs
+    _ ≤ H1lapL2Norm u τ * (M * V₂) :=
+        mul_le_mul_of_nonneg_left hbound (H1lapL2Norm_nonneg u τ)
+    _ = M * (V₂ * H1lapL2Norm u τ) := by
+        ring
+
 /-- Pointwise physical scalar estimates produce the concrete physical H¹
 sqrt-bound frontier.  This is only a thin wrapper around
 `H1SqrtTermBoundsBefore`; the analytic estimates remain explicit. -/
@@ -272,6 +371,8 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_L2SqrtBoundData
 
 #print axioms H1PhysicalTaxisX_le_of_l2_bound
 #print axioms H1PhysicalUvxxX_le_of_l2_bound
+#print axioms H1PhysicalTaxisX_abs_le_of_l2_bound
+#print axioms H1PhysicalUvxxX_abs_le_of_l2_bound
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_pointwise_norm_bounds
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_pointwiseEstimates
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_L2SqrtBoundData
