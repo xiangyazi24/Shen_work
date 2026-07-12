@@ -7,11 +7,15 @@
 -/
 import ShenWork.Paper3.IntervalDomainDuhamelDecomposition
 import ShenWork.Paper3.EventualExponentialStability
+import ShenWork.PDE.P3MoserEnergyContinuity
 import Mathlib.Analysis.Calculus.MeanValue
 
 namespace ShenWork.Paper3
 
-open Set Real
+open MeasureTheory Set Real
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
 noncomputable section
 
@@ -176,9 +180,138 @@ theorem paper3LogisticReaction_quadratic_remainder
     ring
   rwa [hremainder] at hrem
 
+/-- Pointwise nonlinear logistic remainder after extracting the mean damping. -/
+def paper3LogisticRemainder (p : CM2Params) (uStar z : ℝ) : ℝ :=
+  paper3LogisticReaction p z + p.a * p.α * (z - uStar)
+
+/-- The abstractly defined mean forcing is exactly the spatial integral of the
+pointwise logistic remainder. -/
+theorem intervalDomainMeanLogisticRemainder_eq_integral
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+    (hsol : ShenWork.Paper2.IsPaper2ClassicalSolution
+      ShenWork.IntervalDomain.intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    intervalDomainMeanLogisticRemainder p u uStar t =
+      ShenWork.IntervalDomain.intervalDomain.integral
+        (fun x => paper3LogisticRemainder p uStar (u t x)) := by
+  open ShenWork.IntervalDomain in
+  have hreact : IntervalIntegrable
+      (intervalDomainLift
+        (fun x => paper3LogisticReaction p (u t x))) volume 0 1 := by
+    simpa [paper3LogisticReaction] using
+      intervalDomainLift_reaction_intervalIntegrable_of_regularity
+        hsol ht.1 ht.2
+  open ShenWork.IntervalDomain in
+  have hucont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
+  open ShenWork.IntervalDomain in
+  have huint : IntervalIntegrable (intervalDomainLift (u t)) volume 0 1 := by
+    have hucont' : ContinuousOn (intervalDomainLift (u t))
+        (Set.uIcc (0 : ℝ) 1) := by
+      simpa [Set.uIcc_of_le (zero_le_one : (0 : ℝ) ≤ 1)] using hucont
+    exact hucont'.intervalIntegrable
+  have hconst : IntervalIntegrable (fun _ : ℝ => uStar) volume 0 1 :=
+    intervalIntegral.intervalIntegrable_const
+  have hlin : IntervalIntegrable
+      (fun y : ℝ => p.a * p.α *
+        (ShenWork.IntervalDomain.intervalDomainLift (u t) y - uStar))
+      volume 0 1 :=
+    (huint.sub hconst).const_mul (p.a * p.α)
+  have hsplit :
+      (∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalDomain.intervalDomainLift
+          (fun x => paper3LogisticRemainder p uStar (u t x)) y) =
+      (∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalDomain.intervalDomainLift
+          (fun x => paper3LogisticReaction p (u t x)) y) +
+      ∫ y in (0 : ℝ)..1,
+        p.a * p.α *
+          (ShenWork.IntervalDomain.intervalDomainLift (u t) y - uStar) := by
+    rw [← intervalIntegral.integral_add hreact hlin]
+    apply intervalIntegral.integral_congr
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+      simpa [Set.uIcc_of_le (zero_le_one : (0 : ℝ) ≤ 1)] using hy
+    simp [ShenWork.IntervalDomain.intervalDomainLift, hyIcc,
+      paper3LogisticRemainder]
+  unfold intervalDomainMeanLogisticRemainder intervalDomainMeanPerturbation
+  change
+    (∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalDomain.intervalDomainLift
+          (fun x => paper3LogisticReaction p (u t x)) y) +
+        p.a * p.α *
+          ((∫ y in (0 : ℝ)..1,
+            ShenWork.IntervalDomain.intervalDomainLift (u t) y) - uStar) =
+      ∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalDomain.intervalDomainLift
+          (fun x => paper3LogisticRemainder p uStar (u t x)) y
+  rw [hsplit, intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_sub huint hconst]
+  simp
+
+/-- Uniform quadratic bound for the exact mean forcing on the positive local
+neighborhood. -/
+theorem intervalDomainMeanLogisticRemainder_abs_le_sup_sq
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : ShenWork.Paper2.IsPaper2ClassicalSolution
+      ShenWork.IntervalDomain.intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hlocal : ∀ x, u t x ∈ Set.Icc (uStar / 2) (3 * uStar / 2)) :
+    ∃ K > 0,
+      |intervalDomainMeanLogisticRemainder p u uStar t| ≤
+        K * ShenWork.IntervalDomain.intervalDomain.supNorm
+          (fun x => u t x - uStar) ^ 2 := by
+  rcases paper3LogisticReaction_quadratic_remainder p heq with
+    ⟨K, hK, hquad⟩
+  refine ⟨K, hK, ?_⟩
+  let phi : ShenWork.IntervalDomain.intervalDomain.Point → ℝ :=
+    fun x => u t x - uStar
+  have hbdd : BddAbove (Set.range fun x => |phi x|) := by
+    refine ⟨uStar / 2, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    rw [abs_le]
+    rcases hlocal x with ⟨hxlo, hxhi⟩
+    constructor <;> dsimp [phi] <;> linarith
+  have hpoint : ∀ x, |phi x| ≤
+      ShenWork.IntervalDomain.intervalDomain.supNorm phi :=
+    intervalDomain_abs_le_supNorm_of_bddAbove hbdd
+  have hsup0 : 0 ≤ ShenWork.IntervalDomain.intervalDomain.supNorm phi := by
+    let x₀ : ShenWork.IntervalDomain.intervalDomain.Point :=
+      ⟨0, ⟨le_rfl, zero_le_one⟩⟩
+    exact (abs_nonneg (phi x₀)).trans (hpoint x₀)
+  rw [intervalDomainMeanLogisticRemainder_eq_integral hsol ht]
+  change
+    |∫ y in (0 : ℝ)..1,
+      ShenWork.IntervalDomain.intervalDomainLift
+        (fun x => paper3LogisticRemainder p uStar (u t x)) y| ≤ _
+  have hnorm := intervalIntegral.norm_integral_le_of_norm_le_const
+    (a := (0 : ℝ)) (b := 1)
+    (C := K * ShenWork.IntervalDomain.intervalDomain.supNorm phi ^ 2)
+    (f := fun y =>
+      ShenWork.IntervalDomain.intervalDomainLift
+        (fun x => paper3LogisticRemainder p uStar (u t x)) y)
+    (by
+      intro y hy
+      rw [Set.uIoc_of_le (zero_le_one : (0 : ℝ) ≤ 1)] at hy
+      have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, hy.2⟩
+      let x : ShenWork.IntervalDomain.intervalDomain.Point := ⟨y, hyIcc⟩
+      have hq := hquad (u t x) (hlocal x)
+      have hsq : |phi x| ^ 2 ≤
+          ShenWork.IntervalDomain.intervalDomain.supNorm phi ^ 2 := by
+        nlinarith [abs_nonneg (phi x), hpoint x]
+      have hle := hq.trans (mul_le_mul_of_nonneg_left hsq hK.le)
+      simpa [ShenWork.IntervalDomain.intervalDomainLift, hyIcc,
+        paper3LogisticRemainder, phi, Real.norm_eq_abs] using hle)
+  simpa [Real.norm_eq_abs, phi] using hnorm
+
 #print axioms quadratic_remainder_le_of_deriv_lipschitzOn
 #print axioms paper3LogisticReactionDeriv_local_lipschitz
 #print axioms paper3LogisticReaction_quadratic_remainder
+#print axioms intervalDomainMeanLogisticRemainder_eq_integral
+#print axioms intervalDomainMeanLogisticRemainder_abs_le_sup_sq
 
 end
 
