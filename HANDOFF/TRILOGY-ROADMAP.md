@@ -80,3 +80,18 @@ continuous dependence, time-translate stability), not sufficient alone for the p
 Paper 1's ACTUAL machinery is whole-line frozen-profile fixed-point/Green-operator (WaveRothePos.lean), so replace
 "Aubin-Lions only" with locally-uniform/GREEN-KERNEL compactness + TAIL control. Lean target = a compactness/
 closed-graph statement for the Rothe orbit + a uniform-tail statement. Full analysis /tmp/gpt_Q4382.md.
+
+## Paper 3 dynamical machinery — detail (Q4384, 2026-07-11) — sharpens steps 3/6/7
+CHEAP ENTRY (do first in the dynamical block): **Thm 2.2 LINEAR dichotomy is a DIAGONAL Neumann-MODE calculation**
+for the constant equilibria — NOT Krein–Rutman / principal-eigenvalue. Reuse Paper 2's cosine diagonalization →
+a concrete weighted-coefficient stability theorem. Do NOT start with Henry's abstract sectorial-operator theory
+(build that only if a reusable general-domain endpoint is wanted). Unstable side of Thm 2.2 = LINEAR instability
+only → no unstable-manifold theorem needed.
+REAL LONG POLE: Thm 2.2 nonlinear local exp. stability + Thm 2.3–2.5 GLOBAL stability need a stable semigroup in a
+genuine (fractional/Sobolev) phase space + nonlinear Duhamel estimates + asymptotic compactness + Lyapunov/rectangle
+→ orbit into local stable basin. For Thm 2.2 alone the long pole is the nonlinear orbit estimate in the fractional
+phase space (modal threshold algebra is the easy part).
+REPO STATE (concrete): LyapunovFunction.lean already has scalar entropy positivity/derivatives/nonneg — MISSING
+layer = the PDE identity (interchange ∂ₜ & spatial ∫, use the PDE). IntervalDomainStabilityChain.lean lists the
+unresolved global inputs: time-translate compactness, Lyapunov moment decay, moment→uniform convergence, C¹ exp
+upgrade. Full analysis /tmp/gpt_Q4384.md. (Bibliographic note: source is Part II "Persistence and stabilization".)
