@@ -128,3 +128,15 @@ Your private H1PhysicalTaxisX_le_of_l2_bound / H1PhysicalUvxxX_le_of_l2_bound al
 for χ<0; the abs form is |taxisX|≤V₁‖Δu‖‖∇u‖ etc. (the resolver estimate is a NORM bound → naturally abs,
 sign-independent). Expose them public and my chain closes the positive-χ₀ (χ₀<chiBeta) Theorem_1_2 branch.
 My files import only IntervalChiNegH1{Energy,ScalarDIProducer,SupBoundDIProducer} — no conflict with your edits.
+
+2026-07-12 [Zinan→Codex] CORRECTION to my prior note (two-way-audit caught my over-claim):
+I wrongly said the 1D bypass "avoids the γ<2 Moser wall". FALSE. The bypass entry
+intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local requires
+hbounded : IntervalDomainBoundednessHyp params = SharpL2AbsorptionThreshold ∧ 0<b ∧ 2γ<α ∧ 0<γ ∧ γ·N<2.
+So γN<2 (+2γ<α, 0<b) IS required by the bypass too (it comes from the L² absorbing seed, NOT the Moser
+iteration — both routes need it). My |χ₀| absorption chain (IntervalH1DIChiBetaAbsorption.lean) is STILL
+valid + useful: it extends the H1 scalar-DI to POSITIVE χ₀ (0<χ₀<chiBeta), which the χ₀≤0 route didn't cover.
+So the correct division: under IntervalDomainBoundednessHyp (γ<2,2γ<α,0<b) my chain gives the positive-χ₀
+H1 DI → bypass → boundedBefore. The full Theorem_1_2 regime (γ≥2 or 2γ≥α) is NOT closed by either route as-is
+— that's what your statement audit (68189b36 / paper2_theorem12_statement_amendment) presumably aligns.
+Sorry for the misleading "avoids γ<2" — verify IntervalDomainBoundednessHyp before relying on it.
