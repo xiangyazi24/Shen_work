@@ -22,10 +22,12 @@
 import ShenWork.Paper2.IntervalChiNegH1Energy
 import ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
+import ShenWork.Paper2.IntervalChiNegH1AverageWiring
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
+open ShenWork.Paper2.IntervalChiNegH1AverageWiring
 
 noncomputable section
 
@@ -146,5 +148,33 @@ theorem H1SupBoundDIDataAbsBefore_of_absTermBounds
       _ = |p.χ₀| * |uvxx τ| := by rw [abs_mul, abs_neg]
       _ ≤ |p.χ₀| * (M * (V₂ * H1lapL2Norm u τ)) :=
           mul_le_mul_of_nonneg_left (huvxxAbs τ hτ0 hτT) (abs_nonneg _)
+
+/-- **Connector: abs resolver term bounds + H¹ scalar regularity → `H1ScalarDIOnBefore`**
+(the `hDI` input of the 1D bypass entry `intervalDomain_boundedBefore_of_paperPositive_
+H1scalarDI_local`).  Valid for ANY `χ₀` (incl. `0 < χ₀ < chiBeta`).  Composes the whole
+|χ₀| chain, so the positive-`χ₀` Theorem 1.2 damped branch reduces to: the abs term
+bounds + H¹ scalar regularity + the bypass frontiers (IntervalDomainBoundednessHyp incl.
+`γ·N<2`, L² seed frontier, local H¹ start). -/
+theorem H1ScalarDIOnBefore_of_absTermBounds
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hreg : H1ScalarRegularityBefore u T)
+    (hV1 : 0 ≤ V₁) (hV2 : 0 ≤ V₂) (hM : 0 ≤ M) (hL : 0 ≤ L)
+    (hId : ∀ τ, 0 < τ → τ < T →
+      H1EnergyIdentity p u τ (taxisX τ) (uvxx τ) (reactX τ))
+    (htaxisAbs : ∀ τ, 0 < τ → τ < T →
+      |taxisX τ| ≤ V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ))
+    (huvxxAbs : ∀ τ, 0 < τ → τ < T →
+      |uvxx τ| ≤ M * (V₂ * H1lapL2Norm u τ))
+    (hreactB : ∀ τ, 0 < τ → τ < T →
+      reactX τ ≤ L * (H1gradL2Norm u τ) ^ 2) :
+    H1ScalarDIOnBefore u T
+      (2 * (-p.χ₀) ^ 2 * V₁ ^ 2 + 2 * L)
+      ((-p.χ₀) ^ 2 * M ^ 2 * V₂ ^ 2) :=
+  H1ScalarDIOnBefore_of_identityRHSBound hreg
+    (H1IdentityRHSBoundBefore_of_supBoundDIDataAbs
+      (H1SupBoundDIDataAbsBefore_of_absTermBounds
+        hV1 hV2 hM hL hId htaxisAbs huvxxAbs hreactB))
 
 end ShenWork.Paper2.IntervalChiNegH1Energy
