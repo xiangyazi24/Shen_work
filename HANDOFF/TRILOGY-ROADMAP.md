@@ -30,8 +30,53 @@ machinery. Fastest path to another unconditional headline with the least new too
 3. **Paper 1 Rothe** — hprodAll (per-step) + the step+tail continuous-dependence ("no mechanism yet") + the
    Route-A paramCore vacuity fix (u≡0 in the trap). Separate time-semidiscretization construction. (planning Q: plan-P1rothe)
 
-## Order of attack
-finish χ<0 → Paper 3 P3.1 (leverage) → then commit to one of the three off-line mountains based on the
-scouting answers (bias: Paper 3 dynamics = biggest new investment, so its scouting must start now).
+## ★ DEFINITIVE ATTACK ORDER (Q4388 synthesis, 2026-07-11) — THIS is the path
+The TRUE long pole is neither P3.1 nor Paper 1 — it is the **Paper 3 spectral-dynamical engine** (principal
+eigenvalue / spectral gap / sectorial semigroup decay / compactness / ω-limit / Lyapunov-LaSalle). Everything
+hard in Paper 3 reduces to that ecosystem, so it is front-loaded as shared infrastructure. Sequence:
+
+  0. **Freeze Paper 2 χ₀≤0 core + expose theorem-level APIs** (packaging, not research):
+     globalExistence / initialTrace / nonneg / boundedness / regularity / spectralBootstrap _interval_chiNeg.
+     Why first: every later reuse then depends on STABLE theorem facts, not Picard/truncation producer internals.
+  1. **Paper 3 P3.1 global existence** — direct Paper 2 reuse (cheapest floor).
+     Shape: paper3_globalExistence_of_paper2_chiNeg : Paper2GlobalExistence → P3_1_GlobalExistence.
+  2. **Paper 2 Thm 1.2/1.3 Lᵖ mountain** — BEFORE the Paper 3 dynamics (unlocks P3 Props 1.3/1.4 via existing bridges).
+  3. **Build the shared Paper 3 spectral-dynamical ENGINE** — the true long pole, as reusable infrastructure.
+  4. Paper 3 compactness / regularization.
+  5. Paper 3 uniform persistence.
+  6. Paper 3 threshold / stability dichotomy (Thm 2.2).
+  7. Paper 3 global stability (Thm 2.3-2.5).
+  8. Small-threshold tails.
+  9. **Paper 1 Rothe LAST** (or in parallel with a separate worker) — least leveraged, separate construction.
+
+(Earlier tentative order — P3.1 then scout — is SUPERSEDED by the above. Key change: Lᵖ before dynamics; and
+step-0 packaging + step-3 engine front-loading are the two moves that make the rest cheap.)
 
 Planning answers land in /tmp/gpt_Q*.md; synthesize into a concrete attack order per mountain when they return.
+
+## Paper 3 floor breakdown (Q4381, 2026-07-11) — reuse vs genuinely-new
+- **P3.1 global existence** — MAIN direct reuse of Paper 2 (classical global solution, nonneg, trace,
+  mild/classical agreement, boundedness). Cheap once Paper 2 exposed in the right target shape. → PHASE 1 target.
+- **P3.5 compactness** — PARTIAL reuse: Paper 2 positive-time smoothing is the substrate, but P3.5 needs
+  UNIFORM-IN-TAIL / eventual estimates (not Paper 2's finite-window bootstraps).
+- **P3.2 uniform persistence** — BASE-level reuse only (nonneg/mass/boundedness are prerequisites); the
+  persistence lower bound is a NEW dynamical argument.
+- **P3.3 stability dichotomy (Thm 2.2)** — GENUINELY NEW: threshold + linearization + spectral + Lyapunov/dichotomy.
+  "First serious Paper 3 dynamical-systems theorem."
+- **P3.4 sectorial decay** — GENUINELY NEW analytic-semigroup infra (sectoriality, spectral gap, resolvent est).
+- **P3.6 global stability (Thm 2.3-2.5)** — builds on P3.3/P3.4 (the dynamical engine).
+- **CROSS-PAPER BRIDGE (already in repo)**: Paper 2 Thm 1.3 → Paper 3 Prop 1.3, Paper 2 Thm 1.2 → Paper 3 Prop 1.4.
+  ⇒ the Paper 2 Lᵖ theorems are NOT purely off-line — they UNLOCK Paper 3 props. (Paper 3 Prop 1.2 /
+  NegativeSensitivityGlobalEventualBound is kept INDEPENDENT of Paper 2 Thm 1.1.)
+- **Longest pole = the dynamical engine** (principal eigenvalue / spectral gap shared by P3.2/P3.3/P3.6). Scout first.
+- Still pending: plan-P2Lp, plan-P3special answers → append their synthesis when they land.
+
+## Paper 1 Rothe route (Q4382, 2026-07-11)
+Mechanism for the open hprodAll / step+tail block = a priori estimates + COMPACTNESS + continuous-dependence/
+closed-graph stability. **NOT Minty** (chemotaxis drift/resolver coupling is not monotone in natural variables).
+Standard path: Aubin-Lions compact embedding → strong L²_loc convergence of u^τ → convergence of u₊^τ + reaction
+terms → elliptic resolver continuity R[u^τ₊]→R[u₊]. Discrete Gronwall only as a SUPPORT tool (finite-step
+continuous dependence, time-translate stability), not sufficient alone for the passage to the limit.
+Paper 1's ACTUAL machinery is whole-line frozen-profile fixed-point/Green-operator (WaveRothePos.lean), so replace
+"Aubin-Lions only" with locally-uniform/GREEN-KERNEL compactness + TAIL control. Lean target = a compactness/
+closed-graph statement for the Rothe orbit + a uniform-tail statement. Full analysis /tmp/gpt_Q4382.md.
