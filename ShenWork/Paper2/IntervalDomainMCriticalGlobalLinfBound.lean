@@ -391,9 +391,33 @@ theorem critical_bounded_global_positive_intervalDomain
       htraceM hbeta hm hchi hthreshold
   simpa [IsPaper2Bounded, intervalDomainM, intervalDomain] using hboundedM
 
+/-- The positive-sensitivity realization of the exact
+`hcriticalGlobalBound` frontier used by the legacy Theorem 1.2 assembly.  The
+finite-horizon bootstrap argument is intentionally ignored: the global power
+and moving-window bound are reconstructed with horizon-independent constants. -/
+theorem criticalGlobalBoundFrontier_positive_intervalDomain
+    (p : CM2Params) (hguard : p.a = 0 ∨ 0 < p.b) (hchiPos : 0 < p.χ₀) :
+    0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+    p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0,
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u) →
+        IsPaper2Bounded intervalDomain u := by
+  intro _ha _hb hbeta hm hthreshold u₀ hu₀ u v hglobal htrace _hbootstrap
+  exact critical_bounded_global_positive_intervalDomain
+    hguard hu₀ hglobal htrace hbeta hm hchiPos hthreshold
+
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard_window
 #print axioms critical_bounded_global_positive
 #print axioms critical_bounded_global_positive_intervalDomain
+#print axioms criticalGlobalBoundFrontier_positive_intervalDomain
 
 end ShenWork.Paper2.IntervalDomainM
 
