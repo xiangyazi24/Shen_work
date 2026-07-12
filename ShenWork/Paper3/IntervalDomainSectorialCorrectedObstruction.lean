@@ -19,6 +19,7 @@ sectorial norms and a linearly stable logistic equilibrium.
 
 namespace ShenWork.Paper3
 
+open Filter Topology
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.IntervalDomainExistence
@@ -64,6 +65,17 @@ theorem intervalDomainSectorialC1Distance_const (a b : ℝ) :
 private theorem correctedObstruction_linearlyStable :
     LinearlyStable unitIntervalNeumannSpectrum
       nonminimalGlobalStabilityCounterParams 1 1 := by
+  apply LinearlyStable_of_chi_nonpos_a_pos
+  · norm_num [nonminimalGlobalStabilityCounterParams]
+  · norm_num [nonminimalGlobalStabilityCounterParams]
+  · norm_num
+  · norm_num
+  · intro n _hn
+    exact unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n
+
+private theorem correctedObstruction_linearlyStable_wrong_vStar :
+    LinearlyStable unitIntervalNeumannSpectrum
+      nonminimalGlobalStabilityCounterParams 1 2 := by
   apply LinearlyStable_of_chi_nonpos_a_pos
   · norm_num [nonminimalGlobalStabilityCounterParams]
   · norm_num [nonminimalGlobalStabilityCounterParams]
@@ -156,9 +168,71 @@ not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNor
   rw [habs] at hzero
   linarith
 
+/-- Eventual time does not repair the independent missing-equilibrium defect.
+For zero sensitivity the nonzero spectrum is stable at the arbitrary target
+`(uStar,vStar) = (1,2)`, while the genuine constant equilibrium is `(1,1)`.
+The latter starts at zero `u`-distance but stays a fixed positive `v`-distance
+from the arbitrary target for every positive time. -/
+theorem
+not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectorialNorms :
+    ¬ IntervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium
+      nonminimalGlobalStabilityCounterParams
+      intervalDomainSectorialStabilityNorms := by
+  intro horbit
+  rcases horbit (3 / 4) 2 1 2
+      (by norm_num) (by norm_num) (by norm_num)
+      correctedObstruction_linearlyStable_wrong_vStar with
+    ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
+  have hdatum :
+      PositiveInitialDatum intervalDomain
+        (fun _ : intervalDomain.Point => (1 : ℝ)) := by
+    simpa [constOnInterval] using
+      (constOnInterval_pos (c := (1 : ℝ)) one_pos)
+  have hsmall :
+      intervalDomainSectorialStabilityNorms.xpSigmaDistance (3 / 4) 2
+        (fun _ : intervalDomain.Point => (1 : ℝ)) (fun _ => (1 : ℝ)) ≤ eps := by
+    change intervalDomainSupNorm (fun _ : intervalDomainPoint => (1 : ℝ) - 1) ≤ eps
+    simpa [intervalDomainSupNorm_const] using heps.le
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => C * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, C * Real.exp (-rate * t) < (1 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds one_pos)
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T t₀
+  have ht₀le : t₀ ≤ t := le_max_right T t₀
+  have hTle : T ≤ t := le_max_left T t₀
+  have hsmall_rhs : C * Real.exp (-rate * t) < (1 : ℝ) := hT t hTle
+  have hlarge_rhs :=
+    hbound (fun _ : intervalDomain.Point => (1 : ℝ)) hdatum hsmall
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      correctedObstruction_constant_global correctedObstruction_constant_trace
+      t ht₀le
+  rw [intervalDomainSectorialStabilityNorms_c1Distance,
+    intervalDomainSectorialC1Distance_const,
+    intervalDomainSectorialStabilityNorms_c1Distance,
+    intervalDomainSectorialC1Distance_const] at hlarge_rhs
+  norm_num at hlarge_rhs
+  have hneg_mul : -(rate * t) = -rate * t := by ring
+  rw [hneg_mul] at hlarge_rhs
+  exact (not_lt_of_ge hlarge_rhs) hsmall_rhs
+
 #print axioms intervalDomainSectorialC1Distance_const
 #print axioms
   not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNorms
+#print axioms
+  not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectorialNorms
 
 end
 

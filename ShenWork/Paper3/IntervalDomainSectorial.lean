@@ -171,6 +171,26 @@ def IntervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
 
+/-- The eventual-time frontier before requiring the target constants to be an
+actual steady state.  It is retained solely to state the corresponding
+formal obstruction: spectral stability of nonzero modes alone does not imply
+convergence to arbitrary constants. -/
+def IntervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium
+    (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
+      ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v →
+              InitialTrace intervalDomain u₀ u →
+                ∀ t, t₀ ≤ t →
+                  N.c1Distance (u t) (fun _ => uStar) +
+                    N.c1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t)
+
 /-- Corrected nonlinear orbit-control frontier for the interval sectorial
 mainline.
 
