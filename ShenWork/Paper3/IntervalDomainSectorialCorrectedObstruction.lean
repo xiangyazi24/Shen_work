@@ -108,8 +108,8 @@ interval norms.  The counterexample changes only the stored `u 0` slice of the
 constant equilibrium; all strict-positive-time PDE and trace data are
 unchanged. -/
 theorem
-not_intervalDomainSpectralSemigroupOrbitBoundCorrected_sectorialNorms :
-    ¬ IntervalDomainSpectralSemigroupOrbitBoundCorrected
+not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNorms :
+    ¬ IntervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate
       nonminimalGlobalStabilityCounterParams
       intervalDomainSectorialStabilityNorms := by
   intro horbit
@@ -157,7 +157,8 @@ not_intervalDomainSpectralSemigroupOrbitBoundCorrected_sectorialNorms :
   linarith
 
 #print axioms intervalDomainSectorialC1Distance_const
-#print axioms not_intervalDomainSpectralSemigroupOrbitBoundCorrected_sectorialNorms
+#print axioms
+  not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNorms
 
 end
 

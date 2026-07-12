@@ -7,7 +7,7 @@
 -/
 import ShenWork.PDE.SectorialOperator
 import ShenWork.PDE.SpectralDecay
-import ShenWork.Paper3.Statements
+import ShenWork.Paper3.EventualExponentialStability
 
 namespace ShenWork.Paper3
 
@@ -149,20 +149,13 @@ def IntervalDomainSpectralSemigroupOrbitBoundRaw
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖
 
-/-- Corrected nonlinear orbit-control frontier for the interval sectorial
-mainline.
+/-- The rejected all-time existential-rate repair, retained so the formal
+zero-time obstruction remains stated against the exact false proposition.
 
-Unlike `IntervalDomainSpectralSemigroupOrbitBoundRaw`, this statement does not
-force the full `C¹` distance (including the constant mode) to decay at the
-pure-heat nonzero-mode rate `π²`.  The decay rate is an existential positive
-constant supplied by the nonlinear stability argument; in the nonminimal
-branch it may be limited by the logistic relaxation of the mean mode.
-
-The small-data radius and prefactor remain uniform over the admitted initial
-data and global classical solutions, exactly as required by
-`SectorialLocalExponentialRaw`.  The old frontier is intentionally retained as
-a compatibility interface. -/
-def IntervalDomainSpectralSemigroupOrbitBoundCorrected
+Allowing the rate to depend on the stable equilibrium fixes the mean-mode
+rate mismatch, but this version still asks for a uniform `C¹` estimate at
+`t = 0` from rough initial data. -/
+def IntervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate
     (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
   ∀ sigma pNorm uStar vStar,
     1 / 2 < sigma → sigma < 1 → 1 < pNorm →
@@ -174,6 +167,37 @@ def IntervalDomainSpectralSemigroupOrbitBoundCorrected
               IsPaper2GlobalClassicalSolution intervalDomain p u v →
               InitialTrace intervalDomain u₀ u →
                 ∀ t, 0 ≤ t →
+                  N.c1Distance (u t) (fun _ => uStar) +
+                    N.c1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t)
+
+/-- Corrected nonlinear orbit-control frontier for the interval sectorial
+mainline.
+
+Unlike `IntervalDomainSpectralSemigroupOrbitBoundRaw`, this statement does not
+force the full `C¹` distance (including the constant mode) to decay at the
+pure-heat nonzero-mode rate `π²`.  The decay rate is an existential positive
+constant supplied by the nonlinear stability argument; in the nonminimal
+branch it may be limited by the logistic relaxation of the mean mode.
+
+The estimate starts at an existential positive time `t₀`, after parabolic
+smoothing has converted the rough initial neighborhood into uniform `C¹`
+control.  The small-data radius, prefactor, rate, and smoothing time remain
+uniform over the admitted initial data and global classical solutions.  Both
+older all-time frontiers are intentionally retained as compatibility and
+obstruction interfaces. -/
+def IntervalDomainSpectralSemigroupOrbitBoundCorrected
+    (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
+      ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v →
+              InitialTrace intervalDomain u₀ u →
+                ∀ t, t₀ ≤ t →
                   N.c1Distance (u t) (fun _ => uStar) +
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
@@ -224,20 +248,20 @@ theorem intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBou
       mul_le_mul_of_nonneg_left hop hC.le
     exact le_trans hsemigroup hmul
 
-/-- The corrected orbit frontier already supplies the existential decay rate
-needed by `SectorialLocalExponentialRaw`; no comparison with the pure Neumann
-heat rate is made here. -/
+/-- The corrected orbit frontier supplies both the existential decay rate and
+the positive smoothing time required by the eventual raw statement. -/
 theorem
-intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBoundCorrected
+intervalDomain_eventualSectorialLocalExponentialRaw_of_spectralSemigroupOrbitBoundCorrected
     (p : CM2Params) (N : StabilityNorms intervalDomain)
     (horbit : IntervalDomainSpectralSemigroupOrbitBoundCorrected p N) :
-    SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
-      N.c1Distance N.xpSigmaDistance := by
+    EventualSectorialLocalExponentialRaw
+      intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance := by
   intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
   rcases horbit sigma pNorm uStar vStar
       hsigma_low hsigma_high hpNorm hstable with
-    ⟨eps, heps, C, hC, rate, hrate, hbound⟩
-  exact ⟨eps, heps, C, hC, rate, hrate, hbound⟩
+    ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
+  exact ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
 
 /-- Lemma A.1 on the concrete interval once the remaining nonlinear
 orbit-comparison frontier has been supplied.
@@ -333,9 +357,10 @@ theorem intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBound_frontiers
         p N horbit)
       hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
 
-/-- Interval-domain Paper3 Theorem 2.2 with the repaired existential-rate
-orbit frontier in place of the over-stated pure-heat comparison frontier. -/
-theorem intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBoundCorrected_frontiers
+/-- Interval-domain eventual Paper3 Theorem 2.2 with the repaired
+existential-rate, positive-smoothing-time orbit frontier. -/
+theorem
+intervalDomain_Theorem_2_2_EventualExponentialStability_of_spectralSemigroupOrbitBoundCorrected_frontiers
     (p : CM2Params)
     (N : StabilityNorms intervalDomain)
     (C : Paper3Constants intervalDomain p)
@@ -352,13 +377,17 @@ theorem intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBoundCorrected_front
     (hmexist :
       ∀ uStar, ∀ delta > 0,
         MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
-    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C := by
+    Theorem_2_2_EventualExponentialStability
+      intervalDomain p unitIntervalNeumannSpectrum N C := by
   exact
-    Theorem_2_2_full_by_chi_sign_of_raw
+    Theorem_2_2_EventualExponentialStability_full_critical_spectrum_of_raw
       unitIntervalNeumannSpectrum_hasNeumannSpectrum hC
-      (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBoundCorrected
+      (intervalDomain_eventualSectorialLocalExponentialRaw_of_spectralSemigroupOrbitBoundCorrected
         p N horbit)
       hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
+#print axioms
+  intervalDomain_Theorem_2_2_EventualExponentialStability_of_spectralSemigroupOrbitBoundCorrected_frontiers
 
 /-- H3.1 interval-domain local exponential bridge with
 `SectorialLocalExponentialRaw` removed from the assumptions.
