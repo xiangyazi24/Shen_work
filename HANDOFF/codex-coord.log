@@ -306,3 +306,15 @@ global seed explicitly in the type and a single p > gamma semigroup endpoint;
 it does not require a uniform-in-p Moser limit.  The legacy theorem also remains
 false at a > 0, b = 0; the positive critical wrapper therefore carries the
 paper-faithful guard `a = 0 or b > 0`.
+
+2026-07-12 [Zinan] THM 1.2 ROUTE RESOLVED (Fable design → ChatGPT Q4582 adversarial audit → repo already has it).
+Fable's acyclic unweighted-Moser ladder is DEFECTIVE: crude (1+v)^{-β}≤1 erases the β-mechanism (its chiBeta has no
+β); unweighted graph not a DAG rooted at L¹ for γ>1 (γ=2 critical, γ>2 supercritical); chiBeta_p→0 like 1/p (inf=0
+vacuous); "all finite L^p" ⇏ L∞. CORRECT route = repo's SIGNAL-WEIGHTED finite-p chain: mass → weighted seed
+p₀∈(max{1,γ/2},(2β−1)/χ₀) → CrossDiffusionBootstrapEstimate/Corollary_2_1 → one P>max{1,γ} → Proposition_2_5 →
+boundedBefore. Repo threshold chiBeta=2(2β−1)/max{2,γN} (Statements.lean:1244) is the real one. Already wired:
+boundedBefore_of_corollary21_and_proposition25 (Theorem12.lean:59), Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
+(Corollary21.lean:41), TierChain hCor21/hProp25 discharges. ONLY missing analytic lemmas: (3.2) signal-weighted
+elliptic ∫|v_x|^{2q}/(1+v)^{(1+β)q}≤C^q∫u^{γq} + (3.4) finite seed. Codex#1 redirected off Fable ladder + my H1-DI/abs
+route (both over-builds) onto tracing TierChain's undischarged leaves + proving (3.2)+(3.4). My H1-DI circularity was
+real but confined to MY route; repo's finite-p route is acyclic (finite L^p→L∞ via one elliptic+parabolic step).
