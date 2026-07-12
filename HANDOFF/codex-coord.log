@@ -194,6 +194,14 @@ globally continuous, globally bounded, and agree pointwise with the physical
 sources on the restart rectangle.  Local single-file and clean-three axiom
 gates pass; this is now root-imported for the physical Duhamel reconstruction.
 
+2026-07-12 [Codex] Faithful physical-restart milestone: diagonalized the
+homogeneous, conjugate-flux, and logistic legs; used the null-diagonal L1
+Fubini swap for the singular conjugate kernel; shifted relative time back to
+the physical window; and applied cosine L2 totality.  The resulting three-leg
+divergence-form Duhamel candidate equals the classical `intervalDomainM`
+solution a.e. on the unit interval.  All three public capstones pass the local
+single-file gate with exactly `propext`, `Classical.choice`, and `Quot.sound`.
+
 2026-07-12 Codex: added `IntervalDomainMSlowLpBound.lean`.  Local single-file
 verification is green.  It closes the finite-descent terminal term, proves a
 uniform finite-Lp bound for faithful `intervalDomainM`, and selects a
