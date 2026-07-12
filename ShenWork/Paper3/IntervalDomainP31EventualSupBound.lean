@@ -145,4 +145,26 @@ theorem proposition_1_2_intervalDomain_chiZero
   proposition_1_2_of_theorem_1_1_posAB p ha hb
     (intervalDomain_theorem_1_1_chiZero_unconditional p hχ0 ha hb hα hγ)
 
+/-
+  **χ<0 / full χ₀≤0 closure (ready one-liner, deferred to cold build).**
+  The chi-nonpositive Paper 2 producers live in `IntervalDomainChiNonposHeadline`,
+  whose EWA import closure is not compiled in a single-file `lake env lean` check,
+  so the composition below is recorded here rather than committed unverified.  In a
+  full (cold) build, add — verbatim — to close P3.1 for the whole χ₀≤0 regime,
+  conditional on exactly Codex's χ<0 residual:
+
+    theorem proposition_1_2_intervalDomain_chiNonpos_of_reducedCoreData
+        (p : CM2Params) (hchi : p.χ₀ ≤ 0)
+        (ha : 0 < p.a) (hb : 0 < p.b) (halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
+        (hnegCore : p.χ₀ < 0 → CoupledFluxResolverReducedCoreData p) :
+        Proposition_1_2 intervalDomain p :=
+      proposition_1_2_of_theorem_1_1_posAB p ha hb
+        (paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_reducedCoreData
+          p hchi ha hb halpha hgamma hnegCore)
+
+  (import `ShenWork.Paper2.IntervalDomainChiNonposHeadline`).  Once Codex's
+  `Theorem_1_1 intervalDomain p` (χ<0) is unconditional, apply
+  `proposition_1_2_of_theorem_1_1_posAB` to it directly.
+-/
+
 end ShenWork.Paper3.P31EventualSupBound
