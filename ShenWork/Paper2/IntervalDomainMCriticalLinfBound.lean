@@ -847,6 +847,41 @@ theorem critical_bounded_before_positive
         exact hMR.trans (le_max_right _ _)
     exact hutM.trans hMbound
 
+/-- At `m = 1`, a legacy interval-domain classical solution is also a
+classical solution for the faithful linear-flux domain. -/
+theorem classicalSolution_intervalDomainM_of_m_eq_one
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : p.m = 1)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
+    IsPaper2ClassicalSolution intervalDomainM p T u v := by
+  simpa [IsPaper2ClassicalSolution, intervalDomainM, intervalDomain,
+    intervalDomainChemotaxisDivM, intervalDomainChemotaxisDiv, hm] using hsol
+
+/-- Legacy-domain form of the finite-horizon positive critical bound.  Its
+proof uses the signal-weighted critical seed and stops after one finite
+exponent above `max 1 gamma`. -/
+theorem critical_bounded_before_positive_intervalDomain
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  have hboundedM : IsPaper2BoundedBefore intervalDomainM T u :=
+    critical_bounded_before_positive hguard hu₀M
+      (classicalSolution_intervalDomainM_of_m_eq_one hm hsol)
+      htraceM hbeta hm hchi hthreshold
+  simpa [IsPaper2BoundedBefore, intervalDomainM, intervalDomain] using hboundedM
+
 #print axioms solution_one_integral_le_of_lp
 #print axioms restartFluxM_integral_abs_le_of_lp
 #print axioms restartChemDuhamelM_far_abs_le_of_lp
@@ -855,6 +890,7 @@ theorem critical_bounded_before_positive
 #print axioms critical_two_scale_terms_le
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard
 #print axioms critical_bounded_before_positive
+#print axioms critical_bounded_before_positive_intervalDomain
 
 end ShenWork.Paper2.IntervalDomainM
 

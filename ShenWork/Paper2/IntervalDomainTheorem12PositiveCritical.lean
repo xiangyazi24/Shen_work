@@ -1,13 +1,14 @@
-import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainMCriticalGlobalLinfBound
 
 /-!
 # Positive-sensitivity critical branch of Paper 2 Theorem 1.2
 
-This assembly removes the last `hcriticalGlobalBound` frontier from the
-positive-`chi0` critical branch.  Local existence, continuation, and the
-finite critical seed remain the standard upstream inputs; the global bound is
-the horizon-independent faithful Moser/restart producer.
+This assembly uses the signal-weighted finite-power route directly.  The
+weighted elliptic estimate supplies the sharp `rho = gamma` bootstrap, the
+critical coefficient gap supplies its finite seed, and the semigroup endpoint
+stops at one exponent above `max 1 gamma`.  Thus neither the generic
+`Corollary_2_1` nor the generic `Proposition_2_5` statement-layer frontier is
+needed here.
 -/
 
 open ShenWork.IntervalDomain
@@ -18,8 +19,6 @@ namespace ShenWork.Paper2.IntervalDomainM
 
 theorem Theorem_1_2_intervalDomain_positive_critical_branch
     (p : CM2Params) (hguard : p.a = 0 ∨ 0 < p.b) (hchiPos : 0 < p.χ₀)
-    (hCor21 : Corollary_2_1 intervalDomain p)
-    (hProp25 : Proposition_2_5 intervalDomain p)
     (hlocal :
       ∀ u₀ : intervalDomain.Point → ℝ,
         PositiveInitialDatum intervalDomain u₀ →
@@ -35,18 +34,7 @@ theorem Theorem_1_2_intervalDomain_positive_critical_branch
           IsPaper2BoundedBefore intervalDomain Tmax u →
             1 ≤ p.m →
               IsPaper2GlobalClassicalSolution intervalDomain p u v)
-    (hcriticalBootstrap :
-      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
-      p.m = 1 → p.χ₀ < chiBeta p →
-      ∀ u₀ : intervalDomain.Point → ℝ,
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-        IsPaper2ClassicalSolution intervalDomain p T u v →
-        InitialTrace intervalDomain u₀ u →
-          ∃ rho > 0,
-            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
-              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
-                LpPowerBoundedBefore intervalDomain p0 T u) :
+    :
     0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
     p.m = 1 → p.χ₀ < chiBeta p →
     ∀ u₀ : intervalDomain.Point → ℝ,
@@ -54,10 +42,19 @@ theorem Theorem_1_2_intervalDomain_positive_critical_branch
         ∃ u v : ℝ → intervalDomain.Point → ℝ,
           IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
             InitialTrace intervalDomain u₀ u ∧
-            IsPaper2Bounded intervalDomain u :=
-  ShenWork.Paper2.IntervalDomainTheorem12.Theorem_1_2_intervalDomain_critical_branch_of_corollary21_and_proposition25
-    p hCor21 hProp25 hlocal hglobalExtension hcriticalBootstrap
-    (criticalGlobalBoundFrontier_positive_intervalDomain p hguard hchiPos)
+            IsPaper2Bounded intervalDomain u := by
+  intro _ha _hb hbeta hm hthreshold u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  have hboundedBefore : IsPaper2BoundedBefore intervalDomain Tmax u :=
+    critical_bounded_before_positive_intervalDomain
+      hguard hu₀ hsol htrace hbeta hm hchiPos hthreshold
+  have hm_ge : 1 ≤ p.m := by rw [hm]
+  have hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v :=
+    hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace hboundedBefore hm_ge
+  have hbounded : IsPaper2Bounded intervalDomain u :=
+    critical_bounded_global_positive_intervalDomain
+      hguard hu₀ hglobal htrace hbeta hm hchiPos hthreshold
+  exact ⟨u, v, hglobal, htrace, hbounded⟩
 
 #print axioms Theorem_1_2_intervalDomain_positive_critical_branch
 

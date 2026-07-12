@@ -318,3 +318,23 @@ boundedBefore_of_corollary21_and_proposition25 (Theorem12.lean:59), Corollary_2_
 elliptic ∫|v_x|^{2q}/(1+v)^{(1+β)q}≤C^q∫u^{γq} + (3.4) finite seed. Codex#1 redirected off Fable ladder + my H1-DI/abs
 route (both over-builds) onto tracing TierChain's undischarged leaves + proving (3.2)+(3.4). My H1-DI circularity was
 real but confined to MY route; repo's finite-p route is acyclic (finite L^p→L∞ via one elliptic+parabolic step).
+
+2026-07-12 [Codex] Q4582 LEAF AUDIT AND POSITIVE-CRITICAL REWIRE.  The two
+advertised analytic leaves were already axiom-clean in current HEAD:
+`intervalDomain_weightedGradientEstimate_of_classical_beta_explicit` plus
+`intervalDomain_crossDiffusionBootstrapEstimate_sharp` realize (3.2), while
+`exists_critical_seed_exponent` and `critical_bootstrap_seed_positive` realize
+(3.4).  The literal statement-layer route still has two generic leaves:
+`Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy` requires an unproved
+`Lemma_2_6 intervalDomain` (its old `IntervalDomainInterpolation` replacement
+is formally refuted), and generic `Proposition_2_5 intervalDomain p` remains
+conditional on structured-Moser quantitative endpoint data.  Neither is
+needed for the positive critical branch.  The branch now directly uses the
+signal-weighted seed, the valid seed-relative finite-power bootstrap, and the
+finite semigroup endpoint `critical_bounded_before_positive`; it stops at one
+power above `max 1 gamma`.  `Theorem_1_2_intervalDomain_positive_critical_branch`
+no longer takes `hCor21`, `hProp25`, or `hcriticalBootstrap`.  Its only upstream
+inputs are local existence and bounded-solution continuation, and its axiom
+audit is exactly `propext`, `Classical.choice`, `Quot.sound`.  This does not
+claim the false legacy branch `a > 0, b = 0`; the paper-faithful guard remains
+`a = 0 or b > 0`.
