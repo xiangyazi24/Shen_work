@@ -126,4 +126,62 @@ theorem fluxC2PointConst_le_common
   nlinarith [mul_nonneg hβ hK2, mul_nonneg (mul_nonneg hβ (by linarith : (0:ℝ) ≤ β + 1)) hK3,
     h0, h1, h2, hK, hβ, mul_nonneg hβ hK]
 
+/-! ## HasDerivAt derivative towers (Q4363) — produce the denominator/gradient/flux
+derivative expressions the algebraic bounds above consume.  The denominator uses the
+LEFT disjunct of `HasDerivAt.rpow_const` (`1 + R ≠ 0` from `1 + R ≥ 1`). -/
+
+/-- **Denominator first derivative** `h = (1+R)^{-β}`, `h' = -β·(1+R)^{-β-1}·R'`,
+via `HasDerivAt.rpow_const` with `Or.inl (1+R ≠ 0)`. -/
+theorem denom0_hasDerivAt
+    {β : ℝ} {R R1 : ℝ → ℝ} {x : ℝ}
+    (hR0 : HasDerivAt R (R1 x) x) (hden : 1 ≤ 1 + R x) :
+    HasDerivAt (fun y => (1 + R y) ^ (-β)) (-β * (1 + R x) ^ (-β - 1) * R1 x) x := by
+  have hbase : HasDerivAt (fun y => 1 + R y) (R1 x) x := hR0.const_add 1
+  have hbase_pos : (0 : ℝ) < 1 + R x := lt_of_lt_of_le zero_lt_one hden
+  have hbase_ne : (1 + R x) ≠ 0 := hbase_pos.ne'
+  have h := hbase.rpow_const (p := -β) (Or.inl hbase_ne)
+  convert h using 1
+  ring
+
+/-- **Denominator second derivative**: `HasDerivAt` of `h' = -β·(1+R)^{-β-1}·R'`
+at value `h'' = β(β+1)(1+R)^{-β-2}(R')² - β(1+R)^{-β-1}·R''`. -/
+theorem denom1_hasDerivAt
+    {β : ℝ} {R R1 R2 : ℝ → ℝ} {x : ℝ}
+    (hR0 : HasDerivAt R (R1 x) x) (hR1 : HasDerivAt R1 (R2 x) x)
+    (hden : 1 ≤ 1 + R x) :
+    HasDerivAt (fun y => -β * (1 + R y) ^ (-β - 1) * R1 y)
+      (β * (β + 1) * (1 + R x) ^ (-β - 2) * (R1 x) ^ 2
+        - β * (1 + R x) ^ (-β - 1) * R2 x) x := by
+  have hbase : HasDerivAt (fun y => 1 + R y) (R1 x) x := hR0.const_add 1
+  have hbase_pos : (0 : ℝ) < 1 + R x := lt_of_lt_of_le zero_lt_one hden
+  have hbase_ne : (1 + R x) ≠ 0 := hbase_pos.ne'
+  have hpow_next := hbase.rpow_const (p := -β - 1) (Or.inl hbase_ne)
+  rw [show ((-β - 1) - 1 : ℝ) = -β - 2 from by ring] at hpow_next
+  have hstep := (hpow_next.const_mul (-β)).mul hR1
+  convert hstep using 1
+  ring
+
+/-- **Chemical-gradient first derivative** `g = R'·h`, `g' = R''·h + R'·h'`,
+via `HasDerivAt.mul`. -/
+theorem chemGrad_hasDerivAt
+    {β : ℝ} {R R1 R2 : ℝ → ℝ} {x : ℝ}
+    (hR0 : HasDerivAt R (R1 x) x) (hR1 : HasDerivAt R1 (R2 x) x)
+    (hden : 1 ≤ 1 + R x) :
+    HasDerivAt (fun y => R1 y * (1 + R y) ^ (-β))
+      (R2 x * (1 + R x) ^ (-β)
+        + R1 x * (-β * (1 + R x) ^ (-β - 1) * R1 x)) x :=
+  hR1.mul (denom0_hasDerivAt (β := β) hR0 hden)
+
+/-- **Flux first derivative** `Q = u·g`, `Q' = u'·g + u·g'`, via `HasDerivAt.mul`. -/
+theorem flux_hasDerivAt
+    {β : ℝ} {u u1 R R1 R2 : ℝ → ℝ} {x : ℝ}
+    (hu0 : HasDerivAt u (u1 x) x)
+    (hR0 : HasDerivAt R (R1 x) x) (hR1 : HasDerivAt R1 (R2 x) x)
+    (hden : 1 ≤ 1 + R x) :
+    HasDerivAt (fun y => u y * (R1 y * (1 + R y) ^ (-β)))
+      (u1 x * (R1 x * (1 + R x) ^ (-β))
+        + u x * (R2 x * (1 + R x) ^ (-β)
+            + R1 x * (-β * (1 + R x) ^ (-β - 1) * R1 x))) x :=
+  hu0.mul (chemGrad_hasDerivAt (β := β) hR0 hR1 hden)
+
 end ShenWork.Paper2.TruncatedFluxC2Bounds
