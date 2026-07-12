@@ -219,20 +219,105 @@ not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectoria
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
       correctedObstruction_constant_global correctedObstruction_constant_trace
       t ht₀le
-  rw [intervalDomainSectorialStabilityNorms_c1Distance,
-    intervalDomainSectorialC1Distance_const,
-    intervalDomainSectorialStabilityNorms_c1Distance,
+  simp only [intervalDomainSectorialStabilityNorms_c1Distance,
     intervalDomainSectorialC1Distance_const] at hlarge_rhs
   norm_num at hlarge_rhs
   have hneg_mul : -(rate * t) = -rate * t := by ring
   rw [hneg_mul] at hlarge_rhs
   exact (not_lt_of_ge hlarge_rhs) hsmall_rhs
 
+private theorem correctedObstruction_minimal_linearlyStable :
+    LinearlyStable unitIntervalNeumannSpectrum
+      proposition12CounterParams 1 1 := by
+  intro n hn
+  have hlambda :
+      0 < unitIntervalNeumannSpectrum.eigenvalue n :=
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_pos_of_ne_zero n hn
+  simpa [sigma, proposition12CounterParams] using (neg_lt_zero.mpr hlambda)
+
+private theorem correctedObstruction_minimal_equilibrium :
+    Paper3ConstantEquilibrium proposition12CounterParams 1 1 := by
+  simpa [minimalEquilibrium, proposition12CounterParams] using
+    (paper3ConstantEquilibrium_minimal proposition12CounterParams
+      (by rfl) (by rfl) 1 one_pos)
+
+/-- In the zero-reaction branch, even a genuine linearly stable equilibrium
+cannot attract nearby data of a different mass.  A nearby spatial constant is
+itself a stationary solution and stays a fixed positive distance away. -/
+theorem
+not_intervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass_sectorialNorms :
+    ¬ IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass
+      proposition12CounterParams intervalDomainSectorialStabilityNorms := by
+  intro horbit
+  rcases horbit (3 / 4) 2 1 1
+      (by norm_num) (by norm_num) (by norm_num)
+      correctedObstruction_minimal_equilibrium
+      correctedObstruction_minimal_linearlyStable with
+    ⟨eps, heps, C, hC, rate, hrate, t₀, ht₀, hbound⟩
+  let c : ℝ := 1 + eps / 2
+  have hc : 0 < c := by dsimp [c]; linarith
+  have hdatum :
+      PositiveInitialDatum intervalDomain
+        (fun _ : intervalDomain.Point => c) := by
+    simpa [constOnInterval] using (constOnInterval_pos (c := c) hc)
+  have hsmall :
+      intervalDomainSectorialStabilityNorms.xpSigmaDistance (3 / 4) 2
+        (fun _ : intervalDomain.Point => c) (fun _ => (1 : ℝ)) ≤ eps := by
+    change intervalDomainSupNorm (fun _ : intervalDomainPoint => c - 1) ≤ eps
+    rw [intervalDomainSupNorm_const, abs_of_nonneg]
+    · dsimp [c]
+      linarith
+    · dsimp [c]
+      linarith
+  have hglobal :
+      IsPaper2GlobalClassicalSolution intervalDomain proposition12CounterParams
+        (fun _ _ => c) (fun _ _ => c) := by
+    intro T hT
+    simpa [ellipticV, proposition12CounterParams] using
+      (zeroReaction_isPaper2ClassicalSolution proposition12CounterParams
+        (by rfl) (by rfl) c hc T hT)
+  have htrace :
+      InitialTrace intervalDomain (fun _ : intervalDomain.Point => c)
+        (fun _ _ => c) := by
+    simpa [constOnInterval] using constantSolution_initialTrace c
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => C * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, C * Real.exp (-rate * t) < eps :=
+    hlim.eventually (Iio_mem_nhds heps)
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T t₀
+  have ht₀le : t₀ ≤ t := le_max_right T t₀
+  have hTle : T ≤ t := le_max_left T t₀
+  have hsmall_rhs : C * Real.exp (-rate * t) < eps := hT t hTle
+  have hlarge_rhs :=
+    hbound (fun _ : intervalDomain.Point => c) hdatum hsmall
+      (fun _ _ => c) (fun _ _ => c) hglobal htrace t ht₀le
+  simp only [intervalDomainSectorialStabilityNorms_c1Distance,
+    intervalDomainSectorialC1Distance_const] at hlarge_rhs
+  have hcsub : c - 1 = eps / 2 := by dsimp [c]; ring
+  rw [hcsub] at hlarge_rhs
+  simp only [abs_of_pos (half_pos heps)] at hlarge_rhs
+  linarith
+
 #print axioms intervalDomainSectorialC1Distance_const
 #print axioms
   not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNorms
 #print axioms
   not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectorialNorms
+#print axioms
+  not_intervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass_sectorialNorms
 
 end
 
