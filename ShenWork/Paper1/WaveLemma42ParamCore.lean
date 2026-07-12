@@ -106,8 +106,8 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperLowerRawStepProducerRouteAParamCore
         p c lam M κ κtilde D Λ hκ hM u
-  greenLimitIdentification :
-    PaperGreenRotheLimitIdentificationOnTrap p c lam M κ Λ
+  greenLimitIdentificationFromDrift :
+    PaperGreenRotheLimitIdentificationFromDriftOnTrap p c lam M κ Λ
       (fun u hu => paperLowerRawRouteAParamProducer (producer u hu)) hκ hM
 
 /-- Forget the explicit source-box parameter layer at the per-profile producer
@@ -159,7 +159,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     fun u hu => paperLowerRawRouteAParamProducer (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hgraph :=
-    (hpar.greenLimitIdentification.compactClosedGraph
+    (hpar.greenLimitIdentificationFromDrift.toLimitIdentification.compactClosedGraph
       hΛ0 hΛM hcond.upperBarrier_barLip).stepDependence_and_tailAlong
       hΛ0 hΛM hcond.upperBarrier_barLip
   have hdep : RotheContinuousDependence p c lam
@@ -268,7 +268,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     fun u hu => paperLowerRawRouteAParamProducer (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hgraph :=
-    (hpar.greenLimitIdentification.compactClosedGraph
+    (hpar.greenLimitIdentificationFromDrift.toLimitIdentification.compactClosedGraph
       hΛ0 hΛM hcond.upperBarrier_barLip).stepDependence_and_tailAlong
       hΛ0 hΛM hcond.upperBarrier_barLip
   have hdep : RotheContinuousDependence p c lam

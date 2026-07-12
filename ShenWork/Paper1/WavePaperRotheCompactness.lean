@@ -152,6 +152,50 @@ def PaperGreenRotheLimitIdentificationOnTrap
                   (fun n => Z (seq (subseq n)) (ks (subseq n))) W →
                   W = paperRotheExtendedOrbitValue (Z u) K
 
+/-- The same irreducible Green-limit identification with frozen-drift
+convergence exposed as an input.  This is the lowest carried analytic form:
+the profile-to-drift convergence itself is already a theorem. -/
+def PaperGreenRotheLimitIdentificationFromDriftOnTrap
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
+  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
+  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      (hu : InMonotoneWaveTrapSet κ M u) →
+      (hconv : LocallyUniformConverges seq u) →
+      LocallyUniformConverges
+        (fun n => deriv (frozenElliptic p (seq n)))
+        (deriv (frozenElliptic p u)) →
+        ∀ (ks : ℕ → ℕ) (K : Option ℕ),
+          PaperRotheIndexConverges ks K →
+            ∀ (subseq : ℕ → ℕ), StrictMono subseq →
+              ∀ W : ℝ → ℝ,
+                LocallyUniformConverges
+                  (fun n => Z (seq (subseq n)) (ks (subseq n))) W →
+                  W = paperRotheExtendedOrbitValue (Z u) K
+
+namespace PaperGreenRotheLimitIdentificationFromDriftOnTrap
+
+variable {p : CMParams} {c lam M κ Λ : ℝ}
+  {hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+    PaperRotheStepProducer p c lam M κ Λ v}
+  {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+
+/-- Supply the frozen-drift convergence from the proved whole-line kernel
+theorem `frozenEllipticDerivDependence`. -/
+theorem toLimitIdentification
+    (hident : PaperGreenRotheLimitIdentificationFromDriftOnTrap
+      p c lam M κ Λ hprodTrap hκ hM) :
+    PaperGreenRotheLimitIdentificationOnTrap
+      p c lam M κ Λ hprodTrap hκ hM := by
+  intro seq u hseq hu hconv
+  exact hident seq u hseq hu hconv
+    (frozenEllipticDerivDependence p hM seq u hseq hu hconv)
+
+end PaperGreenRotheLimitIdentificationFromDriftOnTrap
+
 namespace PaperGreenRotheLimitIdentificationOnTrap
 
 variable {p : CMParams} {c lam M κ Λ : ℝ}
@@ -613,6 +657,7 @@ end PaperGreenRotheCompactClosedGraph
 section AxiomAudit
 
 #print axioms paperRotheContinuousDependence_fromTrap_of_tailAlong
+#print axioms PaperGreenRotheLimitIdentificationFromDriftOnTrap.toLimitIdentification
 #print axioms PaperGreenRotheLimitIdentificationOnTrap.compactClosedGraph
 #print axioms PaperGreenRotheCompactClosedGraphOnTrap.stepDependence
 #print axioms PaperGreenRotheCompactClosedGraphOnTrap.tailAlongConvergentSeq
