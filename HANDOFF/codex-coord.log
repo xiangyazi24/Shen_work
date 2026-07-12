@@ -338,3 +338,8 @@ inputs are local existence and bounded-solution continuation, and its axiom
 audit is exactly `propext`, `Classical.choice`, `Quot.sound`.  This does not
 claim the false legacy branch `a > 0, b = 0`; the paper-faithful guard remains
 `a = 0 or b > 0`.
+
+2026-07-12 [Codex] AUTHORITATIVE GATE for the Q4582 rewire: uisai2 full
+root build passed at local commit `5a72b59f` (`9333` jobs, `BUILD OK` in
+`130s`).  The build evaluated the headline axiom print as exactly `propext`,
+`Classical.choice`, and `Quot.sound`.
