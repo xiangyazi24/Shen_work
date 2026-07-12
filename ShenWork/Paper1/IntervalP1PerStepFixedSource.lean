@@ -37,8 +37,8 @@
       C² with bounded derivative; they are NOT claimed for arbitrary trapped
       barriers, exactly matching the orbit-satisfiable obligations the repo
       already carries via `PaperGreenStepInputRouteASuperRestProvider`;
-    * the `PaperStepOutput` order/antitonicity layer (`hrest`, `hZsuper` in the
-      capstone) — barrier comparison `W ≤ Z`, monotonicity, left-rate decay.
+    * the `PaperStepOutput` order/antitonicity layer (`hrest` in the capstone)
+      — barrier comparison `W ≤ Z`, monotonicity, left-rate decay.
   The capstone `paperRotheStepProducer_of_params` relays these unchanged; it does
   not weaken or fake any obligation.
 -/
@@ -225,11 +225,10 @@ theorem PerStepBoxParams.basePaperSuper
 
 Chains `paperStepFixedSourceExistsForSuperTrap_of_params` into the Route-A
 fixed-source assembly and `paperRotheStepProducer_of_routeA_greenCore`.  The
-remaining inputs are the genuine per-step `PaperStepOutput` order/antitonicity
-layer (`PaperGreenStepInputRouteASuperRestProvider`) and the inductive
-supersolution precondition `hZsuper` — exactly the residual ChatGPT and the
-repo identify as the next hard analytic layer (barrier comparison, monotonicity,
-left-rate decay), now isolated above the closed fixed-source existence. -/
+remaining input is the genuine per-step `PaperStepOutput` order/antitonicity
+layer (`PaperGreenStepInputRouteASuperRestProvider`).  The inductive
+supersolution precondition is already an argument of each `produce` call and is
+threaded directly; it is not a separate all-profile residual. -/
 theorem paperRotheStepProducer_of_params
     {p : CMParams} {c lam M κ Λ B sigma aL C_u L_u C_R m_sigma : ℝ}
     {u : ℝ → ℝ}
@@ -241,10 +240,7 @@ theorem paperRotheStepProducer_of_params
         PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
     PaperRotheStepProducer p c lam M κ Λ u :=
   paperRotheStepProducer_of_routeA_greenCore
     (paperGreenStepInputRouteACore_of_superCore
@@ -252,8 +248,7 @@ theorem paperRotheStepProducer_of_params
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
         params.hu params.hlam params.basePaperSuper
         (paperStepFixedSourceExistsForSuperTrap_of_params params wit)
-        hrest)
-      hZsuper)
+        hrest))
 
 section AxiomAudit
 #print axioms paperStepFixedSourceExistsForSuperTrap_of_boxProvider

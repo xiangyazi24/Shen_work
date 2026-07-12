@@ -23,16 +23,13 @@ def paperRouteAParamGreenCore
         PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
   paperGreenStepInputRouteACore_of_trap_fixedSource
     (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
     params.hu params.hlam params.basePaperSuper
     (paperStepFixedSourceExistsForSuperTrap_of_params params wit)
-    hrest hZsuper
+    hrest
 
 /-- Route-A lower-raw producer core whose Green core is not carried directly:
 it is assembled from the explicit per-step source-box parameter package. -/
@@ -55,20 +52,17 @@ structure PaperLowerRawStepProducerRouteAParamCore
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap
   rest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u
-  zsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0
   lowerRawAux :
     InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
       ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
         rotheSeqOfPaper p c lam M κ Λ u
           (paperRotheStepProducer_of_routeA_greenCore
-            (paperRouteAParamGreenCore params witness rest zsuper)) hκ hM k x) →
+            (paperRouteAParamGreenCore params witness rest)) hκ hM k x) →
         ∃ C_chem La Lb,
           PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
             (rotheSeqOfPaper p c lam M κ Λ u
               (paperRotheStepProducer_of_routeA_greenCore
-                (paperRouteAParamGreenCore params witness rest zsuper))
+                (paperRouteAParamGreenCore params witness rest))
               hκ hM (k + 1))
 
 /-- The Route-A Green core produced by the parameterized lower-raw core. -/
@@ -78,7 +72,7 @@ def paperLowerRawRouteAParamGreenCore
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
-  paperRouteAParamGreenCore h.params h.witness h.rest h.zsuper
+  paperRouteAParamGreenCore h.params h.witness h.rest
 
 /-- The paper Rothe producer induced by a parameterized Route-A lower-raw core. -/
 def paperLowerRawRouteAParamProducer

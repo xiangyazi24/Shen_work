@@ -1153,41 +1153,37 @@ def paperGreenStepInputRouteASuperCore_of_fixedSource
         (u := u) (Z := Z) hfixed hu hZc hZa hZ0 hZB hZsuper
     exact (hrest Z hZc hZa hZ0 hZB hZsuper fixed).toOutputRouteACore
 
-/-- Forget the super-core to the existing Route-A core when the caller can
-produce the supersolution precondition for every trapped old iterate. -/
+/-- Forget the super-core to the existing Route-A core.
+
+The two interfaces now have the same per-step supersolution input.  In
+particular, the proof passed to `PaperGreenStepInputRouteACore.produce` is fed
+directly to `hin.produce`; no separate all-trapped-profile supersolution
+oracle is needed. -/
 def paperGreenStepInputRouteACore_of_superCore
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
-    (hin : PaperGreenStepInputRouteASuperCore p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hin : PaperGreenStepInputRouteASuperCore p c lam M κ Λ u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u where
   hlam := hin.hlam
   basePaperSuper := hin.basePaperSuper
   produce := by
-    intro Z hZc hZa hZ0 hZB _hZpaperSuper
-    exact hin.produce Z hZc hZa hZ0 hZB (hZsuper Z hZc hZa hZ0 hZB)
+    intro Z hZc hZa hZ0 hZB hZpaperSuper
+    exact hin.produce Z hZc hZa hZ0 hZB hZpaperSuper
 
 /-- Trap-indexed Route-A core from the concrete fixed-source provider.  The
-additional `hZsuper` argument is the explicitly threaded super-trap precondition
-for the old iterate; without it the bare paper producer interface is too weak to
-call `PaperStepFixedSourceExistsForSuperTrap`. -/
+old iterate's supersolution proof is threaded through the `produce` call and
+used by the fixed-source existence theorem at that same iterate. -/
 def paperGreenStepInputRouteACore_of_trap_fixedSource
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet κ M u)
     (hlam : 0 < lam)
     (hbase : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0)
     (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
   paperGreenStepInputRouteACore_of_superCore
     (paperGreenStepInputRouteASuperCore_of_fixedSource
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
       (u := u) hu hlam hbase hfixed hrest)
-    hZsuper
 
 /-- Trap-indexed Route-A core from the truncated source-box fixed-source route.
 
@@ -1209,10 +1205,7 @@ def paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
       (∀ x, Z x ≤ upperBarrier κ M x) →
       (∀ x, paperWaveOperator p c u Z x ≤ 0) →
         PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
   paperGreenStepInputRouteACore_of_trap_fixedSource
     (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
@@ -1221,7 +1214,7 @@ def paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
       (sigma := sigma) (aL := aL) (C_u := C_u) (L_u := L_u)
       (u := u) hu_rate hboxData)
-    hrest hZsuper
+    hrest
 
 /-- Trap-indexed Route-A Green core assembly.
 
