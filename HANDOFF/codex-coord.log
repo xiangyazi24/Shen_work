@@ -38,3 +38,13 @@ downstream producer check succeed.  This is the same standalone-file olean
 availability issue documented for the energy chain, not a source/linker error;
 the root import has now been wired through `ShenWork.lean`, and the uisai2 root
 build is the authoritative integration check.
+2026-07-12 Jensen closure authoritative-build follow-up: the uisai2 root build
+completed successfully (9252 jobs, `BUILD OK` in 477s), compiling the energy,
+V6 assembly, weak-barrier comparison, closure, and strict-positivity producer.
+No linker/cache failure remains; only lint warnings and the six pre-existing,
+unrelated bootstrap `sorry` warnings were reported.
+2026-07-12 mapCert chi-zero local-check note: a direct local single-file check
+of `IntervalDomainChiNonposHeadline.lean` stopped before elaboration because the
+unrelated imported object `ShenWork/Wiener/EWA/EmbedEWA.olean` is absent from
+the Mac build tree.  This is another standalone-file dependency-olean issue;
+the uisai2 root build after commit is the authoritative χ=0 regression gate.

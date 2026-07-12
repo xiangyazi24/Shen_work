@@ -100,3 +100,13 @@ STATE of the 4 χ<0 inputs:
 - mapCertificate: reduced to Codex's one core-struct realization-field fix (closes HS+HD).
 NEXT: fork closes u-even-C³ → hH2 unconditional (or conditional on u∈C³) → crux source-side done. Then Codex Jensen + assembly.
 Key spec: /tmp/shen-collab/codex-crux-spec.md (full route). Roadmap: HANDOFF/TRILOGY-ROADMAP.md (all phases mapped).
+
+## MILESTONE 2026-07-12: Jensen PROVEN (2c6da457)
+uniformTruncatedJensenStrictPosDataV6_producer (jensenStrictPos field) via truncatedConjugatePicardLimit_strictPos_v6
+— matched weak-barrier comparison, IntervalTruncatedWeakBarrierComparisonClosureV6.lean 3466 lines 0-sorry, endpoint
+bridge included. VERIFIED: 0-sorry, does NOT import/depend on the 6 pre-existing bootstrap sorries (bypassed);
+ShenWork.lean import added (honors import-closure audit). 3 of 4 χ<0 inputs done (energy u≥0, Jensen u>0, + atoms).
+Codex steered to: mapCert struct-fix (quick) → source-finish wiring (reconstruction/product-rep/ladder) → assembly → cold gate.
+Authoritative uisai2 root build passed (`BUILD OK`, 9252 jobs); the Jensen producer
+and its full import closure were compiled.  Its axiom audit remains the three
+standard axioms (`propext`, `Classical.choice`, `Quot.sound`).

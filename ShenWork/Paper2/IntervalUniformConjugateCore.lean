@@ -4,6 +4,7 @@ import ShenWork.PDE.HeatKernelGradientEstimates
 import ShenWork.PDE.IntervalChemFluxLipschitz
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalLogisticLipschitz
+import ShenWork.Paper2.IntervalTruncatedLogisticLipschitz
 
 open MeasureTheory Set
 open scoped Topology
@@ -53,6 +54,29 @@ structure UniformConjugateMildExistenceCore (p : CM2Params)
   hCL : 0 ≤ CL
   hCQsup : 0 ≤ CQsup
   hCLsup : 0 ≤ CLsup
+  hCQsup_eq :
+    CQsup = R *
+      (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * R ^ p.γ)))
+  hCLsup_eq : CLsup = R * (p.a + p.b * R ^ p.α)
+  hCQ_eq : CQ =
+    Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * R ^ p.γ)) +
+      R * (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * (p.γ * R ^ (p.γ - 1))))) +
+      R * (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * R ^ p.γ))) * p.β *
+        (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+            (2 * (p.ν * (p.γ * R ^ (p.γ - 1)))))
+  hCL_lip : ∀ r r' : ℝ, |r| ≤ R → |r'| ≤ R →
+    |ShenWork.Paper2.BFormPositiveDatumNegPart.truncatedLogisticLocal p r -
+      ShenWork.Paper2.BFormPositiveDatumNegPart.truncatedLogisticLocal p r'|
+        ≤ CL * |r - r'|
   hR_eq : R = 2 * M0
   hC₀_eq : C₀ = 2 * R
   hK_eq :
@@ -97,10 +121,9 @@ theorem uniformConjugateMildExistenceCore_exists
   have hR_pos : 0 < R := by rw [hRdef]; linarith
   have hR_nn : 0 ≤ R := hR_pos.le
   have hM_le_R : M ≤ R := by rw [hRdef]; linarith
-  obtain ⟨CL, hCL_pos, _hCL_lip⟩ :=
-    ShenWork.IntervalLogisticLipschitz.intervalLogisticReaction_lipschitz_on_bounded
-      p hα_ge hR_pos
-  have hCL_nn : 0 ≤ CL := hCL_pos.le
+  obtain ⟨CL, hCL_nn, hCL_lip⟩ :=
+    ShenWork.Paper2.TruncatedLogisticLipschitz.truncatedLogisticLocal_lipschitz_on_bounded
+      p hα_ge hR_nn
   set C_RG : ℝ := Real.sqrt (∑' k : ℕ,
       (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
         (2 * (p.ν * R ^ p.γ)) with hCRG
@@ -201,6 +224,10 @@ theorem uniformConjugateMildExistenceCore_exists
       linarith
     hC₀ := by linarith [hR_pos]
     hCQ := hCQ_nn, hCL := hCL_nn, hCQsup := hCQsup_nn, hCLsup := hCLsup_nn
+    hCQsup_eq := by rw [hCQsup, hCRG]
+    hCLsup_eq := hCLsup
+    hCQ_eq := by rw [hCQ, hCRG, hCRGL, hCRV]
+    hCL_lip := hCL_lip
     hR_eq := hRdef
     hC₀_eq := rfl
     hK_eq := by rw [hCg]
