@@ -548,3 +548,4 @@ import ShenWork.Paper2.IntervalConjugateMildClassicalRegularityFromJointUT
 import ShenWork.Paper2.IntervalConjugatePicardReducedCoreFromJointUT
 import ShenWork.Paper2.IntervalConjugateMildJointTimeDerivativeInterior
 import ShenWork.Paper2.IntervalChiNegV6DirectClassical
+import ShenWork.Paper2.IntervalChiNegV6Headline
