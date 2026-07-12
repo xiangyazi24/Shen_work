@@ -343,3 +343,18 @@ claim the false legacy branch `a > 0, b = 0`; the paper-faithful guard remains
 root build passed at local commit `5a72b59f` (`9333` jobs, `BUILD OK` in
 `130s`).  The build evaluated the headline axiom print as exactly `propext`,
 `Classical.choice`, and `Quot.sound`.
+
+2026-07-12 [Zinan] PAPER 3 STABILITY CONSOLIDATION (grep of Statements.lean _of_sectorial theorems).
+Thm 2.3/2.4/2.5 ALL reduce to ONE keystone: the nonlinear orbit bound
+  LinearlyStable → MassConstrainedLocallyExponentiallyStableFromSup  (= IntervalDomainSpectralSemigroupOrbitBound*).
+Repo has many candidate forms in IntervalDomainSectorial.lean (Raw=over-stated heat-semigroup; Corrected=∀t≥0 PROVEN
+FALSE; AllTimeExistentialRate; EventualWithoutEquilibrium; EventualEquilibriumWithoutMass). Need ONE valid form:
+full-rate diagonal semigroup e^{−d_k t}, d_k=−σ_k≥δ_lin, EVENTUAL (∀t≥t₀) weak-norm (Q4584). For χ₀≤0,
+LinearlyStable is ALREADY discharged (positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann /
+unitInterval_positiveEquilibrium_linearlyStable_of_chi_nonpos) → orbit bound alone closes Thm 2.3.
+Entropy infra (chemotaxisEntropyDensity LyapunovFunction.lean:34, chiStrong1Formula Statements.lean:2972) ALREADY
+EXISTS — my forward-entropy Q4585/4586 were reinventing it wrong (repo uses paper reverse h₁). Thm 2.4 proved via
+sectorial, NOT the entropy/LaSalle route I was designing. STOP scattered entropy/LaSalle questions.
+NET FRONTIER = 3 keystones / 3 Codex: (1) Thm1.2 boundedness [Codex#1, signal-weighted, 2 lemmas left, NEAREST];
+(2) Paper3 stability orbit bound [Codex#2, full-rate eventual Duhamel — unlocks 2.2/2.3/2.4/2.5]; (3) Rothe Green-step
+compact closed-graph [Codex#3].
