@@ -51,3 +51,25 @@ what already exists. Actual repo state (all 0-sorry, mostly committed by Xiang 2
 2. Discharge `hcriticalGlobalBound` (eventual sup from the Lᵖ bound → IsPaper2Bounded).
 3. Discharge `hlocal` / `hglobalExtension` (local existence + bounded-before⇒global — shared w/ existence).
 NOTE: cross question lpQ_cross is MOOT (heart done); lpQ_seed / lpQ_abstract still relevant for the wiring.
+
+## WIRING BLUEPRINT (2026-07-12) — Theorem_1_2 m=1 unconditional = thread these existing pieces
+1. cross [DONE]: intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol → CrossDiffusion(rho=2γ).
+2. energy Gronwall: intervalDomain_Lp_abs_energy_gronwall_of_neumann_by_parts_bound (LpMonotonicity:308)
+   — input = Neumann-by-parts + cross bound (from IntervalDomainEnergyStep + step 1) → deriv∫u^p ≤ C∫u^p+C'.
+3. base seed: intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall (LpMonotonicity:519) ← step 2.
+4. Moser climb: intervalDomain_all_exponents_of_moser_iteration_chain (LpMonotonicity:837)
+   ← hbase(step 3) + hstep(cross+energy) + hu_nonneg + hpow_int → ∀pExp>1, LpPowerBoundedBefore.
+5. StructuredMoserData: intervalDomain_structuredMoserBootstrapData_of_regularity (6 frontiers:
+   hcross[done], hboot=AbstractLpBootstrapHypothesis[?], hdiss[?], hrel[DONE MCL:86], hLpMono[LpMono], hEndpoint[?]).
+6. boundedBefore: IntervalDomainStructuredMoserBootstrapData.boundedBefore.
+7. hcriticalBootstrap := ⟨2γ, cross, p0, LpPower from 3/4⟩. Cor21/Prop25 producers exist
+   (need hEnergyFromCrossDiffusion = intervalDomain_LpBootstrapEnergyInequality_of_regularity).
+8. Theorem12 critical branch → Theorem_1_2 intervalDomain p.
+
+### OPEN sub-residuals to verify/discharge (the actual remaining work, all WIRING-level):
+- AbstractLpBootstrapHypothesis (hboot), MoserDissipationDropBefore (hdiss), MoserQuantitativeEndpoint (hEndpoint)
+  — check for _of_regularity producers; likely generic Moser, dischargeable.
+- The Neumann-by-parts bound input to step 2 (confirm produced from EnergyStep + cross).
+- hcriticalGlobalBound (Lᵖ bound → IsPaper2Bounded eventual sup).
+- hlocal / hglobalExtension (local existence + bounded-before⇒global) — shared with the existence machinery.
+This is Codex-scale multi-piece ASSEMBLY (exact signatures), best done fresh-context or by Codex — NOT new analysis.
