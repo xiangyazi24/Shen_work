@@ -1033,14 +1033,58 @@ def PaperRotheTailUniform
             - rotheLimit
               (rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) x| < ε
 
-/-- Paper-step dependence plus uniform Rothe tail give the
-`RotheContinuousDependence` interface consumed by the Schauder wrapper. -/
-theorem paperRotheContinuousDependence
+/-- Tail convergence with only the family-uniformity needed for sequential
+continuity of the paper Rothe map.
+
+For one locally-uniformly convergent trapped family `seq n → u`, a common
+outer cutoff works for the target profile and for all sufficiently large
+members of the family.  No uniformity over the entire trap is asserted. -/
+def PaperRotheTailUniformAlongConvergentSeq
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      (hu : InMonotoneWaveTrapSet κ M u) →
+      LocallyUniformConverges seq u →
+        ∀ R > 0, ∀ ε > 0,
+          ∃ K : ℕ,
+            (∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
+              |rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k x
+                  - rotheLimit
+                    (rotheSeqOfPaper p c lam M κ Λ u
+                      (hprodAll u) hκ hM) x| < ε) ∧
+            ∀ᶠ n in Filter.atTop,
+              ∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
+                |rotheSeqOfPaper p c lam M κ Λ (seq n)
+                    (hprodAll (seq n)) hκ hM k x
+                    - rotheLimit
+                      (rotheSeqOfPaper p c lam M κ Λ (seq n)
+                        (hprodAll (seq n)) hκ hM) x| < ε
+
+/-- The old globally-uniform tail implies the sequence-local tail.  This is a
+backward-compatibility adapter; the converse is deliberately not claimed. -/
+theorem PaperRotheTailUniform.toAlongConvergentSeq
+    {p : CMParams} {c lam M κ Λ : ℝ}
+    {hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (htail : PaperRotheTailUniform p c lam M κ Λ hprodAll hκ hM) :
+    PaperRotheTailUniformAlongConvergentSeq
+      p c lam M κ Λ hprodAll hκ hM := by
+  intro seq u hseq hu _hconv R hR ε hε
+  obtain ⟨K, hK⟩ := htail R hR ε hε
+  refine ⟨K, hK u hu, ?_⟩
+  exact Filter.Eventually.of_forall fun n => hK (seq n) (hseq n)
+
+/-- Fixed-step dependence and a tail uniform only along the convergent family
+give the continuous-dependence interface used by the Schauder wrapper. -/
+theorem paperRotheContinuousDependence_of_tailAlongConvergentSeq
     (p : CMParams) (c lam M κ Λ : ℝ)
     (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M)
     (hstep : PaperRotheSeqStepDependence p c lam M κ Λ hprodAll hκ hM)
-    (htail : PaperRotheTailUniform p c lam M κ Λ hprodAll hκ hM) :
+    (htail : PaperRotheTailUniformAlongConvergentSeq
+      p c lam M κ Λ hprodAll hκ hM) :
     RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
       (fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) := by
   intro seq u hseq hu hconv
@@ -1048,19 +1092,21 @@ theorem paperRotheContinuousDependence
     fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM with hZ
   set L : (ℝ → ℝ) → ℝ → ℝ := fun v => rotheLimit (Z v) with hL
   intro R hR ε hε
-  obtain ⟨K, hK⟩ := htail R hR (ε / 3) (by linarith)
+  obtain ⟨K, htailu, htailseq⟩ :=
+    htail seq u hseq hu hconv R hR (ε / 3) (by linarith)
   have hstepK :
       LocallyUniformConverges (fun n => Z (seq n) K) (Z u K) := by
     have hstepK' := hstep seq u hseq hu hconv K
     simpa [hZ] using hstepK'
-  filter_upwards [hstepK R hR (ε / 3) (by linarith)] with n hn
+  filter_upwards [htailseq,
+    hstepK R hR (ε / 3) (by linarith)] with n htailn hn
   intro x hx
-  have htailn : |Z (seq n) K x - L (seq n) x| < ε / 3 := by
-    have htailn' := hK (seq n) (hseq n) K (le_refl K) x hx
-    simpa [hZ, hL] using htailn'
-  have htailu : |Z u K x - L u x| < ε / 3 := by
-    have htailu' := hK u hu K (le_refl K) x hx
-    simpa [hZ, hL] using htailu'
+  have htailn' : |Z (seq n) K x - L (seq n) x| < ε / 3 := by
+    have h := htailn K (le_refl K) x hx
+    simpa [hZ, hL] using h
+  have htailu' : |Z u K x - L u x| < ε / 3 := by
+    have h := htailu K (le_refl K) x hx
+    simpa [hZ, hL] using h
   have hmid : |Z (seq n) K x - Z u K x| < ε / 3 := hn x hx
   have hdecomp :
       L (seq n) x - L u x
@@ -1081,8 +1127,21 @@ theorem paperRotheContinuousDependence
     _ = |Z (seq n) K x - L (seq n) x| + |Z (seq n) K x - Z u K x|
           + |Z u K x - L u x| := by rw [abs_neg]
     _ < ε / 3 + ε / 3 + ε / 3 := by
-          have := htailn; have := hmid; have := htailu; linarith
+          have := htailn'; have := hmid; have := htailu'; linarith
     _ = ε := by ring
+
+/-- Paper-step dependence plus uniform Rothe tail give the
+`RotheContinuousDependence` interface consumed by the Schauder wrapper. -/
+theorem paperRotheContinuousDependence
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ hprodAll hκ hM)
+    (htail : PaperRotheTailUniform p c lam M κ Λ hprodAll hκ hM) :
+    RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) := by
+  exact paperRotheContinuousDependence_of_tailAlongConvergentSeq
+    p c lam M κ Λ hprodAll hκ hM hstep htail.toAlongConvergentSeq
 
 /-! ## Paper Rothe-limit stationary consistency frontier -/
 
@@ -1917,6 +1976,8 @@ section AxiomAudit
 #print axioms paperRotheOrbitData
 #print axioms paperTmap_maps_trap
 #print axioms paperTmap_compactRange
+#print axioms PaperRotheTailUniform.toAlongConvergentSeq
+#print axioms paperRotheContinuousDependence_of_tailAlongConvergentSeq
 #print axioms paperRotheContinuousDependence
 #print axioms paperWaveOperator_eq_zero_of_paperImplicitStepOp_self
 #print axioms frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self

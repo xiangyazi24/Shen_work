@@ -108,21 +108,20 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     PaperRotheSeqStepDependence p c lam M κ Λ
       (fun u => paperLowerRawRouteAParamProducer (producer u)) hκ hM
   tail :
-    PaperRotheTailUniform p c lam M κ Λ
+    PaperRotheTailUniformAlongConvergentSeq p c lam M κ Λ
       (fun u => paperLowerRawRouteAParamProducer (producer u)) hκ hM
 
-/-- Forget the explicit source-box parameter layer to the existing Route-A
-no-`barLip` floor. -/
-def paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
+/-- Forget the explicit source-box parameter layer at the per-profile producer
+level.  The sequence-local tail is kept separately because it intentionally
+does not imply the older globally quantified parabolic-floor tail. -/
+def paperLowerRawStepProducerAll_of_paramCoreNoBar
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM) :
-    PaperLowerRawParabolicFloorRouteACoreNoBar
-      p c lam M κ κtilde D Λ hκ hM where
-  producer := fun u => paperLowerRawStepProducerRouteACore_of_paramCore (h.producer u)
-  step := h.step
-  tail := h.tail
+    ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u :=
+  fun u => paperLowerRawStepProducer_of_routeA_core
+    (paperLowerRawStepProducerRouteACore_of_paramCore (h.producer u))
 
 /-- B1 χ≤0 Route-A wrapper after replacing the monolithic Route-A per-step
 producer residual by the explicit source-box parameter layer. -/
@@ -144,10 +143,26 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
-  b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData
+  let hprodAll := paperLowerRawStepProducerAll_of_paramCoreNoBar hpar
+  b1_chiNeg_existence_paper_of_cubeApproxData
     p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
-    (paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar hpar)
-    hconv hsmp
+    (fun u => (hprodAll u).producer) hcond.upperBarrier_barLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar,
+        rotheSeqOfPaperFromCond] using
+        paperRotheContinuousDependence_of_tailAlongConvergentSeq
+          p c lam M κ Λ
+          (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))
+          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_conditions hcond hD hD_ge_one hprodAll)
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
+        hconv.stationary)
+    hsmp
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
+        hconv.flat)
 
 /-- B1 χ≥0 Route-A wrapper after replacing the monolithic Route-A per-step
 producer residual by the explicit source-box parameter layer. -/
@@ -169,16 +184,32 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
-  b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+  let hprodAll := paperLowerRawStepProducerAll_of_paramCoreNoBar hpar
+  b1_chiPos_existence_paper_of_cubeApproxData
     p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
-    (paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar hpar)
-    hconv hsmp
+    (fun u => (hprodAll u).producer) hcond.upperBarrier_barLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar,
+        rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence_of_tailAlongConvergentSeq
+          p c lam M κ Λ
+          (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))
+          hcond.hκ0.le (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_positive_conditions hcond hD hD_ge_one hprodAll)
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
+        hconv.stationary)
+    hsmp
+    (by
+      simpa [hprodAll, paperLowerRawStepProducerAll_of_paramCoreNoBar] using
+        hconv.flat)
 
 section AxiomAudit
 
 #print axioms paperRouteAParamGreenCore
 #print axioms paperLowerRawStepProducerRouteACore_of_paramCore
-#print axioms paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
+#print axioms paperLowerRawStepProducerAll_of_paramCoreNoBar
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 
