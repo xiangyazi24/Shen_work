@@ -618,7 +618,7 @@ theorem intervalDomain_mass_jensen
   · simp [Real.volume_Ioc]
   · simp [Real.volume_Ioc]
 
-private theorem intervalDomain_reaction_integral_eq
+theorem intervalDomain_reaction_integral_eq
     {p : CM2Params} {T t : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)

@@ -42,20 +42,15 @@ def theorem12IntervalRefutationParams : CM2Params where
   β := 1
   hβ := by norm_num
 
-/-- The published parameter quantification in Paper 2 Theorem 1.2 is false on
-the actual unit interval: the allowed branch `a > 0`, `b = 0`, `χ₀ = 0`
-forces positive mass to grow without bound. -/
-theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
-    ¬ Theorem_1_2 intervalDomain theorem12IntervalRefutationParams := by
+/-- The mixed undamped branch of Paper 2 Theorem 1.2 is impossible on the
+actual unit interval.  This general form identifies the exact missing guard in
+the published parameter quantification. -/
+theorem not_Theorem_1_2_intervalDomain_of_a_pos_b_zero
+    (p : CM2Params) (ha : 0 < p.a) (hb : p.b = 0)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hchi : p.χ₀ < chiBeta p) :
+    ¬ Theorem_1_2 intervalDomain p := by
   intro h12
-  have hbranches := h12
-    (by norm_num [theorem12IntervalRefutationParams])
-    (by norm_num [theorem12IntervalRefutationParams])
-    (by norm_num [theorem12IntervalRefutationParams])
-  have hchi :
-      theorem12IntervalRefutationParams.χ₀ <
-        chiBeta theorem12IntervalRefutationParams := by
-    norm_num [theorem12IntervalRefutationParams, chiBeta]
+  have hbranches := h12 p.ha p.hb hβ
   let u₀ : intervalDomain.Point → ℝ := fun _ => 1
   have hu₀ : PaperPositiveInitialDatum intervalDomain u₀ := by
     refine ⟨⟨?_, continuous_const⟩, 1, by norm_num, ?_⟩
@@ -65,18 +60,19 @@ theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
     · intro x
       simp [u₀]
   obtain ⟨u, v, hglobal, _htrace, hbounded⟩ :=
-    hbranches.2
-      (by norm_num [theorem12IntervalRefutationParams]) hchi u₀ hu₀
+    hbranches.2 hm hchi u₀ hu₀
   let M : ℝ → ℝ := fun t => intervalDomain.integral (u t)
-  have hM_deriv : ∀ t : ℝ, 0 < t → HasDerivAt M (M t) t := by
+  have hM_deriv : ∀ t : ℝ, 0 < t → HasDerivAt M (p.a * M t) t := by
     intro t ht
     have hT : 0 < t + 1 := by linarith
     have hsol := hglobal.classical (T := t + 1) hT
     have hderiv :=
-      (intervalDomain_Paper2MassDerivativeIdentity
-        theorem12IntervalRefutationParams)
+      (intervalDomain_Paper2MassDerivativeIdentity p)
         (t + 1) hT u v hsol t ht (by linarith)
-    simpa [M, theorem12IntervalRefutationParams] using hderiv
+    have hreaction := intervalDomain_reaction_integral_eq hsol
+      (show t ∈ Set.Ioo (0 : ℝ) (t + 1) from ⟨ht, by linarith⟩)
+    rw [hreaction, hb] at hderiv
+    simpa [M] using hderiv
   have hM_pos : ∀ t : ℝ, 0 < t → 0 < M t := by
     intro t ht
     have hT : 0 < t + 1 := by linarith
@@ -96,16 +92,20 @@ theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
     · intro t ht
       rw [interior_Ici] at ht
       rw [(hM_deriv t (lt_trans one_pos ht)).deriv]
-      exact (hM_pos t (lt_trans one_pos ht)).le
+      exact mul_nonneg ha.le (hM_pos t (lt_trans one_pos ht)).le
   have hM1_pos : 0 < M 1 := hM_pos 1 one_pos
+  have hrate_pos : 0 < p.a * M 1 := mul_pos ha hM1_pos
   have hderiv_lb :
-      ∀ x : ℝ, x ∈ interior (Set.Ici (1 : ℝ)) → M 1 ≤ deriv M x := by
+      ∀ x : ℝ, x ∈ interior (Set.Ici (1 : ℝ)) →
+        p.a * M 1 ≤ deriv M x := by
     intro x hx
     rw [interior_Ici] at hx
     rw [(hM_deriv x (lt_trans one_pos hx)).deriv]
-    exact hM_mono (Set.mem_Ici.mpr le_rfl)
-      (Set.mem_Ici.mpr hx.le) hx.le
-  have hgrowth : ∀ t : ℝ, 1 ≤ t → M 1 * (t - 1) ≤ M t - M 1 := by
+    exact mul_le_mul_of_nonneg_left
+      (hM_mono (Set.mem_Ici.mpr le_rfl)
+        (Set.mem_Ici.mpr hx.le) hx.le) ha.le
+  have hgrowth : ∀ t : ℝ, 1 ≤ t →
+      (p.a * M 1) * (t - 1) ≤ M t - M 1 := by
     intro t ht
     exact (convex_Ici 1).mul_sub_le_image_sub_of_le_deriv
       (fun x hx =>
@@ -128,8 +128,9 @@ theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
       ⟨htbase_pos, by linarith⟩
     exact (hM_pos tbase htbase_pos).le.trans
       (hmass_le.trans (hT₀ tbase htbase_ge))
-  let tstar : ℝ := tbase + B / M 1 + 1
-  have hdiv_nonneg : 0 ≤ B / M 1 := div_nonneg hB_nonneg hM1_pos.le
+  let tstar : ℝ := tbase + B / (p.a * M 1) + 1
+  have hdiv_nonneg : 0 ≤ B / (p.a * M 1) :=
+    div_nonneg hB_nonneg hrate_pos.le
   have htstar_ge_T₀ : T₀ ≤ tstar := by
     dsimp [tstar]
     linarith [htbase_ge]
@@ -144,19 +145,33 @@ theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
       ⟨htstar_pos, by linarith⟩).trans
       (hT₀ tstar htstar_ge_T₀)
   have hgrowth_star := hgrowth tstar htstar_ge_one
-  have hrecover : M 1 * (B / M 1) = B :=
-    mul_div_cancel₀ B (ne_of_gt hM1_pos)
+  have hrecover : (p.a * M 1) * (B / (p.a * M 1)) = B :=
+    mul_div_cancel₀ B (ne_of_gt hrate_pos)
   have htbase_nonneg : 0 ≤ tbase :=
     le_trans (by norm_num) (le_max_right T₀ (1 : ℝ))
-  have hexpand : M 1 * (tstar - 1) = M 1 * tbase + B := by
+  have hexpand : (p.a * M 1) * (tstar - 1) =
+      (p.a * M 1) * tbase + B := by
     dsimp [tstar]
-    rw [show tbase + B / M 1 + 1 - 1 = tbase + B / M 1 by ring,
+    rw [show tbase + B / (p.a * M 1) + 1 - 1 =
+        tbase + B / (p.a * M 1) by ring,
       mul_add, hrecover]
   rw [hexpand] at hgrowth_star
-  nlinarith [mul_nonneg hM1_pos.le htbase_nonneg]
+  nlinarith [mul_nonneg hrate_pos.le htbase_nonneg]
+
+/-- Concrete numerical witness for the general mixed-branch refutation. -/
+theorem not_Theorem_1_2_intervalDomain_when_a_pos_b_zero :
+    ¬ Theorem_1_2 intervalDomain theorem12IntervalRefutationParams := by
+  exact not_Theorem_1_2_intervalDomain_of_a_pos_b_zero
+    theorem12IntervalRefutationParams
+    (by norm_num [theorem12IntervalRefutationParams])
+    (by norm_num [theorem12IntervalRefutationParams])
+    (by norm_num [theorem12IntervalRefutationParams])
+    (by norm_num [theorem12IntervalRefutationParams])
+    (by norm_num [theorem12IntervalRefutationParams, chiBeta])
 
 end
 
 #print axioms not_Theorem_1_2_intervalDomain_when_a_pos_b_zero
+#print axioms not_Theorem_1_2_intervalDomain_of_a_pos_b_zero
 
 end ShenWork.Paper2

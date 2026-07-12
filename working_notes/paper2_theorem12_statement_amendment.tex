@@ -1,0 +1,212 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Om}{\Omega}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\Tmax}{T_{\max}}
+
+\title{Paper 2, Theorem 1.2: Statement Amendment}
+\author{Internal research note for the \texttt{ShenWork} formalization}
+\date{12 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The parameter range printed in Theorem 1.2 of Chen--Ruau--Shen permits the
+mixed undamped branch $a>0$, $b=0$.  In that branch a positive spatially
+constant solution grows exponentially, contradicting the asserted uniform
+boundedness.  This note records the counterexample, locates the missing
+hypothesis in the published proof, gives two corrected formulations, and
+states the corresponding amendment needed in the Lean headline.
+\end{abstract}
+
+\section{Source checked}
+
+The source examined here is the original submission, not a repository
+paraphrase:
+
+\begin{quote}
+Le Chen, Ian Ruau, and Wenxian Shen, \emph{Chemotaxis models with
+signal-dependent sensitivity and a logistic-type source, I: Boundedness and
+global existence}, arXiv:2512.14858v1, 16 December 2025.
+\end{quote}
+
+The local archival copies are \path{paper2.pdf} and the submitted TeX source
+\path{.tmp/arxiv/2512.14858.tar}.  As of 12 July 2026, arXiv lists no later
+revision.  Theorem 1.2 assumes
+$a,b\geq 0$ and $\beta\geq 1$.  It claims boundedness when $0<m<1$, and
+boundedness plus global existence when $m=1$ and
+\begin{equation}
+  \chi_0 < \frac{2(2\beta-1)}{\max\{2,\gamma N\}}.
+  \label{eq:chi-threshold}
+\end{equation}
+Remark 1.4(2) also says that $a$ and $b$ may vanish.  No preceding convention
+excludes the mixed case $a>0$, $b=0$.
+
+\section{Counterexample}
+
+Let $a>0$, $b=0$, and let the initial datum be the positive constant
+$u_0(x)=c$.  On any smooth bounded Neumann domain, set
+\begin{equation}
+  u(t,x)=c e^{at},
+  \qquad
+  v(t,x)=\frac{\nu}{\mu}\,u(t,x)^\gamma.
+  \label{eq:constant-solution}
+\end{equation}
+Both functions are spatially constant.  Therefore all spatial derivatives and
+the chemotaxis divergence vanish.  The elliptic equation for $v$ holds at
+every time, while the parabolic equation reduces to
+\begin{equation}
+  u_t=a u.
+\end{equation}
+Thus \eqref{eq:constant-solution} is a positive global classical solution for
+every $m>0$, every $\beta\geq 0$, and every $\chi_0\in\R$.  However,
+\begin{equation}
+  \norm{u(t,\cdot)}_\infty = c e^{at}\longrightarrow\infty.
+\end{equation}
+Consequently, both parts of the printed theorem fail in the branch
+$a>0$, $b=0$.  Part (2) already fails for $m=1$, $\beta=1$, and $\chi_0=0$,
+which satisfy \eqref{eq:chi-threshold}.
+
+There is also a solution-independent formulation of the contradiction.  For
+every positive classical Neumann solution with $b=0$, integration of the
+parabolic equation gives
+\begin{equation}
+  M'(t)=aM(t),
+  \qquad
+  M(t):=\int_\Om u(t,x)\,dx.
+  \label{eq:mass-ode}
+\end{equation}
+Positivity gives $M(t)>0$, so $a>0$ forces unbounded mass.  On a bounded
+unit-volume domain,
+\begin{equation}
+  M(t)\leq \norm{u(t,\cdot)}_\infty.
+\end{equation}
+Hence an eventually bounded positive global solution cannot exist in this
+branch, independently of uniqueness or of a preferred explicit solution.
+
+\section{Where the proof loses the hypothesis}
+
+The missing parameter restriction is visible in both parts of Section 4.
+
+\begin{enumerate}[leftmargin=2em]
+\item Proposition 2.4 supplies a uniform mass bound only in the two cases
+\begin{equation}
+  a=b=0,
+  \qquad\text{or}\qquad
+  a>0\ \text{and}\ b>0.
+  \label{eq:prop24-cases}
+\end{equation}
+
+\item In Section 4.2, the proof of Theorem 1.2(1) drops the nonpositive term
+$-b\int_\Om u^{p+\alpha}$ and later invokes Lemma 4.1 together with
+Proposition 2.4 to replace a mass-dependent quantity by a time-independent
+constant.  Proposition 2.4 supplies no such constant when $a>0$, $b=0$.
+
+\item In Section 4.3, the proof of Theorem 1.2(2) reduces to $b=0$ and obtains
+an inequality of the form
+\begin{equation}
+  \frac1p\frac{d}{dt}\int_\Om u^p
+  \leq -\int_\Om u^p
+       +C\left(\int_\Om u\right)^p.
+  \label{eq:lp-forcing}
+\end{equation}
+It then claims a uniform-in-time $L^p$ bound by Gronwall.  That conclusion
+requires a uniform mass bound.  In the omitted mixed branch,
+\eqref{eq:mass-ode} makes the forcing term in \eqref{eq:lp-forcing} grow
+exponentially, so Gronwall yields growth rather than a uniform bound.
+
+\item The appeal to Theorem 1.1 for $\chi_0\leq0$ does not repair the mixed
+case.  Theorem 1.1 itself treats only the two branches in
+\eqref{eq:prop24-cases}.
+\end{enumerate}
+
+\section{Corrected parameter statement}
+
+The exact correction directly supported by the written proof is
+\begin{equation}
+  (a=b=0)\quad\text{or}\quad(a>0\ \text{and}\ b>0).
+  \label{eq:proof-supported}
+\end{equation}
+A slightly stronger and mathematically natural correction is
+\begin{equation}
+  a=0\quad\text{or}\quad b>0.
+  \label{eq:maximal-correction}
+\end{equation}
+Under the standing assumptions $a,b\geq0$, condition
+\eqref{eq:maximal-correction} is equivalent to excluding exactly
+\begin{equation}
+  a>0\quad\text{and}\quad b=0.
+\end{equation}
+The additional case $a=0$, $b>0$ needs only the elementary mass estimate
+\begin{equation}
+  M'(t)=-b\int_\Om u^{1+\alpha}\leq0,
+\end{equation}
+so it provides the same uniform mass input used in Section 4.
+
+\medskip
+\noindent
+\fbox{%
+\begin{minipage}{0.92\textwidth}
+\textbf{Recommended amendment.}
+Assume $\beta\geq1$ and either $a=0$ or $b>0$.  If $0<m<1$, then (1.23)
+holds.  If $m=1$ and \eqref{eq:chi-threshold} holds, then (1.23) holds and
+$\Tmax(u_0)=\infty$.
+\end{minipage}}
+
+\medskip
+If the authors do not wish to add the elementary $a=0$, $b>0$ mass case, the
+first sentence should instead assume \eqref{eq:proof-supported}.  Remark
+1.4(2) should then say that both parameters may vanish simultaneously, rather
+than suggesting all mixed nonnegative cases.
+
+\section{Lean amendment}
+
+The repository contains both a concrete and a parameter-general
+interval-domain refutation in
+\texttt{ShenWork/Paper2/IntervalDomainTheorem12Refutation.lean}:
+\begin{verbatim}
+not_Theorem_1_2_intervalDomain_when_a_pos_b_zero
+not_Theorem_1_2_intervalDomain_of_a_pos_b_zero
+\end{verbatim}
+The proofs contain no \texttt{sorry} and depend only on
+\texttt{propext}, \texttt{Classical.choice}, and \texttt{Quot.sound}.
+
+The existing Lean definition has a second, independent fidelity problem in
+part (1): it asks only for some bounded local solution on some positive finite
+horizon.  The paper fixes the unique maximal solution and asserts boundedness
+on its full maximal interval.  A faithful headline should use the existing
+continuation objects in
+\texttt{ShenWork/PDE/IntervalDomainExistence.lean}:
+\begin{verbatim}
+ReachableClassicalHorizon
+ReachableArbitrarilyLong
+FiniteContinuationAlternativeBranch
+StandardContinuationAlternative
+\end{verbatim}
+A bare existential local witness does not formalize (1.23).  The amended
+headline must distinguish a finite maximal-time alternative, available only
+when reachable horizons are bounded above, from a genuine glued global branch
+when they are unbounded.
+
+Theorem 1.3 is unaffected by the parameter counterexample, because its
+original statement explicitly assumes $a,b>0$.
+
+\section*{Reference}
+
+L. Chen, I. Ruau, and W. Shen, \emph{Chemotaxis models with signal-dependent
+sensitivity and a logistic-type source, I: Boundedness and global existence},
+arXiv:2512.14858v1 (2025),
+\url{https://arxiv.org/abs/2512.14858}.
+
+\end{document}
