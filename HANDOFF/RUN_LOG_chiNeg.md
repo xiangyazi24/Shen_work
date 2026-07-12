@@ -110,3 +110,13 @@ Codex steered to: mapCert struct-fix (quick) → source-finish wiring (reconstru
 Authoritative uisai2 root build passed (`BUILD OK`, 9252 jobs); the Jensen producer
 and its full import closure were compiled.  Its axiom audit remains the three
 standard axioms (`propext`, `Classical.choice`, `Quot.sound`).
+
+## MILESTONE 2026-07-12: mapCertificate PRODUCED (cc55e4fd)
+`UniformConjugateMildExistenceCore` now records the exact CQ/CL budget
+realizations and the faithful `C.CL` truncated-logistic Lipschitz realization.
+`uniformTruncatedConjugateMapCertificateData_producer` supplies both HS and HD
+without a carried map certificate.  Local single-file checks and clean-3 axiom
+audits passed.  The authoritative uisai2 root build passed (`BUILD OK`, 9256
+jobs, 666s), including the chi-zero regression path and all downstream V6/Jensen
+modules.  Next critical path: source-finish reconstruction, weak-H2 product
+representative, window-local source regularity, and HSpectral assembly.

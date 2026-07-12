@@ -48,3 +48,10 @@ of `IntervalDomainChiNonposHeadline.lean` stopped before elaboration because the
 unrelated imported object `ShenWork/Wiener/EWA/EmbedEWA.olean` is absent from
 the Mac build tree.  This is another standalone-file dependency-olean issue;
 the uisai2 root build after commit is the authoritative χ=0 regression gate.
+2026-07-12 mapCert authoritative-build follow-up: the uisai2 root build at
+`cc55e4fd` completed successfully (9256 jobs, `BUILD OK` in 666s).  It rebuilt
+`IntervalTruncatedLogisticLipschitz`, the shared uniform conjugate core, both
+uniform truncated map-certificate producers, the χ<0 V6 assembly, energy,
+Jensen comparison/closure/producer, and the root `ShenWork` target.  Thus the
+earlier local chi-zero failure was only the documented missing standalone
+dependency olean; no linker, stale-olean, or source regression remains.

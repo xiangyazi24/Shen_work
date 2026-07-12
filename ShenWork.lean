@@ -501,3 +501,4 @@ import ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
 import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
 import ShenWork.Paper2.IntervalTruncatedStrictPositivityProducerV6
 import ShenWork.Paper2.IntervalUniformTruncatedMapCertificateDatum
+import ShenWork.Paper2.IntervalChemDivSourceWeakH2AssemblyV6

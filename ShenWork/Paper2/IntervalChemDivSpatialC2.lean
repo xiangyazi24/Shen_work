@@ -1,10 +1,10 @@
 /-
   ShenWork/Paper2/IntervalChemDivSpatialC2.lean
 
-  Spatial C² of chemDivLift from u C⁴ + resolver v C⁴ + positivity.
+  Spatial C² of chemDivLift from u C³ + resolver v C⁴ + positivity.
   This is the genuine infrastructure gap blocking the B-form source tower.
 
-  Chain: u C⁴, v C⁴, (1+v) > 0 on [0,1]
+  Chain: u C³, v C⁴, (1+v) > 0 on [0,1]
     → flux = u · v' / (1+v)^β is C³ on [0,1]
     → chemDivLift = ∂_x(flux) = deriv(flux) is C² on [0,1]
     → chemDivSource_weakH2_of_spatialC2 gives H² data
@@ -31,21 +31,21 @@ namespace ShenWork.Paper2.ChemDivSpatialC2
 def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
   u y * deriv v y / (1 + v y) ^ β
 
-/-! ## C³ of the flux from C⁴ of u and v
+/-! ## C³ of the flux from C³ of u and C⁴ of v
 
-The key composition: if u, v are C⁴ on [0,1] and (1+v) > 0 on [0,1],
+The key composition: if u is C³, v is C⁴ on [0,1], and (1+v) > 0 on [0,1],
 then the flux u · v' / (1+v)^β is C³ on [0,1].
 
 Proof sketch:
 - v' = deriv v is C³ (one derivative of C⁴)
-- u · v' is C³ (product of C⁴ and C³)
+- u · v' is C³
 - (1+v)^β is C⁴ with positive base (composition of C⁴ with smooth rpow)
 - u · v' / (1+v)^β is C³ (division by nonvanishing C⁴ denominator)
 -/
 
 theorem chemFlux_contDiff_three
     {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
+    (hu : ContDiff ℝ 3 u)
     (hv : ContDiff ℝ 4 v)
     (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
     (hβnn : 0 ≤ β) :
@@ -54,8 +54,7 @@ theorem chemFlux_contDiff_three
   have hv3 : ContDiff ℝ 3 (deriv v) := by
     have : ContDiff ℝ (3 + 1) v := hv.of_le (by norm_num)
     exact this.deriv'
-  have hu3 : ContDiff ℝ 3 u := hu.of_le (by norm_num)
-  have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) := hu3.mul hv3
+  have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) := hu.mul hv3
   have hdenom_pos : ∀ x, (1 + v x) ^ β ≠ 0 := by
     intro x
     exact ne_of_gt (Real.rpow_pos_of_pos (hv_pos x) β)
@@ -72,17 +71,17 @@ theorem chemFlux_contDiffOn_three_of_global
     (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
     (hβnn : 0 ≤ β) :
     ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) :=
-  (chemFlux_contDiff_three hu hv hv_pos hβnn).contDiffOn
+  (chemFlux_contDiff_three (hu.of_le (by norm_num)) hv hv_pos hβnn).contDiffOn
 
 -- General ContDiffOn version omitted — use chemFlux_contDiffOn_three_of_global
 -- for the heat semigroup case (global C⁴ inputs).
 
 /-! ## C² of chemDivLift from C³ of flux -/
 
-/-- Global C² of `deriv(chemFluxFun)` from global C⁴ of u,v. -/
+/-- Global C² of `deriv(chemFluxFun)` from global C³ of u and C⁴ of v. -/
 theorem chemFluxDeriv_contDiff_two
     {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
+    (hu : ContDiff ℝ 3 u) (hv : ContDiff ℝ 4 v)
     (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
     ContDiff ℝ 2 (deriv (chemFluxFun β u v)) := by
   have h3 : ContDiff ℝ (2 + 1) (chemFluxFun β u v) := by
@@ -98,7 +97,7 @@ theorem chemDivLift_contDiffOn_two_of_global
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
     ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
-  have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
+  have hglobal := chemFluxDeriv_contDiff_two (hu.of_le (by norm_num)) hv hv_pos p.hβ
   have h_eq : ∀ x ∈ Icc (0 : ℝ) 1,
       chemDivLift p u v x =
         deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
@@ -134,7 +133,7 @@ theorem chemDivLift_neumann_bc
 /-! ## Full weak H² Neumann data for chemDiv source -/
 
 /-- Produce `IntervalWeakH2Neumann (chemDivLift p u v)` from COSINE SERIES
-representatives U_cos, V_cos that are globally C⁴, even about 0, and agree
+representatives U_cos, V_cos that are globally C³/C⁴, even about 0, and agree
 with `intervalDomainLift u/v` on [0,1].
 
 The zero-extension `intervalDomainLift` is NOT globally C⁴ (it's 0 outside [0,1]),
@@ -144,7 +143,7 @@ The H2 is built for the global function, then transferred via `congr_on_Icc`. -/
 noncomputable def chemDivSource_weakH2_of_cosineRep
     {p : CM2Params} {u v : intervalDomainPoint → ℝ}
     {U_cos V_cos : ℝ → ℝ}
-    (hu_cos : ContDiff ℝ 4 U_cos)
+    (hu_cos : ContDiff ℝ 3 U_cos)
     (hv_cos : ContDiff ℝ 4 V_cos)
     (hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x)
     (h_agree_u : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift u x = U_cos x)
