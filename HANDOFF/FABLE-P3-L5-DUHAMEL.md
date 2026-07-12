@@ -50,3 +50,19 @@ m₀≠0 when aα<π². Regime is only 0<a,0<b,χ₀<chiCritical — NO hypothes
   (2) weaken frontier RHS to mean-inclusive C·e^{−δt}, fix downstream intervalDomain_sectorialLocalExponentialRaw_
       of_spectralSemigroupOrbitBound (currently hardcodes Real.pi^2 at line 183) to carry δ.
 Once corrected, Fable's 10-lemma DAG (above) builds toward the true target. DO NOT build L5 toward e^{−π²t} until fixed.
+
+## Q4576 (ChatGPT) — TRIPLE-CONFIRMS the finding + pinpoints 3 statement-level interface bugs (repair before L5):
+1. RATE: frontier hard-codes π² (wrapper intervalDomain_sectorialLocalExponentialRaw_..., line 183), but true
+   linearized gap δ can be <π² near critical sensitivity ⇒ e^{−δt}≤C e^{−π²t} impossible. FIX: replace the
+   pure-heat π² comparison with an EXISTENTIAL linearized rate (∃δ>0, ≤C e^{−δt}), δ=min(π²−(κ−aα)⁺, aα).
+2. ZERO MODE: LinearlyStable only controls n≠0; the frontier carries NO zero-mode/mass hypothesis. In the
+   minimal branch the zero mode is neutral (mass constraint removes it). FIX: add the zero-mode/mass branch
+   (the repo HAS the mass-constrained semigroup lemmas: diagonalSemigroupCoeff_l2_*_on_nonzero).
+3. t↓0 C¹: ExponentialC1ConvergenceWith wants uniform C¹ at t=0, but the neighborhood hyp is only X^s-small
+   (1/2<s<1); parabolic C¹ smoothing blows up as t↓0. FIX: start the C¹ estimate at a fixed positive time OR
+   strengthen the initial-datum norm to C¹.
+AFTER these 3 statement repairs, L1–L5 (Fable DAG above) are "straightforward and acyclic" and build from EXISTING
+infra: sigma dichotomy (sigma_neg_of_chi_lt_sigmaCriticalChi), diagonalSemigroupCoeff (PDE/SectorialOperator.lean:
+_add/_zero/_hasDerivAt/_l2_summable/_l2_norm_le + the _on_nonzero mass-constrained versions). Phase space =
+weighted-coordinate ℓ²(ℕ,ℂ) (NOT the current FractionalPowerSpace subtype as-is). Only NEW linear piece: the
+UNIFORM-GAP extraction (∀n≥1, σ_n ≤ −δ for the existential δ) from the dichotomy.
