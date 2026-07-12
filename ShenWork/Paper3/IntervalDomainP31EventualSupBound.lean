@@ -24,6 +24,7 @@
 -/
 import ShenWork.Paper2.IntervalLemma31Closure
 import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
+import ShenWork.Paper2.IntervalChiNegV6Headline
 import ShenWork.Paper3.IntervalDomainStatementAssembly
 
 open ShenWork.IntervalDomain
@@ -225,5 +226,17 @@ theorem proposition_1_2_intervalDomain_chiZero
   `Theorem_1_1 intervalDomain p` (χ<0) is unconditional, apply
   `proposition_1_2_of_theorem_1_1_posAB` to it directly.
 -/
+
+/-- **P3.1 fully UNCONDITIONAL for the whole χ₀ ≤ 0 regime.**  Composes the Theorem 1.1
+reduction with Codex's cold-verified unconditional χ≤0 Paper 2 headline
+(`paper2_chiNonpos_v6`, axiom sets exactly propext/Classical.choice/Quot.sound, uisai2
+cold root build 9306 jobs OK).  This closes Paper 3 Proposition 1.2 for every χ₀ ≤ 0
+(0<a, 0<b, 1≤α, 1≤γ), no residual — the full P3.1 headline. -/
+theorem proposition_1_2_intervalDomain_chiNonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Proposition_1_2 intervalDomain p :=
+  proposition_1_2_of_theorem_1_1_posAB p ha hb
+    (ShenWork.Paper2.IntervalChiNegV6Assembly.paper2_chiNonpos_v6 p hχ ha hb hα hγ)
 
 end ShenWork.Paper3.P31EventualSupBound
