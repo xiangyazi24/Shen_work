@@ -138,3 +138,11 @@ L1 bounds into `WindowSourceEnvelope 2` for the soft-clamped total B-form
 source `logistic - chi0 * chemDiv`.  The source file passes its local
 single-file check and clean-3 scan; uisai2 root verification follows the
 milestone commit.
+The authoritative uisai2 root build at `9e4c542d` passed (`BUILD OK`, 9262
+jobs, 78s), compiling the new module through the headline import closure.
+The direct positive-time conjugate-mild regularity chain was integrated from
+the verified playbook branch onto current main.  It supplies closed spatial
+C2, joint spatial/time continuity, direct mild differentiation, and the
+physical parabolic PDE without a global endpoint source package.  The
+authoritative uisai2 root build at `0229d1f8` passed (`BUILD OK`, 9303 jobs,
+375s).

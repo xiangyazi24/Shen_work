@@ -65,3 +65,14 @@ stale-olean, or cache failure occurred; all public axiom audits are clean-3.
 9s.  It keeps the two compact-window weak-H2 witnesses and their uniform L1
 bounds explicit, then combines their quantitative decay after soft clamping;
 no standalone-olean or linker issue occurred.
+2026-07-12 total-source WSE2 authoritative-build follow-up: the uisai2 root
+build at `9e4c542d` completed successfully (9262 jobs, `BUILD OK` in 78s),
+including the new WSE2 producer and the root `ShenWork` target.  No linker,
+stale-olean, or cache failure occurred.
+2026-07-12 positive-time regularity integration: restored the previously
+verified direct conjugate-mild Schauder/time-differentiation chain from
+`codex/playbook-audit` onto the current V6 main line, retaining main's stronger
+public time-continuity helpers at the sole add/add seam.  The authoritative
+uisai2 root build at `0229d1f8` passed all 9303 jobs in 375s.  This also
+confirms that the added modules are in the root import closure; no linker or
+stale-olean failure occurred.

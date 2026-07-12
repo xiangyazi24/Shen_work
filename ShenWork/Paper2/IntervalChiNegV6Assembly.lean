@@ -246,7 +246,7 @@ theorem coupledFluxClassicalLocalExistenceResidual_v6
     exact hCT
   simpa [hST] using hclass
 
-theorem paper2_chiNeg_v6
+theorem paper2_chiNeg_v6_spectral
     (p : CM2Params) (hχ : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
     (H : UniformTruncatedV6AssemblyInputs p)
@@ -260,6 +260,6 @@ theorem paper2_chiNeg_v6
 #print axioms intervalConjugateMildSolution_of_truncatedEnergy_v6
 #print axioms conjugateMildSolutionData_of_truncatedEnergyJensen_v6
 #print axioms coupledFluxClassicalLocalExistenceResidual_v6
-#print axioms paper2_chiNeg_v6
+#print axioms paper2_chiNeg_v6_spectral
 
 end ShenWork.Paper2.IntervalChiNegV6Assembly
