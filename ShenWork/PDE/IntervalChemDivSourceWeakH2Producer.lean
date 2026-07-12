@@ -1,5 +1,7 @@
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalWeakH2SmoothRepresentative
+import ShenWork.Paper2.IntervalEvenDerivParity
+import ShenWork.Paper2.IntervalResolverHighRegularity
 
 /-!
 # Weak-`H²_N` witness for the chemotaxis-divergence source (HSpectral crux gap)
@@ -36,7 +38,57 @@ open ShenWork.IntervalDomain
 open ShenWork.IntervalCoupledRegularityBootstrap
 open ShenWork.Paper2.WeakH2SmoothRepresentative
 open ShenWork.Paper2.SourceRepresentative
+open ShenWork.Paper2.EvenDerivParity
+open ShenWork.Paper2.IntervalResolverHighRegularity
 open ShenWork.PDE.IntervalMildSourceDecayHelper
+
+/-! ## Sub-lemma #1: the resolver gradient `∂ₓR` is odd about the endpoints
+
+From the global `C⁴` doubly-even resolver representative `intervalResolverLiftR`
+(`_even`, `_reflect_one`, `_contDiff_four`) and the parity base
+`deriv_odd_of_evenAboutZero/One`, its derivative `∂ₓR = deriv (intervalResolverLiftR)`
+is odd about `x=0` and `x=1`, and hence vanishes at both endpoints.  This is the
+parity anchor of the flux/source reflection chain. -/
+
+/-- `∂ₓR` is **odd about `0`**: `∂ₓR(-x) = -∂ₓR(x)`. -/
+theorem intervalResolverLiftR_deriv_odd_about_zero
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hcd : ContDiff ℝ 1 (intervalResolverLiftR p u)) (x : ℝ) :
+    deriv (intervalResolverLiftR p u) (-x) = - deriv (intervalResolverLiftR p u) x := by
+  have hder : ∀ y, HasDerivAt (intervalResolverLiftR p u)
+      (deriv (intervalResolverLiftR p u) y) y :=
+    fun y => (hcd.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  exact deriv_odd_of_evenAboutZero (intervalResolverLiftR_even p u) hder x
+
+/-- `∂ₓR` is **odd about `1`**: `∂ₓR(2-x) = -∂ₓR(x)`. -/
+theorem intervalResolverLiftR_deriv_odd_about_one
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hcd : ContDiff ℝ 1 (intervalResolverLiftR p u)) (x : ℝ) :
+    deriv (intervalResolverLiftR p u) (2 - x) = - deriv (intervalResolverLiftR p u) x := by
+  have hder : ∀ y, HasDerivAt (intervalResolverLiftR p u)
+      (deriv (intervalResolverLiftR p u) y) y :=
+    fun y => (hcd.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  exact deriv_odd_of_evenAboutOne (intervalResolverLiftR_reflect_one p u) hder x
+
+/-- `∂ₓR(0) = 0` (Neumann endpoint, from odd-about-`0`). -/
+theorem intervalResolverLiftR_deriv_zero_at_zero
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hcd : ContDiff ℝ 1 (intervalResolverLiftR p u)) :
+    deriv (intervalResolverLiftR p u) 0 = 0 := by
+  have hder : ∀ y, HasDerivAt (intervalResolverLiftR p u)
+      (deriv (intervalResolverLiftR p u) y) y :=
+    fun y => (hcd.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  exact deriv_zero_at_zero_of_evenAboutZero (intervalResolverLiftR_even p u) hder
+
+/-- `∂ₓR(1) = 0` (Neumann endpoint, from odd-about-`1`). -/
+theorem intervalResolverLiftR_deriv_zero_at_one
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hcd : ContDiff ℝ 1 (intervalResolverLiftR p u)) :
+    deriv (intervalResolverLiftR p u) 1 = 0 := by
+  have hder : ∀ y, HasDerivAt (intervalResolverLiftR p u)
+      (deriv (intervalResolverLiftR p u) y) y :=
+    fun y => (hcd.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  exact deriv_zero_at_one_of_evenAboutOne (intervalResolverLiftR_reflect_one p u) hder
 
 /-- **Per-slice weak-`H²_N` witness for the chemotaxis-divergence source.**
 From a doubly-even `C²` representative `G` agreeing with the source on `[0,1]`, the
