@@ -25,9 +25,11 @@ import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 import ShenWork.Paper2.IntervalChiNegH1AverageWiring
 
 open ShenWork.IntervalDomain
+open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 open ShenWork.Paper2.IntervalChiNegH1AverageWiring
+open ShenWork.IntervalDomainExistence
 
 noncomputable section
 
@@ -176,5 +178,43 @@ theorem H1ScalarDIOnBefore_of_absTermBounds
     (H1IdentityRHSBoundBefore_of_supBoundDIDataAbs
       (H1SupBoundDIDataAbsBefore_of_absTermBounds
         hV1 hV2 hM hL hId htaxisAbs huvxxAbs hreactB))
+
+/-- **Capstone: `IsPaper2BoundedBefore` for the positive-`χ₀` Theorem 1.2 damped
+branch, from abs resolver term bounds + standard frontiers.**  Composes the full
+|χ₀| H¹-DI chain with the 1D-Sobolev bypass.  Reduces the eventual-`L∞`-boundedness
+half of Theorem 1.2 (for `0 < χ₀ < chiBeta`, under `IntervalDomainBoundednessHyp`
+incl. `γ·N<2, 2γ<α, 0<b`) to EXACTLY: the sign-agnostic abs resolver term bounds +
+H¹ scalar regularity (Codex's physical resolver machinery) + the standard frontiers
+(L² seed regularity, local H¹ start). -/
+theorem intervalDomain_boundedBefore_of_absTermBounds_and_frontiers
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    {V₁ V₂ M L Ylocal : ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp p)
+    (ha : 0 < p.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    (hreg : H1ScalarRegularityBefore u T)
+    (hV1 : 0 ≤ V₁) (hV2 : 0 ≤ V₂) (hM : 0 ≤ M) (hL : 0 ≤ L)
+    (hId : ∀ τ, 0 < τ → τ < T →
+      H1EnergyIdentity p u τ (taxisX τ) (uvxx τ) (reactX τ))
+    (htaxisAbs : ∀ τ, 0 < τ → τ < T →
+      |taxisX τ| ≤ V₁ * (H1lapL2Norm u τ * H1gradL2Norm u τ))
+    (huvxxAbs : ∀ τ, 0 < τ → τ < T →
+      |uvxx τ| ≤ M * (V₂ * H1lapL2Norm u τ))
+    (hreactB : ∀ τ, 0 < τ → τ < T →
+      reactX τ ≤ L * (H1gradL2Norm u τ) ^ 2)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1ScalarDIOnBefore_of_absTermBounds hreg hV1 hV2 hM hL hId
+      htaxisAbs huvxxAbs hreactB)
+    hlocal
 
 end ShenWork.Paper2.IntervalChiNegH1Energy
