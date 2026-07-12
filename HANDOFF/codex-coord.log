@@ -186,6 +186,14 @@ and the positive-time coefficient variation-of-constants formula.  The local
 single-file gate is green and the audited capstones use only the standard three
 axioms.  Physical Duhamel reconstruction is the next layer.
 
+2026-07-12 [Codex] Faithful restart-source milestone: clamped each compact
+positive-time window, reconstructed the chemical gradient as the primitive of
+`mu*v - nu*u^gamma`, and proved that primitive equals the physical `v_x` on
+the closed interval.  The resulting general-`m` flux and logistic source are
+globally continuous, globally bounded, and agree pointwise with the physical
+sources on the restart rectangle.  Local single-file and clean-three axiom
+gates pass; this is now root-imported for the physical Duhamel reconstruction.
+
 2026-07-12 Codex: added `IntervalDomainMSlowLpBound.lean`.  Local single-file
 verification is green.  It closes the finite-descent terminal term, proves a
 uniform finite-Lp bound for faithful `intervalDomainM`, and selects a
