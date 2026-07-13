@@ -23,6 +23,10 @@ structure Paper1PositiveLocalStepScalarData
     (1 / lam) * paperPositivePinnedStepCmono p (MChi p)
       (paperLowerPinnedStepLogSlopeCoeff c lam (kappa c)
         (positiveBranchTailCap p c) D (MChi p) B) < 1
+  plateauStep_small :
+    (1 / lam) * paperPositivePlateauStepCmono p (MChi p)
+      (paperLowerPinnedStepLogSlopeCoeff c lam (kappa c)
+        (positiveBranchTailCap p c) D (MChi p) B) < 1
   sourceScalar :
     |(-p.χ * p.m)| * (MChi p) ^ (p.m - 1) * (MChi p) ^ p.γ *
           greenWeightedMass1 c lam (kappa c) * B
@@ -62,8 +66,16 @@ theorem paper1PositiveLocalStepScalarData_exists
     (paperPositivePinnedStepCmono_large_source_tendsto_zero
       p c M (kappa c) (positiveBranchTailCap p c) D C).eventually
         (eventually_lt_nhds (by norm_num : (0 : ℝ) < 1))
-  obtain ⟨lam, hmassLam, hrpLam, hrmLam, hlam, hpinnedLam⟩ :=
-    (hmass.and (hrp.and (hrm.and (hlamLarge.and hpinned)))).exists
+  have hplateau : ∀ᶠ lam : ℝ in atTop,
+      (1 / lam) * paperPositivePlateauStepCmono p M
+        (paperLowerPinnedStepLogSlopeCoeff c lam (kappa c)
+          (positiveBranchTailCap p c) D M (2 * (C + lam))) < 1 :=
+    (paperPositivePlateauStepCmono_large_source_tendsto_zero
+      p c M (kappa c) (positiveBranchTailCap p c) D C).eventually
+        (eventually_lt_nhds (by norm_num : (0 : ℝ) < 1))
+  obtain ⟨lam, hmassLam, hrpLam, hrmLam, hlam, hpinnedLam, hplateauLam⟩ :=
+    (hmass.and
+      (hrp.and (hrm.and (hlamLarge.and (hpinned.and hplateau))))).exists
   let B : ℝ := 2 * (C + lam)
   have hC0 : 0 ≤ C := by
     dsimp [C, M]
@@ -96,6 +108,7 @@ theorem paper1PositiveLocalStepScalarData_exists
     hΛ := rfl
     hΛ0 := hΛ0
     pinnedStep_small := by simpa [M, B] using hpinnedLam
+    plateauStep_small := by simpa [M, B] using hplateauLam
     sourceScalar := ?_ }⟩
   change A * greenWeightedMass1 c lam (kappa c) * B + C + lam ≤ B
   exact hsource

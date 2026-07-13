@@ -106,6 +106,95 @@ theorem paperCrossGradient_diff_le_of_lower_log_slope_abs
       dsimp [r]
       ring
 
+/-- Cross-gradient estimate using a derivative bound proportional to the
+upper contact profile.  This is the non-circular estimate used while proving
+that a freshly selected Green step is above the plateau. -/
+theorem paperCrossGradient_diff_le_of_upper_log_slope_abs
+    {p : CMParams} {a M BVd K eta : ℝ}
+    {u A B : ℝ → ℝ} {x₀ : ℝ}
+    (hM : 0 < M) (hBVd : 0 ≤ BVd) (hK : 0 ≤ K)
+    (hB0 : 0 ≤ B x₀) (hBA : B x₀ ≤ A x₀) (hAM : A x₀ ≤ M)
+    (hVpabs : |deriv (frozenElliptic p u) x₀| ≤ BVd)
+    (hBderiv : |deriv B x₀| ≤ K * A x₀)
+    (hslope : |deriv A x₀ - deriv B x₀| ≤ eta) :
+    a * p.m * (A x₀) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x₀ * deriv A x₀
+      - a * p.m * (B x₀) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x₀ * deriv B x₀ ≤
+      (|a| * p.m * BVd * K * p.m * M ^ (p.m - 1)) *
+          (A x₀ - B x₀)
+        + (|a| * p.m * BVd * M ^ (p.m - 1)) * eta := by
+  let r : ℝ := p.m - 1
+  let ds : ℝ := deriv A x₀ - deriv B x₀
+  have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hr0 : 0 ≤ r := by dsimp [r]; linarith [p.hm]
+  have hA0 : 0 ≤ A x₀ := le_trans hB0 hBA
+  have hgap : 0 ≤ A x₀ - B x₀ := sub_nonneg.mpr hBA
+  have hAr0 : 0 ≤ (A x₀) ^ r := Real.rpow_nonneg hA0 r
+  have hpowdiff0 : 0 ≤ (A x₀) ^ r - (B x₀) ^ r :=
+    sub_nonneg.mpr (Real.rpow_le_rpow hB0 hBA hr0)
+  have hArM : (A x₀) ^ r ≤ M ^ r :=
+    Real.rpow_le_rpow hA0 hAM hr0
+  have hweighted :
+      A x₀ * ((A x₀) ^ r - (B x₀) ^ r) ≤
+        (r + 1) * M ^ r * (A x₀ - B x₀) :=
+    upper_weighted_rpow_increment_le hr0 hM hB0 hBA hAM
+  have hds : |ds| ≤ eta := by simpa [ds] using hslope
+  have hKabs :
+      |a * p.m * deriv (frozenElliptic p u) x₀| ≤
+        |a| * p.m * BVd := by
+    rw [abs_mul, abs_mul, abs_of_nonneg hm0]
+    exact mul_le_mul_of_nonneg_left hVpabs
+      (mul_nonneg (abs_nonneg a) hm0)
+  have hsplit :
+      (A x₀) ^ r * deriv A x₀ - (B x₀) ^ r * deriv B x₀ =
+        ((A x₀) ^ r - (B x₀) ^ r) * deriv B x₀ +
+          (A x₀) ^ r * ds := by
+    dsimp [ds]
+    ring
+  have hterm1 :
+      |((A x₀) ^ r - (B x₀) ^ r) * deriv B x₀| ≤
+        K * (r + 1) * M ^ r * (A x₀ - B x₀) := by
+    rw [abs_mul, abs_of_nonneg hpowdiff0]
+    calc
+      ((A x₀) ^ r - (B x₀) ^ r) * |deriv B x₀| ≤
+          ((A x₀) ^ r - (B x₀) ^ r) * (K * A x₀) :=
+        mul_le_mul_of_nonneg_left hBderiv hpowdiff0
+      _ = K * (A x₀ * ((A x₀) ^ r - (B x₀) ^ r)) := by ring
+      _ ≤ K * ((r + 1) * M ^ r * (A x₀ - B x₀)) :=
+        mul_le_mul_of_nonneg_left hweighted hK
+      _ = K * (r + 1) * M ^ r * (A x₀ - B x₀) := by ring
+  have hterm2 : |(A x₀) ^ r * ds| ≤ M ^ r * eta := by
+    rw [abs_mul, abs_of_nonneg hAr0]
+    exact mul_le_mul hArM hds (abs_nonneg ds)
+      (Real.rpow_nonneg hM.le r)
+  have hbracket :
+      |(A x₀) ^ r * deriv A x₀ - (B x₀) ^ r * deriv B x₀| ≤
+        K * (r + 1) * M ^ r * (A x₀ - B x₀) + M ^ r * eta := by
+    rw [hsplit]
+    exact (abs_add_le _ _).trans (add_le_add hterm1 hterm2)
+  calc
+    a * p.m * (A x₀) ^ r * deriv (frozenElliptic p u) x₀ * deriv A x₀
+        - a * p.m * (B x₀) ^ r * deriv (frozenElliptic p u) x₀ * deriv B x₀ =
+      (a * p.m * deriv (frozenElliptic p u) x₀) *
+        ((A x₀) ^ r * deriv A x₀ - (B x₀) ^ r * deriv B x₀) := by
+          ring
+    _ ≤ |(a * p.m * deriv (frozenElliptic p u) x₀) *
+        ((A x₀) ^ r * deriv A x₀ - (B x₀) ^ r * deriv B x₀)| :=
+      le_abs_self _
+    _ = |a * p.m * deriv (frozenElliptic p u) x₀| *
+        |(A x₀) ^ r * deriv A x₀ - (B x₀) ^ r * deriv B x₀| :=
+      abs_mul _ _
+    _ ≤ (|a| * p.m * BVd) *
+        (K * (r + 1) * M ^ r * (A x₀ - B x₀) + M ^ r * eta) :=
+      mul_le_mul hKabs hbracket (abs_nonneg _)
+        (mul_nonneg (mul_nonneg (abs_nonneg a) hm0) hBVd)
+    _ = (|a| * p.m * BVd * K * p.m * M ^ (p.m - 1)) *
+          (A x₀ - B x₀)
+        + (|a| * p.m * BVd * M ^ (p.m - 1)) * eta := by
+      dsimp [r]
+      ring
+
 /-- Error-tolerant paper-operator ledger with no sign assumption on `chi`.
 Both algebraic cross-frozen terms are bounded by absolute Lipschitz costs. -/
 theorem paperWaveOperator_diff_le_abs_of_approx_contact
@@ -319,6 +408,17 @@ def paperPositivePinnedStepCmono
     + |p.χ| * p.m * (M ^ p.γ) * K *
         (p.m - 1) * M ^ (p.m - 1)
 
+/-- Comparison cost before the lower pin is known.  The Green derivative is
+controlled by the upper barrier, producing the factor `m` in place of
+`m - 1`. -/
+def paperPositivePlateauStepCmono
+    (p : CMParams) (M K : ℝ) : ℝ :=
+  reactionLip p.α M
+    + |p.χ| * (M ^ p.γ) * rpowLip p.m M
+    + |p.χ| * rpowLip (p.m + p.γ) M
+    + |p.χ| * p.m * (M ^ p.γ) * K *
+        p.m * M ^ (p.m - 1)
+
 def paperPositivePinnedStepE
     (p : CMParams) (c M : ℝ) : ℝ :=
   1 + |c| + |p.χ| * p.m * (M ^ p.γ) * M ^ (p.m - 1)
@@ -389,6 +489,62 @@ theorem paperPositivePinnedStepCmono_large_source_tendsto_zero
   unfold paperPositivePinnedStepCmono
   ring
 
+theorem paperPositivePlateauStepCmono_large_source_tendsto_zero
+    (p : CMParams) (c M κ κtilde D C : ℝ) :
+    Tendsto
+      (fun lam : ℝ =>
+        (1 / lam) * paperPositivePlateauStepCmono p M
+          (paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+            (2 * (C + lam))))
+      atTop (nhds 0) := by
+  let A : ℝ :=
+    reactionLip p.α M
+      + |p.χ| * M ^ p.γ * rpowLip p.m M
+      + |p.χ| * rpowLip (p.m + p.γ) M
+  let Q : ℝ := |p.χ| * p.m * M ^ p.γ * p.m * M ^ (p.m - 1)
+  let R : ℝ := lowerPinnedBarrierRatio κ κtilde D M
+  have hCdiv : Tendsto (fun lam : ℝ => C / lam) atTop (nhds 0) :=
+    tendsto_const_nhds.div_atTop tendsto_id
+  have hBdiv : Tendsto
+      (fun lam : ℝ => (2 * (C + lam)) / lam) atTop (nhds 2) := by
+    have h := (hCdiv.add
+      (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds 1))).const_mul 2
+    have h' : Tendsto (fun lam : ℝ => 2 * (C / lam + 1))
+        atTop (nhds 2) := by simpa using h
+    refine h'.congr' ?_
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with lam hlam
+    field_simp [ne_of_gt hlam]
+  have hmassB : Tendsto
+      (fun lam : ℝ => greenWeightedMass1 c lam κ *
+        ((2 * (C + lam)) / lam)) atTop (nhds 0) := by
+    simpa using (greenWeightedMass1_tendsto_zero c κ).mul hBdiv
+  have hKdiv : Tendsto
+      (fun lam : ℝ => (1 / lam) *
+        paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+          (2 * (C + lam))) atTop (nhds 0) := by
+    have h := hmassB.const_mul R
+    refine (show Tendsto
+      (fun lam : ℝ => R * (greenWeightedMass1 c lam κ *
+        ((2 * (C + lam)) / lam))) atTop (nhds 0) by simpa using h).congr'
+      (Filter.Eventually.of_forall ?_)
+    intro lam
+    dsimp [R]
+    rw [paperLowerPinnedStepLogSlopeCoeff,
+      paperStepWeightedDerivCoeff_eq_mass_mul]
+    ring
+  have hAdiv : Tendsto (fun lam : ℝ => A / lam) atTop (nhds 0) :=
+    tendsto_const_nhds.div_atTop tendsto_id
+  have htotal := hAdiv.add (hKdiv.const_mul Q)
+  refine (show Tendsto
+    (fun lam : ℝ => A / lam + Q * ((1 / lam) *
+      paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+        (2 * (C + lam)))) atTop (nhds 0) by simpa using htotal).congr'
+      (Filter.Eventually.of_forall ?_)
+  intro lam
+  dsimp [A, Q]
+  unfold paperPositivePlateauStepCmono
+  ring
+
 /-- The positive paper Green step preserves the actual plateau lower
 barrier.  This is the sign-correct replacement for the negative Route-A
 comparison: no `chi <= 0` hypothesis occurs. -/
@@ -408,18 +564,19 @@ theorem paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
     (hW2 : ContDiff ℝ 2 W)
     (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) (MChi p))
     (hK : 0 ≤ K)
-    (hWlog : ∀ x, |deriv W x| ≤ K * W x)
+    (hWlog : ∀ x,
+      |deriv W x| ≤ K * lowerBarrierPlateau κ κtilde D x)
     (hsmall : (1 / lam) *
-      paperPositivePinnedStepCmono p (MChi p) K < 1) :
+      paperPositivePlateauStepCmono p (MChi p) K < 1) :
     ∀ x, lowerBarrierPlateau κ κtilde D x ≤ W x := by
   let A : ℝ → ℝ := lowerBarrierPlateau κ κtilde D
   let M : ℝ := MChi p
   let Ccross : ℝ :=
     |p.χ| * p.m * M ^ p.γ * K *
-      (p.m - 1) * M ^ (p.m - 1)
+      p.m * M ^ (p.m - 1)
   let Ecross : ℝ :=
     |p.χ| * p.m * M ^ p.γ * M ^ (p.m - 1)
-  let Cmono : ℝ := paperPositivePinnedStepCmono p M K
+  let Cmono : ℝ := paperPositivePlateauStepCmono p M K
   let E : ℝ := paperPositivePinnedStepE p c M
   let X : ℝ := lowerBarrierXPlus κ κtilde D
   have hχ1 : p.χ < 1 := by linarith
@@ -497,7 +654,7 @@ theorem paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
               deriv (frozenElliptic p u) x₀ * deriv W x₀ ≤
         Ccross * (A x₀ - W x₀) + Ecross * eta := by
       simpa [Ccross, Ecross, abs_neg] using
-        paperCrossGradient_diff_le_of_lower_log_slope_abs
+        paperCrossGradient_diff_le_of_upper_log_slope_abs
           (p := p) (a := -p.χ) (M := M) (BVd := M ^ p.γ)
           (K := K) (eta := eta) (u := u) (A := A) (B := W) (x₀ := x₀)
           hMpos (Real.rpow_nonneg hMpos.le _) hK
@@ -510,7 +667,7 @@ theorem paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
       (frozenElliptic_nonneg_of_inWaveTrapSet p hu x₀)
       (frozenElliptic_le_rpow_of_inWaveTrapSet p hMpos hu x₀)
       hsecond hslope hcross
-    dsimp [Cmono, paperPositivePinnedStepCmono, Ccross, Ecross, E,
+    dsimp [Cmono, paperPositivePlateauStepCmono, Ccross, Ecross, E,
       paperPositivePinnedStepE] at hop0 ⊢
     simpa [abs_neg] using hop0
   exact paperImplicitStep_ge_barrier_piecewise_tailfree
@@ -525,6 +682,7 @@ section AxiomAudit
 #print axioms paperImplicitStep_ge_barrier_piecewise_tailfree
 #print axioms paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
 #print axioms paperPositivePinnedStepCmono_large_source_tendsto_zero
+#print axioms paperPositivePlateauStepCmono_large_source_tendsto_zero
 
 end AxiomAudit
 
