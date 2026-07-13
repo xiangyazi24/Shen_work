@@ -491,7 +491,8 @@ theorem critical_target_lp_energy_damping_of_cross
     positivity
   obtain ⟨Ceps, hinterp⟩ := intervalDomainM_agmon_absorbed_of_lp_seed
     hsol p.hα hp0 hp0P halpha2 hseed epsInterp hepsInterp
-  obtain ⟨K0, hK0, hYabs⟩ := integral_rpow_absorb
+  let K0 : ℝ := integralRpowAbsorbConstant P (P + p.α) (p.a + 1) 1
+  obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := P + p.α) (A := p.a + 1) (eps := 1)
       hsol hP0 (by linarith [p.hα]) (by linarith [p.ha]) zero_lt_one
   let D : ℝ := max 0 (K * Ceps + K0)

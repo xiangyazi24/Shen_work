@@ -285,7 +285,8 @@ theorem critical_case_iii_lp_energy_damping
     dsimp [k]
     exact div_nonneg (mul_nonneg hchi.le (sub_pos.mpr hP).le) hr.le
   have hc : 0 < c := by dsimp [c, F]; exact sub_pos.mpr hcoef
-  obtain ⟨K0, hK0, hYabs⟩ := integral_rpow_absorb
+  let K0 : ℝ := integralRpowAbsorbConstant P s (p.a + 1) c
+  obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := s) (A := p.a + 1) (eps := c)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (by linarith [p.ha] : 0 ≤ p.a + 1) hc
@@ -484,7 +485,8 @@ theorem critical_case_iv_lp_energy_damping
     rw [mul_pow, sq_abs]
     field_simp [hP1.ne']
   have hc : 0 < c := by dsimp [c, F]; exact sub_pos.mpr hcoef
-  obtain ⟨K0, hK0, hYabs⟩ := integral_rpow_absorb
+  let K0 : ℝ := integralRpowAbsorbConstant P s (p.a + 1) c
+  obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := s) (A := p.a + 1) (eps := c)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (by linarith [p.ha] : 0 ≤ p.a + 1) hc
