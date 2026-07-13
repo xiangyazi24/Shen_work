@@ -706,6 +706,65 @@ theorem critical_bounded_global_positive_restarted_affine
     (lt_of_le_of_lt (le_max_left _ _) hPmax)
     (le_of_lt (lt_of_le_of_lt (le_max_right _ _) hPmax)) hpower
 
+theorem critical_bounded_before_positive_restarted_affine
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomainM u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (htrace : InitialTrace intervalDomainM u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2BoundedBefore intervalDomainM T u := by
+  obtain ⟨P, hPmax, hLp⟩ := exists_critical_lp_above_gamma
+    hguard hu₀ hsol htrace hbeta hm hchi hthreshold
+  exact boundedBefore_of_lp_restarted_affine hu₀ hsol htrace hm
+    (lt_of_le_of_lt (le_max_left _ _) hPmax)
+    (le_of_lt (lt_of_le_of_lt (le_max_right _ _) hPmax)) hLp
+
+theorem critical_bounded_before_positive_restarted_affine_intervalDomain
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  have hbM := critical_bounded_before_positive_restarted_affine
+    hguard hu₀M (classicalSolution_intervalDomainM_of_m_eq_one hm hsol)
+      htraceM hbeta hm hchi hthreshold
+  simpa [IsPaper2BoundedBefore, intervalDomainM, intervalDomain] using hbM
+
+theorem critical_bounded_global_positive_restarted_affine_intervalDomain
+    {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2Bounded intervalDomain u := by
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  have hglobalM : IsPaper2GlobalClassicalSolution intervalDomainM p u v := by
+    intro T hT
+    exact classicalSolution_intervalDomainM_of_m_eq_one hm (hglobal.classical hT)
+  have hbM := critical_bounded_global_positive_restarted_affine
+    hguard hu₀M hglobalM htraceM hbeta hm hchi hthreshold
+  simpa [IsPaper2Bounded, intervalDomainM, intervalDomain] using hbM
+
 #print axioms restartFluxM_lp_root_le_of_lp
 #print axioms restartChemDuhamelM_abs_le_of_lp
 #print axioms restartLogisticDuhamelM_le_of_lp
@@ -714,5 +773,7 @@ theorem critical_bounded_global_positive_restarted_affine
 #print axioms Proposition_2_5_intervalDomain_of_restarted_affine
 #print axioms boundedGlobal_of_lp_restarted_affine
 #print axioms critical_bounded_global_positive_restarted_affine
+#print axioms critical_bounded_before_positive_restarted_affine_intervalDomain
+#print axioms critical_bounded_global_positive_restarted_affine_intervalDomain
 
 end ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer

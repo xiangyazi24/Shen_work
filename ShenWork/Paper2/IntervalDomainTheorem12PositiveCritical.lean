@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalDomainMCriticalGlobalLinfBound
+import ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
 
 /-!
 # Positive-sensitivity critical branch of Paper 2 Theorem 1.2
@@ -16,6 +16,8 @@ open ShenWork.IntervalDomain
 noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainM
+
+open ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
 
 theorem Theorem_1_2_intervalDomain_positive_critical_branch
     (p : CM2Params) (hguard : p.a = 0 ∨ 0 < p.b) (hchiPos : 0 < p.χ₀)
@@ -46,13 +48,13 @@ theorem Theorem_1_2_intervalDomain_positive_critical_branch
   intro _ha _hb hbeta hm hthreshold u₀ hu₀
   obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
   have hboundedBefore : IsPaper2BoundedBefore intervalDomain Tmax u :=
-    critical_bounded_before_positive_intervalDomain
+    critical_bounded_before_positive_restarted_affine_intervalDomain
       hguard hu₀ hsol htrace hbeta hm hchiPos hthreshold
   have hm_ge : 1 ≤ p.m := by rw [hm]
   have hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v :=
     hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace hboundedBefore hm_ge
   have hbounded : IsPaper2Bounded intervalDomain u :=
-    critical_bounded_global_positive_intervalDomain
+    critical_bounded_global_positive_restarted_affine_intervalDomain
       hguard hu₀ hglobal htrace hbeta hm hchiPos hthreshold
   exact ⟨u, v, hglobal, htrace, hbounded⟩
 

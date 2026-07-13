@@ -428,6 +428,30 @@ edit or duplicate that file and will add only the Paper2 L5-L9 layer after it
 lands.  Existing Paper2 atom `chemical_gradient_abs_le_of_lp` already gives
 the required horizon-independent elliptic gradient bound from any finite
 power with gamma <= P.  The remaining new kernel atom is the integrable
-full-Neumann divergence smoothing rate theta=1/2+1/(2P); its shortest route is
+ full-Neumann divergence smoothing rate theta=1/2+1/(2P); its shortest route is
 full-heat Lp-to-Linf smoothing followed by a half-step semigroup factorization
 and the existing full-kernel Linf gradient estimate.
+
+2026-07-12 [Codex] Q4603/Q4607 AFFINE RESTART ENDPOINT CLOSED.  Commits
+`631c04e7`, `3d976c7e`, and `9095fae5` prove the genuine full-Neumann heat
+`L^P -> L∞` estimate and the B-form estimate with sharp integrable exponent
+`theta = 1/2 + 1/(2P) < 1`.  The B estimate uses derivative-kernel mass on
+both variables, Fubini, and the exact half-step identity `S(t/2)B(t/2)=B(t)`;
+the source is never differentiated.  Its singular-kernel integration now
+reuses the shared clean-3 `RestartedMildSmoothing` core.
+
+Commit `4de2f62a` builds the physical affine restart producer.  From one
+finite power `P > max{1,gamma}` at `m=1`, it proves a constant `L^P` flux
+bound, smooths the restart datum by `L^P -> L∞` (not a circular `L∞ -> L∞`
+datum estimate), bounds the B-form Duhamel leg, and treats the reaction by
+semigroup order preservation after dropping the favorable logistic sink.
+This yields the unconditional concrete
+`Proposition_2_5 intervalDomain p` producer under `m=1`, with no pointwise
+gradient-in-time bound and no `2gamma < alpha` hypothesis.
+
+Commit `0042e2d1` applies the same half-unit moving window to a global finite
+power bound and produces `IsPaper2Bounded`; thus blocker 3 and blocker 4 use
+one endpoint mechanism.  The positive-critical finite/global wrappers and
+headline were then rewired to these affine producers.  All local single-file
+audits print exactly `[propext, Classical.choice, Quot.sound]`.  The remaining
+authoritative gate is the remote root build after the integration commit.

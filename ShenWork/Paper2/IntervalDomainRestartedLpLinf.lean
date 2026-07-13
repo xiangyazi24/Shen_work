@@ -11,6 +11,7 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.Paper2.IntervalConjugateKernelJointMeas
 import ShenWork.Paper2.IntervalFullDuhamelRestart
 import ShenWork.Paper2.IntervalConjugateSemigroupComposition
+import ShenWork.PDE.RestartedMildSmoothing
 
 open MeasureTheory Set Filter
 open scoped Topology Interval ENNReal
@@ -668,8 +669,8 @@ theorem intervalIntegrable_sub_rpow_neg_conjugateTheta
       volume 0 r := by
   have h0 : IntervalIntegrable
       (fun x : ℝ => x ^ (-conjugateLpLinftyTheta p)) volume 0 r :=
-    intervalIntegral.intervalIntegrable_rpow'
-      (by linarith [conjugateLpLinftyTheta_lt_one hp])
+    ShenWork.PDE.rpow_neg_intervalIntegrable
+      (conjugateLpLinftyTheta_lt_one hp)
   simpa using (h0.comp_sub_left r).symm
 
 theorem integral_sub_rpow_neg_conjugateTheta
@@ -681,13 +682,8 @@ theorem integral_sub_rpow_neg_conjugateTheta
   rw [intervalIntegral.integral_comp_sub_left
     (fun x : ℝ => x ^ (-conjugateLpLinftyTheta p)) r]
   simp only [sub_self, sub_zero]
-  rw [integral_rpow
-    (Or.inl (by linarith [conjugateLpLinftyTheta_lt_one hp]))]
-  have hne : 1 - conjugateLpLinftyTheta p ≠ 0 := by
-    linarith [conjugateLpLinftyTheta_lt_one hp]
-  rw [show -conjugateLpLinftyTheta p + 1 =
-      1 - conjugateLpLinftyTheta p by ring,
-    Real.zero_rpow hne, sub_zero]
+  exact ShenWork.PDE.integral_rpow_neg
+    (conjugateLpLinftyTheta_lt_one hp) hr
 
 theorem half_rpow_neg_half
     {t : ℝ} (ht : 0 < t) :

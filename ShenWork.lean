@@ -518,6 +518,9 @@ import ShenWork.Paper2.IntervalDomainMCriticalLpSeed
 import ShenWork.Paper2.IntervalDomainMCriticalGlobalLpSeed
 import ShenWork.Paper2.IntervalDomainMCriticalGlobalLpBootstrap
 import ShenWork.Paper2.IntervalDomainMCriticalGlobalLinfBound
+import ShenWork.PDE.RestartedMildSmoothing
+import ShenWork.Paper2.IntervalDomainRestartedLpLinf
+import ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
 import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelL1FarBound
 import ShenWork.Paper2.IntervalDomainMCriticalLinfBound

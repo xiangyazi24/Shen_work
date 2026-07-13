@@ -4592,3 +4592,24 @@ the required measurability and common integrable dominator.  Even after this
 endpoint derivative is obtained, joint continuity of the full time-derivative
 field remains a separate parabolic-regularity obligation and must not be
 inferred from pointwise differentiability alone.
+
+### Paper 2 finite-power affine endpoint (2026-07-12)
+
+The concrete interval `Proposition_2_5` endpoint no longer goes through the
+Agmon pointwise-gradient route.  For `m=1`, one bounded power
+`P > max{1,gamma}` makes the physical chemotaxis flux uniformly bounded in
+`L^P`: the elliptic primitive gives a pointwise bound for `v_x` from the same
+power, while the remaining factor is `u`.  The genuine conjugate operator has
+the short-time mapping rate
+`B(t) : L^P -> L∞` with exponent `1/2 + 1/(2P) < 1`.  This is proved by an
+`L^P` derivative-kernel mass estimate and the exact factorization
+`B(t)=S(t/2)B(t/2)`.
+
+On a fixed restart window, the homogeneous datum is smoothed from `L^P`; it
+is never assumed uniformly bounded in `L∞`.  The chemotaxis Duhamel leg is an
+affine integral of the constant flux bound.  The logistic leg is compared,
+using positivity of the full Neumann semigroup, with its positive linear
+part; the damping term is dropped rather than estimated in `L^P`.  The same
+estimate produces finite-horizon `IsPaper2BoundedBefore` and, on a moving
+half-unit window, the global `atTop` bound.  Consequently this endpoint needs
+neither a pointwise-in-time gradient estimate nor `2gamma < alpha`.
