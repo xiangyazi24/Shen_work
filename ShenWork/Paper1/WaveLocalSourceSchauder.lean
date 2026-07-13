@@ -164,7 +164,7 @@ theorem paperLocalHolderSourceBox_exists_fixed
 
 /-- The whole-line truncated Green source has a genuine compact-open Schauder
 fixed point without any frozen-profile or family-uniform left-tail rate. -/
-theorem paperFixedSourceMap_exists_fixed_local_of_trap
+theorem paperFixedSourceMap_exists_fixed_local_of_oldData
     (p : CMParams)
     {c lam M κ B H : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -172,7 +172,7 @@ theorem paperFixedSourceMap_exists_fixed_local_of_trap
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 < M) (hB : 0 ≤ B)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hZ : PaperIterateBase p c κ M u Z)
+    (hZ : PaperFixedSourceOldData κ M Z)
     (hscalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
             greenWeightedMass1 c lam κ * B
@@ -181,7 +181,7 @@ theorem paperFixedSourceMap_exists_fixed_local_of_trap
         + lam ≤ B)
     (hHolder :
       Classical.choose
-        (paperFixedSourceMap_holder_kernel
+        (paperFixedSourceMap_holder_kernel_of_oldData
           (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
           (u := u) (Z := Z)
           hlam hrpκ hrmκ hκ hM hB hu.trap hZ) ≤ H) :
@@ -189,7 +189,7 @@ theorem paperFixedSourceMap_exists_fixed_local_of_trap
       PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B H R ∧
       paperFixedSourceMap p c lam M κ u Z R = R := by
   let holderKernel :=
-    paperFixedSourceMap_holder_kernel
+    paperFixedSourceMap_holder_kernel_of_oldData
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
       (u := u) (Z := Z)
       hlam hrpκ hrmκ hκ hM hB hu.trap hZ
@@ -258,11 +258,47 @@ theorem paperFixedSourceMap_exists_fixed_local_of_trap
     (paperFixedSourceMap_continuousOn_of_localBox
       p hlam hB hH (paperWeightedHolderExponent_pos p) hmap_holder)
 
+/-- Backwards-compatible fixed-source existence wrapper for a full Rothe old
+iterate. -/
+theorem paperFixedSourceMap_exists_fixed_local_of_trap
+    (p : CMParams)
+    {c lam M κ B H : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hB : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase p c κ M u Z)
+    (hscalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hHolder :
+      Classical.choose
+        (paperFixedSourceMap_holder_kernel
+          (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
+          (u := u) (Z := Z)
+          hlam hrpκ hrmκ hκ hM hB hu.trap hZ) ≤ H) :
+    ∃ R,
+      PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B H R ∧
+      paperFixedSourceMap p c lam M κ u Z R = R := by
+  let hZold := hZ.toFixedSourceOldData hκ hM.le
+  have hkernelEq :
+      paperFixedSourceMap_holder_kernel p hlam hrpκ hrmκ hκ hM hB hu.trap hZ =
+        paperFixedSourceMap_holder_kernel_of_oldData p hlam hrpκ hrmκ hκ hM hB
+          hu.trap hZold := rfl
+  apply paperFixedSourceMap_exists_fixed_local_of_oldData
+    p hlam hrpκ hrmκ hκ hM hB hu hZold hscalar
+  simpa [hkernelEq] using hHolder
+
 section AxiomAudit
 
 #print axioms PaperLocalHolderSourceBox.set_convex
 #print axioms localUniformSequentiallyCompactRange_localHolderSourceBox_of_mapsTo
 #print axioms paperLocalHolderSourceBox_exists_fixed
+#print axioms paperFixedSourceMap_exists_fixed_local_of_oldData
 #print axioms paperFixedSourceMap_exists_fixed_local_of_trap
 
 end AxiomAudit
