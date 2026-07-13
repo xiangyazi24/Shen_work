@@ -107,6 +107,164 @@ def eliminatedFluxDerivativeQuadraticConstant
       H.Cq * H.Czx + H.U * H.Cqx * H.Czx +
         H.U * H.Cq * H.Czxx
 
+/-- Route-(a) constants: the three second-derivative factors remain in `L²`
+instead of being replaced by false pointwise `C²` bounds. -/
+structure EliminatedFluxDerivativeRouteABounds where
+  M : ℝ
+  L : ℝ
+  U : ℝ
+  Cz1x : ℝ
+  Cz2x : ℝ
+  Cq : ℝ
+  Cqx : ℝ
+  Czx : ℝ
+  M_nonneg : 0 ≤ M
+  M_le_one : M ≤ 1
+  L_nonneg : 0 ≤ L
+  L_le_M : L ≤ M
+  U_nonneg : 0 ≤ U
+  Cz1x_nonneg : 0 ≤ Cz1x
+  Cz2x_nonneg : 0 ≤ Cz2x
+  Cq_nonneg : 0 ≤ Cq
+  Cqx_nonneg : 0 ≤ Cqx
+  Czx_nonneg : 0 ≤ Czx
+
+def eliminatedFluxDerivativeRouteAConstant
+    (H : EliminatedFluxDerivativeRouteABounds) (qStar : ℝ) : ℝ :=
+  |qStar| * H.Cz1x + |qStar| * H.Cz2x +
+    H.Cq * H.Czx + H.U * H.Cqx * H.Czx
+
+theorem eliminatedFluxDerivativeRouteAConstant_nonneg
+    (H : EliminatedFluxDerivativeRouteABounds) (qStar : ℝ) :
+    0 ≤ eliminatedFluxDerivativeRouteAConstant H qStar := by
+  unfold eliminatedFluxDerivativeRouteAConstant
+  have h1 : 0 ≤ |qStar| * H.Cz1x :=
+    mul_nonneg (abs_nonneg _) H.Cz1x_nonneg
+  have h2 : 0 ≤ |qStar| * H.Cz2x :=
+    mul_nonneg (abs_nonneg _) H.Cz2x_nonneg
+  have h3 : 0 ≤ H.Cq * H.Czx :=
+    mul_nonneg H.Cq_nonneg H.Czx_nonneg
+  have h4 : 0 ≤ H.U * H.Cqx * H.Czx :=
+    mul_nonneg (mul_nonneg H.U_nonneg H.Cqx_nonneg) H.Czx_nonneg
+  exact add_nonneg (add_nonneg (add_nonneg h1 h2) h3) h4
+
+private theorem abs_seven_sum_le
+    (a b c d e f g : ℝ) :
+    |a + b + c + d + e + f + g| ≤
+      |a| + |b| + |c| + |d| + |e| + |f| + |g| := by
+  calc
+    |a + b + c + d + e + f + g| ≤ |a + b + c + d + e + f| + |g| :=
+      abs_add_le _ _
+    _ ≤ (|a + b + c + d + e| + |f|) + |g| := by
+      gcongr
+      exact abs_add_le _ _
+    _ ≤ ((|a + b + c + d| + |e|) + |f|) + |g| := by
+      gcongr
+      exact abs_add_le _ _
+    _ ≤ (((|a + b + c| + |d|) + |e|) + |f|) + |g| := by
+      gcongr
+      exact abs_add_le _ _
+    _ ≤ ((((|a + b| + |c|) + |d|) + |e|) + |f|) + |g| := by
+      gcongr
+      exact abs_add_le _ _
+    _ ≤ |a| + |b| + |c| + |d| + |e| + |f| + |g| := by
+      have hab := abs_add_le a b
+      linarith
+
+/-- Route-(a) pointwise majorant.  Only the bounded factors are absorbed into
+the quadratic constant; `z1xx`, `z2xx`, and `zxx` are left as `L²` factors. -/
+theorem paper3EliminatedFluxRemainderDerivativeValue_routeA
+    (H : EliminatedFluxDerivativeRouteABounds)
+    {uStar qStar w wx z1x z1xx z2x z2xx qDiff qx zx zxx : ℝ}
+    (hw : |w| ≤ H.M) (hwx : |wx| ≤ H.M)
+    (hu : |uStar + w| ≤ H.U)
+    (hz1x : |z1x| ≤ H.Cz1x * H.L)
+    (hz2x : |z2x| ≤ H.Cz2x * H.M * H.L)
+    (hqDiff : |qDiff| ≤ H.Cq * H.L)
+    (hqx : |qx| ≤ H.Cqx * H.L)
+    (hzx : |zx| ≤ H.Czx * H.L) :
+    |paper3EliminatedFluxRemainderDerivativeValue
+        uStar qStar w wx z1x z1xx z2x z2xx qDiff qx zx zxx| ≤
+      eliminatedFluxDerivativeRouteAConstant H qStar * H.M * H.L +
+        |qStar| * H.M * |z1xx| +
+        H.U * |qStar| * |z2xx| +
+        H.U * H.Cq * H.L * |zxx| := by
+  have hM0 := H.M_nonneg
+  have hL0 := H.L_nonneg
+  have hU0 := H.U_nonneg
+  have hz1c0 := H.Cz1x_nonneg
+  have hz2c0 := H.Cz2x_nonneg
+  have hq0 := H.Cq_nonneg
+  have hqx0 := H.Cqx_nonneg
+  have hzx0 := H.Czx_nonneg
+  have hL1 : H.L ≤ 1 := H.L_le_M.trans H.M_le_one
+  have hMM : H.M * H.M ≤ H.M := by
+    calc
+      H.M * H.M ≤ H.M * 1 :=
+        mul_le_mul_of_nonneg_left H.M_le_one H.M_nonneg
+      _ = H.M := mul_one _
+  have hLL : H.L * H.L ≤ H.M * H.L :=
+    mul_le_mul_of_nonneg_right H.L_le_M H.L_nonneg
+  have hMLL : H.M * H.L * H.L ≤ H.M * H.L := by
+    nlinarith [mul_nonneg H.M_nonneg H.L_nonneg]
+  have h1 : |wx * qStar * z1x| ≤
+      (|qStar| * H.Cz1x) * H.M * H.L := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.M * |qStar| * (H.Cz1x * H.L) := by gcongr
+      _ = _ := by ring
+  have h2 : |w * qStar * z1xx| ≤ |qStar| * H.M * |z1xx| := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.M * |qStar| * |z1xx| := by gcongr
+      _ = _ := by ring
+  have h3 : |wx * qStar * z2x| ≤
+      (|qStar| * H.Cz2x) * H.M * H.L := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.M * |qStar| * (H.Cz2x * H.M * H.L) := by gcongr
+      _ = (|qStar| * H.Cz2x) * (H.M * H.M) * H.L := by ring
+      _ ≤ (|qStar| * H.Cz2x) * H.M * H.L := by
+        gcongr
+  have h4 : |(uStar + w) * qStar * z2xx| ≤
+      H.U * |qStar| * |z2xx| := by
+    rw [abs_mul, abs_mul]
+    gcongr
+  have h5 : |wx * qDiff * zx| ≤
+      (H.Cq * H.Czx) * H.M * H.L := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.M * (H.Cq * H.L) * (H.Czx * H.L) := by gcongr
+      _ = (H.Cq * H.Czx) * (H.M * H.L * H.L) := by ring
+      _ ≤ (H.Cq * H.Czx) * (H.M * H.L) :=
+        mul_le_mul_of_nonneg_left hMLL
+          (mul_nonneg H.Cq_nonneg H.Czx_nonneg)
+      _ = _ := by ring
+  have h6 : |(uStar + w) * qx * zx| ≤
+      (H.U * H.Cqx * H.Czx) * H.M * H.L := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.U * (H.Cqx * H.L) * (H.Czx * H.L) := by gcongr
+      _ = (H.U * H.Cqx * H.Czx) * (H.L * H.L) := by ring
+      _ ≤ (H.U * H.Cqx * H.Czx) * (H.M * H.L) :=
+        mul_le_mul_of_nonneg_left hLL
+          (mul_nonneg (mul_nonneg H.U_nonneg H.Cqx_nonneg) H.Czx_nonneg)
+      _ = _ := by ring
+  have h7 : |(uStar + w) * qDiff * zxx| ≤
+      H.U * H.Cq * H.L * |zxx| := by
+    rw [abs_mul, abs_mul]
+    calc
+      _ ≤ H.U * (H.Cq * H.L) * |zxx| := by gcongr
+      _ = _ := by ring
+  unfold paper3EliminatedFluxRemainderDerivativeValue
+  have hsum := abs_seven_sum_le
+    (wx * qStar * z1x) (w * qStar * z1xx)
+    (wx * qStar * z2x) ((uStar + w) * qStar * z2xx)
+    (wx * qDiff * zx) ((uStar + w) * qx * zx)
+    ((uStar + w) * qDiff * zxx)
+  unfold eliminatedFluxDerivativeRouteAConstant
+  linarith
+
 theorem eliminatedFluxDerivativeQuadraticConstant_nonneg
     (H : EliminatedFluxDerivativeQuadraticBounds) (qStar : ℝ) :
     0 ≤ eliminatedFluxDerivativeQuadraticConstant H qStar := by
