@@ -1939,21 +1939,22 @@ theorem intervalDomain_minimal2_exists_late_l2_lt
     ∃ t, T ≤ t ∧
       (∫ y in (0 : ℝ)..1,
         (intervalDomainLift (u t) y - uStar) ^ 2) < q := by
-  let E : ℝ → ℝ := fun s ⇒
+  let E : ℝ → ℝ := fun s =>
     chemotaxisSignalEnergy intervalDomain p.μ vStar v s
-  let L2 : ℝ → ℝ := fun s ⇒ ∫ y in (0 : ℝ)..1,
+  let L2 : ℝ → ℝ := fun s => ∫ y in (0 : ℝ)..1,
     (intervalDomainLift (u s) y - uStar) ^ 2
-  let Lap2 : ℝ → ℝ := fun s ⇒ ∫ y in (0 : ℝ)..1,
-    (deriv (fun z ⇒ deriv (intervalDomainLift (v s)) z) y) ^ 2
+  let Lap2 : ℝ → ℝ := fun s => ∫ y in (0 : ℝ)..1,
+    (deriv (fun z => deriv (intervalDomainLift (v s)) z) y) ^ 2
   let energyTarget : ℝ := q * p.ν ^ 2 / (8 * p.μ)
   let lapTarget : ℝ := q * p.ν ^ 2 / 8
   have henergyTarget : 0 < energyTarget := by
     dsimp [energyTarget]
-    positivity
+    exact div_pos (mul_pos hq (sq_pos_of_pos p.hν))
+      (mul_pos (by norm_num) p.hμ)
   have hlapTarget : 0 < lapTarget := by
     dsimp [lapTarget]
-    positivity
-  have hconv : Tendsto E atTop (𝒩 0) := by
+    exact div_pos (mul_pos hq (sq_pos_of_pos p.hν)) (by norm_num)
+  have hconv : Tendsto E atTop (𝓝 0) := by
     simpa [E] using intervalDomain_minimal2_signal_energy_tendsto_zero
       p hm ha0 hb0 hgamma hbeta heq huBar hvLower hchi hthreshold
         huv hmass hupper hfloor
@@ -1999,7 +2000,8 @@ theorem intervalDomain_minimal2_exists_late_l2_lt
   have hscaled : p.ν ^ 2 * L2 t < p.ν ^ 2 * q :=
     helliptic.trans_lt hrhs
   have hnuSq : 0 < p.ν ^ 2 := sq_pos_of_pos p.hν
-  have hL2 : L2 t < q := (mul_lt_mul_left hnuSq).mp hscaled
+  have hL2 : L2 t < q :=
+    (mul_lt_mul_iff_of_pos_left hnuSq).mp hscaled
   exact ⟨t, htT, by simpa [L2] using hL2⟩
 
 /-- The signal-energy slices from the second minimal formula branch enter
@@ -2033,12 +2035,12 @@ theorem intervalDomain_minimal2_exists_late_supClose
     unfold chemotaxisThetaDissipation
     simp only [Real.rpow_one]
     change intervalDomainIntegral
-      (fun x ⇒ (u t x - uStar) * (u t x - uStar)) < q
+      (fun x => (u t x - uStar) * (u t x - uStar)) < q
     unfold intervalDomainIntegral
     calc
       (∫ y in (0 : ℝ)..1,
           intervalDomainLift
-            (fun x ⇒ (u t x - uStar) * (u t x - uStar)) y) =
+            (fun x => (u t x - uStar) * (u t x - uStar)) y) =
           ∫ y in (0 : ℝ)..1,
             (intervalDomainLift (u t) y - uStar) ^ 2 := by
         apply intervalIntegral.integral_congr
