@@ -1066,39 +1066,56 @@ theorem PaperLemma42EllipticVxEstimate_of_conditions
       rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
       exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
 
-theorem PaperLemma42EllipticVEstimate_of_conditions
-    {p : CMParams} {c κ κtilde M : ℝ}
-    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+/-- The value tail uses only the geometric trap parameters.  In particular it
+does not depend on the lower-barrier exponent, the chemotactic sign, or any
+construction package. -/
+theorem PaperLemma42EllipticVEstimate_of_trap_parameters
+    {p : CMParams} {κ M : ℝ} (hκ : 0 < κ) (hM : 1 ≤ M) :
     PaperLemma42EllipticVEstimate p κ M := by
   intro u hu x hx
   by_cases hcrit : p.γ * κ = 1
   · rw [paperEllipticVxBound, if_pos hcrit]
-    exact frozenElliptic_le_paperVxBound_critical hcrit hcond.hM hu hx
+    exact frozenElliptic_le_paperVxBound_critical hcrit hM hu hx
   · by_cases hsub : p.γ * κ < 1
     · rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub]
-      exact frozenElliptic_le_paperVxBound_subcritical hcond.hκ0 hsub hu x
+      exact frozenElliptic_le_paperVxBound_subcritical hκ hsub hu x
     · have hsuper : 1 < p.γ * κ :=
         lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
       rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
-      exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
+      exact frozenElliptic_le_paperVxBound_supercritical hsuper hM hu hx
+
+/-- The derivative tail follows from the whole-line Green-kernel inequality
+`|V'| ≤ V` and the value tail, again with no construction hypothesis. -/
+theorem PaperLemma42EllipticVxEstimate_of_trap_parameters
+    {p : CMParams} {κ M : ℝ} (hκ : 0 < κ) (hM : 1 ≤ M) :
+    PaperLemma42EllipticVxEstimate p κ M := by
+  intro u hu x hx
+  exact le_trans
+    (frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x)
+    (PaperLemma42EllipticVEstimate_of_trap_parameters hκ hM u hu x hx)
+
+theorem PaperLemma42EllipticVEstimate_of_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+    PaperLemma42EllipticVEstimate p κ M :=
+  PaperLemma42EllipticVEstimate_of_trap_parameters hcond.hκ0 hcond.hM
 
 /-- The paper's frozen elliptic source box is automatic on the monotone wave
 trap.  The value, first-derivative, second-derivative, and monotonicity fields
 come directly from the whole-line kernel/ODE identities; the final two fields
 are the three-case right-tail estimates for the value and derivative. -/
-theorem paperFrozenEllipticSourceBox_of_conditions
-    {p : CMParams} {c κ κtilde M : ℝ}
-    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+theorem paperFrozenEllipticSourceBox_of_trap_parameters
+    {p : CMParams} {κ M : ℝ} (hκ : 0 < κ) (hM : 1 ≤ M) :
     PaperFrozenEllipticSourceBox p κ M := by
-  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hM
   refine
     { value_nonneg := ?_
       value_le := ?_
       deriv_abs_le := ?_
       second_deriv_abs_le := ?_
       antitone := ?_
-      right_tail_value := PaperLemma42EllipticVEstimate_of_conditions hcond
-      right_tail_deriv := PaperLemma42EllipticVxEstimate_of_conditions hcond }
+      right_tail_value := PaperLemma42EllipticVEstimate_of_trap_parameters hκ hM
+      right_tail_deriv := PaperLemma42EllipticVxEstimate_of_trap_parameters hκ hM }
   · intro u hu x
     exact frozenElliptic_nonneg p hu.nonneg x
   · intro u hu x
@@ -1124,6 +1141,22 @@ theorem paperFrozenEllipticSourceBox_of_conditions
       _ ≤ 2 * M ^ p.γ := by linarith
   · intro u hu
     exact frozenElliptic_antitone_of_monotone_trap p hu
+
+/-- The source box under the paper's lower-barrier conditions, now only a thin
+specialization of the parameter-free trap theorem above. -/
+theorem paperFrozenEllipticSourceBox_of_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+    PaperFrozenEllipticSourceBox p κ M :=
+  paperFrozenEllipticSourceBox_of_trap_parameters hcond.hκ0 hcond.hM
+
+/-- Normalized source box used by Theorem 1.1.  Its fields simplify to
+`0 ≤ V ≤ 1`, `|V'| ≤ 1`, `|V''| ≤ 2`, antitonicity, and the faithful
+three-case right-tail bounds. -/
+theorem paperFrozenEllipticSourceBox_one
+    (p : CMParams) {κ : ℝ} (hκ : 0 < κ) :
+    PaperFrozenEllipticSourceBox p κ 1 :=
+  paperFrozenEllipticSourceBox_of_trap_parameters hκ le_rfl
 
 theorem PaperLemma42LogisticEstimate_of_conditions
     {p : CMParams} {c κ κtilde M D : ℝ}
@@ -3575,7 +3608,11 @@ section AxiomAudit
 #print axioms paperDMin_margin_nonneg_exp
 #print axioms paperWaveOperator_lowerBarrierRaw_eq_of_kappa_speed
 #print axioms PaperLemma42EllipticVxEstimate_of_conditions
+#print axioms PaperLemma42EllipticVEstimate_of_trap_parameters
+#print axioms PaperLemma42EllipticVxEstimate_of_trap_parameters
 #print axioms PaperLemma42EllipticVEstimate_of_conditions
+#print axioms paperFrozenEllipticSourceBox_of_trap_parameters
+#print axioms paperFrozenEllipticSourceBox_one
 #print axioms paperFrozenEllipticSourceBox_of_conditions
 #print axioms PaperLemma42LogisticEstimate_of_conditions
 #print axioms PaperLemma42KTermEstimate_of_conditions
