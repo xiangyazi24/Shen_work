@@ -337,7 +337,7 @@ theorem paperImplicitStep_ge_barrier_piecewise_tailfree
     exact div_pos (mul_pos (sub_pos.mpr hClam) hfpos)
       (mul_pos (by norm_num) (by linarith))
   obtain ⟨x₀, hx₀X, hfvalue, hfSlope, hfSecond⟩ :=
-    exists_approx_positive_max_deriv_data_away
+    exists_approx_positive_max_deriv_data_away_C1splice
       (f := fun x => A x - W x) (A := Q) (eta := eta)
       (x₁ := x₁) (X := X)
       hfcont hfbound hfpos heta hfX hfaway
