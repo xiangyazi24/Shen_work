@@ -25,6 +25,14 @@ structure ResolvedSourceProfileRegularity (f : ℝ → ℝ) where
   representative_eq : ∀ x ∈ Set.Icc (0 : ℝ) 1, representative x = f x
   coeff_eq : ∀ k, cosineCoeffs f k = cosineCoeffs representative k
 
+theorem ResolvedSourceProfileRegularity.profile_aestronglyMeasurable
+    {f : ℝ → ℝ} (H : ResolvedSourceProfileRegularity f) :
+    MeasureTheory.AEStronglyMeasurable f (intervalMeasure 1) := by
+  have heq : H.representative =ᵐ[intervalMeasure 1] f := by
+    filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Icc] with x hx
+    exact H.representative_eq x hx
+  exact H.representative_continuous.aestronglyMeasurable.congr heq
+
 noncomputable def resolvedSourceCoeffQuadraticDecay_of_profile
     {f : ℝ → ℝ} (H : ResolvedSourceProfileRegularity f) :
     ResolvedSourceCoeffQuadraticDecay (cosineCoeffs f) := by
@@ -99,6 +107,7 @@ theorem paper3QuadraticSignalGradient_continuous
     (paper3ResolvedSourceGradient_hasDerivAt_laplacian p Hd x).continuousAt
 
 #print axioms resolvedSourceCoeffQuadraticDecay_of_profile
+#print axioms ResolvedSourceProfileRegularity.profile_aestronglyMeasurable
 #print axioms resolvedSourceGradient_hasDerivAt_profile
 #print axioms paper3LinearSignalGradient_hasDerivAt_laplacian
 #print axioms paper3QuadraticSignalGradient_hasDerivAt_laplacian
