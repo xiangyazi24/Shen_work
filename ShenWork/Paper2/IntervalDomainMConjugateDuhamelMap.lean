@@ -329,6 +329,59 @@ theorem chemFluxMLifted_uncurry_measurable
       (measurable_const.add hR)
   simpa [Function.uncurry, chemFluxMLifted] using (hpow.mul hG).div hden
 
+/-- A positive continuous slice has a continuous faithful flux on the closed
+physical interval. -/
+theorem chemFluxMLifted_continuousOn_Icc_of_pos_slice
+    (p : CM2Params) {c M : ℝ} (hc : 0 < c) (hcM : c ≤ M)
+    {u : intervalDomainPoint → ℝ}
+    (hu_bound : ∀ x, |u x| ≤ M) (hu_floor : ∀ x, c ≤ u x)
+    (hu_cont : Continuous u) :
+    ContinuousOn (chemFluxMLifted p u) (Set.Icc (0 : ℝ) 1) := by
+  have hcont_u : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift u) = u := by
+      ext ⟨x, hx⟩
+      simp [Set.restrict, intervalDomainLift, hx]
+      rfl
+    rw [heq]
+    exact hu_cont
+  have hgrad : Continuous (resolverGradReal p u) :=
+    ShenWork.IntervalDuhamelIntegrability.resolverGradReal_continuous_of_continuousOn
+      p hcont_u
+  have hval : Continuous (fun x : ℝ => ∑' k : ℕ,
+      (intervalNeumannResolverCoeff p u k).re * unitIntervalCosineMode k x) :=
+    ShenWork.IntervalDuhamelIntegrability.resolverValueReal_continuous_of_continuousOn
+      p hcont_u
+  have hR : ∀ x, 0 ≤ intervalNeumannResolverR p u x :=
+    resolverR_nonneg_of_continuous_nonneg p hu_cont
+      (fun x => hc.le.trans (hu_floor x))
+  rw [continuousOn_iff_continuous_restrict]
+  have heq : Set.restrict (Set.Icc (0 : ℝ) 1) (chemFluxMLifted p u) =
+      fun x : ↑(Set.Icc (0 : ℝ) 1) =>
+        u x ^ p.m * resolverGradReal p u x.1 /
+          (1 + intervalNeumannResolverR p u x) ^ p.β := by
+    ext ⟨x, hx⟩
+    simp [Set.restrict, chemFluxMLifted, intervalDomainLift, hx]
+    rfl
+  rw [heq]
+  refine Continuous.div
+    (((hu_cont.comp (continuous_subtype_val.subtype_mk _)).rpow_const
+        (fun _ => Or.inr p.hm.le)).mul
+      (hgrad.comp continuous_subtype_val))
+    ((continuous_const.add (hval.comp continuous_subtype_val)).rpow_const
+      (fun _ => Or.inr p.hβ)) ?_
+  intro x
+  exact ne_of_gt (Real.rpow_pos_of_pos (by linarith [hR x]) _)
+
+/-- The general-`m` B-form flux vanishes at the Neumann endpoints. -/
+theorem chemFluxMLifted_endpoint_zero (p : CM2Params)
+    (u : intervalDomainPoint → ℝ) : chemFluxMLifted p u 0 = 0 := by
+  simp [chemFluxMLifted, intervalDomainLift, resolverGradReal_zero]
+
+theorem chemFluxMLifted_endpoint_one (p : CM2Params)
+    (u : intervalDomainPoint → ℝ) : chemFluxMLifted p u 1 = 0 := by
+  simp [chemFluxMLifted, intervalDomainLift, resolverGradReal_one]
+
 /-- A continuous slice in a positive strip has integrable faithful flux. -/
 theorem chemFluxMLifted_integrable_of_pos_slice
     (p : CM2Params) {c M : ℝ} (hc : 0 < c) (hcM : c ≤ M)
@@ -386,6 +439,9 @@ theorem chemFluxMLifted_integrable_of_pos_slice
 #print axioms chemFluxMLifted_diff_bound_of_pos_slice
 #print axioms chemFluxMLifted_abs_le_of_pos_slice
 #print axioms chemFluxMLifted_uncurry_measurable
+#print axioms chemFluxMLifted_continuousOn_Icc_of_pos_slice
+#print axioms chemFluxMLifted_endpoint_zero
+#print axioms chemFluxMLifted_endpoint_one
 #print axioms chemFluxMLifted_integrable_of_pos_slice
 
 end ShenWork.Paper2.IntervalDomainMConjugateDuhamelMap
