@@ -173,13 +173,9 @@ Lemma 5.3, scalar Grönwall, and interval localization have been discharged.
 -/
 
 theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
-    (cStarStarFn : CMParams → ℝ → ℝ)
-    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
-      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hcore :
       ∀ p : CMParams, StableWaveParameterRegime p →
-      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ c : ℝ, cStarStarWitness p p.χ < c →
       ∀ U V u₀ : ℝ → ℝ,
         IsTravelingWave p c U V →
         TravelingWaveRegularity p c U V →
@@ -203,8 +199,10 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
             UniformMovingFrameLeftTailConvergence 0 (coMovingPath c u) U) :
     Theorem_1_2_amended := by
   intro p hregime
-  rcases hcStarStar p hregime with ⟨hasymptotic, hbaseline⟩
-  refine ⟨cStarStarFn p, hasymptotic, hbaseline, ?_⟩
+  have hbaseline :
+      stabilitySpeedBaseline p ≤ cStarStarWitness p p.χ :=
+    stabilitySpeedBaseline_le_cStarStarWitness p
+  refine ⟨cStarStarWitness p, cStarStarWitness_asymptotic p, hbaseline, ?_⟩
   intro c hc U V hTW hreg hstrict htail η hketa heta u₀ hu₀ hleft hclose
   have hsignal : Section5ProfileInitialSignalBounds p U V u₀ :=
     section5ProfileInitialSignalBounds_proved p hTW hreg

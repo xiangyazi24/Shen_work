@@ -123,7 +123,9 @@ general-data whole-line Cauchy solution together with the nonlinear weighted
 perturbation dissipation, eventual weighted integrability, a uniform spatial
 modulus, and the left-tail compactness/rigidity input.  Closing it over the
 full interval `eta > kappa` requires the new localized coercivity argument
-described above; the paper's global quadratic estimate cannot supply it.
+described above; the paper's global quadratic estimate cannot supply it.  The
+threshold family and both of its required properties are no longer
+hypotheses: the capstone uses the proved `cStarStarWitness` internally.
 
 The amended conclusion is non-vacuous independently of that frontier:
 `Theorem_1_2_amended_self_initial_data_concrete_nonvacuous` instantiates the
