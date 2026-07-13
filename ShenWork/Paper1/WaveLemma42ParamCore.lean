@@ -96,6 +96,20 @@ def paperLowerRawStepProducerRouteACore_of_paramCore
   green := paperLowerRawRouteAParamGreenCore h
   lowerRawAux := h.lowerRawAux
 
+/-- The total Rothe sequence induced by a trap-indexed parameterized Route-A
+producer.  Naming it before the parabolic-floor structure lets the latter
+carry exactly the adaptive Green closed graph and the already finite-cube
+approximation data for this map. -/
+def paperLowerRawParamRotheSeq
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (producer : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperLowerRawStepProducerRouteAParamCore
+        p c lam M κ κtilde D Λ hκ hM u) :
+    (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  rotheSeqOfPaperFromTrap p c lam M κ Λ
+    (fun u hu => paperLowerRawRouteAParamProducer (producer u hu)) hκ hM
+
 /-- Route-A paper Rothe parabolic floor whose per-step Green core is assembled
 from explicit source-box parameter data, with the automatic `barLip` field
 removed. -/
@@ -106,9 +120,12 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperLowerRawStepProducerRouteAParamCore
         p c lam M κ κtilde D Λ hκ hM u
-  greenLimitIdentificationFromDrift :
-    PaperGreenRotheLimitIdentificationFromDriftOnTrap p c lam M κ Λ
-      (fun u hu => paperLowerRawRouteAParamProducer (producer u hu)) hκ hM
+  cubeApprox :
+    LowerPinnedWaveCubeApproxData κ M (lowerBarrierRaw κ κtilde D)
+      (paperLowerRawParamRotheSeq producer)
+  greenClosedGraph :
+    PaperGreenRotheAdaptiveStepClosedGraphOnTrap p c lam M κ
+      (paperLowerRawParamRotheSeq producer)
 
 /-- Forget the explicit source-box parameter layer at the per-profile producer
 level.  The sequence-local tail is kept separately because it intentionally
@@ -131,8 +148,7 @@ def paperLowerRawParamRotheSeqFromTrap
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM) :
     (ℝ → ℝ) → ℕ → ℝ → ℝ :=
-  rotheSeqOfPaperFromTrap p c lam M κ Λ
-    (fun u hu => paperLowerRawRouteAParamProducer (h.producer u hu)) hκ hM
+  paperLowerRawParamRotheSeq h.producer
 
 /-- B1 χ≤0 Route-A wrapper after replacing the monolithic Route-A per-step
 producer residual by the explicit source-box parameter layer. -/
@@ -158,15 +174,6 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperRotheStepProducer p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamProducer (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
-  have hgraph :=
-    (hpar.greenLimitIdentificationFromDrift.toLimitIdentification.compactClosedGraph
-      hΛ0 hΛM hcond.upperBarrier_barLip).stepDependence_and_tailAlong
-      hΛ0 hΛM hcond.upperBarrier_barLip
-  have hdep : RotheContinuousDependence p c lam
-      (InMonotoneWaveTrapSet κ M) zseq := by
-    simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hprodTrap] using
-      paperRotheContinuousDependence_fromTrap_of_tailAlong
-        p c lam M κ Λ hprodTrap hcond.hκ0.le hM0 hgraph.1 hgraph.2
   have hstep : RotheStepLowerInvariant κ M
       (lowerBarrierRaw κ κtilde D) zseq := by
     refine rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
@@ -204,28 +211,16 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       paperRotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hprodTrap
         hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
-  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
-  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
-  have hDpos : 0 < D := D_pos_of_paperDMin_lt hcond hD
-  have hExpM : Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M :=
-    lowerBarrierExpXPlus_le_one_of_one_le_D hcond.hκ0 hgap_pos
-      hD_ge_one hcond.hM
-  have hplat : InMonotoneWaveTrapSet κ M
-      (lowerBarrierPlateau κ κtilde D) :=
-    lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
-      hcond.hκ0 hgap_pos hDpos hExpM
-  have Happrox : LowerPinnedWaveCubeApproxData κ M
-      (lowerBarrierRaw κ κtilde D) zseq :=
-    lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq
-      (upperBarrier_isBddFun hM0) hdep hdata hlower
-  obtain ⟨U, hU, hfix⟩ :=
-    paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData p c lam M κ
-      (lowerBarrierRaw κ κtilde D) hM0 zseq
-      (upperBarrier_isBddFun hM0) (helly_pointwise_selection M)
-      hdep hdata hlower Happrox
-  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
-    hconv.stationary U hU (by simpa [zseq] using hfix)
+  have hlam : 0 < lam :=
+    (hpar.producer (upperBarrier κ M)
+      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+  obtain ⟨U, hU, hstat⟩ :=
+    paperLowerPinned_adaptiveStationary_of_cubeApproxData
+      p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
+      hdata hlower (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+        hpar.cubeApprox)
+      (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+        hpar.greenClosedGraph)
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
       (fun x _hx => hU.lower x)
@@ -267,15 +262,6 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperRotheStepProducer p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamProducer (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
-  have hgraph :=
-    (hpar.greenLimitIdentificationFromDrift.toLimitIdentification.compactClosedGraph
-      hΛ0 hΛM hcond.upperBarrier_barLip).stepDependence_and_tailAlong
-      hΛ0 hΛM hcond.upperBarrier_barLip
-  have hdep : RotheContinuousDependence p c lam
-      (InMonotoneWaveTrapSet κ M) zseq := by
-    simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hprodTrap] using
-      paperRotheContinuousDependence_fromTrap_of_tailAlong
-        p c lam M κ Λ hprodTrap hcond.hκ0.le hM0 hgraph.1 hgraph.2
   have hstep : RotheStepLowerInvariant κ M
       (lowerBarrierRaw κ κtilde D) zseq := by
     refine rotheStepLowerInvariant_lowerBarrierRaw_of_positivePaperStepData
@@ -313,28 +299,16 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       paperRotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hprodTrap
         hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
-  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
-  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
-  have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
-  have hExpM : Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M :=
-    lowerBarrierExpXPlus_le_one_of_one_le_D hcond.hκ0 hgap_pos
-      hD_ge_one hcond.hM
-  have hplat : InMonotoneWaveTrapSet κ M
-      (lowerBarrierPlateau κ κtilde D) :=
-    lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
-      hcond.hκ0 hgap_pos hDpos hExpM
-  have Happrox : LowerPinnedWaveCubeApproxData κ M
-      (lowerBarrierRaw κ κtilde D) zseq :=
-    lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq
-      (upperBarrier_isBddFun hM0) hdep hdata hlower
-  obtain ⟨U, hU, hfix⟩ :=
-    paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData p c lam M κ
-      (lowerBarrierRaw κ κtilde D) hM0 zseq
-      (upperBarrier_isBddFun hM0) (helly_pointwise_selection M)
-      hdep hdata hlower Happrox
-  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
-    hconv.stationary U hU (by simpa [zseq] using hfix)
+  have hlam : 0 < lam :=
+    (hpar.producer (upperBarrier κ M)
+      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+  obtain ⟨U, hU, hstat⟩ :=
+    paperLowerPinned_adaptiveStationary_of_cubeApproxData
+      p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
+      hdata hlower (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+        hpar.cubeApprox)
+      (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+        hpar.greenClosedGraph)
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
       (fun x _hx => hU.lower x)
@@ -357,6 +331,7 @@ section AxiomAudit
 #print axioms paperRouteAParamGreenCore
 #print axioms paperLowerRawStepProducerRouteACore_of_paramCore
 #print axioms paperLowerRawStepProducerTrap_of_paramCoreNoBar
+#print axioms paperLowerRawParamRotheSeq
 #print axioms paperLowerRawParamRotheSeqFromTrap
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
