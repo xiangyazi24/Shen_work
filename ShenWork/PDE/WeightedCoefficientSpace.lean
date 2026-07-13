@@ -126,6 +126,43 @@ theorem aestronglyMeasurable_weightedCoeffToLp
       (fun x => weightedCoeffToLp L sigma (a x) (ha x)) μ :=
   (stronglyMeasurable_weightedCoeffToLp L sigma a ha hmeas).aestronglyMeasurable
 
+/-- Almost-everywhere coordinate measurability is sufficient for an
+`ell^2`-valued coefficient family.  This form is designed for interval
+integrals, where endpoint values may be replaced without affecting the
+Bochner integral. -/
+theorem aestronglyMeasurable_weightedCoeffToLp_of_ae
+    {X : Type*} [MeasurableSpace X] {μ : Measure X}
+    (L sigma : ℝ) (a : X → ℕ → ℂ)
+    (ha : ∀ x, Summable fun n : ℕ =>
+      fractionalPowerEnergyTerm L sigma (a x) n)
+    (hmeas : ∀ n, AEStronglyMeasurable
+      (fun x => weightedCoeffSequence L sigma (a x) n) μ) :
+    AEStronglyMeasurable
+      (fun x => weightedCoeffToLp L sigma (a x) (ha x)) μ := by
+  let target : X → CoeffL2 := fun x =>
+    weightedCoeffToLp L sigma (a x) (ha x)
+  let approx : ℕ → X → CoeffL2 := fun N x =>
+    Finset.sum (Finset.range N) (fun n =>
+      lp.single (E := fun _ : ℕ => ℂ) 2 n
+        (weightedCoeffSequence L sigma (a x) n))
+  have happ : ∀ N, AEStronglyMeasurable (approx N) μ := by
+    intro N
+    let term : ℕ → X → CoeffL2 := fun n x =>
+      lp.single (E := fun _ : ℕ => ℂ) 2 n
+        (weightedCoeffSequence L sigma (a x) n)
+    have hterm : ∀ n, AEStronglyMeasurable (term n) μ := by
+      intro n
+      exact (lp.singleContinuousLinearMap ℂ (fun _ : ℕ => ℂ) 2 n).continuous.comp_aestronglyMeasurable
+        (hmeas n)
+    have hsum := Finset.aestronglyMeasurable_fun_sum
+      (f := term) (Finset.range N) (fun n _hn => hterm n)
+    simpa [approx, term] using hsum
+  apply aestronglyMeasurable_of_tendsto_ae atTop happ
+  filter_upwards [] with x
+  have hsum := lp.hasSum_single (E := fun _ : ℕ => ℂ)
+    (p := (2 : ℝ≥0∞)) (by norm_num) (target x)
+  simpa [approx, target] using hsum.tendsto_sum_nat
+
 /-- Coordinate extraction commutes with an `ell^2`-valued interval integral. -/
 theorem coeffL2_intervalIntegral_apply
     {f : ℝ → CoeffL2} {a b : ℝ}
@@ -137,6 +174,7 @@ theorem coeffL2_intervalIntegral_apply
 #print axioms weightedCoeffSequence_norm_sq
 #print axioms norm_weightedCoeffToLp
 #print axioms stronglyMeasurable_weightedCoeffToLp
+#print axioms aestronglyMeasurable_weightedCoeffToLp_of_ae
 #print axioms coeffL2_intervalIntegral_apply
 
 end
