@@ -408,7 +408,24 @@ def conjugateMildSolutionDataM_of_picardData
     hcont := F.hcont
     hmeas := F.hmeas }
 
+/-- Every paper-positive datum for the faithful domain has a genuine
+general-`m` mild solution. -/
+theorem conjugateMildSolutionDataM_exists_paperPositive
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀) :
+    Nonempty (ConjugateMildSolutionDataM p u₀) := by
+  obtain ⟨Braw, hBraw⟩ := hu₀.admissible.1
+  let floor : ℝ := hu₀.floor.choose
+  have hfloor_pos : 0 < floor := hu₀.floor.choose_spec.1
+  have hfloor_le : ∀ x, floor ≤ u₀ x := hu₀.floor.choose_spec.2
+  obtain ⟨T, _hT, hfactory⟩ :=
+    positiveFloorPicardDataM_exists_uniform p Braw floor hfloor_pos
+  obtain ⟨D, _hDT⟩ := hfactory u₀ hu₀.admissible.2
+    (fun x ↦ hBraw (Set.mem_range_self x)) hfloor_le
+  exact ⟨conjugateMildSolutionDataM_of_picardData D⟩
+
 #print axioms positiveFloorPicardDataM_exists_uniform
 #print axioms conjugateMildSolutionDataM_of_picardData
+#print axioms conjugateMildSolutionDataM_exists_paperPositive
 
 end ShenWork.Paper2.IntervalDomainMConjugatePicardFloorInhabit
