@@ -51,6 +51,61 @@ theorem sigma_eq_sigmaLegacyIntervalDomain_of_m_eq_one
   congr 1
   ring
 
+/-- A legacy interval classical solution is a faithful `intervalDomainM`
+classical solution on the explicit `m=1` slice.  All domain fields coincide
+definitionally except the chemotaxis divergence, handled by
+`intervalDomainChemotaxisDivM_eq_of_m_eq_one`. -/
+theorem isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    (p : CM2Params) (hm : p.m = 1) {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : ShenWork.Paper2.IsPaper2ClassicalSolution
+      intervalDomain p T u v) :
+    ShenWork.Paper2.IsPaper2ClassicalSolution
+      intervalDomainM p T u v := by
+  open ShenWork.Paper2 in
+  refine IsPaper2ClassicalSolution.of_components
+    hsol.T_pos ?_ ?_ ?_ ?_ ?_ ?_
+  · exact hsol.regularity
+  · intro t x ht0 htT
+    exact hsol.u_pos' ht0 htT
+  · intro t x ht0 htT
+    exact hsol.v_nonneg ht0 htT
+  · intro t x ht0 htT hx
+    have h := hsol.pde_u ht0 htT hx
+    change
+      intervalDomain.timeDeriv u t x =
+        intervalDomain.laplacian (u t) x -
+          p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x +
+            u t x * (p.a - p.b * u t x ^ p.α) at h
+    change
+      intervalDomainM.timeDeriv u t x =
+        intervalDomainM.laplacian (u t) x -
+          p.χ₀ * intervalDomainM.chemotaxisDiv p (u t) (v t) x +
+            u t x * (p.a - p.b * u t x ^ p.α)
+    change
+      deriv (fun s : ℝ => u s x) t =
+        intervalDomainLaplacian (u t) x -
+          p.χ₀ * intervalDomainChemotaxisDivM p (u t) (v t) x +
+            u t x * (p.a - p.b * u t x ^ p.α)
+    rw [intervalDomainChemotaxisDivM_eq_of_m_eq_one p hm]
+    exact h
+  · intro t x ht0 htT hx
+    exact hsol.pde_v ht0 htT hx
+  · intro t x ht0 htT hx
+    exact hsol.neumann ht0 htT hx
+
+/-- Global legacy solutions transfer to the faithful domain on `m=1`. -/
+theorem isPaper2GlobalClassicalSolution_intervalDomainM_of_m_eq_one
+    (p : CM2Params) (hm : p.m = 1)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hglobal : ShenWork.Paper2.IsPaper2GlobalClassicalSolution
+      intervalDomain p u v) :
+    ShenWork.Paper2.IsPaper2GlobalClassicalSolution
+      intervalDomainM p u v := by
+  intro T hT
+  exact isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    p hm (hglobal T hT)
+
 /-- Away from `m = 1`, the two displayed chemotactic multipliers can genuinely
 differ; this concrete witness prevents silently identifying the two models. -/
 theorem sigma_paper_multiplier_ne_legacy_witness :
@@ -59,6 +114,8 @@ theorem sigma_paper_multiplier_ne_legacy_witness :
 
 #print axioms intervalDomainChemotaxisDivM_eq_of_m_eq_one
 #print axioms sigma_eq_sigmaLegacyIntervalDomain_of_m_eq_one
+#print axioms isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+#print axioms isPaper2GlobalClassicalSolution_intervalDomainM_of_m_eq_one
 #print axioms sigma_paper_multiplier_ne_legacy_witness
 
 end
