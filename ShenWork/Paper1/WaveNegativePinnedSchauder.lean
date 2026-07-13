@@ -397,6 +397,39 @@ theorem paperNegativePinned_offDiagonalStepClosedGraph
     exact (paperNegativePinnedRotheSeqFromTrap_orbitData
       hcond hD hD1 s hu).le_M (n + 1) x
 
+/-- For every frozen profile in the compact domain, its genuine upper-start
+Rothe limit already solves the cross-frozen stationary implicit step. -/
+theorem paperNegativePinned_rotheLimit_stationaryStep
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    {u : ℝ → ℝ}
+    (hu : InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u) :
+    let L := rotheLimit
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)
+    (∀ x, paperImplicitStepOp p c (1 / s.lam) u L x = L x) ∧
+      Differentiable ℝ L ∧ Differentiable ℝ (deriv L) := by
+  let z := paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u
+  let L := rotheLimit z
+  have hdata := paperNegativePinnedRotheSeqFromTrap_orbitData
+    hcond hD hD1 s hu
+  have hLU : LocallyUniformConverges z L := by
+    exact hdata.locallyUniform (paperNegativePinnedOrbitModulus_nonneg s)
+  have hLU_succ : LocallyUniformConverges (fun n => z (n + 1)) L :=
+    hLU.comp_strictMono (strictMono_id.add_const 1)
+  have hLtrap := paperNegativePinnedRotheSeqFromTrap_mapsTo
+    hcond hD hD1 s hu
+  exact paperNegativePinned_offDiagonalStepClosedGraph hcond hD hD1 s
+    (fun _ => u) u L id (fun _ => hu) hu.uniformTrap.bare
+    hLtrap.uniformTrap.bare (LocallyUniformConverges.const u) tendsto_id
+    (by simpa [z] using hLU) (by simpa [z] using hLU_succ)
+
 /-- Adaptive moving-index Green passage reduces the sequential graph of the
 long-time map to stationary identification.  No family-uniform Rothe tail is
 used: each orbit chooses its own index after the output cluster is fixed. -/
@@ -499,6 +532,7 @@ section AxiomAudit
 #print axioms paperNegativePinnedRotheSeqFromTrap_mapsTo
 #print axioms paperNegativePinnedUniformModulusTrap_nonempty
 #print axioms paperNegativePinned_offDiagonalStepClosedGraph
+#print axioms paperNegativePinned_rotheLimit_stationaryStep
 #print axioms paperNegativePinned_limitClosedGraph_of_stationaryIdentification
 #print axioms paperNegativePinnedRotheL10_of_stationaryIdentification
 #print axioms paperNegativePinned_fixed_stationary_of_L10
