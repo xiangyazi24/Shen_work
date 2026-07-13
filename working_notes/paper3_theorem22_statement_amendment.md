@@ -115,16 +115,29 @@ discrete mode condition, not stop at the continuous sufficient bound.
 
 ## Lean amendment
 
-The repository records the formal refutation of the literal sup-norm `C^1`
-clause: in the Paper 3 development,
+The repository records two formal obstructions to the literal clause:
 
 ```text
-Paper3.not_LinearStabilityInstabilityNonminimalRaw_constant_c1Distance
+Paper3.not_SectorialLocalExponentialRaw_constant_c1Distance
+      (ShenWork/Paper3/Statements.lean)
 ```
 
-proves that the raw sup-norm local-stability branch is false when `L^infinity`
-closeness and `C^1` distance are unrelated (the `u0,N` family above is the
-witness).  The corrected targets used in the repository are the eventual,
+proves that the raw sectorial local-exponential branch is false when the `C^1`
+distance is unrelated to the dynamics: a constantly-`1` `C^1` distance would
+force `2 <= C exp(-rate t)` for all `t`, impossible as the right side tends to
+`0`.  Independently,
+
+```text
+ShenWork/Paper3/IntervalDomainSectorialCorrectedObstruction.lean
+```
+
+records a **zero-time** obstruction: `InitialTrace` controls only the
+`t -> 0+` deleted-limit, not the stored slice `u(0)`, so a global solution can
+be re-anchored to an arbitrarily large constant slice at `t = 0` without
+changing global classical solvability or the initial trace — hence no all-time
+`t = 0` `C^1` bound can hold.  Both are `sorry`-free.
+
+The corrected targets used in the repository are the eventual,
 equilibrium-specific, full-mode orbit bound
 
 ```text
