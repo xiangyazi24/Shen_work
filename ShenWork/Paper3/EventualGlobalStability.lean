@@ -99,11 +99,12 @@ def Theorem_2_4_EventualGlobalStabilityFormula
 /-- Formula-level, package-free eventual version of Paper 3 Theorem 2.5. -/
 def Theorem_2_5_EventualGlobalStabilityFormula
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
-    (uBar vLower : ℝ) : Prop :=
+    (uBar vLower : ℝ → ℝ) : Prop :=
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
     ∀ uStar > 0,
       let eq := minimalEquilibrium p uStar
-      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+      MinimalGlobalStabilityFormulaCondition p uStar
+          (uBar uStar) (vLower uStar) →
         EventuallyGloballyExponentiallyStableMinimal
           D p N eq.1 eq.2
 
