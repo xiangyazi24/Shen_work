@@ -3,6 +3,7 @@ import ShenWork.Paper3.EventualGlobalStability
 import ShenWork.Paper3.LyapunovFunction
 import ShenWork.Paper3.IntervalDomainMinimalPoincare
 import ShenWork.Paper3.IntervalDomainModelLinearizationAudit
+import ShenWork.Paper3.IntervalDomainEntropyStrong2Dynamics
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainProposition21
@@ -1424,6 +1425,58 @@ theorem intervalDomain_minimal_signal_poincare
     _ = ∫ y in (0 : ℝ)..1,
         (deriv (intervalDomainLift (v t)) y) ^ 2 := by rfl
 
+/-- Raw interval representation of the signal energy on a `γ = 1` slice. -/
+theorem intervalDomain_minimal_signal_energy_eq_raw
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
+      p.μ * (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (v t) y - vStar) ^ 2) +
+        ∫ y in (0 : ℝ)..1,
+          (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+  have hpair := intervalDomain_chemotaxisSignalEnergy_eq_pairing
+    hgamma heq hsol ht
+  have helliptic := intervalDomain_minimal_signal_pairing_scaled
+    hgamma heq hsol ht ht
+  calc
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
+        p.ν * (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) *
+            (intervalDomainLift (v t) y - vStar)) := hpair
+    _ = p.μ * (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (v t) y - vStar) *
+            (intervalDomainLift (v t) y - vStar)) +
+          ∫ y in (0 : ℝ)..1,
+            deriv (intervalDomainLift (v t)) y *
+              deriv (intervalDomainLift (v t)) y := helliptic
+    _ = p.μ * (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (v t) y - vStar) ^ 2) +
+          ∫ y in (0 : ℝ)..1,
+            (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+      have hvalue :
+          (∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (v t) y - vStar) *
+              (intervalDomainLift (v t) y - vStar)) =
+            ∫ y in (0 : ℝ)..1,
+              (intervalDomainLift (v t) y - vStar) ^ 2 := by
+        apply intervalIntegral.integral_congr
+        intro y _
+        ring
+      have hgradient :
+          (∫ y in (0 : ℝ)..1,
+            deriv (intervalDomainLift (v t)) y *
+              deriv (intervalDomainLift (v t)) y) =
+            ∫ y in (0 : ℝ)..1,
+              (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+        apply intervalIntegral.integral_congr
+        intro y _
+        ring
+      rw [hvalue, hgradient]
+
 /-- The signal energy is controlled by `(μ+1)` times its gradient part on
 every positive mass-constrained `γ = 1` slice. -/
 theorem intervalDomain_minimal_signal_energy_control
@@ -1440,50 +1493,8 @@ theorem intervalDomain_minimal_signal_energy_control
   have hpoincare := intervalDomain_minimal_signal_poincare
     hm hgamma heq hsol ht hmass
   have hscaled := mul_le_mul_of_nonneg_left hpoincare p.hμ.le
-  have hpair := intervalDomain_chemotaxisSignalEnergy_eq_pairing
+  have henergy := intervalDomain_minimal_signal_energy_eq_raw
     hgamma heq hsol ht
-  have helliptic := intervalDomain_minimal_signal_pairing_scaled
-    hgamma heq hsol ht ht
-  have henergy :
-      chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
-        p.μ * (∫ y in (0 : ℝ)..1,
-          (intervalDomainLift (v t) y - vStar) ^ 2) +
-          ∫ y in (0 : ℝ)..1,
-            (deriv (intervalDomainLift (v t)) y) ^ 2 := by
-    calc
-      chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
-          p.ν * (∫ y in (0 : ℝ)..1,
-            (intervalDomainLift (u t) y - uStar) *
-              (intervalDomainLift (v t) y - vStar)) := hpair
-      _ = p.μ * (∫ y in (0 : ℝ)..1,
-            (intervalDomainLift (v t) y - vStar) *
-              (intervalDomainLift (v t) y - vStar)) +
-            ∫ y in (0 : ℝ)..1,
-              deriv (intervalDomainLift (v t)) y *
-                deriv (intervalDomainLift (v t)) y := helliptic
-      _ = p.μ * (∫ y in (0 : ℝ)..1,
-            (intervalDomainLift (v t) y - vStar) ^ 2) +
-            ∫ y in (0 : ℝ)..1,
-              (deriv (intervalDomainLift (v t)) y) ^ 2 := by
-        have hvalue :
-            (∫ y in (0 : ℝ)..1,
-              (intervalDomainLift (v t) y - vStar) *
-                (intervalDomainLift (v t) y - vStar)) =
-              ∫ y in (0 : ℝ)..1,
-                (intervalDomainLift (v t) y - vStar) ^ 2 := by
-          apply intervalIntegral.integral_congr
-          intro y _
-          ring
-        have hgradient :
-            (∫ y in (0 : ℝ)..1,
-              deriv (intervalDomainLift (v t)) y *
-                deriv (intervalDomainLift (v t)) y) =
-              ∫ y in (0 : ℝ)..1,
-                (deriv (intervalDomainLift (v t)) y) ^ 2 := by
-          apply intervalIntegral.integral_congr
-          intro y _
-          ring
-        rw [hvalue, hgradient]
   rw [henergy]
   nlinarith
 
@@ -1631,6 +1642,50 @@ theorem intervalDomain_minimal2_signal_energy_exponential_decay
   rw [hleftTime, honeTime, htimeDiff] at h
   simpa [rate] using h
 
+/-- The second minimal formula branch drives the signal energy to zero along
+every positive bounded orbit with the equilibrium mass. -/
+theorem intervalDomain_minimal2_signal_energy_tendsto_zero
+    (p : CM2Params) (hm : p.m = 1)
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (hbeta : 1 ≤ p.β) {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal2Formula p uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    Tendsto
+      (fun t => chemotaxisSignalEnergy intervalDomain p.μ vStar v t)
+      atTop (𝓝 0) := by
+  obtain ⟨s, hs, rate, hrate, hdecay⟩ :=
+    intervalDomain_minimal2_signal_energy_exponential_decay
+      p hm ha0 hb0 hgamma hbeta heq huBar hvLower hchi hthreshold
+        huv hmass hupper hfloor
+  have hexp0 :
+      Tendsto (fun t : ℝ => Real.exp (-rate * (t - s))) atTop (𝓝 0) := by
+    have hlinear :
+        Tendsto (fun t : ℝ => (-rate) * t + rate * s) atTop atBot := by
+      exact tendsto_atBot_add_const_right _ (rate * s)
+        (tendsto_id.const_mul_atTop_of_neg (neg_lt_zero.mpr hrate))
+    refine (Real.tendsto_exp_atBot.comp hlinear).congr' ?_
+    filter_upwards with t
+    apply congrArg Real.exp
+    ring
+  have hupper0 : Tendsto
+      (fun t : ℝ =>
+        chemotaxisSignalEnergy intervalDomain p.μ vStar v s *
+          Real.exp (-rate * (t - s))) atTop (𝓝 0) := by
+    simpa using tendsto_const_nhds.mul hexp0
+  refine squeeze_zero' ?_ ?_ hupper0
+  · exact Filter.Eventually.of_forall fun _ =>
+      intervalDomain_chemotaxisSignalEnergy_nonneg p.hμ.le
+  · exact eventually_atTop.2 ⟨s, fun t ht => hdecay t ht⟩
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
@@ -1645,6 +1700,7 @@ theorem intervalDomain_minimal2_signal_energy_exponential_decay
 #print axioms intervalDomain_minimal_signal_poincare
 #print axioms intervalDomain_minimal_signal_energy_control
 #print axioms intervalDomain_minimal2_signal_energy_exponential_decay
+#print axioms intervalDomain_minimal2_signal_energy_tendsto_zero
 
 end
 
