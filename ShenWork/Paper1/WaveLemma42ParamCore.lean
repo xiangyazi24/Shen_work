@@ -340,9 +340,10 @@ def PaperLowerRawParamRotheStationaryIdentification
     (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) →
       W = rotheLimit (paperLowerRawParamRotheSeq producer u)
 
-/-- Route-A paper Rothe parabolic floor after all mechanical compactness and
-finite-cube fields have been removed.  `limitClosedGraph` is the single L10
-double-limit identification still carried. -/
+/-- Route-A paper Rothe parabolic floor after source compactness, adaptive
+step closed graph, and finite-cube fields have been removed.  The remaining
+map-level analytic datum is exactly L10: local-uniform continuity of the
+long-time Rothe limit on the lower-pinned trap. -/
 structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
@@ -350,8 +351,10 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperLowerRawStepProducerRouteAParamCore
         p c lam M κ κtilde D Λ hκ hM u
-  stationaryIdentification :
-    PaperLowerRawParamRotheStationaryIdentification producer
+  limitContinuous :
+    LocalUniformContinuousOn
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (paperLowerRawParamRotheSeq producer u))
 
 /-- The full Route-A parabolic floor inherits the sign restriction of every
 one of its step producers. -/
@@ -447,119 +450,37 @@ theorem paperLowerRawParamOffDiagonalStepClosedGraph
     rw [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu]
     exact rotheSeqOfPaperRouteA_le_M (hinput u hu) hκ hM (k + 1) x
 
-/-- Adaptive diagonal plus the off-diagonal Green closed graph reduce the full
-map closed graph to the single stationary-cluster identification field. -/
+/-- L10 continuity immediately gives the sequential closed graph of the
+long-time map.  The adaptive Green closed graph is used later, at the Schauder
+fixed point, to pass the implicit step equation and obtain stationarity. -/
 theorem paperLowerRawParamRotheLimitClosedGraph
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM)
-    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ)
-    (hbarLip : ∀ x y,
+    (_hMpos : 0 < M) (_hΛ0 : 0 ≤ Λ)
+    (_hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
     PaperLowerRawParamRotheLimitClosedGraph h.producer := by
-  let zseq := paperLowerRawParamRotheSeq h.producer
-  let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
-    fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
-  let Q : ℝ := max M Λ
-  have hQ0 : 0 ≤ Q := le_trans hMpos.le (le_max_left M Λ)
-  have hΛQ : Λ ≤ Q := le_max_right M Λ
-  have hMQ : M ≤ Q := le_max_left M Λ
-  have hbarLipQ : ∀ x y,
-      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
-    intro x y
-    exact (hbarLip x y).trans
-      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
-  have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
-    intro u hu
-    simpa [zseq, paperLowerRawParamRotheSeq, hinput] using
-      paperRouteARotheOrbitDataWithModulus_fromTrap
-        (p := p) (c := c) (lam := lam)
-        (M := M) (κ := κ) (Λ := Λ) (u := u) hinput
-        hκ hM hΛ0 hΛQ hbarLipQ hu
-  have hoff : PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
-      p c lam M κ zseq := by
-    simpa [zseq] using
-      paperLowerRawParamOffDiagonalStepClosedGraph h hMpos hΛ0
-  intro seq u W hseq hu hW houter hlimits
-  let Z : ℕ → ℕ → ℝ → ℝ := fun n => zseq (seq n)
-  let Lim : ℕ → ℝ → ℝ := fun n => rotheLimit (zseq (seq n))
-  have horbit : ∀ n, LocallyUniformConverges (Z n) (Lim n) := by
-    intro n
-    simpa [Z, Lim] using (hdata (seq n) (hseq n).bare).locallyUniform hQ0
-  obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
-    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [Lim] using hlimits)
-  obtain ⟨hstep, _hWdiff, _hWderivDiff⟩ := hoff seq u W ks
-    (fun n => (hseq n).bare) hu.bare hW.bare houter hks
-    (by simpa [Z] using hold) (by simpa [Z] using hnew)
-  exact h.stationaryIdentification u W hu hW hstep
+  intro seq u W hseq hu _hW houter hlimits
+  exact hlimits.unique (h.limitContinuous seq u hseq hu houter)
 
-/-- Compactness of the analytic-preserving Route-A orbit upgrades the single
-L10 closed-graph residual to the `RotheContinuousDependence` interface used by
+/-- The L10 field is exactly the `RotheContinuousDependence` interface used by
 the Schauder construction. -/
 theorem paperLowerRawParamRotheContinuousDependence
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM)
-    (hlower : RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D)
+    (_hlower : RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D)
       (paperLowerRawParamRotheSeq h.producer))
-    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ)
-    (hbarLip : ∀ x y,
+    (_hMpos : 0 < M) (_hΛ0 : 0 ≤ Λ)
+    (_hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
     RotheContinuousDependence p c lam
       (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
-      (paperLowerRawParamRotheSeq h.producer) := by
-  let zseq := paperLowerRawParamRotheSeq h.producer
-  let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
-    fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
-  let Q : ℝ := max M Λ
-  have hQ0 : 0 ≤ Q := le_trans hMpos.le (le_max_left M Λ)
-  have hΛQ : Λ ≤ Q := le_max_right M Λ
-  have hMQ : M ≤ Q := le_max_left M Λ
-  have hbarLipQ : ∀ x y,
-      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
-    intro x y
-    exact (hbarLip x y).trans
-      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
-  have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
-    intro u hu
-    simpa [zseq, paperLowerRawParamRotheSeq, hinput] using
-      paperRouteARotheOrbitDataWithModulus_fromTrap
-        (p := p) (c := c) (lam := lam)
-        (M := M) (κ := κ) (Λ := Λ) (u := u) hinput
-        hκ hM hΛ0 hΛQ hbarLipQ hu
-  have hcompactBare : LocalUniformSequentiallyCompactRange
-      (InMonotoneWaveTrapSet κ M)
-      (fun u => rotheLimit (zseq u)) :=
-    paperTmap_compactRange_of_orbitModulus
-      p c lam M κ Q hM hQ0 zseq hdata
-  have hlimitLower : ∀ u,
-      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
-      ∀ x, lowerBarrierRaw κ κtilde D x ≤ rotheLimit (zseq u) x :=
-    Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower
-  have hcompact : LocalUniformSequentiallyCompactRange
-      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
-      (fun u => rotheLimit (zseq u)) := by
-    intro seq hseq
-    obtain ⟨subseq, hsubseq, U, hUbare, hconv⟩ :=
-      hcompactBare seq (fun n => (hseq n).bare)
-    refine ⟨subseq, hsubseq, U, ⟨hUbare, ?_⟩, hconv⟩
-    intro x
-    exact le_of_tendsto_of_tendsto tendsto_const_nhds (hconv.tendsto_at x)
-      (Filter.Eventually.of_forall fun n =>
-        hlimitLower (seq (subseq n)) (hseq (subseq n)) x)
-  have hclosed : LocalUniformSequentialClosedGraphOn
-      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
-      (fun u => rotheLimit (zseq u)) := by
-    simpa [zseq] using paperLowerRawParamRotheLimitClosedGraph
-      h hMpos hΛ0 hbarLip
-  have hcont := hcompact.continuousOn_of_closedGraph hclosed
-  simpa [zseq] using hcont
+      (paperLowerRawParamRotheSeq h.producer) :=
+  h.limitContinuous
 
 /-- Only the left-flatness half of the legacy stationary/flat floor.  The
 adaptive Green closed graph now supplies stationarity itself. -/
