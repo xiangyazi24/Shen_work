@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WaveUniformModulusTrap
 import ShenWork.Paper1.WaveLemma42Paper
+import ShenWork.Paper1.CompactConvexProfileSchauder
 
 open Filter Set Topology
 
@@ -169,6 +170,33 @@ theorem exists_controls_upper_mem
       lower := hφ
       leftRateData := ⟨ell, hell, hrate⟩ }
 
+/-- The controlled parameter trap satisfies the exact hypotheses of the
+compact-open Schauder--Tychonoff construction. -/
+theorem boundedConvexProfileTrapData
+    (hne : ∃ u,
+      InControlledLowerPinnedMonotoneTrap κ M L sigma aL C φ u) :
+    BoundedConvexProfileTrapData
+      (InControlledLowerPinnedMonotoneTrap κ M L sigma aL C φ) M := by
+  refine
+    { nonempty := hne
+      convex := set_convex κ M L sigma aL C φ
+      continuous := ?_
+      abs_le := ?_ }
+  · intro u hu
+    exact hu.bare.trap.cunif_bdd.1
+  · intro u hu x
+    rw [abs_of_nonneg (hu.bare.nonneg x)]
+    exact hu.bare.le_M x
+
+/-- Schauder--Tychonoff on the corrected compact convex parameter trap, with
+no finite-cube approximation package left as a hypothesis. -/
+theorem schauderPrinciple
+    (hne : ∃ u,
+      InControlledLowerPinnedMonotoneTrap κ M L sigma aL C φ u) :
+    LocalUniformSchauderFixedPointPrinciple
+      (InControlledLowerPinnedMonotoneTrap κ M L sigma aL C φ) :=
+  (boundedConvexProfileTrapData hne).schauderPrinciple
+
 end InControlledLowerPinnedMonotoneTrap
 
 section AxiomAudit
@@ -176,6 +204,8 @@ section AxiomAudit
 #print axioms InControlledLowerPinnedMonotoneTrap.set_convex
 #print axioms InControlledLowerPinnedMonotoneTrap.locallyUniform_sequentiallyCompact
 #print axioms InControlledLowerPinnedMonotoneTrap.exists_controls_upper_mem
+#print axioms InControlledLowerPinnedMonotoneTrap.boundedConvexProfileTrapData
+#print axioms InControlledLowerPinnedMonotoneTrap.schauderPrinciple
 
 end AxiomAudit
 
