@@ -93,6 +93,23 @@ theorem IntervalDomainWeakSupRestartWindowData.initial_lift_bound
 
 /-- The restarted initial lift is measurable because the restart occurs at a
 strictly positive classical time. -/
+theorem IntervalDomainWeakSupRestartWindowData.initial_lift_measurable_of_solution
+    {p : CM2Params} {uStar T delta H : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
+    (hm : p.m = 1)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (haH : D.a < H) :
+    AEStronglyMeasurable (intervalDomainLift (u D.a))
+      (intervalMeasure 1) := by
+  let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    p hm hsol
+  have hcont : Continuous (u D.a) :=
+    solutionSlice_continuous hsolM ⟨D.a_pos, haH⟩
+  exact (ShenWork.IntervalMildPicardThreshold.intervalDomainLift_measurable_of_continuous'
+    hcont).aestronglyMeasurable
+
+/-- Global-orbit wrapper for measurability of the restarted initial lift. -/
 theorem IntervalDomainWeakSupRestartWindowData.initial_lift_measurable
     {p : CM2Params} {uStar T delta : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
@@ -105,30 +122,21 @@ theorem IntervalDomainWeakSupRestartWindowData.initial_lift_measurable
   have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
   have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
   have haH : D.a < H := by dsimp [H]; linarith [hT]
-  let hsol := hglobal H hH
-  let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
-    p hm hsol
-  have hcont : Continuous (u D.a) :=
-    solutionSlice_continuous hsolM ⟨D.a_pos, haH⟩
-  exact (ShenWork.IntervalMildPicardThreshold.intervalDomainLift_measurable_of_continuous'
-    hcont).aestronglyMeasurable
+  exact D.initial_lift_measurable_of_solution hm (hglobal H hH) haH
 
 /-- On the physical restart strip the derivative of the faithful flux agrees
 with the derivative of the eliminated weak-map flux. -/
-theorem weakRestart_actualFlux_deriv_eq_chemFlux_deriv
-    {p : CM2Params} {uStar T delta r x : ℝ}
+theorem weakRestart_actualFlux_deriv_eq_chemFlux_deriv_of_solution
+    {p : CM2Params} {uStar T delta r x H : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
     (hm : p.m = 1)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (haTH : D.a + T < H)
     (hr : r ∈ Set.Icc (0 : ℝ) T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
     deriv (intervalFluxM p (u (D.a + r)) (v (D.a + r))) x =
       deriv (chemFluxLifted p (D.mild.u r)) x := by
-  let H := D.a + T + 1
   have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
-  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
-  have haTH : D.a + T < H := by dsimp [H]; linarith
-  let hsol := hglobal H hH
   have heqOn : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
       intervalFluxM p (u (D.a + r)) (v (D.a + r)) y =
         chemFluxLifted p (D.mild.u r) y := by
@@ -145,16 +153,34 @@ theorem weakRestart_actualFlux_deriv_eq_chemFlux_deriv
     Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx) heqOn
   exact hev.deriv_eq
 
+/-- Global-orbit wrapper for the restarted flux identity. -/
+theorem weakRestart_actualFlux_deriv_eq_chemFlux_deriv
+    {p : CM2Params} {uStar T delta r x : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
+    (hm : p.m = 1)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hr : r ∈ Set.Icc (0 : ℝ) T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (intervalFluxM p (u (D.a + r)) (v (D.a + r))) x =
+      deriv (chemFluxLifted p (D.mild.u r)) x := by
+  let H := D.a + T + 1
+  have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
+  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
+  have haTH : D.a + T < H := by dsimp [H]; linarith
+  exact weakRestart_actualFlux_deriv_eq_chemFlux_deriv_of_solution
+    D hm (hglobal H hH) haTH hr hx
+
 /-- Uniform coefficient-`ell2` estimate for the true full nonlinear remainder
 on the last half of the weak restart window.  Route (a) is used: the spatial
 derivative stays on the physical flux profile. -/
-theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2
-    {p : CM2Params} {uStar vStar T delta r : ℝ}
+theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2_of_solution
+    {p : CM2Params} {uStar vStar T delta r H : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
     (hm : p.m = 1)
     (heq : Paper3ConstantEquilibrium p uStar vStar)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (haTH : D.a + T < H)
     (hdelta : 0 ≤ delta) (hdeltaStar : delta ≤ uStar / 16)
     (hdeltaOne : 4 * delta ≤ 1)
     (hr : r ∈ Set.Ioo (T / 2) T) :
@@ -165,7 +191,6 @@ theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2
         ((paper3FullModeNonlinearRemainderCoeffM
           p uStar vStar u v (D.a + r) n : ℝ) : ℂ)) ≤
         paper3WeakWindowNonlinearL2Constant p uStar vStar T heq := by
-  let Htime := D.a + T + 1
   let Mcone := intervalDomainWeakSupConeCeiling uStar
   let Cflux := paper3ChemFluxDerivPositiveTimeConstant
     p Mcone T (T / 2)
@@ -174,25 +199,23 @@ theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2
   let Kchem := |p.χ₀| * (Cflux + |qlin| * Csignal)
   let Klog := paper3UniformLogisticTaylorConstant p heq
   have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
-  have hH : 0 < Htime := by dsimp [Htime]; linarith [D.a_pos, hT]
-  have haTH : D.a + T < Htime := by dsimp [Htime]; linarith
-  let hsol := hglobal Htime hH
   let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
     p hm hsol
   have hrIcc : r ∈ Set.Icc (0 : ℝ) T :=
     ⟨(by linarith [hr.1]), hr.2.le⟩
-  have ht : D.a + r ∈ Set.Ioo (0 : ℝ) Htime := by
+  have ht : D.a + r ∈ Set.Ioo (0 : ℝ) H := by
     constructor
     · linarith [D.a_pos, hr.1]
     · exact lt_of_le_of_lt (by linarith [hr.2]) haTH
   have hu0Bound := D.initial_lift_bound heq.u_pos hdeltaStar
-  have hu0Meas := D.initial_lift_measurable hm hglobal
+  have hu0Meas := D.initial_lift_measurable_of_solution hm hsol
+    (by linarith [haTH, hT])
   have hfluxBound : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       |deriv (intervalFluxM p (u (D.a + r)) (v (D.a + r))) x| ≤
         Cflux := by
     intro x hx
-    rw [weakRestart_actualFlux_deriv_eq_chemFlux_deriv
-      D hm hglobal hrIcc hx]
+    rw [weakRestart_actualFlux_deriv_eq_chemFlux_deriv_of_solution
+      D hm hsol haTH hrIcc hx]
     have h := conjugateMild_chemFlux_deriv_positiveTime_explicit
       D.mild hu0Bound hu0Meas (by linarith : 0 < T / 2)
         r hr.1.le (by rw [D.mild_T]; exact hr.2.le) x hx
@@ -414,11 +437,39 @@ theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2
     paper3WeakWindowNonlinearL2Constant, Kchem, Klog, Cflux, Csignal,
     qlin, Mcone, chemProfile, logProfile] using hcoeff
 
+/-- Global-orbit wrapper for the finite-window nonlinear source estimate. -/
+theorem weakRestart_fullNonlinearRemainderCoeff_uniform_L2
+    {p : CM2Params} {uStar vStar T delta r : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hdelta : 0 ≤ delta) (hdeltaStar : delta ≤ uStar / 16)
+    (hdeltaOne : 4 * delta ≤ 1)
+    (hr : r ∈ Set.Ioo (T / 2) T) :
+    Summable (fun n : ℕ =>
+      ‖((paper3FullModeNonlinearRemainderCoeffM
+        p uStar vStar u v (D.a + r) n : ℝ) : ℂ)‖ ^ 2) ∧
+      coeffL2Norm (fun n =>
+        ((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v (D.a + r) n : ℝ) : ℂ)) ≤
+        paper3WeakWindowNonlinearL2Constant p uStar vStar T heq := by
+  let H := D.a + T + 1
+  have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
+  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
+  have haTH : D.a + T < H := by dsimp [H]; linarith
+  exact weakRestart_fullNonlinearRemainderCoeff_uniform_L2_of_solution
+    D hm heq (hglobal H hH) haTH hdelta hdeltaStar hdeltaOne hr
+
 #print axioms paper3WeakWindowNonlinearL2Constant_nonneg
 #print axioms IntervalDomainWeakSupRestartWindowData.initial_lift_bound
 #print axioms IntervalDomainWeakSupRestartWindowData.initial_lift_measurable
+#print axioms IntervalDomainWeakSupRestartWindowData.initial_lift_measurable_of_solution
 #print axioms weakRestart_actualFlux_deriv_eq_chemFlux_deriv
+#print axioms weakRestart_actualFlux_deriv_eq_chemFlux_deriv_of_solution
 #print axioms weakRestart_fullNonlinearRemainderCoeff_uniform_L2
+#print axioms weakRestart_fullNonlinearRemainderCoeff_uniform_L2_of_solution
 
 end
 
