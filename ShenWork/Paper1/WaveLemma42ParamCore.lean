@@ -524,6 +524,44 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     FrozenStationaryWaveProfile.mk_auto_limits hcpos hpos
       hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos⟩
 
+/-- Clean negative-branch name after the finite-cube approximation and adaptive
+Green source compactness have both become internal theorems. -/
+theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hcond.hκ0.le
+        (le_trans zero_le_one hcond.hM))
+    (hflat : PaperLowerPinnedFlatFloor p c κ M
+      (lowerBarrierRaw κ κtilde D))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat hsmp
+
+/-- Clean positive-branch name after the finite-cube approximation and adaptive
+Green source compactness have both become internal theorems. -/
+theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hcond.hκ0.le
+        (le_trans zero_le_one hcond.hM))
+    (hflat : PaperLowerPinnedFlatFloor p c κ M
+      (lowerBarrierRaw κ κtilde D))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat hsmp
+
 section AxiomAudit
 
 #print axioms paperRouteAParamGreenCore
@@ -536,6 +574,8 @@ section AxiomAudit
 #print axioms PaperLowerPinnedFlatFloor
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar
+#print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar
 
 end AxiomAudit
 
