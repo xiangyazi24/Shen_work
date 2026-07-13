@@ -520,6 +520,104 @@ theorem paper3StrongDuhamelIntegrand_norm_le
     rw [hsourceEq]
     exact hsmooth
 
+/-- Coordinate form of the physical restart formula with the endpoint-safe
+windowed nonlinear source. -/
+theorem intervalDomainPerturbationCosineCoeff_full_restart_windowed
+    {p : CM2Params} {T a t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hm : p.m = 1) (ha : 0 < a) (hat : a ≤ t) (htT : t < T)
+    (n : ℕ) :
+    intervalDomainPerturbationCosineCoeff uStar (u t) n =
+      diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) (t - a)
+          (intervalDomainPerturbationCosineCoeff uStar (u a)) n +
+        ∫ s in a..t,
+          diagonalSemigroupCoeff
+            (unitIntervalLinearizedGrowth p uStar vStar) (t - s)
+            (paper3WindowedNonlinearCoeff
+              p uStar vStar a t u v s) n := by
+  have hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    p hm hsol
+  have haT : a < T := lt_of_le_of_lt hat htT
+  have ht0 : 0 < t := lt_of_lt_of_le ha hat
+  have hphiA : IntervalIntegrable
+      (fun x => intervalDomainLift (u a) x - uStar) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+    exact ((hsol.regularity.2.2.2.2.1 a ⟨ha, haT⟩).1.1.continuousOn).sub
+      continuousOn_const
+  have hphiT : IntervalIntegrable
+      (fun x => intervalDomainLift (u t) x - uStar) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+    exact ((hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1.continuousOn).sub
+      continuousOn_const
+  have hmodal := paper3PerturbationCoeffM_full_restart
+    (uStar := uStar) (vStar := vStar) hsolM ha hat htT n
+  have hcast := congrArg (fun r : ℝ => (r : ℂ)) hmodal
+  push_cast at hcast
+  rw [← intervalIntegral.integral_ofReal] at hcast
+  have hwindow :
+      (∫ s in a..t,
+        diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) (t - s)
+          (paper3WindowedNonlinearCoeff p uStar vStar a t u v s) n) =
+      ∫ s in a..t,
+        ((Real.exp ((t - s) *
+              unitIntervalLinearizedGrowth p uStar vStar n) *
+            paper3FullModeNonlinearRemainderCoeffM
+              p uStar vStar u v s n : ℝ) : ℂ) := by
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [volume.ae_ne t] with s hst hs
+    rw [Set.uIoc_of_le hat] at hs
+    have hsopen : s ∈ Set.Ioo a t := ⟨hs.1, lt_of_le_of_ne hs.2 hst⟩
+    simp [diagonalSemigroupCoeff, paper3WindowedNonlinearCoeff, hsopen]
+  rw [hwindow]
+  unfold intervalDomainPerturbationCosineCoeff
+  unfold diagonalSemigroupCoeff
+  simp only
+  rw [← paper3PerturbationCoeffM_eq_cosineCoeff_sub_const n hphiT,
+    ← paper3PerturbationCoeffM_eq_cosineCoeff_sub_const n hphiA]
+  simpa [diagonalSemigroupCoeff] using hcast
+
+/-- Strong membership propagates from the restart slice to the terminal slice
+under a qualitative local `L²` bound for the nonlinear source. -/
+theorem intervalDomainX2SigmaPerturbation_of_strongDuhamel_restart
+    {p : CM2Params} {T a t sigma uStar vStar gap B : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hm : p.m = 1)
+    (ha : 0 < a) (hat : a ≤ t) (htT : t < T)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (hsigma : 0 < sigma) (hsigma1 : sigma < 1)
+    (hma : IntervalDomainX2SigmaPerturbation sigma uStar (u a))
+    (hN : ∀ s ∈ Set.Ioo a t, Summable fun n : ℕ =>
+      ‖((paper3FullModeNonlinearRemainderCoeffM
+        p uStar vStar u v s n : ℝ) : ℂ)‖ ^ 2)
+    (hB : 0 ≤ B)
+    (hNnormB : ∀ s ∈ Set.Ioo a t,
+      coeffL2Norm (fun n =>
+        ((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v s n : ℝ) : ℂ)) ≤ B) :
+    IntervalDomainX2SigmaPerturbation sigma uStar (u t) := by
+  have hint := paper3StrongDuhamelIntegrand_intervalIntegrable
+    hsol hm ha hat htT heq hgap hsigma hsigma1 hN hB hNnormB
+  exact fractionalPowerEnergy_summable_of_mild
+    (L := 1) (sigma := sigma) (a := a) (t := t)
+    (growth := unitIntervalLinearizedGrowth p uStar vStar)
+    (c := fun r => intervalDomainPerturbationCosineCoeff uStar (u r))
+    (source := fun r =>
+      paper3WindowedNonlinearCoeff p uStar vStar a t u v r)
+    (unitIntervalLinearized_fractionalPower_summable_exp
+      p hgap (sub_nonneg.mpr hat) hma)
+    (paper3WindowedNonlinearCoeff_X2SigmaSummable
+      p u v heq hgap hsigma hN)
+    hint
+    (intervalDomainPerturbationCosineCoeff_full_restart_windowed
+      hsol hm ha hat htT)
+
 /-- Exact positive-time restart formula in the complete strong coefficient
 space.  The only remaining Bochner premise is interval integrability of the
 explicit integrand; it is discharged quantitatively below. -/
@@ -802,6 +900,9 @@ theorem paper3StrongDuhamel_restart_actual_local_norm_le
 #print axioms paper3WindowedNonlinearCoeff_X2SigmaSummable
 #print axioms paper3StrongDuhamelIntegrand_intervalIntegrable
 #print axioms paper3StrongDuhamelIntegrand_norm_le
+#print axioms
+  intervalDomainPerturbationCosineCoeff_full_restart_windowed
+#print axioms intervalDomainX2SigmaPerturbation_of_strongDuhamel_restart
 #print axioms paper3StrongDuhamel_restart_eq
 #print axioms paper3StrongDuhamel_restart_quadratic_norm_le
 #print axioms paper3StrongDuhamel_restart_actual_local_norm_le
