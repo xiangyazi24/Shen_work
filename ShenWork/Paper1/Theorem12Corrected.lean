@@ -53,9 +53,12 @@ def Theorem_1_2_amended : Prop :=
 theorem CoMovingWeightedL2Convergence.of_eventual_bound_tendsto_zero
     {η c : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {B : ℝ → ℝ}
     (hB : Tendsto B atTop (𝓝 0))
-    (hbound : ∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ B t) :
+    (hbound : ∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ B t)
+    (henergy_int : ∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2)) :
     CoMovingWeightedL2Convergence η c u U := by
   unfold CoMovingWeightedL2Convergence
+  refine ⟨henergy_int, ?_⟩
   have hnonneg : ∀ᶠ t in atTop, 0 ≤ coMovingWeightedL2Energy η c u U t :=
     Eventually.of_forall fun t => integral_nonneg fun z =>
       mul_nonneg (Real.exp_pos _).le (sq_nonneg _)
@@ -65,7 +68,9 @@ theorem CoMovingWeightedL2Convergence.of_eventual_exponential_decay
     {η c lam A : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
     (hlam : 0 < lam)
     (hdecay : ∀ᶠ t in atTop,
-      coMovingWeightedL2Energy η c u U t ≤ A * Real.exp (-lam * t)) :
+      coMovingWeightedL2Energy η c u U t ≤ A * Real.exp (-lam * t))
+    (henergy_int : ∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2)) :
     CoMovingWeightedL2Convergence η c u U := by
   have hmul : Tendsto (fun t : ℝ => lam * t) atTop atTop := by
     simpa [mul_comm] using Filter.tendsto_id.atTop_mul_const hlam
@@ -76,12 +81,14 @@ theorem CoMovingWeightedL2Convergence.of_eventual_exponential_decay
   have hupper : Tendsto (fun t : ℝ => A * Real.exp (-lam * t)) atTop (𝓝 0) := by
     simpa using tendsto_const_nhds.mul hexp
   exact CoMovingWeightedL2Convergence.of_eventual_bound_tendsto_zero
-    hupper hdecay
+    hupper hdecay henergy_int
 
 theorem CoMovingWeightedL2Convergence.of_energy_dissipation
     {η c lam : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {E : ℝ → ℝ}
     (hlam : 0 < lam)
     (hcontrol : ∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ E t)
+    (henergy_int : ∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2))
     (hcont : ∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T))
     (hderiv : ∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
       HasDerivWithinAt E (deriv E t) (Set.Ici t) t)
@@ -94,7 +101,7 @@ theorem CoMovingWeightedL2Convergence.of_energy_dissipation
     filter_upwards [hcontrol, hE_decay] with t hctrl hE
     exact hctrl.trans hE
   exact CoMovingWeightedL2Convergence.of_eventual_exponential_decay
-    hlam hdecay
+    hlam hdecay henergy_int
 
 /-- The proved interval-localization upgrade applied in the stationary wave
 coordinate.  All three extra hypotheses are genuine Step 4 inputs; weighted
@@ -113,7 +120,7 @@ theorem uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
       WeightedL2MovingFrameConvergence η 0 (coMovingPath c u) U := by
     unfold CoMovingWeightedL2Convergence coMovingWeightedL2Energy at hweighted
     unfold WeightedL2MovingFrameConvergence
-    simpa [coMovingPath] using hweighted
+    simpa [coMovingPath] using hweighted.2
   have huniform_zero :
       UniformMovingFrameConvergence 0 (coMovingPath c u) U :=
     uniformMovingFrameConvergence_of_weightedL2_of_spatialModulus_of_leftTail
@@ -201,9 +208,13 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
       hu₀ hleft hclose hsignal with
     ⟨u, v, E, lam, hlam, hsol, hcontrol, hcont, hderiv, hdiss,
       hint, hmod, hleftStep4⟩
+  have hint_direct : ∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2) := by
+    simpa [EventuallyIntegrableMovingFrameEnergy, movingFrameError,
+      coMovingPath] using hint
   have hweighted : CoMovingWeightedL2Convergence η c u U :=
     CoMovingWeightedL2Convergence.of_energy_dissipation
-      hlam hcontrol hcont hderiv hdiss
+      hlam hcontrol hint_direct hcont hderiv hdiss
   have hη : 0 < η :=
     eta_pos_of_stability_weight_hypotheses
       (stabilitySpeedBaseline_le_cStarStarWitness p) hc hketa

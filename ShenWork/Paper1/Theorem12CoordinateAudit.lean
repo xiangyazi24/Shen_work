@@ -54,9 +54,15 @@ theorem laboratoryWeightedL2Energy_eq_exp_mul_coMoving
     rw [hexp]
     ring
 
-/-- The convergence actually proved by a moving-coordinate energy argument. -/
+/-- The convergence actually proved by a moving-coordinate energy argument.
+
+The eventual integrability clause is essential: the Bochner integral is
+defined to be zero for a non-integrable function, so convergence of the bare
+integral would not by itself express weighted `L²` convergence. -/
 def CoMovingWeightedL2Convergence
     (η c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
+  (∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+    Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2)) ∧
   Tendsto (coMovingWeightedL2Energy η c u U) atTop (𝓝 0)
 
 /-- A quantitative conversion is possible only if the moving-coordinate
@@ -151,10 +157,43 @@ theorem laboratoryWeightedL2Energy_transportedDecayingPerturbation
       ring
 
 theorem coMovingWeightedL2Convergence_transportedDecayingPerturbation
-    {η c lam : ℝ} (hlam : 0 < lam) (U f : ℝ → ℝ) :
+    {η c lam : ℝ} (hlam : 0 < lam)
+    (U f : ℝ → ℝ)
+    (henergy_int : Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |f z| ^ 2)) :
     CoMovingWeightedL2Convergence η c
       (transportedDecayingPerturbation c lam U f) U := by
   unfold CoMovingWeightedL2Convergence
+  have hint : ∀ᶠ t in atTop, Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) *
+        |transportedDecayingPerturbation c lam U f t (z + c * t) - U z| ^ 2) :=
+    Eventually.of_forall fun t => by
+      have hfun : (fun z : ℝ =>
+          Real.exp (2 * η * z) *
+            |transportedDecayingPerturbation c lam U f t (z + c * t) - U z| ^ 2) =
+          fun z : ℝ => Real.exp (-2 * lam * t) *
+            (Real.exp (2 * η * z) * |f z| ^ 2) := by
+        funext z
+        have hexp_nn : 0 ≤ Real.exp (-lam * t) := (Real.exp_pos _).le
+        change
+          Real.exp (2 * η * z) *
+              |U (z + c * t - c * t) +
+                  Real.exp (-lam * t) * f (z + c * t - c * t) - U z| ^ 2 =
+            Real.exp (-2 * lam * t) *
+              (Real.exp (2 * η * z) * |f z| ^ 2)
+        rw [show z + c * t - c * t = z by ring]
+        rw [show U z + Real.exp (-lam * t) * f z - U z =
+          Real.exp (-lam * t) * f z by ring]
+        rw [abs_mul, abs_of_nonneg hexp_nn, mul_pow]
+        have hexpsq : Real.exp (-lam * t) ^ 2 = Real.exp (-2 * lam * t) := by
+          rw [pow_two, ← Real.exp_add]
+          congr 1
+          ring
+        rw [hexpsq]
+        ring
+      rw [hfun]
+      exact henergy_int.const_mul _
+  refine ⟨hint, ?_⟩
   rw [show coMovingWeightedL2Energy η c
       (transportedDecayingPerturbation c lam U f) U =
       fun t => Real.exp (-2 * lam * t) *
@@ -230,6 +269,26 @@ theorem compactWeightedPulse_energy (η : ℝ) :
   rw [hfun]
   simp
 
+theorem compactWeightedPulse_energy_integrable (η : ℝ) :
+    Integrable (fun z : ℝ =>
+      Real.exp (2 * η * z) * |compactWeightedPulse η z| ^ 2) := by
+  have hfun : (fun z : ℝ =>
+      Real.exp (2 * η * z) * |compactWeightedPulse η z| ^ 2) =
+      Set.indicator (Set.Icc (0 : ℝ) 1) (fun _z : ℝ => 1) := by
+    funext z
+    by_cases hz : z ∈ Set.Icc (0 : ℝ) 1
+    · simp only [compactWeightedPulse, Set.indicator_of_mem hz]
+      rw [abs_of_pos (Real.exp_pos _), pow_two, ← Real.exp_add]
+      rw [← Real.exp_add]
+      ring_nf
+      simp
+    · simp [compactWeightedPulse, hz]
+  rw [hfun]
+  have hconst :
+      IntegrableOn (fun _z : ℝ => (1 : ℝ)) (Set.Icc (0 : ℝ) 1) := by
+    exact integrableOn_const (by simp [Real.volume_Icc])
+  exact hconst.integrable_indicator measurableSet_Icc
+
 /-- Fully concrete coordinate-mismatch witness.  Its moving-coordinate
 weighted energy tends to zero, while the laboratory-coordinate quantity in
 the current headline tends to `+∞`. -/
@@ -241,6 +300,7 @@ theorem coordinate_weight_mismatch_nonvacuous (U : ℝ → ℝ) :
   constructor
   · exact coMovingWeightedL2Convergence_transportedDecayingPerturbation
       (by norm_num) U (compactWeightedPulse 1)
+      (compactWeightedPulse_energy_integrable 1)
   · apply transportedDecayingPerturbation_not_weightedL2MovingFrameConvergence
       (η := 1) (c := 3) (lam := 1)
     · norm_num
@@ -252,6 +312,7 @@ section Theorem12CoordinateAuditAxioms
 #print axioms WeightedL2MovingFrameConvergence.of_coMoving_exponential_decay
 #print axioms coMovingWeightedL2Energy_transportedDecayingPerturbation
 #print axioms laboratoryWeightedL2Energy_transportedDecayingPerturbation
+#print axioms compactWeightedPulse_energy_integrable
 #print axioms coordinate_weight_mismatch_nonvacuous
 end Theorem12CoordinateAuditAxioms
 
