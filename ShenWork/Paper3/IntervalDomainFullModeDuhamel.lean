@@ -195,11 +195,76 @@ theorem paper3PerturbationCoeffM_full_restart
   rw [hFTC]
   simp
 
+/-- Exact zero-start variation-of-constants formula.
+
+The classical PDE supplies the modal ODE only at positive times.  For the
+strong-space theorem the missing endpoint information is precisely continuity
+of the perturbation coefficient at zero and interval-integrability of the
+nonlinear remainder.  Under those two hypotheses the ordinary closed-interval
+FTC applies directly, so no limiting restart argument is needed. -/
+theorem paper3PerturbationCoeffM_full_zero
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht : 0 ≤ t) (htT : t < T) (k : ℕ)
+    (hccont : ContinuousOn
+      (fun s => paper3PerturbationCoeffM u uStar s k)
+      (Set.Icc (0 : ℝ) t))
+    (hremInt : IntervalIntegrable
+      (fun s => paper3FullModeNonlinearRemainderCoeffM
+        p uStar vStar u v s k) volume 0 t) :
+    paper3PerturbationCoeffM u uStar t k =
+      Real.exp (t * unitIntervalLinearizedGrowth p uStar vStar k) *
+        paper3PerturbationCoeffM u uStar 0 k +
+      ∫ s in (0 : ℝ)..t,
+        Real.exp ((t - s) *
+          unitIntervalLinearizedGrowth p uStar vStar k) *
+            paper3FullModeNonlinearRemainderCoeffM
+              p uStar vStar u v s k := by
+  let growth : ℝ := unitIntervalLinearizedGrowth p uStar vStar k
+  let c : ℝ → ℝ := fun s => paper3PerturbationCoeffM u uStar s k
+  let rem : ℝ → ℝ := fun s =>
+    paper3FullModeNonlinearRemainderCoeffM p uStar vStar u v s k
+  let G : ℝ → ℝ := fun s => Real.exp ((t - s) * growth) * c s
+  have hGcont : ContinuousOn G (Set.Icc (0 : ℝ) t) := by
+    have hexp : Continuous
+        (fun s : ℝ => Real.exp ((t - s) * growth)) := by fun_prop
+    exact hexp.continuousOn.mul (by simpa [c] using hccont)
+  have hderiv : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      HasDerivAt G (Real.exp ((t - s) * growth) * rem s) s := by
+    intro s hs
+    have hsT : s < T := lt_trans hs.2 htT
+    have hcder := paper3PerturbationCoeffM_hasDerivAt_full
+      (uStar := uStar) (vStar := vStar) hsol hs.1 hsT k
+    have harg : HasDerivAt (fun r : ℝ => (t - r) * growth) (-growth) s := by
+      convert ((hasDerivAt_const s t).sub (hasDerivAt_id s)).mul_const growth
+        using 1
+      all_goals ring_nf
+    have hexp : HasDerivAt (fun r : ℝ => Real.exp ((t - r) * growth))
+        (Real.exp ((t - s) * growth) * (-growth)) s := harg.exp
+    have hprod := hexp.mul hcder
+    convert hprod using 1
+    dsimp [c, rem, growth]
+    ring
+  have hint : IntervalIntegrable
+      (fun s => Real.exp ((t - s) * growth) * rem s) volume 0 t := by
+    have hexp : Continuous
+        (fun s : ℝ => Real.exp ((t - s) * growth)) := by fun_prop
+    have hrem : IntervalIntegrable rem volume 0 t := by
+      simpa [rem] using hremInt
+    exact hrem.continuousOn_mul hexp.continuousOn
+  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le
+    ht hGcont hderiv hint
+  dsimp [G, c, rem, growth] at hFTC ⊢
+  rw [hFTC]
+  simp
+
 #print axioms paper3PerturbationCoeffM_hasDerivAt_full
 #print axioms paper3FullModeNonlinearRemainderCoeffM_eq_parts
 #print axioms paper3ChemotaxisRemainderCoeffM_zero
 #print axioms paper3FullModeNonlinearRemainderCoeffM_continuousOn
 #print axioms paper3PerturbationCoeffM_full_restart
+#print axioms paper3PerturbationCoeffM_full_zero
 
 end
 
