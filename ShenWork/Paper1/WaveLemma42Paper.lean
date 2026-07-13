@@ -1168,6 +1168,63 @@ theorem paperFrozenEllipticSourceBox_positive_headline
     PaperFrozenEllipticSourceBox p (kappa c) 1 :=
   paperFrozenEllipticSourceBox_one p (kappa_pos_of_two_lt hc)
 
+/-- The explicit whole-line resolvent is genuinely `C²` on every wave trap.
+The second derivative is continuous by the resolvent ODE
+`V'' = V - u^γ`; no extra elliptic regularity package is needed. -/
+theorem frozenElliptic_contDiff_two_of_inWaveTrapSet
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hu : InWaveTrapSet κ M u) :
+    ContDiff ℝ 2 (frozenElliptic p u) := by
+  have hdiff : Differentiable ℝ (frozenElliptic p u) :=
+    frozenElliptic_differentiable p hu.cunif_bdd hu.nonneg
+  have hderivDiff : Differentiable ℝ (deriv (frozenElliptic p u)) :=
+    fun x =>
+      frozenElliptic_deriv_differentiableAt p hu.cunif_bdd hu.nonneg x
+  have hsecondCont : Continuous (deriv (deriv (frozenElliptic p u))) := by
+    have hsecondEq :
+        deriv (deriv (frozenElliptic p u)) =
+          fun x => frozenElliptic p u x - (u x) ^ p.γ := by
+      funext x
+      exact frozenElliptic_deriv_deriv_eq p hu.cunif_bdd hu.nonneg x
+    rw [hsecondEq]
+    exact
+      (frozenElliptic_continuous p hu.cunif_bdd hu.nonneg).sub
+        (hu.cunif_bdd.1.rpow_const
+          (fun _ => Or.inr (by linarith [p.hγ] : 0 ≤ p.γ)))
+  have hderivC1 : ContDiff ℝ 1 (deriv (frozenElliptic p u)) := by
+    rw [contDiff_one_iff_deriv]
+    exact ⟨hderivDiff, hsecondCont⟩
+  rw [show (2 : WithTop ℕ∞) = 1 + 1 from rfl, contDiff_succ_iff_deriv]
+  exact ⟨hdiff, by simp, hderivC1⟩
+
+/-- The automatic frozen-source box supplies every elliptic coefficient field
+of Route A.  Thus the only scalar input to the derivative maximum principle is
+the strict gap `paperCmono < lam`. -/
+def paperStepRouteAStructuralData_of_frozenSourceBox
+    {p : CMParams} {c lam Cmono κ M : ℝ} {u Z W : ℝ → ℝ}
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hbox : PaperFrozenEllipticSourceBox p κ M)
+    (hχ : p.χ ≤ 0)
+    (hsmall : (1 / lam) * Cmono < 1)
+    (hCmono :
+      paperCmono p (-p.χ) M (M ^ p.γ) (2 * M ^ p.γ) ≤ Cmono) :
+    PaperStepRouteAStructuralData p c lam Cmono u Z W :=
+  { hsmall := hsmall
+    a := -p.χ
+    M := M
+    BV := M ^ p.γ
+    BV2 := 2 * M ^ p.γ
+    ha := rfl
+    hχ := hχ
+    V_reg := frozenElliptic_contDiff_two_of_inWaveTrapSet p hu.trap
+    V_deriv_nonpos := fun _x => (hbox.antitone u hu).deriv_nonpos
+    V_deriv_bound := hbox.deriv_abs_le u hu
+    V_bound := fun x => by
+      rw [abs_of_nonneg (hbox.value_nonneg u hu x)]
+      exact hbox.value_le u hu x
+    V2_bound := hbox.second_deriv_abs_le u hu
+    Cmono_bound := hCmono }
+
 theorem PaperLemma42LogisticEstimate_of_conditions
     {p : CMParams} {c κ κtilde M D : ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -3626,6 +3683,8 @@ section AxiomAudit
 #print axioms paperFrozenEllipticSourceBox_negative_headline
 #print axioms paperFrozenEllipticSourceBox_positive_headline
 #print axioms paperFrozenEllipticSourceBox_of_conditions
+#print axioms frozenElliptic_contDiff_two_of_inWaveTrapSet
+#print axioms paperStepRouteAStructuralData_of_frozenSourceBox
 #print axioms PaperLemma42LogisticEstimate_of_conditions
 #print axioms PaperLemma42KTermEstimate_of_conditions
 #print axioms PaperLemma42BadTermEstimate_of_components
