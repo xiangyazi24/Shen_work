@@ -10,6 +10,8 @@ import ShenWork.Paper2.IntervalDomainStatementAssembly
 import ShenWork.Paper3.StatementAssembly
 import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.Paper3.IntervalDomainSectorialNonlinearBridges
+import ShenWork.Paper3.IntervalDomainFaithfulTheorem22
+import ShenWork.Paper3.IntervalDomainEventualConvergenceUpgrade
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
