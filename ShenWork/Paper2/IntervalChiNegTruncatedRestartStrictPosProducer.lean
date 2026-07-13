@@ -415,7 +415,7 @@ The former V3 Stampacchia producer wrappers
 `uniformCoreMildSolutionFrontier_of_truncatedRestartProducerData`)
 were removed: they targeted the pre-certificate
 `uniformTruncatedConjugateMildExistenceCore_of_uniformCore` API and had no
-consumers. The route consumes only the trajectory-level theorems above.
+consumers.  The route consumes only the trajectory-level theorems above.
 -/
 
 end ShenWork.Paper2.IntervalChiNegFinalAssemblyV3

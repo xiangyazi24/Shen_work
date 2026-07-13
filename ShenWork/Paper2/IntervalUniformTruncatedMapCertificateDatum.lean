@@ -408,7 +408,7 @@ theorem uniformTruncatedConjugateMapCertificateData_of_realizations
  exact uniformTruncatedConjugateMapCertificate_of_realizedBudgets hα hγ C (HS C) (HD C)
 
 /-- Unconditional faithful truncated-map certificate used by the χ₀<0
-assembly. All scalar realizations and both component Lipschitz estimates are
+assembly.  All scalar realizations and both component Lipschitz estimates are
 projections of the strengthened uniform core. -/
 theorem uniformTruncatedConjugateMapCertificateData_producer
  {p : CM2Params} (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :

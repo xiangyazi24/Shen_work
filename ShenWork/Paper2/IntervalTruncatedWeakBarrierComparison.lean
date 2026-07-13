@@ -1,11 +1,11 @@
 /-
  Weak squared-heat barrier comparison for the faithful truncated Picard limit.
 
- The unknown trajectory is used only through its positive-time mild restart,
- bounded continuous slices, and the nonnegativity already proved by the
- energy producer. In particular this module does not reconstruct a
- pointwise time derivative or a classical second spatial derivative of the
- solution.
+  The unknown trajectory is used only through its positive-time mild restart,
+  bounded continuous slices, and the nonnegativity already proved by the
+  energy producer.  In particular this module does not reconstruct a
+  pointwise time derivative or a classical second spatial derivative of the
+  solution.
 -/
 
 import ShenWork.Paper2.IntervalTruncatedEnergyProducer

@@ -3520,7 +3520,7 @@ def truncatedNegativePartEnergyCoreRegularData_of_nonneg
  intro t ht htT _hzero
  exact hnonneg t ht htT
 
-/-- Uniform energy producer. This has the exact expansion of
+/-- Uniform energy producer.  This has the exact expansion of
 `IntervalChiNegAssembly.UniformTruncatedEnergyData`; the local abbreviation
 keeps this file independent of the later Jensen assembly. -/
 def uniformTruncatedEnergyData_producer (p : CM2Params) :

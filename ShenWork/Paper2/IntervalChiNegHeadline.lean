@@ -9,7 +9,7 @@ import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
 
 This is the final producer wiring: the faithful truncated map certificate,
 negative-part energy, and matched-divergence Jensen producer feed the direct
-classical closure. The nonpositive headline then splits between this
+classical closure.  The nonpositive headline then splits between this
 strict-negative result and the existing unconditional zero-sensitivity branch.
 -/
 
