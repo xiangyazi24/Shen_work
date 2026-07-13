@@ -488,3 +488,24 @@ exactly `[propext, Classical.choice, Quot.sound]`.  A simultaneous root build
 was blocked only by an unrelated shared Paper1 edit:
 `WavePaperRouteARotheAnalytic.lean` currently references undeclared `lam`.
 The new Paper2 module itself and its full dependency closure are green.
+
+2026-07-13 [Codex] ROOT-IMPORT SORRY LINKER CLEANUP.  The published root
+module accidentally linked the unfinished experimental modules
+`IntervalTruncatedPositiveTimeBootstrap` and
+`IntervalTruncatedTestedSpectral`.  This did not put `sorryAx` on the audited
+headline paths, but it violated the stronger library-level requirement that
+the complete `ShenWork.lean` import closure contain no active `sorry`.
+
+Commit `d0c0783f` extracts the already-proved positive-time Lipschitz and flux
+continuity prefix into `IntervalTruncatedPositiveTimeLipschitz`, and extracts
+the two elementary Paper3 consumers into `IntervalSpectralBasicLemmas`.
+Energy and the two active Paper3 routes now import these clean modules.  The
+unfinished bootstrap/tested-spectral files and the orphaned V5 chain remain
+available as non-root experimental files, but are no longer linked into the
+published library.  A recursive source traversal from `ShenWork.lean` found
+1195 reachable Lean files and zero files containing an active `sorry`.
+
+The authoritative uisai2 full build after the rewire completed all 9443 jobs
+successfully in 618 seconds.  The energy producer, both Paper3 consumers, and
+the new extracted capstones report exactly
+`[propext, Classical.choice, Quot.sound]`.
