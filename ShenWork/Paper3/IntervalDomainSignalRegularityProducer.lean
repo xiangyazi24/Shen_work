@@ -4,7 +4,7 @@ import ShenWork.Paper3.IntervalDomainSignalStrongBounds
 import ShenWork.Paper3.IntervalDomainSolutionSignalDecomposition
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.Paper2.IntervalResolverWeakBounds
-import ShenWork.Paper2.IntervalTruncatedTestedSpectral
+import ShenWork.Paper2.IntervalSpectralBasicLemmas
 import ShenWork.PDE.IntervalDomainExistence
 
 namespace ShenWork.Paper3

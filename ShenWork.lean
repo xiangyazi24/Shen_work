@@ -540,8 +540,8 @@ import ShenWork.Paper2.IntervalDomainMClassicalRestart
 import ShenWork.Paper2.IntervalDomainMRestartSources
 import ShenWork.Paper2.IntervalDomainMPhysicalRestart
 import ShenWork.Paper2.IntervalDomainMSlowLinfBound
-import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
-import ShenWork.Paper2.IntervalTruncatedTestedSpectral
+import ShenWork.Paper2.IntervalTruncatedPositiveTimeLipschitz
+import ShenWork.Paper2.IntervalSpectralBasicLemmas
 import ShenWork.Paper2.IntervalConjugateKernelHolder
 import ShenWork.Paper2.IntervalConjugateMildHolderBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelCtheta
