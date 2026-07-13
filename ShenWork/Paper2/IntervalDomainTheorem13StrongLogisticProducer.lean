@@ -167,6 +167,11 @@ theorem weighted_u_power_le_unweighted
           (by linarith [lift_v_nonneg_Icc hsol ht0 htT x hx]) (by linarith)
       simpa using mul_le_mul_of_nonneg_left hw hu)
 
+/-- The parameter-only remainder in the scalar moment absorption estimate. -/
+def integralRpowAbsorbConstant (r s A eps : ℝ) : ℝ :=
+  ((A / (eps * (s / r)) ^ (r / s)) ^ (s / (s - r))) /
+    (s / (s - r))
+
 /-- A lower positive moment is absorbed into a higher one on the unit
 interval, with an explicit time-independent remainder. -/
 theorem integral_rpow_absorb
@@ -174,12 +179,12 @@ theorem integral_rpow_absorb
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hr : 0 < r) (hrs : r < s) (hA : 0 ≤ A) (heps : 0 < eps) :
-    ∃ K ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ integralRpowAbsorbConstant r s A eps ∧
+      ∀ t, 0 < t → t < T →
       A * (∫ x in (0 : ℝ)..1, intervalDomainLift (u t) x ^ r) ≤
-        eps * (∫ x in (0 : ℝ)..1, intervalDomainLift (u t) x ^ s) + K := by
-  let K : ℝ :=
-    ((A / (eps * (s / r)) ^ (r / s)) ^ (s / (s - r))) /
-      (s / (s - r))
+        eps * (∫ x in (0 : ℝ)..1, intervalDomainLift (u t) x ^ s) +
+          integralRpowAbsorbConstant r s A eps := by
+  let K : ℝ := integralRpowAbsorbConstant r s A eps
   have hs : 0 < s := lt_trans hr hrs
   have hden : 0 < s / (s - r) := div_pos hs (sub_pos.mpr hrs)
   have hK : 0 ≤ K := by
@@ -189,7 +194,7 @@ theorem integral_rpow_absorb
         (div_nonneg hA (Real.rpow_nonneg
           (mul_nonneg heps.le (div_nonneg hs.le hr.le)) _)) _)
       hden.le
-  refine ⟨K, hK, ?_⟩
+  refine ⟨by simpa [K] using hK, ?_⟩
   intro t ht0 htT
   let U : ℝ → ℝ := intervalDomainLift (u t)
   have ht : t ∈ Ioo (0 : ℝ) T := ⟨ht0, htT⟩
@@ -212,13 +217,25 @@ theorem integral_rpow_absorb
       intervalIntegral.integral_mono_on (by norm_num)
         (hrInt.const_mul A) ((hsInt.const_mul eps).add intervalIntegrable_const)
         (fun x hx => by
-          simpa [K] using scalar_rpow_young_absorb
+          simpa [K, integralRpowAbsorbConstant] using scalar_rpow_young_absorb
             hr hrs hA heps (hUpos x hx).le)
     _ = eps * (∫ x in (0 : ℝ)..1, U x ^ s) + K := by
       rw [intervalIntegral.integral_add (hsInt.const_mul eps)
         intervalIntegrable_const, intervalIntegral.integral_const_mul,
         intervalIntegral.integral_const]
       norm_num [smul_eq_mul]
+
+/-- The parameter-only remainder in the weighted-gradient absorption estimate. -/
+def weightedGradientMomentAbsorbConstant
+    (p : CM2Params) (r s beta eps : ℝ) : ℝ :=
+  let q : ℝ := s / (s - r)
+  let eps1 : ℝ := eps / 2
+  let d : ℝ := (eps1 * (s / r)) ^ (r / s)
+  let A : ℝ := 1 / (d ^ q * q)
+  let B : ℝ := A * (Theta_beta beta) ^ q *
+    intervalDomainWeightedGradientConstant p q
+  ((B / (eps1 * (s / (p.γ * q))) ^ ((p.γ * q) / s)) ^
+      (s / (s - p.γ * q))) / (s / (s - p.γ * q))
 
 /-- Strict exponent separation turns the signal-weighted gradient moment
 into an arbitrarily small logistic moment plus a time-independent constant.
@@ -230,13 +247,15 @@ theorem weighted_gradient_moment_absorb
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hbeta : 0 ≤ beta) (hr : 0 < r) (hrs : r < s)
     (hgamma : p.γ * (s / (s - r)) < s) (heps : 0 < eps) :
-    ∃ K ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ weightedGradientMomentAbsorbConstant p r s beta eps ∧
+      ∀ t, 0 < t → t < T →
       (∫ x in (0 : ℝ)..1,
         intervalDomainLift (u t) x ^ r *
           (|deriv (intervalDomainLift (v t)) x| ^ 2 /
             (1 + intervalDomainLift (v t) x) ^ (1 + beta))) ≤
         eps * (∫ x in (0 : ℝ)..1,
-          intervalDomainLift (u t) x ^ s) + K := by
+          intervalDomainLift (u t) x ^ s) +
+            weightedGradientMomentAbsorbConstant p r s beta eps := by
   let q : ℝ := s / (s - r)
   let eps1 : ℝ := eps / 2
   let d : ℝ := (eps1 * (s / r)) ^ (r / s)
@@ -256,8 +275,9 @@ theorem weighted_gradient_moment_absorb
   have hA : 0 ≤ A := by
     dsimp [A]
     positivity
-  obtain ⟨Mstar, hMstar, hweighted⟩ :=
-    weighted_one_add_v_gradient_estimate hsol hq hbeta
+  have hweighted := weighted_one_add_v_gradient_estimate hsol hq hbeta
+  let Mstar : ℝ := intervalDomainWeightedGradientConstant p q
+  have hMstar : 0 < Mstar := intervalDomainWeightedGradientConstant_pos p hq
   let B : ℝ := A * (Theta_beta beta) ^ q * Mstar
   have htheta : 0 ≤ Theta_beta beta :=
     (Theta_beta_pos_of_nonneg hbeta).le
@@ -276,7 +296,9 @@ theorem weighted_gradient_moment_absorb
     exact div_nonneg
       (Real.rpow_nonneg (div_nonneg hB (Real.rpow_nonneg hden1 _)) _)
       hden2.le
-  refine ⟨K, hK, ?_⟩
+  have hKfixed : K = weightedGradientMomentAbsorbConstant p r s beta eps := by
+    simp only [K, weightedGradientMomentAbsorbConstant, q, eps1, d, A, B, Mstar]
+  refine ⟨by simpa [hKfixed] using hK, ?_⟩
   intro t ht0 htT
   let U : ℝ → ℝ := intervalDomainLift (u t)
   let V : ℝ → ℝ := intervalDomainLift (v t)
@@ -368,9 +390,22 @@ theorem weighted_gradient_moment_absorb
           intervalIntegrable_const, intervalIntegral.integral_const_mul,
           intervalIntegral.integral_const]
         norm_num [smul_eq_mul]
+  rw [← hKfixed]
   dsimp [U, V, W] at hfirst ⊢
   dsimp [eps1] at hfirst hsecond1
   nlinarith
+
+/-- The autonomous damping remainder in the strict alternative (ii). -/
+def strongCaseIIDampingConstant (p : CM2Params) (P : ℝ) : ℝ :=
+  let r2 : ℝ := P + 2 * p.m - 2
+  let s : ℝ := P + p.α
+  let beta' : ℝ := 2 * p.β - 1
+  let epsG : ℝ := (P - 1) / 2
+  let Cmix : ℝ := |p.χ₀| * (P - 1)
+  let Cj : ℝ := Cmix ^ 2 / (4 * epsG)
+  let epsJ : ℝ := p.b / (2 * (Cj + 1))
+  Cj * weightedGradientMomentAbsorbConstant p r2 s beta' epsJ +
+    integralRpowAbsorbConstant P s (p.a + 1) (p.b / 2)
 
 set_option maxHeartbeats 800000 in
 /-- Direct one-exponent damping in alternative (ii) of Theorem 1.3.  The
@@ -383,9 +418,10 @@ theorem strong_case_ii_lp_energy_damping
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hb : 0 < p.b) (hP : 2 < P) (hbeta : (1 / 2 : ℝ) ≤ p.β)
     (hgap : 2 * p.m + p.γ - 2 < p.α) :
-    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ strongCaseIIDampingConstant p P ∧
+      ∀ t, 0 < t → t < T →
       (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
-        intervalDomainLpEnergy P u t ≤ D := by
+        intervalDomainLpEnergy P u t ≤ strongCaseIIDampingConstant p P := by
   let r0 : ℝ := P + p.m - 1
   let r2 : ℝ := P + 2 * p.m - 2
   let s : ℝ := P + p.α
@@ -422,18 +458,23 @@ theorem strong_case_ii_lp_energy_damping
         (p.γ * s) / (s - r2) := by ring
     rw [heq, div_lt_iff₀ hden]
     nlinarith
-  obtain ⟨Kj, hKj, hJabs⟩ := weighted_gradient_moment_absorb
+  let Kj : ℝ := weightedGradientMomentAbsorbConstant p r2 s beta' epsJ
+  obtain ⟨hKj, hJabs⟩ := weighted_gradient_moment_absorb
     hsol hbeta' hr2 hrs hgammaWeighted hepsJ
-  obtain ⟨K0, hK0, hYabs⟩ := integral_rpow_absorb
+  let K0 : ℝ := integralRpowAbsorbConstant P s (p.a + 1) (p.b / 2)
+  obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := s) (A := p.a + 1) (eps := p.b / 2)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (show 0 ≤ p.a + 1 by linarith [p.ha])
       (div_pos hb (by norm_num : (0 : ℝ) < 2))
   let D : ℝ := Cj * Kj + K0
+  have hDfixed : D = strongCaseIIDampingConstant p P := by
+    simp only [D, strongCaseIIDampingConstant, Kj, K0, r2, s, beta', epsG,
+      Cmix, Cj, epsJ]
   have hD : 0 ≤ D := by
     dsimp [D]
     exact add_nonneg (mul_nonneg hCj hKj) hK0
-  refine ⟨D, hD, ?_⟩
+  refine ⟨by simpa [hDfixed] using hD, ?_⟩
   intro t ht0 htT
   let Y : ℝ := ∫ x in (0 : ℝ)..1,
     intervalDomainLift (u t) x ^ P
@@ -538,6 +579,7 @@ theorem strong_case_ii_lp_energy_damping
   have hEeq : intervalDomainLpEnergy P u t = Y :=
     lpEnergy_eq_lift_power_of_solution hsol ht0 htT
   rw [hEeq]
+  rw [← hDfixed]
   dsimp [epsG, D] at hcross ⊢
   nlinarith
 
@@ -553,10 +595,23 @@ theorem strong_case_ii_lp_power_bounded_before
     (hb : 0 < p.b) (hP : 2 < P) (hbeta : (1 / 2 : ℝ) ≤ p.β)
     (hgap : 2 * p.m + p.γ - 2 < p.α) :
     LpPowerBoundedBefore intervalDomainM P T u := by
-  obtain ⟨D, _hD, hdamp⟩ :=
+  obtain ⟨_hD, hdamp⟩ :=
     strong_case_ii_lp_energy_damping hsol hb hP hbeta hgap
   exact lp_power_bounded_before_of_linear_damping hu₀ hsol htrace
     (lt_trans one_lt_two hP) zero_lt_one (by simpa using hdamp)
+
+/-- The autonomous damping remainder in the strict alternative (i). -/
+def strongCaseIDampingConstant (p : CM2Params) (P : ℝ) : ℝ :=
+  let r0 : ℝ := P + p.m - 1
+  let rb : ℝ := r0 + p.γ
+  let s : ℝ := P + p.α
+  let k : ℝ := p.χ₀ * (P - 1) / r0
+  let Cj : ℝ := k * p.β
+  let Cb : ℝ := k * p.ν
+  let epsJ : ℝ := p.b / (4 * (Cj + 1))
+  Cj * weightedGradientMomentAbsorbConstant p r0 s p.β epsJ +
+    integralRpowAbsorbConstant rb s Cb (p.b / 4) +
+      integralRpowAbsorbConstant P s (p.a + 1) (p.b / 2)
 
 set_option maxHeartbeats 900000 in
 /-- Direct one-exponent damping in alternative (i) of Theorem 1.3.  Here the
@@ -569,9 +624,10 @@ theorem strong_case_i_lp_energy_damping
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hb : 0 < p.b) (hchi : 0 ≤ p.χ₀) (hP : 2 < P)
     (hgap : p.m + p.γ - 1 < p.α) :
-    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ strongCaseIDampingConstant p P ∧
+      ∀ t, 0 < t → t < T →
       (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
-        intervalDomainLpEnergy P u t ≤ D := by
+        intervalDomainLpEnergy P u t ≤ strongCaseIDampingConstant p P := by
   let r0 : ℝ := P + p.m - 1
   let rb : ℝ := r0 + p.γ
   let s : ℝ := P + p.α
@@ -605,20 +661,26 @@ theorem strong_case_i_lp_energy_damping
         (p.γ * s) / (s - r0) := by ring
     rw [heq, div_lt_iff₀ hden]
     nlinarith
-  obtain ⟨Kj, hKj, hJabs⟩ := weighted_gradient_moment_absorb
+  let Kj : ℝ := weightedGradientMomentAbsorbConstant p r0 s p.β epsJ
+  obtain ⟨hKj, hJabs⟩ := weighted_gradient_moment_absorb
     hsol p.hβ hr0 hr0s hgammaWeighted hepsJ
-  obtain ⟨Kb, hKb, hBabs⟩ := integral_rpow_absorb
+  let Kb : ℝ := integralRpowAbsorbConstant rb s Cb (p.b / 4)
+  obtain ⟨hKb, hBabs⟩ := integral_rpow_absorb
     (r := rb) (s := s) (A := Cb) (eps := p.b / 4)
     hsol hrb hrbs hCb (div_pos hb (by norm_num))
-  obtain ⟨K0, hK0, hYabs⟩ := integral_rpow_absorb
+  let K0 : ℝ := integralRpowAbsorbConstant P s (p.a + 1) (p.b / 2)
+  obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := s) (A := p.a + 1) (eps := p.b / 2)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (show 0 ≤ p.a + 1 by linarith [p.ha]) (div_pos hb (by norm_num))
   let D : ℝ := Cj * Kj + Kb + K0
+  have hDfixed : D = strongCaseIDampingConstant p P := by
+    simp only [D, strongCaseIDampingConstant, Kj, Kb, K0, r0, rb, s, k,
+      Cj, Cb, epsJ]
   have hD : 0 ≤ D := by
     dsimp [D]
     positivity
-  refine ⟨D, hD, ?_⟩
+  refine ⟨by simpa [hDfixed] using hD, ?_⟩
   intro t ht0 htT
   let Y : ℝ := ∫ x in (0 : ℝ)..1,
     intervalDomainLift (u t) x ^ P
@@ -749,6 +811,7 @@ theorem strong_case_i_lp_energy_damping
   have hEeq : intervalDomainLpEnergy P u t = Y :=
     lpEnergy_eq_lift_power_of_solution hsol ht0 htT
   rw [hEeq]
+  rw [← hDfixed]
   dsimp [D] at hcross ⊢
   nlinarith
 
@@ -764,7 +827,7 @@ theorem strong_case_i_lp_power_bounded_before
     (hb : 0 < p.b) (hchi : 0 ≤ p.χ₀) (hP : 2 < P)
     (hgap : p.m + p.γ - 1 < p.α) :
     LpPowerBoundedBefore intervalDomainM P T u := by
-  obtain ⟨D, _hD, hdamp⟩ :=
+  obtain ⟨_hD, hdamp⟩ :=
     strong_case_i_lp_energy_damping hsol hb hchi hP hgap
   exact lp_power_bounded_before_of_linear_damping hu₀ hsol htrace
     (lt_trans one_lt_two hP) zero_lt_one (by simpa using hdamp)

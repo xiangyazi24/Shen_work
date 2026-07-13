@@ -477,21 +477,17 @@ theorem weighted_one_add_v_gradient_estimate
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hq : 1 < q) (hbeta : 0 ≤ beta) :
-    ∃ Mstar > 0, ∀ t, 0 < t → t < T →
+    ∀ t, 0 < t → t < T →
       (∫ x in (0 : ℝ)..1,
         |deriv (intervalDomainLift (v t)) x| ^ (2 * q) /
           (1 + intervalDomainLift (v t) x) ^ ((1 + beta) * q)) ≤
-        (Theta_beta beta) ^ q * Mstar *
+        (Theta_beta beta) ^ q * intervalDomainWeightedGradientConstant p q *
           (∫ x in (0 : ℝ)..1,
             intervalDomainLift (u t) x ^ (p.γ * q)) := by
-  obtain ⟨C0, hC0, hY⟩ :=
-    ShenWork.Paper2.elliptic_source_young_exists p.hμ p.hν hq
-  let Mstar : ℝ := p.μ ^ q * (2 * C0 / p.μ)
-  have hMstar : 0 < Mstar := by
-    dsimp [Mstar]
-    exact mul_pos (Real.rpow_pos_of_pos p.hμ _)
-      (div_pos (mul_pos (by norm_num) hC0) p.hμ)
-  refine ⟨Mstar, hMstar, ?_⟩
+  let C0 : ℝ := ellipticSourceYoungConstant p q
+  have hC0 : 0 < C0 := ellipticSourceYoungConstant_pos p hq
+  have hY := ellipticSourceYoungConstant_bound p hq
+  let Mstar : ℝ := intervalDomainWeightedGradientConstant p q
   intro t ht0 htT
   let V : ℝ → ℝ := intervalDomainLift (v t)
   let U : ℝ → ℝ := intervalDomainLift (u t)
@@ -560,7 +556,7 @@ theorem weighted_one_add_v_gradient_estimate
         (Real.rpow_nonneg (Theta_beta_pos_of_nonneg hbeta).le q)
     _ = (Theta_beta beta) ^ q * Mstar *
         (∫ x in (0 : ℝ)..1, U x ^ (p.γ * q)) := by
-      dsimp [Mstar]
+      dsimp [Mstar, intervalDomainWeightedGradientConstant, C0]
       ring
 
 end ShenWork.Paper2.IntervalDomainM
