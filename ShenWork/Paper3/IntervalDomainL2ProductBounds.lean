@@ -185,6 +185,15 @@ theorem memLp_two_of_pointwise_abs_bound
     simpa [Real.norm_eq_abs, abs_of_nonneg hB] using hbound x hx
   exact (hone.const_mul B).mono hf hdom
 
+theorem MemLp.intervalIntegrable_two_unit
+    {f : ℝ → ℝ} (hf : MemLp f 2 (intervalMeasure 1)) :
+    IntervalIntegrable f volume 0 1 := by
+  have hint := hf.integrable (by norm_num : (1 : ENNReal) ≤ 2)
+  change IntegrableOn f (Set.Icc (0 : ℝ) 1) volume at hint
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le
+    (by norm_num : (0 : ℝ) ≤ 1)]
+  exact hint.mono_set Set.Ioc_subset_Icc_self
+
 /-- Interior classical differentiability supplies measurability of the named
 derivative profile; a closed-interval pointwise bound then supplies `L²`. -/
 theorem memLp_two_of_hasDerivAt_Ioo_and_abs_bound_Icc
@@ -204,6 +213,7 @@ theorem memLp_two_of_hasDerivAt_Ioo_and_abs_bound_Icc
 #print axioms intervalL2Size_le_of_pointwise_abs_bound
 #print axioms intervalL2Size_add_le
 #print axioms memLp_two_of_pointwise_abs_bound
+#print axioms MemLp.intervalIntegrable_two_unit
 
 end
 
