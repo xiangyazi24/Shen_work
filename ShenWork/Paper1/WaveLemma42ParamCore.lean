@@ -1,6 +1,6 @@
 import ShenWork.Paper1.IntervalP1PerStepFixedSource
 import ShenWork.Paper1.WaveLemma42G1Discharge
-import ShenWork.Paper1.WavePaperRotheCompactness
+import ShenWork.Paper1.WavePaperAdaptiveClosedGraph
 
 open Filter Topology
 
@@ -123,8 +123,8 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
   cubeApprox :
     LowerPinnedWaveCubeApproxData κ M (lowerBarrierRaw κ κtilde D)
       (paperLowerRawParamRotheSeq producer)
-  greenClosedGraph :
-    PaperGreenRotheAdaptiveStepClosedGraphOnTrap p c lam M κ
+  greenSourceCompactness :
+    PaperGreenRotheAdaptiveSourceCompactnessOnTrap p c lam M κ Λ
       (paperLowerRawParamRotheSeq producer)
 
 /-- Forget the explicit source-box parameter layer at the per-profile producer
@@ -214,13 +214,20 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
       (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+      p c lam M κ zseq := by
+    simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+      paperGreenRotheAdaptiveStepClosedGraph_of_sourceCompactness
+        p c lam M κ Λ hMpos hΛ0 hlam
+        (paperLowerRawParamRotheSeq hpar.producer)
+        hpar.greenSourceCompactness
   obtain ⟨U, hU, hstat⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
         hpar.cubeApprox)
-      (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-        hpar.greenClosedGraph)
+      hgraph
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
       (fun x _hx => hU.lower x)
@@ -302,13 +309,20 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
       (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+      p c lam M κ zseq := by
+    simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+      paperGreenRotheAdaptiveStepClosedGraph_of_sourceCompactness
+        p c lam M κ Λ hMpos hΛ0 hlam
+        (paperLowerRawParamRotheSeq hpar.producer)
+        hpar.greenSourceCompactness
   obtain ⟨U, hU, hstat⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
         hpar.cubeApprox)
-      (by simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-        hpar.greenClosedGraph)
+      hgraph
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
       (fun x _hx => hU.lower x)
