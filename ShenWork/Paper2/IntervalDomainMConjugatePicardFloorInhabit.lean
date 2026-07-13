@@ -69,6 +69,14 @@ structure ConjugateMildSolutionDataM (p : CM2Params)
   hcont : HasContinuousSlices T u
   hmeas : HasJointMeasurability u
 
+/-- The positive strip recorded by a mild solution is nonempty. -/
+theorem ConjugateMildSolutionDataM.floor_le_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionDataM p u₀) : D.c ≤ D.M := by
+  let x0 : intervalDomainPoint := ⟨0, ⟨le_rfl, zero_le_one⟩⟩
+  exact (D.hfloor D.T D.hT le_rfl x0).trans
+    ((le_abs_self _).trans (D.hbound D.T D.hT le_rfl x0))
+
 /-- Uniform positive-strip Picard construction for the published general-`m`
 flux.  No lower bounds `1 ≤ m,α,γ` are used. -/
 theorem positiveFloorPicardDataM_exists_uniform
@@ -427,5 +435,6 @@ theorem conjugateMildSolutionDataM_exists_paperPositive
 #print axioms positiveFloorPicardDataM_exists_uniform
 #print axioms conjugateMildSolutionDataM_of_picardData
 #print axioms conjugateMildSolutionDataM_exists_paperPositive
+#print axioms ConjugateMildSolutionDataM.floor_le_bound
 
 end ShenWork.Paper2.IntervalDomainMConjugatePicardFloorInhabit
