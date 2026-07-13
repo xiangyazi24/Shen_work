@@ -5,6 +5,11 @@ on:
     paths:
       - '.github/q4624_cover.sage'
       - '.github/workflows/q4624.yml'
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - '.github/q4624_cover.sage'
+      - '.github/workflows/q4624.yml'
   workflow_dispatch:
 
 permissions:
