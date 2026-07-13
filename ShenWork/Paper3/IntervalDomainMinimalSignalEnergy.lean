@@ -1,10 +1,12 @@
 import ShenWork.Paper3.EventualExponentialStability
+import ShenWork.Paper3.EventualGlobalStability
 import ShenWork.Paper3.LyapunovFunction
 import ShenWork.Paper3.IntervalDomainMinimalPoincare
 import ShenWork.Paper3.IntervalDomainModelLinearizationAudit
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainProposition21
+import ShenWork.Paper2.IntervalChiNegH1PhysicalResolverSupProducer
 
 /-! # Minimal-model signal energy on the unit interval
 
@@ -1485,6 +1487,150 @@ theorem intervalDomain_minimal_signal_energy_control
   rw [henergy]
   nlinarith
 
+/-- Once a mass-constrained orbit has entered the concrete eventual box, its
+signal energy decays exponentially with the literal second-branch coefficient. -/
+theorem intervalDomain_minimal2_signal_energy_exponential_decay
+    (p : CM2Params) (hm : p.m = 1)
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (hbeta : 1 ≤ p.β) {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal2Formula p uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    ∃ s > 0, ∃ rate > 0, ∀ t, s ≤ t →
+      chemotaxisSignalEnergy intervalDomain p.μ vStar v t ≤
+        chemotaxisSignalEnergy intervalDomain p.μ vStar v s *
+          Real.exp (-rate * (t - s)) := by
+  let c : ℝ := minimal2SignalCoefficient p uBar vLower
+  let K : ℝ := p.μ + 1
+  have hc : 0 < c := by
+    simpa [c] using minimal2SignalCoefficient_pos
+      p huBar hvLower hthreshold
+  have hK : 0 < K := by
+    dsimp [K]
+    linarith [p.hμ]
+  rcases eventually_atTop.1 hupper with ⟨Tu, hTu⟩
+  rcases eventually_atTop.1 hfloor with ⟨Tv, hTv⟩
+  let Tbase : ℝ := max (max Tu Tv) 1
+  have hTbase : 0 < Tbase :=
+    lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  have hTuLe : Tu ≤ Tbase :=
+    (le_max_left Tu Tv).trans (le_max_left (max Tu Tv) 1)
+  have hTvLe : Tv ≤ Tbase :=
+    (le_max_right Tu Tv).trans (le_max_left (max Tu Tv) 1)
+  have hboxAt : ∀ q : ℝ, Tbase ≤ q →
+      ∃ hsol : IsPaper2ClassicalSolution intervalDomain p (q + 1) u v,
+        q ∈ Ioo (0 : ℝ) (q + 1) ∧
+        intervalDomain.integral (u q) = uStar ∧
+        (∀ x : intervalDomainPoint, u q x ≤ uBar) ∧
+        (∀ x : intervalDomainPoint, vLower ≤ v q x) := by
+    intro q hq
+    have hq0 : 0 < q := lt_of_lt_of_le hTbase hq
+    have hH : 0 < q + 1 := by linarith
+    let hsol := huv.classical (q + 1) hH
+    have hqmem : q ∈ Ioo (0 : ℝ) (q + 1) := ⟨hq0, by linarith⟩
+    have hsup : intervalDomain.supNorm (u q) ≤ uBar :=
+      hTu q (hTuLe.trans hq)
+    have hpoint : ∀ x : intervalDomainPoint, u q x ≤ uBar := by
+      intro x
+      have hx :=
+        IntervalChiNegH1PhysicalResolverSupProducer.intervalDomainLift_le_supNorm_of_classical
+          hsol hqmem x.property
+      have hx' : u q x ≤ intervalDomain.supNorm (u q) := by
+        simpa [intervalDomainLift, x.property] using hx
+      exact hx'.trans hsup
+    have hmassQ : intervalDomain.integral (u q) = uStar := by
+      simpa [HasEquilibriumMassOnPositiveTimes, intervalDomain] using
+        hmass q hq0
+    exact ⟨hsol, hqmem, hmassQ, hpoint,
+      hTv q (hTvLe.trans hq)⟩
+  let E : ℝ → ℝ := fun r =>
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v (r + Tbase)
+  let G : ℝ → ℝ := fun r => ∫ y in (0 : ℝ)..1,
+    (deriv (intervalDomainLift (v (r + Tbase))) y) ^ 2
+  have hderiv : ∀ r, 0 < r → HasDerivAt E (deriv E r) r := by
+    intro r hr
+    let q : ℝ := r + Tbase
+    obtain ⟨hsol, hqmem, _hmassQ, _hpoint, _hVfloor⟩ :=
+      hboxAt q (by dsimp [q]; linarith)
+    have horig := intervalDomain_minimal_signal_energy_hasDerivAt_pde
+      ha0 hb0 hgamma heq hsol hqmem
+    have hinner : HasDerivAt (fun z : ℝ => z + Tbase) 1 r := by
+      simpa using (hasDerivAt_id r).add_const Tbase
+    have hcomp := horig.comp r hinner
+    have hdiff : DifferentiableAt ℝ E r := by
+      simpa [E, q] using hcomp.differentiableAt
+    exact hdiff.hasDerivAt
+  have hdiss : ∀ r, 0 < r →
+      (1 / 2 : ℝ) * deriv E r + c * G r ≤ 0 := by
+    intro r hr
+    let q : ℝ := r + Tbase
+    obtain ⟨hsol, hqmem, _hmassQ, hpoint, hVfloor⟩ :=
+      hboxAt q (by dsimp [q]; linarith)
+    have horig := intervalDomain_minimal_signal_energy_hasDerivAt_pde
+      ha0 hb0 hgamma heq hsol hqmem
+    have hinner : HasDerivAt (fun z : ℝ => z + Tbase) 1 r := by
+      simpa using (hasDerivAt_id r).add_const Tbase
+    have hcomp := horig.comp r hinner
+    have hslope := intervalDomain_minimal_signal_energy_slope_le
+      ha0 hb0 hgamma heq hsol hqmem hbeta huBar hvLower hchi
+        hpoint hVfloor
+    rw [horig.deriv] at hslope
+    have hLapNonneg : 0 ≤
+        ∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v q)) z) y) ^ 2 :=
+      intervalIntegral.integral_nonneg (by norm_num) (fun _ _ => sq_nonneg _)
+    have hslopeShift : deriv E r ≤
+        -2 * (∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v q)) z) y) ^ 2) -
+          2 * c * G r := by
+      calc
+        deriv E r = _ := by simpa [E, q] using hcomp.deriv
+        _ ≤ -2 * (∫ y in (0 : ℝ)..1,
+              (deriv (fun z => deriv (intervalDomainLift (v q)) z) y) ^ 2) -
+            2 * c * G r := by
+          simpa [G, q, c] using hslope
+    linarith
+  have hcontrol : ∀ r, 0 < r → E r ≤ K * G r := by
+    intro r hr
+    let q : ℝ := r + Tbase
+    obtain ⟨hsol, hqmem, hmassQ, _hpoint, _hVfloor⟩ :=
+      hboxAt q (by dsimp [q]; linarith)
+    have h := intervalDomain_minimal_signal_energy_control
+      hm hgamma heq hsol hqmem hmassQ
+    simpa [E, G, K, q] using h
+  have hdecay := energy_exponential_decay_of_dissipation_control
+    hc hK hderiv hdiss hcontrol
+  let s : ℝ := Tbase + 1
+  let rate : ℝ := 2 * c / K
+  have hs : 0 < s := by dsimp [s]; linarith
+  have hrate : 0 < rate := by
+    dsimp [rate]
+    positivity
+  refine ⟨s, hs, rate, hrate, ?_⟩
+  intro t hst
+  have htShift : 1 ≤ t - Tbase := by
+    dsimp [s] at hst
+    linarith
+  have h := hdecay 1 (t - Tbase) zero_lt_one htShift
+  dsimp [E] at h
+  have hleftTime : t - Tbase + Tbase = t := by ring
+  have honeTime : (1 : ℝ) + Tbase = s := by
+    dsimp [s]
+    ring
+  have htimeDiff : t - Tbase - 1 = t - s := by
+    dsimp [s]
+    ring
+  rw [hleftTime, honeTime, htimeDiff] at h
+  simpa [rate] using h
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
@@ -1498,6 +1644,7 @@ theorem intervalDomain_minimal_signal_energy_control
 #print axioms intervalDomain_minimal_signal_mean_zero
 #print axioms intervalDomain_minimal_signal_poincare
 #print axioms intervalDomain_minimal_signal_energy_control
+#print axioms intervalDomain_minimal2_signal_energy_exponential_decay
 
 end
 
