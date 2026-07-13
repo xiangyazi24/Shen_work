@@ -81,6 +81,8 @@ def rotheSeqOfPaperRouteAFromTrap
       rotheSeqOfPaperRouteA p c lam M κ Λ u (hinput u hu) hκ hM
     else fun _ => upperBarrier κ M
 
+variable {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+
 @[simp] theorem rotheSeqOfPaperRouteAFromTrap_eq
     (hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
