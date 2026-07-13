@@ -131,6 +131,19 @@ def paperImplicitStepOp_truncated
     paperImplicitStepOp_truncated p c h M κ u W x =
       W x - h * paperWaveOperator_truncated p c M κ u W x := rfl
 
+/-- The local weighted-Hölder source-space box.
+
+This is the compact-open Schauder set actually needed for the fixed-source
+equation.  It deliberately carries no condition at `-∞`: a shared left-tail
+modulus is not preserved by a Rothe orbit, while the three fields below are
+closed under local-uniform convergence and give local Arzelà--Ascoli
+compactness. -/
+structure PaperLocalHolderSourceBox
+    (κ M β B H : ℝ) (R : ℝ → ℝ) : Prop where
+  cont : Continuous R
+  bound : ∀ x, |R x| ≤ B * upperBarrier κ M x
+  holder : ∀ x y, |R x - R y| ≤ H * |x - y| ^ β
+
 /-- The weighted-Hölder source-space box for the corrected fixed-source step.
 
 Besides the weighted right-tail bound and the shared Hölder modulus, the box
@@ -146,6 +159,19 @@ structure PaperWeightedHolderSourceBox
   omega_tendsto : Tendsto ω atBot (𝓝 0)
   leftTail : ∃ Rm, Tendsto R atBot (𝓝 Rm)
   leftTailCauchy : ∀ A x y, x ≤ A → y ≤ A → |R x - R y| ≤ ω A
+
+namespace PaperWeightedHolderSourceBox
+
+/-- Forget the left-tail fields and retain the compact-open source box. -/
+def toLocal
+    {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    PaperLocalHolderSourceBox κ M β B H R :=
+  { cont := hR.cont
+    bound := hR.bound
+    holder := hR.holder }
+
+end PaperWeightedHolderSourceBox
 
 /-- The paper source with the Green profile spatially clamped to
 `[0, upperBarrier κ M x]`. -/
@@ -888,6 +914,15 @@ def LocalLipQuant.rpow_selfHolderOnIcc
                 max (q.L ^ β) (2 * M ^ β) * 1 := by ring
             _ ≤ max (q.L ^ β) (2 * M ^ β) * d ^ β :=
               mul_le_mul_of_nonneg_left hone_le_pow hcoef_nonneg
+
+theorem PaperLocalHolderSourceBox.abs_le_const
+    {κ M β B H : ℝ} {R : ℝ → ℝ}
+    (hBnn : 0 ≤ B) (hR : PaperLocalHolderSourceBox κ M β B H R) :
+    ∀ y, |R y| ≤ B * M := by
+  intro y
+  calc
+    |R y| ≤ B * upperBarrier κ M y := hR.bound y
+    _ ≤ B * M := mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
 
 theorem PaperWeightedHolderSourceBox.abs_le_const
     {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
@@ -4330,6 +4365,24 @@ theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
         mul_le_mul_of_nonneg_left (hB y) (Real.exp_pos _).le
     _ = B * Real.exp (-r * y) := by ring
 
+theorem PaperLocalHolderSourceBox.gWeight_Ioi
+    {κ M β B H : ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hR : PaperLocalHolderSourceBox κ M β B H R) :
+    ∀ t, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+  fun t => gWeight_integrableOn_Ioi_of_bounded
+    (greenRootPlus_pos (c := c) hlam) hR.cont
+    (hR.abs_le_const (B := B) hBnn) t
+
+theorem PaperLocalHolderSourceBox.gWeight_Iic
+    {κ M β B H : ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hR : PaperLocalHolderSourceBox κ M β B H R) :
+    ∀ t, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+  fun t => gWeight_integrableOn_Iic_of_bounded
+    (greenRootMinus_neg (c := c) hlam) hR.cont
+    (hR.abs_le_const (B := B) hBnn) t
+
 theorem PaperWeightedHolderSourceBox.gWeight_Ioi
     {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
     (hlam : 0 < lam) (hBnn : 0 ≤ B)
@@ -4871,12 +4924,12 @@ theorem deriv_greenConv_abs_le_upperBarrier_mass
   ring
 
 /-- Source-box specialization of the weighted Green profile bound. -/
-theorem PaperWeightedHolderSourceBox.greenConv_abs_le
-    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+theorem PaperLocalHolderSourceBox.greenConv_abs_le
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
-    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R)
+    (hR : PaperLocalHolderSourceBox κ M β B Hbox R)
     (x : ℝ) :
     |greenConv c lam R x| ≤
       greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) := by
@@ -4897,6 +4950,18 @@ theorem PaperWeightedHolderSourceBox.greenConv_abs_le
   exact greenConv_abs_le_upperBarrier_mass
     (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.bound hHi hLo x
 
+theorem PaperWeightedHolderSourceBox.greenConv_abs_le
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R)
+    (x : ℝ) :
+    |greenConv c lam R x| ≤
+      greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) :=
+  hR.toLocal.greenConv_abs_le
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn x
+
 /-- The paper upper barrier decays at the right endpoint. -/
 theorem upperBarrier_tendsto_atTop_zero {κ M : ℝ}
     (hκ : 0 < κ) (hM : 0 ≤ M) :
@@ -4913,12 +4978,12 @@ theorem upperBarrier_tendsto_atTop_zero {κ M : ℝ}
     exact upperBarrier_le_exp κ M x
 
 /-- Source-box Green profiles decay at the right endpoint. -/
-theorem PaperWeightedHolderSourceBox.greenConv_tendsto_atTop_zero
-    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+theorem PaperLocalHolderSourceBox.greenConv_tendsto_atTop_zero
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 < κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
-    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    (hR : PaperLocalHolderSourceBox κ M β B Hbox R) :
     Tendsto (greenConv c lam R) atTop (𝓝 0) := by
   have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
     greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
@@ -4945,13 +5010,23 @@ theorem PaperWeightedHolderSourceBox.greenConv_tendsto_atTop_zero
     exact hbound x
   · exact hdecay
 
-/-- Source-box specialization of the weighted Green derivative bound. -/
-theorem PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
+theorem PaperWeightedHolderSourceBox.greenConv_tendsto_atTop_zero
     {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    Tendsto (greenConv c lam R) atTop (𝓝 0) :=
+  hR.toLocal.greenConv_tendsto_atTop_zero
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn
+
+/-- Source-box specialization of the weighted Green derivative bound. -/
+theorem PaperLocalHolderSourceBox.deriv_greenConv_abs_le
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
-    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R)
+    (hR : PaperLocalHolderSourceBox κ M β B Hbox R)
     (x : ℝ) :
     |deriv (greenConv c lam R) x| ≤
       greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) := by
@@ -4972,13 +5047,25 @@ theorem PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
   exact deriv_greenConv_abs_le_upperBarrier_mass
     (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.cont hR.bound hHi hLo x
 
-/-- Source-box Green profile as a bounded locally-Lipschitz factor. -/
-def PaperWeightedHolderSourceBox.greenConv_localLipQuant
+theorem PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
     {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
-    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R)
+    (x : ℝ) :
+    |deriv (greenConv c lam R) x| ≤
+      greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) :=
+  hR.toLocal.deriv_greenConv_abs_le
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn x
+
+/-- Source-box Green profile as a bounded locally-Lipschitz factor. -/
+def PaperLocalHolderSourceBox.greenConv_localLipQuant
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperLocalHolderSourceBox κ M β B Hbox R) :
     LocalLipQuant (fun x => greenConv c lam R x) := by
   let Cw : ℝ := greenWeightedMass0 c lam κ * (B * M)
   let Lw : ℝ := greenWeightedMass1 c lam κ * (B * M)
@@ -5016,6 +5103,16 @@ def PaperWeightedHolderSourceBox.greenConv_localLipQuant
           (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass1
   exact LocalLipQuant.of_lipschitz hCw hLw hbound
     (abs_sub_le_of_deriv_abs_le_core hdiff hderiv_bound)
+
+def PaperWeightedHolderSourceBox.greenConv_localLipQuant
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    LocalLipQuant (fun x => greenConv c lam R x) :=
+  hR.toLocal.greenConv_localLipQuant
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn
 
 /-- Source-box Green profile as a bounded β-Hölder factor. -/
 def PaperWeightedHolderSourceBox.greenConv_holderQuant
@@ -5066,13 +5163,13 @@ def PaperWeightedHolderSourceBox.greenConv_holderQuant
   exact HolderQuant.of_lipschitz hβpos hβle hCw hLw hbound hlip
 
 /-- Source-box Green derivative as a bounded β-Hölder factor. -/
-def PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
-    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+def PaperLocalHolderSourceBox.greenConvDeriv_holderQuant
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
     (hβpos : 0 < β) (hβle : β ≤ 1)
-    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    (hR : PaperLocalHolderSourceBox κ M β B Hbox R) :
     HolderQuant β (fun x => greenConvDeriv c lam R x) := by
   let Cw : ℝ := greenWeightedMass0 c lam κ * (B * M)
   let Cwd : ℝ := greenWeightedMass1 c lam κ * (B * M)
@@ -5151,6 +5248,17 @@ def PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
       |greenConvDeriv c lam R x - greenConvDeriv c lam R y| ≤ Lwd * |x - y| :=
     abs_sub_le_of_deriv_abs_le_core hdiff hderiv_bound
   exact HolderQuant.of_lipschitz hβpos hβle hCwd hLwd hDbound hlip
+
+def PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    HolderQuant β (fun x => greenConvDeriv c lam R x) :=
+  hR.toLocal.greenConvDeriv_holderQuant
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hβpos hβle
 
 theorem setIntegral_Ioi_add_right (x : ℝ) (f : ℝ → ℝ) :
     (∫ y in Ioi x, f y) = ∫ s in Ioi (0:ℝ), f (s + x) := by
@@ -7691,13 +7799,13 @@ theorem paperGreenConvDeriv_tendsto_of_source_locallyUniform_of_uniform_bound
 
 /-- Spatial continuity of the truncated fixed-source map from a continuous
 weighted source and the frozen-field continuity data. -/
-theorem paperFixedSourceMap_continuous_of_sourceBox
-    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+theorem paperFixedSourceMap_continuous_of_localSourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam) (hB : 0 ≤ B)
     (hZ : Continuous Z)
     (hV : Continuous (frozenElliptic p u))
     (hVderiv : Continuous (deriv (frozenElliptic p u)))
-    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    (hR : PaperLocalHolderSourceBox κ M β B H R) :
     Continuous (paperFixedSourceMap p c lam M κ u Z R) := by
   have hR_const : ∀ y, |R y| ≤ B * M := by
     intro y
@@ -7778,6 +7886,19 @@ theorem paperFixedSourceMap_continuous_of_sourceBox
   dsimp only
   convert htotal using 1
 
+theorem paperFixedSourceMap_continuous_of_sourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam) (hB : 0 ≤ B)
+    (hZ : Continuous Z)
+    (hV : Continuous (frozenElliptic p u))
+    (hVderiv : Continuous (deriv (frozenElliptic p u)))
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    Continuous (paperFixedSourceMap p c lam M κ u Z R) :=
+  paperFixedSourceMap_continuous_of_localSourceBox
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (β := β) (B := B) (H := H) (u := u) (Z := Z) (R := R)
+    hlam hB hZ hV hVderiv hR.toLocal
+
 /-- Trap-specialized continuity field for the truncated fixed-source map. -/
 theorem paperFixedSourceMap_continuous_of_trap_sourceBox
     (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
@@ -7797,12 +7918,12 @@ theorem paperFixedSourceMap_continuous_of_trap_sourceBox
 
 /-- Pointwise continuous dependence of the truncated fixed-source map on the
 source profile, for locally uniform source convergence inside one source box. -/
-theorem paperFixedSourceMap_tendsto_of_source_locallyUniform_sourceBox
-    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ}
+theorem paperFixedSourceMap_tendsto_of_source_locallyUniform_localSourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ}
     {u Z : ℝ → ℝ} {Rs : ℕ → ℝ → ℝ} {R : ℝ → ℝ}
     (hlam : 0 < lam) (hBnn : 0 ≤ B)
-    (hRs : ∀ n, PaperWeightedHolderSourceBox κ M β B H ω (Rs n))
-    (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
+    (hRs : ∀ n, PaperLocalHolderSourceBox κ M β B H (Rs n))
+    (hR : PaperLocalHolderSourceBox κ M β B H R)
     (hLU : LocallyUniformConverges Rs R) :
     ∀ x, Tendsto
       (fun n : ℕ => paperFixedSourceMap p c lam M κ u Z (Rs n) x) atTop
@@ -7933,11 +8054,27 @@ theorem paperFixedSourceMap_tendsto_of_source_locallyUniform_sourceBox
     paperStepTruncatedNonlinearity, Θs, Θ, hderiv_seq, hderiv_target,
     mul_assoc, mul_left_comm, mul_comm] using htotal
 
+theorem paperFixedSourceMap_tendsto_of_source_locallyUniform_sourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ}
+    {u Z : ℝ → ℝ} {Rs : ℕ → ℝ → ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hRs : ∀ n, PaperWeightedHolderSourceBox κ M β B H ω (Rs n))
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
+    (hLU : LocallyUniformConverges Rs R) :
+    ∀ x, Tendsto
+      (fun n : ℕ => paperFixedSourceMap p c lam M κ u Z (Rs n) x) atTop
+        (𝓝 (paperFixedSourceMap p c lam M κ u Z R x)) :=
+  paperFixedSourceMap_tendsto_of_source_locallyUniform_localSourceBox
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (β := β) (B := B) (H := H) (u := u) (Z := Z)
+    (Rs := Rs) (R := R) hlam hBnn (fun n => (hRs n).toLocal)
+    hR.toLocal hLU
+
 /-- Weighted source-box bound for the truncated fixed-source map.  The only
 non-box analytic inputs are the standard frozen-field bounds and the scalar
 large-`B` inequality. -/
-theorem paperFixedSourceMap_bound_of_sourceBox
-    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+theorem paperFixedSourceMap_bound_of_localSourceBox
+    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
@@ -7953,7 +8090,7 @@ theorem paperFixedSourceMap_bound_of_sourceBox
         + (1 + |p.χ| * M ^ (p.m - 1) * BV
             + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
         + lam ≤ B)
-    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    (hR : PaperLocalHolderSourceBox κ M β B H R) :
     ∀ x, |paperFixedSourceMap p c lam M κ u Z R x| ≤
       B * upperBarrier κ M x := by
   intro x
@@ -7996,8 +8133,8 @@ theorem paperFixedSourceMap_bound_of_sourceBox
       |deriv W x| ≤
         greenWeightedMass1 c lam κ * (B * Ux) := by
     dsimp [W, Ux]
-    exact PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
-      (c := c) (lam := lam) (β := β) (Hbox := H) (ω := ω)
+    exact PaperLocalHolderSourceBox.deriv_greenConv_abs_le
+      (c := c) (lam := lam) (β := β) (Hbox := H)
       hlam hrpκ hrmκ hκ hM hBnn hR x
   have hmass1_nonneg : 0 ≤ greenWeightedMass1 c lam κ :=
     greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
@@ -8163,6 +8300,33 @@ theorem paperFixedSourceMap_bound_of_sourceBox
         + lam) * Ux := by
           ring
     _ ≤ B * Ux := mul_le_mul_of_nonneg_right hscalar hUx0
+
+theorem paperFixedSourceMap_bound_of_sourceBox
+    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hBVnn : 0 ≤ BV) (hBVdnn : 0 ≤ BVd)
+    (hZ0 : ∀ x, 0 ≤ Z x)
+    (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hVderiv_bound : ∀ x, |deriv (frozenElliptic p u) x| ≤ BVd)
+    (hscalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    ∀ x, |paperFixedSourceMap p c lam M κ u Z R x| ≤
+      B * upperBarrier κ M x :=
+  paperFixedSourceMap_bound_of_localSourceBox
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (β := β) (B := B) (H := H) (BV := BV) (BVd := BVd)
+    (u := u) (Z := Z) (R := R)
+    hlam hrpκ hrmκ hκ hM hBnn hBVnn hBVdnn hZ0 hZB
+    hVbound hVderiv_bound hscalar hR.toLocal
 
 /-- Paper-step analytic data with the bounded-source Green tails omitted.
 
@@ -9998,7 +10162,7 @@ theorem paperFixedSourceMap_holder_kernel
     (hZ : PaperIterateBase p c κ M u Z) :
     ∃ H0 : ℝ, 0 ≤ H0 ∧
       ∀ (Hbox : ℝ) (ω : ℝ → ℝ) R,
-        PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
+        PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox R →
         ∀ x y,
           |paperFixedSourceMap p c lam M κ u Z R x -
               paperFixedSourceMap p c lam M κ u Z R y| ≤
@@ -10118,8 +10282,8 @@ theorem paperFixedSourceMap_holder_kernel
   let Θ : ℝ → ℝ := fun z => paperWeightedClamp κ M W z
   let hWloc : LocalLipQuant W := by
     simpa [W, BM, Cw, Lw] using
-      PaperWeightedHolderSourceBox.greenConv_localLipQuant
-        (c := c) (lam := lam) (β := β) (Hbox := Hbox) (ω := ω)
+      PaperLocalHolderSourceBox.greenConv_localLipQuant
+        (c := c) (lam := lam) (β := β) (Hbox := Hbox)
         hlam hrpκ hrmκ hκ hM.le hBnn hR
   let hΘloc : LocalLipQuant Θ := by
     simpa [Θ, W, LU, Lθ, BM, Cw, Lw] using
@@ -10151,12 +10315,12 @@ theorem paperFixedSourceMap_holder_kernel
     dsimp [W]
     exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo z).deriv
   let hWdQ : HolderQuant β (fun z => greenConvDeriv c lam R z) := by
-    exact (PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
-        (c := c) (lam := lam) (β := β) (Hbox := Hbox) (ω := ω)
+    exact (PaperLocalHolderSourceBox.greenConvDeriv_holderQuant
+        (c := c) (lam := lam) (β := β) (Hbox := Hbox)
         hlam hrpκ hrmκ hκ hM.le hBnn hβpos hβle hR).inflate
       bWd.C_nonneg bWd.H_nonneg
-      (by dsimp [PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
-      (by dsimp [PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
+      (by dsimp [PaperLocalHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
+      (by dsimp [PaperLocalHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
   let hZQ : HolderQuant β Z := by
     exact (PaperIterateBase.holderQuant hκ hM.le hZ hβpos hβle).inflate
       bZ.C_nonneg bZ.H_nonneg
@@ -11466,7 +11630,7 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
     have h0 :=
       (Classical.choose_spec holderKernel).2 H
         (expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
-        R hR x y
+        R hR.toLocal x y
     calc
       |paperFixedSourceMap p c lam M κ u Z R x -
           paperFixedSourceMap p c lam M κ u Z R y|
