@@ -109,6 +109,25 @@ theorem intervalDomainWeakSupChemLipschitzConstant_nonneg
   exact add_nonneg (add_nonneg hRG (mul_nonneg hM.le hRGL))
     (mul_nonneg (mul_nonneg (mul_nonneg hM.le hRG) p.hβ) hRV)
 
+/-- The fixed weak-map contraction coefficient is monotone in the window
+length. -/
+theorem intervalDomainWeakSupContractionCoefficient_mono
+    (p : CM2Params) {uStar CL T S : ℝ}
+    (huStar : 0 < uStar) (hCL : 0 ≤ CL)
+    (hTS : T ≤ S) :
+    intervalDomainWeakSupContractionCoefficient p uStar CL T ≤
+      intervalDomainWeakSupContractionCoefficient p uStar CL S := by
+  have hCQ : 0 ≤ intervalDomainWeakSupChemLipschitzConstant p uStar :=
+    intervalDomainWeakSupChemLipschitzConstant_nonneg p huStar
+  have hsqrt : Real.sqrt T ≤ Real.sqrt S := Real.sqrt_le_sqrt hTS
+  unfold intervalDomainWeakSupContractionCoefficient
+  apply add_le_add
+  · apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+    apply mul_le_mul_of_nonneg_right _ hCQ
+    apply mul_le_mul_of_nonneg_left _ heatGradientLinftyLinftyConstant_nonneg
+    exact mul_le_mul_of_nonneg_left hsqrt (by norm_num)
+  · exact mul_le_mul_of_nonneg_right hTS hCL
+
 /-- A datum-independent positive time on which the weak B-form contraction
 coefficient is strictly below one quarter. -/
 theorem exists_intervalDomainWeakSupContractionWindow
@@ -146,6 +165,32 @@ theorem exists_intervalDomainWeakSupContractionWindow
     ring
   rw [heq]
   simpa [mul_comm] using hsmall
+
+/-- The datum-independent contraction window can be chosen below any
+prescribed positive horizon. -/
+theorem exists_intervalDomainWeakSupContractionWindow_lt
+    (p : CM2Params) {uStar H : ℝ} (huStar : 0 < uStar) (hH : 0 < H) :
+    ∃ T > 0, T < H ∧ ∃ CL > 0,
+      (∀ r s : ℝ,
+        |r| ≤ intervalDomainWeakSupConeCeiling uStar →
+        |s| ≤ intervalDomainWeakSupConeCeiling uStar →
+        |r * (p.a - p.b * r ^ p.α) -
+          s * (p.a - p.b * s ^ p.α)| ≤ CL * |r - s|) ∧
+      intervalDomainWeakSupContractionCoefficient p uStar CL T < 1 / 4 := by
+  obtain ⟨S, hS, CL, hCL, hCLlip, hcontract⟩ :=
+    exists_intervalDomainWeakSupContractionWindow p huStar
+  let T := min S (H / 2)
+  have hT : 0 < T := by
+    dsimp [T]
+    exact lt_min hS (by linarith)
+  have hTS : T ≤ S := by dsimp [T]; exact min_le_left _ _
+  have hTH : T < H := by
+    have : T ≤ H / 2 := by dsimp [T]; exact min_le_right _ _
+    linarith
+  refine ⟨T, hT, hTH, CL, hCL, hCLlip, ?_⟩
+  exact lt_of_le_of_lt
+    (intervalDomainWeakSupContractionCoefficient_mono
+      p huStar hCL.le hTS) hcontract
 
 /-- Spatial sup distance along a clamped positive-time restart. -/
 def intervalDomainRestartSupDistance
@@ -838,6 +883,8 @@ theorem exists_intervalDomainWeakSupRestartWindow
       hu₀ hclose hglobal htrace
 
 #print axioms exists_intervalDomainWeakSupContractionWindow
+#print axioms intervalDomainWeakSupContractionCoefficient_mono
+#print axioms exists_intervalDomainWeakSupContractionWindow_lt
 #print axioms intervalDomainRestartSupDistance_continuous
 #print axioms chemFluxLifted_const_eq_zero
 #print axioms intervalConjugateDuhamelMap_const_equilibrium
