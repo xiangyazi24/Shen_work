@@ -29,6 +29,25 @@ abbrev intervalRectangleEnvelopeChoice := Unit ⊕ intervalDomainPoint
 abbrev intervalRectangleGapChoice :=
   intervalRectangleEnvelopeChoice × intervalRectangleEnvelopeChoice
 
+/-- A compact metrizable parameter for an envelope choice.  The spatial
+coordinate is ignored when the Boolean flag selects the equilibrium. -/
+abbrev intervalRectangleEnvelopeParameter := Bool × intervalDomainPoint
+
+/-- The compact metrizable parameter space used by the Danskin argument. -/
+abbrev intervalRectangleGapParameter :=
+  intervalRectangleEnvelopeParameter × intervalRectangleEnvelopeParameter
+
+/-- Decode a metrizable envelope parameter into its semantic choice. -/
+def intervalRectangleEnvelopeParameterChoice
+    (q : intervalRectangleEnvelopeParameter) : intervalRectangleEnvelopeChoice :=
+  if q.1 = true then Sum.inl () else Sum.inr q.2
+
+/-- Decode a pair of metrizable parameters simultaneously. -/
+def intervalRectangleGapParameterChoice
+    (q : intervalRectangleGapParameter) : intervalRectangleGapChoice :=
+  (intervalRectangleEnvelopeParameterChoice q.1,
+    intervalRectangleEnvelopeParameterChoice q.2)
+
 /-- Evaluate one envelope choice against a population orbit. -/
 def intervalDomain_equilibriumChoiceValue
     (uStar : ℝ) (u : ℝ → intervalDomainPoint → ℝ)
@@ -645,6 +664,44 @@ theorem intervalDomain_rectangleLogGapChoice_jointContinuousOn
   simpa [S, Function.uncurry, intervalDomain_rectangleLogGapChoice] using
     htopLog.sub hbotLog
 
+/-- Continuity of the clamped logarithmic gap on every closed positive-time
+window. -/
+theorem intervalDomain_rectangleLogGap_continuousOn
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn (intervalDomain_rectangleLogGap uStar u) (Icc a b) := by
+  obtain ⟨_, _, _, _, _, _, hjoint⟩ := hsol.regularity
+  have hFab : ContinuousOn
+      (Function.uncurry (fun t y => intervalDomainLift (u t) y))
+      (Icc a b ×ˢ Icc (0 : ℝ) 1) :=
+    hjoint.1.mono (Set.prod_mono hab (le_refl _))
+  have hmax : ContinuousOn
+      (fun t => sSup (intervalDomainLift (u t) '' Icc (0 : ℝ) 1))
+      (Icc a b) := sliceMax_continuousOn hFab
+  have hmin : ContinuousOn
+      (fun t => sInf (intervalDomainLift (u t) '' Icc (0 : ℝ) 1))
+      (Icc a b) := sliceMin_continuousOn hFab
+  have hupper : ContinuousOn (intervalDomain_clampedUpper uStar u)
+      (Icc a b) := by
+    intro t ht
+    simpa [intervalDomain_clampedUpper] using
+      (continuousWithinAt_const.max (hmax t ht))
+  have hlower : ContinuousOn (intervalDomain_clampedLower uStar u)
+      (Icc a b) := by
+    intro t ht
+    simpa [intervalDomain_clampedLower] using
+      (continuousWithinAt_const.min (hmin t ht))
+  have hupperLog := hupper.log (fun t ht => ne_of_gt
+    (huStar.trans_le
+      (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+        uStar u t).2))
+  have hlowerLog := hlower.log (fun t ht => ne_of_gt
+    (intervalDomain_clampedLower_pos huStar hsol (hab ht)))
+  simpa [intervalDomain_rectangleLogGap] using hupperLog.sub hlowerLog
+
 /-- Exact derivative of one equilibrium/spatial envelope choice. -/
 theorem intervalDomain_equilibriumChoiceValue_hasDerivAt
     {p : CM2Params} {T t uStar : ℝ}
@@ -849,6 +906,165 @@ theorem intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
   exact (intervalDomain_rectangleLogGapChoice_deriv_eq
     huStar hsol (hab hz.1) z.2)
 
+set_option maxHeartbeats 4000000 in
+/-- Concrete right-upper Dini inequality for the clamped logarithmic gap. -/
+theorem intervalDomain_rectangleLogGap_dini
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ∀ x ∈ Ico a b, ∀ r : ℝ,
+      intervalDomain_rectangleLogGapSlopeBound p uStar u x < r →
+        ∃ᶠ z in nhdsWithin x (Ioi x),
+          (z - x)⁻¹ *
+            (intervalDomain_rectangleLogGap uStar u z -
+              intervalDomain_rectangleLogGap uStar u x) < r := by
+  let xzero : intervalDomainPoint :=
+    ⟨0, Set.left_mem_Icc.mpr zero_le_one⟩
+  letI : MetricSpace intervalDomainPoint := by
+    change MetricSpace (Subtype (Icc (0 : ℝ) 1))
+    infer_instance
+  letI : MetricSpace Bool := TopologicalSpace.metrizableSpaceMetric _
+  letI : CompactSpace intervalDomainPoint :=
+    isCompact_iff_compactSpace.mp isCompact_Icc
+  letI : Nonempty intervalDomainPoint := ⟨xzero⟩
+  letI hcompactEnvelope : CompactSpace intervalRectangleEnvelopeParameter :=
+    inferInstance
+  letI hcompactGap : CompactSpace intervalRectangleGapParameter := inferInstance
+  have hdecode : Continuous intervalRectangleEnvelopeParameterChoice := by
+    have hs : IsClopen
+        {q : intervalRectangleEnvelopeParameter | q.1 = true} :=
+      (isClopen_discrete ({true} : Set Bool)).preimage continuous_fst
+    unfold intervalRectangleEnvelopeParameterChoice
+    apply Continuous.if
+    · intro q hq
+      rw [hs.frontier_eq] at hq
+      simp at hq
+    · exact continuous_const
+    · exact continuous_inr.comp continuous_snd
+  have hdecodePair : Continuous intervalRectangleGapParameterChoice := by
+    exact (hdecode.comp continuous_fst).prodMk
+      (hdecode.comp continuous_snd)
+  have hdecode_surjective :
+      Function.Surjective intervalRectangleEnvelopeParameterChoice := by
+    intro q
+    rcases q with z | x
+    · exact ⟨(true, xzero), by
+        simp [intervalRectangleEnvelopeParameterChoice]⟩
+    · exact ⟨(false, x), by
+        simp [intervalRectangleEnvelopeParameterChoice]⟩
+  have hdecodePair_surjective :
+      Function.Surjective intervalRectangleGapParameterChoice := by
+    rintro ⟨qhi, qlo⟩
+    obtain ⟨phi, hphi⟩ := hdecode_surjective qhi
+    obtain ⟨plo, hplo⟩ := hdecode_surjective qlo
+    refine ⟨(phi, plo), ?_⟩
+    simp [intervalRectangleGapParameterChoice, hphi, hplo]
+  let F : ℝ → intervalRectangleGapParameter → ℝ :=
+    fun s q => intervalDomain_rectangleLogGapChoice uStar u s
+      (intervalRectangleGapParameterChoice q)
+  have himage : ∀ s : ℝ,
+      F s '' (Set.univ : Set intervalRectangleGapParameter) =
+        intervalDomain_rectangleLogGapChoice uStar u s ''
+          (Set.univ : Set intervalRectangleGapChoice) := by
+    intro s
+    apply Set.Subset.antisymm
+    · rintro y ⟨q, -, rfl⟩
+      exact ⟨intervalRectangleGapParameterChoice q, Set.mem_univ _, rfl⟩
+    · rintro y ⟨q, -, rfl⟩
+      obtain ⟨r, hr⟩ := hdecodePair_surjective q
+      refine ⟨r, Set.mem_univ _, ?_⟩
+      simp only [F]
+      rw [hr]
+  have hFbase := intervalDomain_rectangleLogGapChoice_jointContinuousOn
+    huStar hsol hab
+  have hparameterMap : Continuous
+      (fun z : ℝ × intervalRectangleGapParameter =>
+        (z.1, intervalRectangleGapParameterChoice z.2)) :=
+    continuous_fst.prodMk (hdecodePair.comp continuous_snd)
+  have hparameterMapsTo : MapsTo
+      (fun z : ℝ × intervalRectangleGapParameter =>
+        (z.1, intervalRectangleGapParameterChoice z.2))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapParameter))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+    intro z hz
+    exact ⟨hz.1, Set.mem_univ _⟩
+  have hF : ContinuousOn (Function.uncurry F)
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapParameter)) := by
+    have hc := hFbase.comp hparameterMap.continuousOn hparameterMapsTo
+    simpa [F, Function.uncurry] using hc
+  have hsliceCont : ∀ q : intervalRectangleGapParameter,
+      ContinuousOn (fun s => F s q) (Icc a b) := by
+    intro q
+    exact hF.comp (continuous_id.prodMk continuous_const).continuousOn
+      (fun s hs => ⟨hs, Set.mem_univ q⟩)
+  have hsliceDiff : ∀ q : intervalRectangleGapParameter, ∀ s ∈ Ioo a b,
+      HasDerivAt (fun r => F r q) (deriv (fun r => F r q) s) s := by
+    intro q s hs
+    have hst : s ∈ Ioo (0 : ℝ) T := hab (Ioo_subset_Icc_self hs)
+    have hderiv : deriv (fun r => F r q) s =
+        intervalDomain_rectangleLogGapChoiceSlope uStar u s
+          (intervalRectangleGapParameterChoice q) := by
+      simpa [F] using intervalDomain_rectangleLogGapChoice_deriv_eq
+        huStar hsol hst (intervalRectangleGapParameterChoice q)
+    rw [hderiv]
+    simpa [F] using intervalDomain_rectangleLogGapChoice_hasDerivAt
+      huStar hsol hst (intervalRectangleGapParameterChoice q)
+  have hM : ContinuousOn
+      (fun s => sSup (F s ''
+        (Set.univ : Set intervalRectangleGapParameter))) (Icc a b) := by
+    have hg := intervalDomain_rectangleLogGap_continuousOn huStar hsol hab
+    apply hg.congr
+    intro s hs
+    change sSup (F s '' (Set.univ : Set intervalRectangleGapParameter)) = _
+    rw [himage s]
+    exact intervalDomain_rectangleLogGapChoice_sSup_eq
+      huStar hsol (hab hs)
+  have hdFbase := intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
+    huStar hsol hab
+  have hdF : ContinuousOn
+      (Function.uncurry (fun (s : ℝ) (q : intervalRectangleGapParameter) =>
+        deriv (fun r => F r q) s))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapParameter)) := by
+    have hc := hdFbase.comp hparameterMap.continuousOn hparameterMapsTo
+    simpa [F, Function.uncurry] using hc
+  have hbnd : ∀ s ∈ Icc a b, ∀ q : intervalRectangleGapParameter,
+      F s q = sSup (F s ''
+          (Set.univ : Set intervalRectangleGapParameter)) →
+        deriv (fun r => F r q) s ≤
+          intervalDomain_rectangleLogGapSlopeBound p uStar u s := by
+    intro s hs q harg
+    rw [himage s] at harg
+    have hbase := intervalDomain_rectangleLogGapChoice_argmax_slope
+      hχ huStar heq hsol (hab hs)
+        (intervalRectangleGapParameterChoice q) harg
+    simpa [F] using hbase
+  have hraw := @compactMax_dini_of_argmax_upperBound
+    intervalRectangleGapParameter
+    (inferInstance : PseudoMetricSpace intervalRectangleGapParameter)
+    hcompactGap
+    (inferInstance : Nonempty intervalRectangleGapParameter)
+    F (intervalDomain_rectangleLogGapSlopeBound p uStar u) a b
+    hF hsliceCont hsliceDiff hM hdF hbnd
+  intro x hx r hr
+  have hfreq := hraw x hx r hr
+  have hxIcc : x ∈ Icc a b := Ico_subset_Icc_self hx
+  have hev : ∀ᶠ z in nhdsWithin x (Ioi x), z ∈ Icc a b := by
+    have hmem : Ioo x b ∈ nhdsWithin x (Ioi x) := by
+      rw [← Ioi_inter_Iio]
+      exact inter_mem_nhdsWithin _ (Iio_mem_nhds hx.2)
+    filter_upwards [hmem] with z hz
+    exact ⟨le_trans hx.1 hz.1.le, hz.2.le⟩
+  refine (hfreq.and_eventually hev).mono ?_
+  rintro z ⟨hz, hzmem⟩
+  rw [himage z, intervalDomain_rectangleLogGapChoice_sSup_eq
+      huStar hsol (hab hzmem),
+    himage x, intervalDomain_rectangleLogGapChoice_sSup_eq
+      huStar hsol (hab hxIcc)] at hz
+  exact hz
+
 #print axioms intervalDomain_equilibriumChoiceValue_pos
 #print axioms intervalDomain_clampedLower_pos
 #print axioms intervalDomain_rectangleLogGap_nonneg
@@ -861,6 +1077,7 @@ theorem intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
 #print axioms intervalDomain_rectangleLogGapChoice_jointContinuousOn
 #print axioms intervalDomain_rectangleLogGapChoice_hasDerivAt
 #print axioms intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
+#print axioms intervalDomain_rectangleLogGap_dini
 
 end
 
