@@ -126,6 +126,36 @@ def intervalDomain_rectangleLogGapSlopeBound
   intervalDomain_rectangleUpperLogSlopeBound p uStar u t -
     intervalDomain_rectangleLowerLogSlopeBound p uStar u t
 
+/-- Upper logarithmic rectangle vector field when both sensitivity weights
+are bounded by a common factor `q`. -/
+def intervalDomain_rectangleUpperLogSlopeBound_with_weight
+    (p : CM2Params) (q uStar : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ :=
+  let U := intervalDomain_clampedUpper uStar u t
+  let L := intervalDomain_clampedLower uStar u t
+  p.a - p.b * U ^ p.α +
+    p.χ₀ * q * (p.ν * (U ^ p.γ - L ^ p.γ) +
+      p.β * (unitIntervalResolverGradientOscillationConstant p *
+        (p.ν * (U ^ p.γ - L ^ p.γ))) ^ 2)
+
+/-- Lower logarithmic rectangle vector field under the same sensitivity
+weight bound. -/
+def intervalDomain_rectangleLowerLogSlopeBound_with_weight
+    (p : CM2Params) (q uStar : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ :=
+  let U := intervalDomain_clampedUpper uStar u t
+  let L := intervalDomain_clampedLower uStar u t
+  (-p.χ₀ * q) * p.ν * (U ^ p.γ - L ^ p.γ) +
+    p.a - p.b * L ^ p.α
+
+/-- Combined logarithmic-gap vector field under a common sensitivity-weight
+bound. -/
+def intervalDomain_rectangleLogGapSlopeBound_with_weight
+    (p : CM2Params) (q uStar : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain_rectangleUpperLogSlopeBound_with_weight p q uStar u t -
+    intervalDomain_rectangleLowerLogSlopeBound_with_weight p q uStar u t
+
 @[simp] theorem intervalDomain_equilibriumChoiceValue_inl
     (uStar : ℝ) (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ)
     (z : Unit) :
@@ -549,6 +579,177 @@ theorem intervalDomain_rectangle_clampedLower_logSlope
     rw [le_div_iff₀ hLpos]
     simpa [mul_comm] using hslope'
 
+/-- A clamped upper maximizer obeys the weighted logarithmic rectangle
+field whenever both signal sensitivity weights are uniformly bounded by
+`q` on the slice. -/
+theorem intervalDomain_rectangle_clampedUpper_logSlope_with_weight
+    {p : CM2Params} {T t q uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hq : 0 ≤ q)
+    (hweight : ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v t) y) ^ (-p.β) ≤ q)
+    (hweightOne : ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v t) y) ^ (-p.β - 1) ≤ q)
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (choice : intervalRectangleEnvelopeChoice)
+    (hchoice : intervalDomain_equilibriumChoiceValue uStar u t choice =
+      intervalDomain_clampedUpper uStar u t) :
+    intervalDomain_equilibriumChoiceSlope u t choice /
+        intervalDomain_equilibriumChoiceValue uStar u t choice ≤
+      intervalDomain_rectangleUpperLogSlopeBound_with_weight
+        p q uStar u t := by
+  let U := intervalDomain_clampedUpper uStar u t
+  let L := intervalDomain_clampedLower uStar u t
+  have hLpos : 0 < L := intervalDomain_clampedLower_pos huStar hsol ht
+  have hUpos : 0 < U := huStar.trans_le
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).2
+  have hLU : L ≤ U :=
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).1.trans
+      (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+        uStar u t).2
+  have hpow : L ^ p.γ ≤ U ^ p.γ :=
+    Real.rpow_le_rpow hLpos.le hLU p.hγ.le
+  have hD : 0 ≤ p.ν * (U ^ p.γ - L ^ p.γ) :=
+    mul_nonneg p.hν.le (sub_nonneg.mpr hpow)
+  rcases choice with z | x
+  · have hUeq : uStar = U := by simpa [U] using hchoice
+    simp only [intervalDomain_equilibriumChoiceSlope,
+      intervalDomain_equilibriumChoiceValue, zero_div]
+    rw [intervalDomain_rectangleUpperLogSlopeBound_with_weight]
+    change 0 ≤ p.a - p.b * U ^ p.α +
+      p.χ₀ * q * (p.ν * (U ^ p.γ - L ^ p.γ) +
+        p.β * (unitIntervalResolverGradientOscillationConstant p *
+          (p.ν * (U ^ p.γ - L ^ p.γ))) ^ 2)
+    have hreactU : p.a - p.b * U ^ p.α = 0 := by
+      rw [← hUeq]
+      exact heq
+    rw [hreactU]
+    simpa using mul_nonneg (mul_nonneg hχ hq)
+      (add_nonneg hD (mul_nonneg p.hβ (sq_nonneg
+        (unitIntervalResolverGradientOscillationConstant p *
+          (p.ν * (U ^ p.γ - L ^ p.γ))))))
+  · have hxU : u t x = U := by simpa [U] using hchoice
+    have hmax : ∀ y, u t y ≤ u t x := by
+      intro y
+      have hy := (intervalDomain_equilibriumChoiceValue_mem_clamped
+        (uStar := uStar) hsol ht (Sum.inr y)).2
+      simpa [U, hxU] using hy
+    have hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+        L ≤ intervalDomainLift (u t) y := by
+      intro y hy
+      let yp : intervalDomainPoint := ⟨y, hy⟩
+      have hb := (intervalDomain_equilibriumChoiceValue_mem_clamped
+        (uStar := uStar) hsol ht (Sum.inr yp)).1
+      simpa [L, yp, intervalDomainLift, hy] using hb
+    have hslope := intervalDomain_rectangle_max_slope_of_argmax_with_weight
+      q hq hweight hweightOne hχ hsol ht hLpos.le hmax hlo
+    have hxLift : intervalDomainLift (u t) x.1 = U := by
+      simpa [intervalDomainLift, hxU]
+    have hslope' : deriv (fun s => u s x) t ≤
+        U * (p.a - p.b * U ^ p.α +
+          p.χ₀ * q * (p.ν * (U ^ p.γ - L ^ p.γ) +
+            p.β * (unitIntervalResolverGradientOscillationConstant p *
+              (p.ν * (U ^ p.γ - L ^ p.γ))) ^ 2)) := by
+      change intervalDomain.timeDeriv u t x ≤ _
+      rw [hxLift] at hslope
+      convert hslope using 1 <;> ring
+    simp only [intervalDomain_equilibriumChoiceSlope,
+      intervalDomain_equilibriumChoiceValue]
+    rw [hxU]
+    rw [intervalDomain_rectangleUpperLogSlopeBound_with_weight]
+    change deriv (fun s => u s x) t / U ≤
+      p.a - p.b * U ^ p.α +
+        p.χ₀ * q * (p.ν * (U ^ p.γ - L ^ p.γ) +
+          p.β * (unitIntervalResolverGradientOscillationConstant p *
+            (p.ν * (U ^ p.γ - L ^ p.γ))) ^ 2)
+    rw [div_le_iff₀ hUpos]
+    simpa [mul_comm] using hslope'
+
+/-- A clamped lower minimizer obeys the weighted logarithmic rectangle
+field under the same sensitivity-weight bound. -/
+theorem intervalDomain_rectangle_clampedLower_logSlope_with_weight
+    {p : CM2Params} {T t q uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hq : 0 ≤ q)
+    (hweight : ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v t) y) ^ (-p.β) ≤ q)
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (choice : intervalRectangleEnvelopeChoice)
+    (hchoice : intervalDomain_equilibriumChoiceValue uStar u t choice =
+      intervalDomain_clampedLower uStar u t) :
+    intervalDomain_rectangleLowerLogSlopeBound_with_weight p q uStar u t ≤
+      intervalDomain_equilibriumChoiceSlope u t choice /
+        intervalDomain_equilibriumChoiceValue uStar u t choice := by
+  let U := intervalDomain_clampedUpper uStar u t
+  let L := intervalDomain_clampedLower uStar u t
+  have hLpos : 0 < L := intervalDomain_clampedLower_pos huStar hsol ht
+  have hUpos : 0 < U := huStar.trans_le
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).2
+  have hLU : L ≤ U :=
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).1.trans
+      (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+        uStar u t).2
+  have hpow : L ^ p.γ ≤ U ^ p.γ :=
+    Real.rpow_le_rpow hLpos.le hLU p.hγ.le
+  have hD : 0 ≤ p.ν * (U ^ p.γ - L ^ p.γ) :=
+    mul_nonneg p.hν.le (sub_nonneg.mpr hpow)
+  rcases choice with z | x
+  · have hLeq : uStar = L := by simpa [L] using hchoice
+    simp only [intervalDomain_equilibriumChoiceSlope,
+      intervalDomain_equilibriumChoiceValue, zero_div]
+    rw [intervalDomain_rectangleLowerLogSlopeBound_with_weight]
+    change (-p.χ₀ * q) * p.ν * (U ^ p.γ - L ^ p.γ) +
+      p.a - p.b * L ^ p.α ≤ 0
+    have hreactL : p.a - p.b * L ^ p.α = 0 := by
+      rw [← hLeq]
+      exact heq
+    have hneg : (-p.χ₀ * q) *
+        (p.ν * (U ^ p.γ - L ^ p.γ)) ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg
+        (mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr hχ) hq) hD
+    nlinarith [hreactL, hneg]
+  · have hxL : u t x = L := by simpa [L] using hchoice
+    have hmin : ∀ y, u t x ≤ u t y := by
+      intro y
+      have hy := (intervalDomain_equilibriumChoiceValue_mem_clamped
+        (uStar := uStar) hsol ht (Sum.inr y)).1
+      simpa [L, hxL] using hy
+    have hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+        intervalDomainLift (u t) y ≤ U := by
+      intro y hy
+      let yp : intervalDomainPoint := ⟨y, hy⟩
+      have hb := (intervalDomain_equilibriumChoiceValue_mem_clamped
+        (uStar := uStar) hsol ht (Sum.inr yp)).2
+      simpa [U, yp, intervalDomainLift, hy] using hb
+    have hslope := intervalDomain_rectangle_min_slope_of_argmin_with_weight
+      q hq hweight hχ hsol ht hmin hhi
+    have hxLift : intervalDomainLift (u t) x.1 = L := by
+      simpa [intervalDomainLift, hxL]
+    have hslope' :
+        L * ((-p.χ₀ * q) * p.ν * (U ^ p.γ - L ^ p.γ) +
+          p.a - p.b * L ^ p.α) ≤ deriv (fun s => u s x) t := by
+      change _ ≤ intervalDomain.timeDeriv u t x
+      rw [hxLift] at hslope
+      convert hslope using 1 <;> ring
+    simp only [intervalDomain_equilibriumChoiceSlope,
+      intervalDomain_equilibriumChoiceValue]
+    rw [hxL]
+    rw [intervalDomain_rectangleLowerLogSlopeBound_with_weight]
+    change (-p.χ₀ * q) * p.ν * (U ^ p.γ - L ^ p.γ) +
+        p.a - p.b * L ^ p.α ≤ deriv (fun s => u s x) t / L
+    rw [le_div_iff₀ hLpos]
+    simpa [mul_comm] using hslope'
+
 /-- Expanded physical form of the combined logarithmic-gap vector field. -/
 theorem intervalDomain_rectangleLogGapSlopeBound_eq
     (p : CM2Params) (uStar : ℝ)
@@ -564,6 +765,23 @@ theorem intervalDomain_rectangleLogGapSlopeBound_eq
   unfold intervalDomain_rectangleLogGapSlopeBound
     intervalDomain_rectangleUpperLogSlopeBound
     intervalDomain_rectangleLowerLogSlopeBound
+  ring
+
+/-- Expanded physical form of the weighted logarithmic-gap vector field. -/
+theorem intervalDomain_rectangleLogGapSlopeBound_with_weight_eq
+    (p : CM2Params) (q uStar : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) :
+    intervalDomain_rectangleLogGapSlopeBound_with_weight p q uStar u t =
+      let U := intervalDomain_clampedUpper uStar u t
+      let L := intervalDomain_clampedLower uStar u t
+      2 * p.χ₀ * q * p.ν * (U ^ p.γ - L ^ p.γ) +
+        p.χ₀ * q * p.β *
+          (unitIntervalResolverGradientOscillationConstant p *
+            (p.ν * (U ^ p.γ - L ^ p.γ))) ^ 2 -
+        p.b * (U ^ p.α - L ^ p.α) := by
+  unfold intervalDomain_rectangleLogGapSlopeBound_with_weight
+    intervalDomain_rectangleUpperLogSlopeBound_with_weight
+    intervalDomain_rectangleLowerLogSlopeBound_with_weight
   ring
 
 /-- Joint continuity of one equilibrium/spatial choice on a closed
@@ -783,6 +1001,40 @@ theorem intervalDomain_rectangleLogGapChoice_argmax_slope
     intervalDomain_rectangleLogGapSlopeBound
   linarith
 
+/-- Every exact compact-choice maximizer obeys the weighted combined
+logarithmic-gap slope bound. -/
+theorem intervalDomain_rectangleLogGapChoice_argmax_slope_with_weight
+    {p : CM2Params} {T t q uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hq : 0 ≤ q)
+    (hweight : ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v t) y) ^ (-p.β) ≤ q)
+    (hweightOne : ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v t) y) ^ (-p.β - 1) ≤ q)
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (choice : intervalRectangleGapChoice)
+    (harg : intervalDomain_rectangleLogGapChoice uStar u t choice =
+      sSup (intervalDomain_rectangleLogGapChoice uStar u t ''
+        (Set.univ : Set intervalRectangleGapChoice))) :
+    deriv (fun s => intervalDomain_rectangleLogGapChoice
+        uStar u s choice) t ≤
+      intervalDomain_rectangleLogGapSlopeBound_with_weight
+        p q uStar u t := by
+  have hvals := intervalDomain_rectangleLogGapChoice_argmax_values
+    huStar hsol ht choice harg
+  have htop := intervalDomain_rectangle_clampedUpper_logSlope_with_weight
+    hq hweight hweightOne hχ huStar heq hsol ht choice.1 hvals.1
+  have hbot := intervalDomain_rectangle_clampedLower_logSlope_with_weight
+    hq hweight hχ huStar heq hsol ht choice.2 hvals.2
+  rw [intervalDomain_rectangleLogGapChoice_deriv_eq
+    huStar hsol ht choice]
+  unfold intervalDomain_rectangleLogGapChoiceSlope
+    intervalDomain_rectangleLogGapSlopeBound_with_weight
+  linarith
+
 /-- Joint continuity of the exact envelope-choice slope on a closed
 positive-time slab. -/
 theorem intervalDomain_equilibriumChoiceSlope_jointContinuousOn
@@ -907,16 +1159,22 @@ theorem intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
     huStar hsol (hab hz.1) z.2)
 
 set_option maxHeartbeats 4000000 in
-/-- Concrete right-upper Dini inequality for the clamped logarithmic gap. -/
-theorem intervalDomain_rectangleLogGap_dini
+/-- Generic right-upper Dini inequality for the clamped logarithmic gap,
+given a bound for every exact compact-choice maximizer. -/
+theorem intervalDomain_rectangleLogGap_dini_of_argmax_slope_bound
     {p : CM2Params} {T a b uStar : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
-    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
-    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (g : ℝ → ℝ) (huStar : 0 < uStar)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T)
+    (hargmax : ∀ s ∈ Icc a b, ∀ choice : intervalRectangleGapChoice,
+      intervalDomain_rectangleLogGapChoice uStar u s choice =
+          sSup (intervalDomain_rectangleLogGapChoice uStar u s ''
+            (Set.univ : Set intervalRectangleGapChoice)) →
+        deriv (fun r => intervalDomain_rectangleLogGapChoice
+            uStar u r choice) s ≤ g s) :
     ∀ x ∈ Ico a b, ∀ r : ℝ,
-      intervalDomain_rectangleLogGapSlopeBound p uStar u x < r →
+      g x < r →
         ∃ᶠ z in nhdsWithin x (Ioi x),
           (z - x)⁻¹ *
             (intervalDomain_rectangleLogGap uStar u z -
@@ -1033,20 +1291,18 @@ theorem intervalDomain_rectangleLogGap_dini
   have hbnd : ∀ s ∈ Icc a b, ∀ q : intervalRectangleGapParameter,
       F s q = sSup (F s ''
           (Set.univ : Set intervalRectangleGapParameter)) →
-        deriv (fun r => F r q) s ≤
-          intervalDomain_rectangleLogGapSlopeBound p uStar u s := by
+        deriv (fun r => F r q) s ≤ g s := by
     intro s hs q harg
     rw [himage s] at harg
-    have hbase := intervalDomain_rectangleLogGapChoice_argmax_slope
-      hχ huStar heq hsol (hab hs)
-        (intervalRectangleGapParameterChoice q) harg
+    have hbase := hargmax s hs
+      (intervalRectangleGapParameterChoice q) harg
     simpa [F] using hbase
   have hraw := @compactMax_dini_of_argmax_upperBound
     intervalRectangleGapParameter
     (inferInstance : PseudoMetricSpace intervalRectangleGapParameter)
     hcompactGap
     (inferInstance : Nonempty intervalRectangleGapParameter)
-    F (intervalDomain_rectangleLogGapSlopeBound p uStar u) a b
+    F g a b
     hF hsliceCont hsliceDiff hM hdF hbnd
   intro x hx r hr
   have hfreq := hraw x hx r hr
@@ -1065,6 +1321,59 @@ theorem intervalDomain_rectangleLogGap_dini
       huStar hsol (hab hxIcc)] at hz
   exact hz
 
+set_option maxHeartbeats 4000000 in
+/-- Concrete right-upper Dini inequality for the clamped logarithmic gap. -/
+theorem intervalDomain_rectangleLogGap_dini
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ∀ x ∈ Ico a b, ∀ r : ℝ,
+      intervalDomain_rectangleLogGapSlopeBound p uStar u x < r →
+        ∃ᶠ z in nhdsWithin x (Ioi x),
+          (z - x)⁻¹ *
+            (intervalDomain_rectangleLogGap uStar u z -
+              intervalDomain_rectangleLogGap uStar u x) < r := by
+  apply intervalDomain_rectangleLogGap_dini_of_argmax_slope_bound
+    (p := p) (g := intervalDomain_rectangleLogGapSlopeBound p uStar u)
+      huStar hsol hab
+  intro s hs choice harg
+  exact intervalDomain_rectangleLogGapChoice_argmax_slope
+    hχ huStar heq hsol (hab hs) choice harg
+
+set_option maxHeartbeats 4000000 in
+/-- Weighted right-upper Dini inequality on a window where both sensitivity
+weights admit the same uniform factor `q`. -/
+theorem intervalDomain_rectangleLogGap_dini_with_weight
+    {p : CM2Params} {T a b q uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hq : 0 ≤ q)
+    (hweight : ∀ s ∈ Icc a b, ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v s) y) ^ (-p.β) ≤ q)
+    (hweightOne : ∀ s ∈ Icc a b, ∀ y ∈ Icc (0 : ℝ) 1,
+      (1 + intervalDomainLift (v s) y) ^ (-p.β - 1) ≤ q)
+    (hχ : 0 ≤ p.χ₀) (huStar : 0 < uStar)
+    (heq : p.a - p.b * uStar ^ p.α = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ∀ x ∈ Ico a b, ∀ r : ℝ,
+      intervalDomain_rectangleLogGapSlopeBound_with_weight
+          p q uStar u x < r →
+        ∃ᶠ z in nhdsWithin x (Ioi x),
+          (z - x)⁻¹ *
+            (intervalDomain_rectangleLogGap uStar u z -
+              intervalDomain_rectangleLogGap uStar u x) < r := by
+  apply intervalDomain_rectangleLogGap_dini_of_argmax_slope_bound
+    (p := p)
+      (g := intervalDomain_rectangleLogGapSlopeBound_with_weight
+        p q uStar u) huStar hsol hab
+  intro s hs choice harg
+  exact intervalDomain_rectangleLogGapChoice_argmax_slope_with_weight
+    hq (hweight s hs) (hweightOne s hs) hχ huStar heq hsol
+      (hab hs) choice harg
+
 #print axioms intervalDomain_equilibriumChoiceValue_pos
 #print axioms intervalDomain_clampedLower_pos
 #print axioms intervalDomain_rectangleLogGap_nonneg
@@ -1073,11 +1382,16 @@ theorem intervalDomain_rectangleLogGap_dini
 #print axioms intervalDomain_rectangle_clampedUpper_logSlope
 #print axioms intervalDomain_rectangle_clampedLower_logSlope
 #print axioms intervalDomain_rectangleLogGapChoice_argmax_slope
+#print axioms intervalDomain_rectangle_clampedUpper_logSlope_with_weight
+#print axioms intervalDomain_rectangle_clampedLower_logSlope_with_weight
+#print axioms intervalDomain_rectangleLogGapChoice_argmax_slope_with_weight
 #print axioms intervalDomain_equilibriumChoiceValue_jointContinuousOn
 #print axioms intervalDomain_rectangleLogGapChoice_jointContinuousOn
 #print axioms intervalDomain_rectangleLogGapChoice_hasDerivAt
 #print axioms intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
+#print axioms intervalDomain_rectangleLogGap_dini_of_argmax_slope_bound
 #print axioms intervalDomain_rectangleLogGap_dini
+#print axioms intervalDomain_rectangleLogGap_dini_with_weight
 
 end
 
