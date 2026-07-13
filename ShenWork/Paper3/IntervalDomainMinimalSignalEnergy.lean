@@ -1686,6 +1686,90 @@ theorem intervalDomain_minimal2_signal_energy_tendsto_zero
       intervalDomain_chemotaxisSignalEnergy_nonneg p.hμ.le
   · exact eventually_atTop.2 ⟨s, fun t ht => hdecay t ht⟩
 
+/-- The coercive `vₓₓ` term has arbitrarily late small slices in the second
+minimal formula branch. -/
+theorem intervalDomain_minimal2_exists_late_signal_lap_lt
+    (p : CM2Params)
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (hbeta : 1 ≤ p.β) {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal2Formula p uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T q : ℝ} (hq : 0 < q) :
+    ∃ t, T ≤ t ∧
+      (∫ y in (0 : ℝ)..1,
+        (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2) < q := by
+  let c : ℝ := minimal2SignalCoefficient p uBar vLower
+  have hc : 0 < c := by
+    simpa [c] using minimal2SignalCoefficient_pos
+      p huBar hvLower hthreshold
+  rcases eventually_atTop.1 hupper with ⟨Tu, hTu⟩
+  rcases eventually_atTop.1 hfloor with ⟨Tv, hTv⟩
+  let Tbase : ℝ := max (max Tu Tv) (max T 1)
+  have hTbase : 0 < Tbase :=
+    lt_of_lt_of_le zero_lt_one
+      ((le_max_right T 1).trans (le_max_right (max Tu Tv) (max T 1)))
+  have hTle : T ≤ Tbase :=
+    (le_max_left T 1).trans (le_max_right (max Tu Tv) (max T 1))
+  have hTuLe : Tu ≤ Tbase :=
+    (le_max_left Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  have hTvLe : Tv ≤ Tbase :=
+    (le_max_right Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  let E : ℝ → ℝ := fun s =>
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v s
+  let D : ℝ → ℝ := fun s => ∫ y in (0 : ℝ)..1,
+    (deriv (fun z => deriv (intervalDomainLift (v s)) z) y) ^ 2
+  obtain ⟨t, htbase, htSmall⟩ :=
+    exists_late_dissipation_lt_of_nonnegative_energy_on_Ici
+      (E := E) (D := D) (slope := fun s => deriv E s)
+      (c := (2 : ℝ)) (T := Tbase) (q := q)
+      (by norm_num) hTbase hq
+      (fun _ _ => by
+        dsimp [E]
+        exact intervalDomain_chemotaxisSignalEnergy_nonneg p.hμ.le)
+      (fun s hs => by
+        have hH : 0 < s + 1 := by linarith
+        have hsmem : s ∈ Ioo (0 : ℝ) (s + 1) := ⟨hs, by linarith⟩
+        have horig := intervalDomain_minimal_signal_energy_hasDerivAt_pde
+          ha0 hb0 hgamma heq (huv.classical (s + 1) hH) hsmem
+        exact (by
+          simpa [E] using horig.differentiableAt.hasDerivAt))
+      (fun s hs => by
+        have hs0 : 0 < s := lt_of_lt_of_le hTbase hs
+        have hH : 0 < s + 1 := by linarith
+        have hsmem : s ∈ Ioo (0 : ℝ) (s + 1) := ⟨hs0, by linarith⟩
+        let hsol := huv.classical (s + 1) hH
+        have hsup : intervalDomain.supNorm (u s) ≤ uBar :=
+          hTu s (hTuLe.trans hs)
+        have hpoint : ∀ x : intervalDomainPoint, u s x ≤ uBar := by
+          intro x
+          have hx :=
+            IntervalChiNegH1PhysicalResolverSupProducer.intervalDomainLift_le_supNorm_of_classical
+              hsol hsmem x.property
+          have hx' : u s x ≤ intervalDomain.supNorm (u s) := by
+            simpa [intervalDomainLift, x.property] using hx
+          exact hx'.trans hsup
+        have hVfloor : ∀ x : intervalDomainPoint, vLower ≤ v s x :=
+          hTv s (hTvLe.trans hs)
+        have hslope := intervalDomain_minimal_signal_energy_slope_le
+          ha0 hb0 hgamma heq hsol hsmem hbeta huBar hvLower hchi
+            hpoint hVfloor
+        have hGnonneg : 0 ≤
+            ∫ y in (0 : ℝ)..1,
+              (deriv (intervalDomainLift (v s)) y) ^ 2 :=
+          intervalIntegral.integral_nonneg (by norm_num)
+            (fun _ _ => sq_nonneg _)
+        dsimp [E, D]
+        exact le_trans hslope (by nlinarith [mul_nonneg hc.le hGnonneg]))
+  exact ⟨t, hTle.trans htbase, by simpa [D] using htSmall⟩
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
@@ -1701,6 +1785,7 @@ theorem intervalDomain_minimal2_signal_energy_tendsto_zero
 #print axioms intervalDomain_minimal_signal_energy_control
 #print axioms intervalDomain_minimal2_signal_energy_exponential_decay
 #print axioms intervalDomain_minimal2_signal_energy_tendsto_zero
+#print axioms intervalDomain_minimal2_exists_late_signal_lap_lt
 
 end
 
