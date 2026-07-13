@@ -326,10 +326,7 @@ import ShenWork.Paper2.IntervalEnvelopeProp
 import ShenWork.Paper2.IntervalMixedProduct
 import ShenWork.Paper2.IntervalChiNegCloseBaseSeed
 import ShenWork.Paper2.IntervalTimeRegDirect
-import ShenWork.Paper2.IntervalChiNegClose2TimeDeriv
-import ShenWork.Paper2.IntervalChiNegAssemblyHagree
 import ShenWork.Paper2.IntervalSourceBridgeTest
-import ShenWork.Paper2.IntervalTimeNhdChiNeg
 import ShenWork.Paper2.IntervalChiNegFinalClose
 import ShenWork.Paper2.IntervalSourceBridgeOpen
 import ShenWork.Paper2.IntervalBankChemSliceFix
@@ -388,7 +385,6 @@ import ShenWork.Paper2.IntervalChiNegMildPackage
 
 import ShenWork.Paper1.IntegratedChemoDefectImpl
 
-import ShenWork.Paper2.IntervalChiNegSeamDischarge
 
 import ShenWork.Paper1.ChemoReactionBalance
 
@@ -411,21 +407,14 @@ import ShenWork.Paper2.IntervalCarrySeamFullDischarge
 import ShenWork.Paper2.IntervalChiNegContinuationEnvelope
 import ShenWork.Paper2.IntervalChiNegEnvelopePersistence
 import ShenWork.Paper2.IntervalChiNegCandidateInvariance
-import ShenWork.Paper2.IntervalChiNegBoxExtendDischarge
-import ShenWork.Paper2.IntervalChiNegRestartIdentity
 import ShenWork.Paper1.IntervalP1AdmissibleClosure
-import ShenWork.Paper2.IntervalChiNegPersistDischarge
 import ShenWork.Paper2.IntervalChiNegLocalExist
-import ShenWork.Paper2.IntervalChiNegEnvBallBanach
 import ShenWork.Paper1.IntervalP1StepInputAssembly
-import ShenWork.Paper2.IntervalChiNegSupBanach
 import ShenWork.Paper2.IntervalChiNegTrajBanach
 import ShenWork.Paper2.IntervalChiNegTrajBanachClose
 import ShenWork.Paper2.IntervalChiNegTrajBanachFinal
 import ShenWork.Paper2.IntervalChiNegMapsTo
 import ShenWork.Paper2.IntervalReflCircleWiener
-import ShenWork.Paper2.IntervalChiNegGwInvariance
-import ShenWork.Paper2.IntervalChiNegSupersolution
 import ShenWork.Paper2.IntervalChiNegDirectSupersolution
 import ShenWork.Paper2.IntervalCarrySeamWienerDischarge
 import ShenWork.Paper2.IntervalCarrySeamConjDischarge
@@ -437,22 +426,11 @@ import ShenWork.Paper2.IntervalChiNegBaseDirect
 import ShenWork.Paper2.IntervalChiNegCapstone
 import ShenWork.Paper2.IntervalChiNegTrajBridges
 import ShenWork.Paper2.IntervalChiNegLegContinuity
-import ShenWork.Paper2.IntervalChiNegDirectBase
-import ShenWork.Paper2.IntervalChiNegBaseDirectExtend
 import ShenWork.Paper2.IntervalChiNegValueOpCont
-import ShenWork.Paper2.IntervalChiNegDatumBound
-import ShenWork.Paper2.IntervalChiNegUniformEnvelope
-import ShenWork.Paper2.IntervalChiNegUniformClose
-import ShenWork.Paper2.IntervalChiNegCoordCert
-import ShenWork.Paper2.IntervalChiNegHenvEnvBall
-import ShenWork.Paper2.IntervalChiNegAssemble
 import ShenWork.Paper2.IntervalChiNegHmdC
 import ShenWork.Paper2.IntervalChiNegH1Energy
 import ShenWork.Paper2.IntervalChiNegH1EnergyCore
 import ShenWork.Paper2.IntervalChiNegH1EnergyDeriv
-import ShenWork.Paper2.IntervalChiNegGradSummable
-import ShenWork.Paper2.IntervalChiNegH1Final
-import ShenWork.Paper2.IntervalChiNegA3Slice
 import ShenWork.Paper2.IntervalRestartVariationOfConstants
 import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
 import ShenWork.Paper2.IntervalResolverLevel0SpectralC2Coeff
@@ -469,11 +447,6 @@ import ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 import ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 import ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
 import ShenWork.Paper2.IntervalChiNegH1ZeroSlabPhysicalRHS
-import ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
-import ShenWork.Paper2.IntervalChiNegH1ZeroStartPrimitiveTraceReducer
-import ShenWork.Paper2.IntervalChiNegH1BFormZeroStartTraceProducer
-import ShenWork.Paper2.IntervalChiNegH1ZeroStartConstantPrimitiveData
-import ShenWork.Paper2.IntervalChiNegH1ZeroStartConstantRoute
 import ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
 import ShenWork.Paper2.IntervalChiNegH1RHSIntegrabilityProducer
 import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
@@ -492,14 +465,9 @@ import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeProducer
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeFTC
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeRHS
 import ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
-import ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
-import ShenWork.Paper2.IntervalChiNegH1PhysicalBoundedBeforeRoute
-import ShenWork.Paper2.IntervalChiNegH1PhysicalExit
 import ShenWork.Paper2.IntervalChiNegH1PhysicalScalarContinuity
 import ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 import ShenWork.Paper2.IntervalChiNegH1DerivativeWindowProducer
-import ShenWork.Paper2.IntervalChiNegH1BridgeInitialWiring
-import ShenWork.Wiener.EWA.SourceChiNegUniformBridge
 import ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
 import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
 import ShenWork.Paper2.IntervalTruncatedStrictPositivityProducerV6
