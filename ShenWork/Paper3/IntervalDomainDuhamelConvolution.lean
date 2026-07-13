@@ -185,9 +185,147 @@ theorem singular_quadratic_exponential_convolution_le
         simpa [base] using
           reservedSingularKernel_integral_Ioi htheta0 htheta1 hd]
 
+/-- Weighted-tail form used by the restart contraction.  A smoothing rate
+`omega` strictly larger than the desired output rate `rate` is enough; no
+artificial condition `omega > 2*rate` is needed because the quadratic source
+contributes the spare factor `exp(-rate*s) <= 1`. -/
+theorem weighted_singular_quadratic_convolution_le
+    {theta omega rate t : ℝ}
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hrate : 0 < rate) (hromega : rate < omega) (ht : 0 ≤ t) :
+    (∫ s in (0 : ℝ)..t,
+        (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s)) ≤
+      Real.exp (-rate * t) *
+        reservedSingularKernelMass theta (omega - rate) := by
+  let d : ℝ := omega - rate
+  let base : ℝ → ℝ := reservedSingularKernel theta d
+  let major : ℝ → ℝ := fun s => Real.exp (-rate * t) * base (t - s)
+  let source : ℝ → ℝ := fun s =>
+    (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+      Real.exp (-2 * rate * s)
+  have hd : 0 < d := sub_pos.mpr hromega
+  have hbaseIoi : IntegrableOn base (Set.Ioi 0) := by
+    simpa [base] using
+      reservedSingularKernel_integrableOn_Ioi htheta0 htheta1 hd
+  have hbaseIci : IntegrableOn base (Set.Ici 0) :=
+    Iff.mpr integrableOn_Ici_iff_integrableOn_Ioi hbaseIoi
+  have huIcc : Set.uIcc (0 : ℝ) t ⊆ Set.Ici 0 := by
+    rw [Set.uIcc_of_le ht]
+    exact fun r hr => hr.1
+  have hbaseInt : IntervalIntegrable base volume (0 : ℝ) t :=
+    (hbaseIci.mono_set huIcc).intervalIntegrable
+  have hcompInt : IntervalIntegrable (fun s => base (t - s)) volume (0 : ℝ) t := by
+    simpa using (hbaseInt.comp_sub_left t).symm
+  have hmajorInt : IntervalIntegrable major volume (0 : ℝ) t :=
+    hcompInt.const_mul (Real.exp (-rate * t))
+  have hpoint : ∀ s ∈ Set.Icc (0 : ℝ) t, source s ≤ major s := by
+    intro s hs
+    have hs0 : 0 ≤ s := hs.1
+    have hr0 : 0 ≤ t - s := sub_nonneg.mpr hs.2
+    have hpow0 : 0 ≤ (t - s) ^ (-theta) := Real.rpow_nonneg hr0 _
+    have hexps : Real.exp (-rate * s) ≤ 1 := by
+      rw [← Real.exp_zero]
+      exact Real.exp_le_exp.mpr (by nlinarith)
+    have hexpEq :
+        Real.exp (-omega * (t - s)) * Real.exp (-2 * rate * s) =
+          Real.exp (-rate * t) * Real.exp (-d * (t - s)) *
+            Real.exp (-rate * s) := by
+      calc
+        Real.exp (-omega * (t - s)) * Real.exp (-2 * rate * s) =
+            Real.exp ((-omega * (t - s)) + (-2 * rate * s)) := by
+          rw [Real.exp_add]
+        _ = Real.exp ((-rate * t) + (-d * (t - s)) + (-rate * s)) := by
+          congr 1
+          dsimp [d]
+          ring
+        _ = Real.exp (-rate * t) * Real.exp (-d * (t - s)) *
+            Real.exp (-rate * s) := by
+          rw [Real.exp_add, Real.exp_add]
+    dsimp only [source, major, base, reservedSingularKernel]
+    rw [show
+      (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s) =
+        (t - s) ^ (-theta) *
+          (Real.exp (-omega * (t - s)) * Real.exp (-2 * rate * s)) by ring]
+    rw [hexpEq]
+    calc
+      (t - s) ^ (-theta) *
+          (Real.exp (-rate * t) * Real.exp (-d * (t - s)) *
+            Real.exp (-rate * s)) ≤
+        (t - s) ^ (-theta) *
+          (Real.exp (-rate * t) * Real.exp (-d * (t - s)) * 1) :=
+        mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left hexps
+            (mul_nonneg (Real.exp_nonneg _) (Real.exp_nonneg _))) hpow0
+      _ = Real.exp (-rate * t) *
+          ((t - s) ^ (-theta) * Real.exp (-d * (t - s))) := by ring
+  have hsource_meas : AEStronglyMeasurable source
+      (volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    apply Measurable.aestronglyMeasurable
+    dsimp [source]
+    fun_prop
+  have hsourceInt : IntervalIntegrable source volume (0 : ℝ) t := by
+    apply hmajorInt.mono_fun
+    · exact hsource_meas
+    · refine (ae_restrict_iff' measurableSet_uIoc).2 ?_
+      refine Filter.Eventually.of_forall (fun s hs => ?_)
+      have hsIcc : s ∈ Set.Icc (0 : ℝ) t := by
+        rw [Set.uIoc_of_le ht] at hs
+        exact ⟨le_of_lt hs.1, hs.2⟩
+      have hsource0 : 0 ≤ source s := by
+        dsimp [source]
+        exact mul_nonneg
+          (mul_nonneg (Real.rpow_nonneg (sub_nonneg.mpr hsIcc.2) _)
+            (Real.exp_nonneg _)) (Real.exp_nonneg _)
+      have hmajor0 : 0 ≤ major s := by
+        dsimp [major, base, reservedSingularKernel]
+        exact mul_nonneg (Real.exp_nonneg _)
+          (mul_nonneg (Real.rpow_nonneg (sub_nonneg.mpr hsIcc.2) _)
+            (Real.exp_nonneg _))
+      simpa [Real.norm_eq_abs, abs_of_nonneg hsource0,
+        abs_of_nonneg hmajor0] using hpoint s hsIcc
+  have hmono :
+      (∫ s in (0 : ℝ)..t, source s) ≤
+        ∫ s in (0 : ℝ)..t, major s :=
+    intervalIntegral.integral_mono_on ht hsourceInt hmajorInt hpoint
+  have hmajorEq :
+      (∫ s in (0 : ℝ)..t, major s) =
+        Real.exp (-rate * t) * ∫ r in (0 : ℝ)..t, base r := by
+    dsimp [major]
+    rw [intervalIntegral.integral_const_mul]
+    simp only [intervalIntegral.integral_comp_sub_left, sub_self, tsub_zero]
+  have hbase_nonneg : ∀ᵐ r ∂volume.restrict (Set.Ioi 0), 0 ≤ base r := by
+    refine (ae_restrict_iff' measurableSet_Ioi).2 ?_
+    refine Filter.Eventually.of_forall (fun r hr => ?_)
+    dsimp [base, reservedSingularKernel]
+    exact mul_nonneg (Real.rpow_nonneg hr.le _) (Real.exp_nonneg _)
+  have hbaseInterval_le :
+      (∫ r in (0 : ℝ)..t, base r) ≤
+        ∫ r in Set.Ioi (0 : ℝ), base r := by
+    rw [intervalIntegral.integral_of_le ht]
+    exact setIntegral_mono_set hbaseIoi hbase_nonneg
+      (Filter.Eventually.of_forall (fun r hr => Set.Ioc_subset_Ioi_self hr))
+  calc
+    (∫ s in (0 : ℝ)..t,
+        (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s)) =
+        ∫ s in (0 : ℝ)..t, source s := rfl
+    _ ≤ ∫ s in (0 : ℝ)..t, major s := hmono
+    _ = Real.exp (-rate * t) * ∫ r in (0 : ℝ)..t, base r := hmajorEq
+    _ ≤ Real.exp (-rate * t) * ∫ r in Set.Ioi (0 : ℝ), base r :=
+      mul_le_mul_of_nonneg_left hbaseInterval_le (Real.exp_nonneg _)
+    _ = Real.exp (-rate * t) *
+        reservedSingularKernelMass theta (omega - rate) := by
+      rw [show (∫ r in Set.Ioi (0 : ℝ), base r) =
+          reservedSingularKernelMass theta d by
+        simpa [base] using
+          reservedSingularKernel_integral_Ioi htheta0 htheta1 hd]
+
 #print axioms reservedSingularKernel_integrableOn_Ioi
 #print axioms reservedSingularKernel_integral_Ioi
 #print axioms singular_quadratic_exponential_convolution_le
+#print axioms weighted_singular_quadratic_convolution_le
 
 end
 
