@@ -107,6 +107,55 @@ def PerStepBoxZProvider
     (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z
 
+/-- Orbit-faithful fixed-source existence: the old iterate carries exactly the
+regularity invariant produced at the preceding Rothe step.  Unlike
+`PaperStepFixedSourceExistsForSuperTrap`, this does not quantify over arbitrary
+continuous trapped supersolutions. -/
+def PaperStepFixedSourceExistsForRegularSuperTrap
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
+  InMonotoneWaveTrapSet κ M u →
+  ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+    ∃ R : ℝ → ℝ,
+      Continuous R ∧
+      (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
+        Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
+      R = paperStepSource p c lam u Z
+        (fun x => greenConv c lam R x)
+
+/-- Regular-iterate fixed-source existence from the same validated truncated
+weighted-Hölder source box.  The proof is the genuine source-box Schauder fixed
+point plus clamp-inactivity argument, specialized to the orbit invariant. -/
+theorem PaperStepFixedSourceExistsForRegularSuperTrap.of_truncated_sourceBox
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hdata : InMonotoneWaveTrapSet κ M u →
+      ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+        PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
+    PaperStepFixedSourceExistsForRegularSuperTrap p c lam M κ Λ u := by
+  intro hu Z hZ
+  let hd : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z :=
+    hdata hu Z hZ
+  obtain ⟨R, hRbox, hRfix⟩ := hd.exists_fixed
+  have hIcc :
+      ∀ x, (fun y => greenConv c lam R y) x ∈
+        Set.Icc (0 : ℝ) (upperBarrier κ M x) :=
+    hd.truncation_inactive R hRbox hRfix
+  have htrunc_eq :
+      paperFixedSourceMap p c lam M κ u Z R =
+        paperStepSource p c lam u Z (fun x => greenConv c lam R x) :=
+    paperStepSource_truncated_eq_paperStepSource_of_Icc
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (u := u) (Z := Z) (R := R) hd.hM_nonneg hIcc
+  have hRbound_const : ∀ y, |R y| ≤ hd.B * M := by
+    intro y
+    calc
+      |R y| ≤ hd.B * upperBarrier κ M y := hRbox.bound y
+      _ ≤ hd.B * M :=
+        mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hd.B_nonneg
+  refine ⟨R, hRbox.cont, ⟨hd.B * M, hRbound_const, hd.sourceBound_eq⟩, ?_⟩
+  calc
+    R = paperFixedSourceMap p c lam M κ u Z R := hRfix.symm
+    _ = paperStepSource p c lam u Z (fun x => greenConv c lam R x) := htrunc_eq
+
 /-- **Per-step fixed-source existence on a trapped profile.**
 
 From a per-`Z` provider of truncated source-box data and the profile's
@@ -210,6 +259,35 @@ theorem paperStepFixedSourceExistsForSuperTrap_of_params
     (sigma := sigma) (aL := aL) (C_u := C_u) (L_u := L_u)
     params.hu_rate (perStepBoxZProvider_of_params params wit)
 
+/-- The explicit source-box construction on the satisfiable regular-iterate
+interface.  Every regularity field is supplied by the preceding Rothe output;
+the source-box proof itself is unchanged. -/
+theorem paperStepFixedSourceExistsForRegularSuperTrap_of_params
+    {p : CMParams} {c lam M κ Λ B sigma aL C_u L_u C_R m_sigma : ℝ}
+    {u : ℝ → ℝ}
+    (params : PerStepBoxParams p c lam M κ Λ B sigma aL C_u L_u C_R m_sigma u)
+    (wit : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+      PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
+        params.hlam params.hrpκ params.hrmκ params.hκ params.hM
+        params.hBnn params.hu.trap) :
+    PaperStepFixedSourceExistsForRegularSuperTrap p c lam M κ Λ u := by
+  apply PaperStepFixedSourceExistsForRegularSuperTrap.of_truncated_sourceBox
+  intro _hu Z hZ
+  let w := wit Z hZ
+  exact
+    paperTruncatedFixedSourceBoxData_of_trap
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      (B := B) (H := w.H) (C_chem := w.C_chem)
+      (sigma := sigma) (aL := aL) (C_u := C_u) (L_u := L_u)
+      (C_R := C_R) (m_sigma := m_sigma) (u := u) (Z := Z)
+      params.hlam params.hrpκ params.hrmκ params.hκ params.hM
+      params.hBnn params.hBpos params.hsigma params.hsigma1
+      params.hsigma_root params.hCRnn params.hUleft params.hObsRight
+      w.hH_obs params.hu params.hu_rate hZ w.rate
+      params.hsourceBound_eq params.hscalar w.hHolder_le
+      params.hcontract params.hCR w.hCB params.hbarrierScalar
+      params.hNL_M_nonpos
+
 /-- The upper-barrier paper-supersolution from the scalar barrier conditions
 carried in `PerStepBoxParams`. -/
 theorem PerStepBoxParams.basePaperSuper
@@ -252,8 +330,10 @@ theorem paperRotheStepProducer_of_params
 
 section AxiomAudit
 #print axioms paperStepFixedSourceExistsForSuperTrap_of_boxProvider
+#print axioms PaperStepFixedSourceExistsForRegularSuperTrap.of_truncated_sourceBox
 #print axioms perStepBoxZProvider_of_params
 #print axioms paperStepFixedSourceExistsForSuperTrap_of_params
+#print axioms paperStepFixedSourceExistsForRegularSuperTrap_of_params
 #print axioms PerStepBoxParams.basePaperSuper
 #print axioms paperRotheStepProducer_of_params
 end AxiomAudit
