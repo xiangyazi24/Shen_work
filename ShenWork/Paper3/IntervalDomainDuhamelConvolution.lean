@@ -322,10 +322,111 @@ theorem weighted_singular_quadratic_convolution_le
         simpa [base] using
           reservedSingularKernel_integral_Ioi htheta0 htheta1 hd]
 
+/-- Interval-integrability of the weighted singular quadratic kernel used by
+the tail bootstrap. -/
+theorem weighted_singular_quadratic_convolution_intervalIntegrable
+    {theta omega rate t : ℝ}
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hrate : 0 < rate) (hromega : rate < omega) (ht : 0 ≤ t) :
+    IntervalIntegrable
+      (fun s : ℝ =>
+        (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s)) volume 0 t := by
+  let d : ℝ := omega - rate
+  let base : ℝ → ℝ := reservedSingularKernel theta d
+  have hd : 0 < d := sub_pos.mpr hromega
+  have hbaseIoi : IntegrableOn base (Set.Ioi 0) := by
+    simpa [base] using
+      reservedSingularKernel_integrableOn_Ioi htheta0 htheta1 hd
+  have hbaseIci : IntegrableOn base (Set.Ici 0) :=
+    Iff.mpr integrableOn_Ici_iff_integrableOn_Ioi hbaseIoi
+  have huIcc : Set.uIcc (0 : ℝ) t ⊆ Set.Ici 0 := by
+    rw [Set.uIcc_of_le ht]
+    exact fun r hr => hr.1
+  have hbaseInt : IntervalIntegrable base volume (0 : ℝ) t :=
+    (hbaseIci.mono_set huIcc).intervalIntegrable
+  have hcompInt : IntervalIntegrable (fun s => base (t - s))
+      volume (0 : ℝ) t := by
+    simpa using (hbaseInt.comp_sub_left t).symm
+  have hmeas : AEStronglyMeasurable
+      (fun s : ℝ =>
+        (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s))
+      (volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    apply Measurable.aestronglyMeasurable
+    fun_prop
+  apply hcompInt.mono_fun hmeas
+  refine (ae_restrict_iff' measurableSet_uIoc).2 ?_
+  refine Filter.Eventually.of_forall (fun s hs => ?_)
+  have hsIcc : s ∈ Set.Icc (0 : ℝ) t := by
+    rw [Set.uIoc_of_le ht] at hs
+    exact ⟨le_of_lt hs.1, hs.2⟩
+  have hrs : 0 ≤ t - s := sub_nonneg.mpr hsIcc.2
+  have hpow : 0 ≤ (t - s) ^ (-theta) := Real.rpow_nonneg hrs _
+  have hfactor :
+      Real.exp (-omega * (t - s)) * Real.exp (-2 * rate * s) =
+        Real.exp (-d * (t - s)) *
+          (Real.exp (-rate * t) * Real.exp (-rate * s)) := by
+    calc
+      Real.exp (-omega * (t - s)) * Real.exp (-2 * rate * s) =
+          Real.exp (-omega * (t - s) + (-2 * rate * s)) := by
+            rw [Real.exp_add]
+      _ = Real.exp (-d * (t - s) +
+          ((-rate * t) + (-rate * s))) := by
+            congr 1
+            dsimp [d]
+            ring
+      _ = Real.exp (-d * (t - s)) *
+          (Real.exp (-rate * t) * Real.exp (-rate * s)) := by
+            rw [Real.exp_add, Real.exp_add]
+  have hnonneg : 0 ≤ base (t - s) := by
+    dsimp [base, reservedSingularKernel]
+    exact mul_nonneg hpow (Real.exp_nonneg _)
+  have hbound :
+      Real.exp (-rate * t) * Real.exp (-rate * s) ≤
+        1 := by
+    have htExp : Real.exp (-rate * t) ≤ 1 := by
+      rw [← Real.exp_zero]
+      apply Real.exp_le_exp.mpr
+      nlinarith
+    have hsExp : Real.exp (-rate * s) ≤ 1 := by
+      rw [← Real.exp_zero]
+      apply Real.exp_le_exp.mpr
+      nlinarith [hsIcc.1]
+    calc
+      Real.exp (-rate * t) * Real.exp (-rate * s) ≤ 1 * 1 :=
+        mul_le_mul htExp hsExp (Real.exp_nonneg _) zero_le_one
+      _ = 1 := by ring
+  have hsource0 : 0 ≤
+      (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+        Real.exp (-2 * rate * s) := by positivity
+  have hraw :
+      (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s) ≤ base (t - s) := by
+    rw [show
+      (t - s) ^ (-theta) * Real.exp (-omega * (t - s)) *
+          Real.exp (-2 * rate * s) =
+        (t - s) ^ (-theta) *
+          (Real.exp (-omega * (t - s)) *
+            Real.exp (-2 * rate * s)) by ring]
+    rw [hfactor]
+    dsimp [base, reservedSingularKernel]
+    have hf : Real.exp (-d * (t - s)) *
+          (Real.exp (-rate * t) * Real.exp (-rate * s)) ≤
+        Real.exp (-d * (t - s)) := by
+      calc
+        _ ≤ Real.exp (-d * (t - s)) * 1 :=
+          mul_le_mul_of_nonneg_left hbound (Real.exp_nonneg _)
+        _ = _ := mul_one _
+    exact mul_le_mul_of_nonneg_left hf hpow
+  simpa [Real.norm_eq_abs, abs_of_nonneg hsource0,
+    abs_of_nonneg hnonneg, abs_of_nonneg hpow] using hraw
+
 #print axioms reservedSingularKernel_integrableOn_Ioi
 #print axioms reservedSingularKernel_integral_Ioi
 #print axioms singular_quadratic_exponential_convolution_le
 #print axioms weighted_singular_quadratic_convolution_le
+#print axioms weighted_singular_quadratic_convolution_intervalIntegrable
 
 end
 
