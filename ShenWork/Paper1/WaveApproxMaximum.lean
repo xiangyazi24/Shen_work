@@ -198,11 +198,98 @@ theorem exists_approx_positive_max_deriv_data
     exact hderiv_sq
   exact ⟨x₀, hvalue_pos, hderiv, lt_of_le_of_lt hsecond heps_eta⟩
 
+/-- Continuous version of the penalized almost-maximum construction.  It
+controls the first and second derivatives of the *quadratic penalty* itself;
+this is useful when `f` has a corner which can subsequently be excluded by a
+one-sided contact argument. -/
+theorem exists_penalized_max_small_quadratic_errors
+    {f : ℝ → ℝ} {A eta x₁ : ℝ}
+    (hf : Continuous f) (hA : ∀ x, |f x| ≤ A)
+    (hpos : 0 < f x₁) (heta : 0 < eta) :
+    ∃ eps x₀,
+      0 < eps ∧
+      IsMaxOn (fun x => f x - eps * x ^ 2) Set.univ x₀ ∧
+      f x₁ / 2 < f x₀ ∧
+      |2 * eps * x₀| < eta ∧
+      2 * eps < eta := by
+  have hApos : 0 < A := lt_of_lt_of_le hpos (le_trans (le_abs_self (f x₁)) (hA x₁))
+  let D : ℝ := 2 * A + x₁ ^ 2 + 1
+  have hD : 0 < D := by
+    dsimp [D]
+    nlinarith [sq_nonneg x₁]
+  let eps : ℝ :=
+    min 1
+      (min (f x₁ / (2 * (x₁ ^ 2 + 1)))
+        (min (eta / 2) (eta ^ 2 / (8 * D)))) / 2
+  have hxden : 0 < 2 * (x₁ ^ 2 + 1) := by positivity
+  have heps : 0 < eps := by
+    dsimp [eps]
+    positivity
+  have heps_one : eps < 1 := by
+    dsimp [eps]
+    have hmin : min 1
+        (min (f x₁ / (2 * (x₁ ^ 2 + 1)))
+          (min (eta / 2) (eta ^ 2 / (8 * D)))) ≤ 1 := min_le_left _ _
+    nlinarith
+  have heps_value : eps < f x₁ / (2 * (x₁ ^ 2 + 1)) := by
+    dsimp [eps]
+    have hmin : min 1
+        (min (f x₁ / (2 * (x₁ ^ 2 + 1)))
+          (min (eta / 2) (eta ^ 2 / (8 * D)))) ≤
+          f x₁ / (2 * (x₁ ^ 2 + 1)) :=
+      (min_le_right _ _).trans (min_le_left _ _)
+    nlinarith [div_pos hpos hxden]
+  have heps_eta : 2 * eps < eta := by
+    dsimp [eps]
+    have hmin : min 1
+        (min (f x₁ / (2 * (x₁ ^ 2 + 1)))
+          (min (eta / 2) (eta ^ 2 / (8 * D)))) ≤ eta / 2 :=
+      (min_le_right _ _).trans ((min_le_right _ _).trans (min_le_left _ _))
+    nlinarith
+  have heps_sq : 4 * eps * D < eta ^ 2 := by
+    dsimp [eps]
+    have hmin : min 1
+        (min (f x₁ / (2 * (x₁ ^ 2 + 1)))
+          (min (eta / 2) (eta ^ 2 / (8 * D)))) ≤ eta ^ 2 / (8 * D) :=
+      (min_le_right _ _).trans ((min_le_right _ _).trans (min_le_right _ _))
+    have hmul := mul_le_mul_of_nonneg_right hmin (show 0 ≤ 4 * D by positivity)
+    field_simp [ne_of_gt hD] at hmul
+    nlinarith
+  obtain ⟨x₀, hmax, hvalue⟩ :=
+    exists_isMaxOn_sub_mul_sq_of_bounded (x₁ := x₁) hf hA heps
+  have hvalue_pos : f x₁ / 2 < f x₀ := by
+    have hxfrac : eps * x₁ ^ 2 < f x₁ / 2 := by
+      have hmul := mul_le_mul_of_nonneg_right heps_value.le (sq_nonneg x₁)
+      have hfrac :
+          f x₁ / (2 * (x₁ ^ 2 + 1)) * x₁ ^ 2 < f x₁ / 2 := by
+        rw [div_mul_eq_mul_div]
+        apply (div_lt_iff₀ hxden).2
+        nlinarith [sq_nonneg x₁]
+      exact lt_of_le_of_lt (by simpa [mul_assoc] using hmul) hfrac
+    nlinarith [mul_nonneg heps.le (sq_nonneg x₀)]
+  have hx₀bound : eps * x₀ ^ 2 < D := by
+    have hf₀ : f x₀ ≤ A := (le_abs_self (f x₀)).trans (hA x₀)
+    have hf₁ : -A ≤ f x₁ := neg_le_of_abs_le (hA x₁)
+    have hepsx : eps * x₁ ^ 2 ≤ x₁ ^ 2 :=
+      mul_le_of_le_one_left (sq_nonneg x₁) heps_one.le
+    dsimp [D]
+    nlinarith
+  have hpenalty_sq : (2 * eps * x₀) ^ 2 < eta ^ 2 := by
+    calc
+      (2 * eps * x₀) ^ 2 = 4 * eps * (eps * x₀ ^ 2) := by ring
+      _ < 4 * eps * D := mul_lt_mul_of_pos_left hx₀bound (by positivity)
+      _ < eta ^ 2 := heps_sq
+  have hpenalty : |2 * eps * x₀| < eta := by
+    rw [← sq_lt_sq₀ (abs_nonneg (2 * eps * x₀)) heta.le, sq_abs]
+    exact hpenalty_sq
+  exact ⟨eps, x₀, heps, hmax, hvalue_pos, hpenalty, heps_eta⟩
+
 section AxiomAudit
 
 #print axioms exists_isMaxOn_sub_mul_sq_of_bounded
 #print axioms exists_penalized_max_deriv_data
 #print axioms exists_approx_positive_max_deriv_data
+#print axioms exists_penalized_max_small_quadratic_errors
 
 end AxiomAudit
 
