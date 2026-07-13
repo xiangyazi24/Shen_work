@@ -382,6 +382,42 @@ theorem chemFluxMLifted_endpoint_one (p : CM2Params)
     (u : intervalDomainPoint → ℝ) : chemFluxMLifted p u 1 = 0 := by
   simp [chemFluxMLifted, intervalDomainLift, resolverGradReal_one]
 
+/-- A continuous positive-strip slice has a globally continuous zero-extended
+general-`m` flux. -/
+theorem chemFluxMLifted_continuous_of_pos_slice
+    (p : CM2Params) {c M : ℝ} (hc : 0 < c) (hcM : c ≤ M)
+    {u : intervalDomainPoint → ℝ}
+    (hu_bound : ∀ x, |u x| ≤ M) (hu_floor : ∀ x, c ≤ u x)
+    (hu_cont : Continuous u) :
+    Continuous (chemFluxMLifted p u) := by
+  classical
+  have hflux_cont_on := chemFluxMLifted_continuousOn_Icc_of_pos_slice
+    p hc hcM hu_bound hu_floor hu_cont
+  have hfrontier : ∀ a ∈ frontier (Set.Icc (0 : ℝ) 1),
+      chemFluxMLifted p u a = (fun _ : ℝ => (0 : ℝ)) a := by
+    intro a ha
+    have ha01 : a ∈ ({(0 : ℝ), 1} : Set ℝ) := by
+      simpa [frontier_Icc (show (0 : ℝ) ≤ 1 by norm_num)] using ha
+    rcases ha01 with ha0 | ha1
+    · subst a
+      exact chemFluxMLifted_endpoint_zero p u
+    · subst a
+      exact chemFluxMLifted_endpoint_one p u
+  have hpiece : Continuous (Set.piecewise (Set.Icc (0 : ℝ) 1)
+      (chemFluxMLifted p u) (fun _ : ℝ => (0 : ℝ))) := by
+    refine continuous_piecewise (s := Set.Icc (0 : ℝ) 1)
+      (f := chemFluxMLifted p u) (g := fun _ : ℝ => (0 : ℝ)) hfrontier ?_ ?_
+    · simpa [closure_Icc] using hflux_cont_on
+    · exact continuous_const.continuousOn
+  have heq_piece : Set.piecewise (Set.Icc (0 : ℝ) 1)
+      (chemFluxMLifted p u) (fun _ : ℝ => (0 : ℝ)) = chemFluxMLifted p u := by
+    funext y
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · simp [Set.piecewise, hy]
+    · simp [Set.piecewise, hy, chemFluxMLifted, intervalDomainLift,
+        Real.zero_rpow p.hm.ne']
+  rwa [heq_piece] at hpiece
+
 /-- A continuous slice in a positive strip has integrable faithful flux. -/
 theorem chemFluxMLifted_integrable_of_pos_slice
     (p : CM2Params) {c M : ℝ} (hc : 0 < c) (hcM : c ≤ M)
@@ -442,6 +478,7 @@ theorem chemFluxMLifted_integrable_of_pos_slice
 #print axioms chemFluxMLifted_continuousOn_Icc_of_pos_slice
 #print axioms chemFluxMLifted_endpoint_zero
 #print axioms chemFluxMLifted_endpoint_one
+#print axioms chemFluxMLifted_continuous_of_pos_slice
 #print axioms chemFluxMLifted_integrable_of_pos_slice
 
 end ShenWork.Paper2.IntervalDomainMConjugateDuhamelMap

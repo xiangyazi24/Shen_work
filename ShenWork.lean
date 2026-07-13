@@ -535,6 +535,7 @@ import ShenWork.Paper2.IntervalDomainMConjugateDuhamelMap
 import ShenWork.Paper2.IntervalDomainMConjugateMildHolderBootstrap
 import ShenWork.Paper2.IntervalDomainMConjugateMildCthetaFlux
 import ShenWork.Paper2.IntervalDomainMConjugateMildSpatialC1
+import ShenWork.Paper2.IntervalDomainMConjugateMildChemFluxC1
 import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelL1FarBound
 import ShenWork.Paper2.IntervalDomainMCriticalLinfBound
