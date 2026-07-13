@@ -1,6 +1,7 @@
 import ShenWork.Paper3.EventualExponentialStability
 import ShenWork.Paper3.LyapunovFunction
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
+import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 
 /-! # Minimal-model signal energy on the unit interval
 
@@ -17,6 +18,8 @@ open Filter MeasureTheory Set Topology
 open scoped Interval Topology
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpMonotonicity
+open ShenWork.IntervalUnderIntegralLeibniz
 
 noncomputable section
 
@@ -451,8 +454,306 @@ theorem intervalDomain_chemotaxisSignalEnergy_eq_pairing
     ring
   exact henergy.trans hscaled.symm
 
+/-! ## Time differentiation through the self-adjoint pairing -/
+
+/-- A reusable closed-slab Leibniz rule for jointly continuous scalar fields on
+the unit interval. -/
+theorem intervalDomain_joint_intervalIntegral_hasDerivAt
+    {T t : ℝ} {F F' : ℝ → ℝ → ℝ}
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hF : ContinuousOn (Function.uncurry F)
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1))
+    (hF' : ContinuousOn (Function.uncurry F')
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1))
+    (hdiff : ∀ s ∈ Ioo (0 : ℝ) T, ∀ y ∈ Ioo (0 : ℝ) 1,
+      HasDerivAt (fun r => F r y) (F' s y) s) :
+    HasDerivAt (fun s => ∫ y in (0 : ℝ)..1, F s y)
+      (∫ y in (0 : ℝ)..1, F' t y) t := by
+  obtain ⟨delta, hdelta, hball, hIcc⟩ :=
+    ShenWork.Paper2.exists_closedSlab_subset ht
+  have hslab := hF'.mono (Set.prod_mono hIcc (le_refl _))
+  obtain ⟨bound, hboundInt, hbound⟩ :=
+    exists_bound_of_continuousOn_slab hdelta hslab
+  have hFint : IntervalIntegrable (F t) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [uIcc_of_le zero_le_one]
+    exact ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hF ht
+  have hFmeas : ∀ᶠ s in 𝓝 t,
+      AEStronglyMeasurable (F s) intervalDomainInteriorMeasure := by
+    filter_upwards [isOpen_Ioo.mem_nhds ht] with s hs
+    exact ((ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hF hs).mono
+      Ioo_subset_Icc_self).aestronglyMeasurable measurableSet_Ioo
+  have hF'meas : AEStronglyMeasurable (F' t)
+      intervalDomainInteriorMeasure :=
+    ((ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hF' ht).mono
+      Ioo_subset_Icc_self).aestronglyMeasurable measurableSet_Ioo
+  have hdiffAE : ∀ᵐ y ∂intervalDomainInteriorMeasure,
+      ∀ s ∈ Metric.ball t delta,
+        HasDerivAt (fun r => F r y) (F' s y) s := by
+    refine (ae_restrict_iff' measurableSet_Ioo).2 ?_
+    exact Filter.Eventually.of_forall fun y hy s hs =>
+      hdiff s (hball hs) y hy
+  exact intervalIntegral_hasDerivAt_time_of_local hdelta hFmeas hFint
+    hF'meas hbound hboundInt hdiffAE
+
+/-- Lifted diagonal pairing `∫(u-u*)(v-v*)`. -/
+def intervalDomainMinimalSignalPairingIntegrand
+    (u v : ℝ → intervalDomainPoint → ℝ) (uStar vStar s y : ℝ) : ℝ :=
+  (intervalDomainLift (u s) y - uStar) *
+    (intervalDomainLift (v s) y - vStar)
+
+/-- Pointwise time derivative of the diagonal signal pairing. -/
+def intervalDomainMinimalSignalPairingTimeIntegrand
+    (u v : ℝ → intervalDomainPoint → ℝ) (uStar vStar s y : ℝ) : ℝ :=
+  deriv (fun r => intervalDomainLift (u r) y) s *
+      (intervalDomainLift (v s) y - vStar) +
+    (intervalDomainLift (u s) y - uStar) *
+      deriv (fun r => intervalDomainLift (v r) y) s
+
+/-- The diagonal elliptic pairing as a time profile. -/
+def intervalDomainMinimalSignalPairing
+    (u v : ℝ → intervalDomainPoint → ℝ) (uStar vStar s : ℝ) : ℝ :=
+  ∫ y in (0 : ℝ)..1,
+    intervalDomainMinimalSignalPairingIntegrand u v uStar vStar s y
+
+/-- Genuine time derivative of the diagonal signal pairing. -/
+theorem intervalDomain_minimal_signal_pairing_hasDerivAt
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    HasDerivAt
+      (intervalDomainMinimalSignalPairing u v uStar vStar)
+      (∫ y in (0 : ℝ)..1,
+        intervalDomainMinimalSignalPairingTimeIntegrand
+          u v uStar vStar t y) t := by
+  let F : ℝ → ℝ → ℝ :=
+    intervalDomainMinimalSignalPairingIntegrand u v uStar vStar
+  let F' : ℝ → ℝ → ℝ :=
+    intervalDomainMinimalSignalPairingTimeIntegrand u v uStar vStar
+  have hU := hsol.regularity.2.2.2.2.2.2.1
+  have hV := hsol.regularity.2.2.2.2.2.2.2
+  have hUt := hsol.regularity.2.2.2.2.2.1.1
+  have hVt := hsol.regularity.2.2.2.2.2.1.2
+  have hF : ContinuousOn (Function.uncurry F)
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      (intervalDomainLift (u q.1) q.2 - uStar) *
+        (intervalDomainLift (v q.1) q.2 - vStar)) _
+    exact (hU.sub continuousOn_const).mul (hV.sub continuousOn_const)
+  have hF' : ContinuousOn (Function.uncurry F')
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      deriv (fun r => intervalDomainLift (u r) q.2) q.1 *
+          (intervalDomainLift (v q.1) q.2 - vStar) +
+        (intervalDomainLift (u q.1) q.2 - uStar) *
+          deriv (fun r => intervalDomainLift (v r) q.2) q.1) _
+    exact (hUt.mul (hV.sub continuousOn_const)).add
+      ((hU.sub continuousOn_const).mul hVt)
+  have hdiff : ∀ s ∈ Ioo (0 : ℝ) T, ∀ y ∈ Ioo (0 : ℝ) 1,
+      HasDerivAt (fun r => F r y) (F' s y) s := by
+    intro s hs y hy
+    have hyIcc := Ioo_subset_Icc_self hy
+    let x : intervalDomainPoint := ⟨y, hyIcc⟩
+    have hu : HasDerivAt (fun r => intervalDomainLift (u r) y)
+        (deriv (fun r => intervalDomainLift (u r) y) s) s := by
+      have heq : (fun r => intervalDomainLift (u r) y) = fun r => u r x := by
+        funext r
+        simp [intervalDomainLift, hyIcc, x]
+      rw [heq]
+      exact (hsol.regularity.2.1 x s hs).1.1.hasDerivAt
+    have hv : HasDerivAt (fun r => intervalDomainLift (v r) y)
+        (deriv (fun r => intervalDomainLift (v r) y) s) s := by
+      have heq : (fun r => intervalDomainLift (v r) y) = fun r => v r x := by
+        funext r
+        simp [intervalDomainLift, hyIcc, x]
+      rw [heq]
+      exact (hsol.regularity.2.1 x s hs).1.2.hasDerivAt
+    simpa [F, F', intervalDomainMinimalSignalPairingIntegrand,
+      intervalDomainMinimalSignalPairingTimeIntegrand] using
+        (hu.sub_const uStar).mul (hv.sub_const vStar)
+  simpa [intervalDomainMinimalSignalPairing, F, F'] using
+    intervalDomain_joint_intervalIntegral_hasDerivAt ht hF hF' hdiff
+
+/-- Self-adjointness identifies the two terms in the derivative of the
+diagonal pairing. -/
+theorem intervalDomain_minimal_signal_pairing_slope_eq_twice
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    (∫ y in (0 : ℝ)..1,
+      intervalDomainMinimalSignalPairingTimeIntegrand
+        u v uStar vStar t y) =
+      2 * (∫ y in (0 : ℝ)..1,
+        deriv (fun r => intervalDomainLift (u r) y) t *
+          (intervalDomainLift (v t) y - vStar)) := by
+  let Ut : ℝ → ℝ := fun y => intervalDomainLift (u t) y - uStar
+  let Vt : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let Utime : ℝ → ℝ → ℝ :=
+    fun s y => deriv (fun r => intervalDomainLift (u r) y) s
+  let Vtime : ℝ → ℝ → ℝ :=
+    fun s y => deriv (fun r => intervalDomainLift (v r) y) s
+  let left : ℝ → ℝ → ℝ :=
+    fun s y => Ut y * (intervalDomainLift (v s) y - vStar)
+  let left' : ℝ → ℝ → ℝ := fun s y => Ut y * Vtime s y
+  let right : ℝ → ℝ → ℝ :=
+    fun s y => (intervalDomainLift (u s) y - uStar) * Vt y
+  let right' : ℝ → ℝ → ℝ := fun s y => Utime s y * Vt y
+  have hU := hsol.regularity.2.2.2.2.2.2.1
+  have hV := hsol.regularity.2.2.2.2.2.2.2
+  have hUtime := hsol.regularity.2.2.2.2.2.1.1
+  have hVtime := hsol.regularity.2.2.2.2.2.1.2
+  have hUtCont : ContinuousOn Ut (Icc (0 : ℝ) 1) := by
+    exact (ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hU ht).sub
+      continuousOn_const
+  have hVtCont : ContinuousOn Vt (Icc (0 : ℝ) 1) := by
+    exact (ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hV ht).sub
+      continuousOn_const
+  have hleft : ContinuousOn (Function.uncurry left)
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    have hfixed : ContinuousOn (fun q : ℝ × ℝ => Ut q.2)
+        (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+      hUtCont.comp continuous_snd.continuousOn (fun q hq => hq.2)
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      Ut q.2 * (intervalDomainLift (v q.1) q.2 - vStar)) _
+    exact hfixed.mul (hV.sub continuousOn_const)
+  have hleft' : ContinuousOn (Function.uncurry left')
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    have hfixed : ContinuousOn (fun q : ℝ × ℝ => Ut q.2)
+        (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+      hUtCont.comp continuous_snd.continuousOn (fun q hq => hq.2)
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      Ut q.2 * deriv (fun r => intervalDomainLift (v r) q.2) q.1) _
+    exact hfixed.mul hVtime
+  have hright : ContinuousOn (Function.uncurry right)
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    have hfixed : ContinuousOn (fun q : ℝ × ℝ => Vt q.2)
+        (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+      hVtCont.comp continuous_snd.continuousOn (fun q hq => hq.2)
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      (intervalDomainLift (u q.1) q.2 - uStar) * Vt q.2) _
+    exact (hU.sub continuousOn_const).mul hfixed
+  have hright' : ContinuousOn (Function.uncurry right')
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
+    have hfixed : ContinuousOn (fun q : ℝ × ℝ => Vt q.2)
+        (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+      hVtCont.comp continuous_snd.continuousOn (fun q hq => hq.2)
+    change ContinuousOn (fun q : ℝ × ℝ =>
+      deriv (fun r => intervalDomainLift (u r) q.2) q.1 * Vt q.2) _
+    exact hUtime.mul hfixed
+  have hleftDiff : ∀ s ∈ Ioo (0 : ℝ) T, ∀ y ∈ Ioo (0 : ℝ) 1,
+      HasDerivAt (fun r => left r y) (left' s y) s := by
+    intro s hs y hy
+    have hyIcc := Ioo_subset_Icc_self hy
+    let x : intervalDomainPoint := ⟨y, hyIcc⟩
+    have hv : HasDerivAt (fun r => intervalDomainLift (v r) y)
+        (Vtime s y) s := by
+      have heq : (fun r => intervalDomainLift (v r) y) = fun r => v r x := by
+        funext r
+        simp [intervalDomainLift, hyIcc, x]
+      have hder : Vtime s y = deriv (fun r => v r x) s := by
+        dsimp [Vtime]
+        rw [heq]
+      rw [heq, hder]
+      exact (hsol.regularity.2.1 x s hs).1.2.hasDerivAt
+    simpa [left, left', Vtime] using
+      (hasDerivAt_const s (Ut y)).mul (hv.sub_const vStar)
+  have hrightDiff : ∀ s ∈ Ioo (0 : ℝ) T, ∀ y ∈ Ioo (0 : ℝ) 1,
+      HasDerivAt (fun r => right r y) (right' s y) s := by
+    intro s hs y hy
+    have hyIcc := Ioo_subset_Icc_self hy
+    let x : intervalDomainPoint := ⟨y, hyIcc⟩
+    have hu : HasDerivAt (fun r => intervalDomainLift (u r) y)
+        (Utime s y) s := by
+      have heq : (fun r => intervalDomainLift (u r) y) = fun r => u r x := by
+        funext r
+        simp [intervalDomainLift, hyIcc, x]
+      have hder : Utime s y = deriv (fun r => u r x) s := by
+        dsimp [Utime]
+        rw [heq]
+      rw [heq, hder]
+      exact (hsol.regularity.2.1 x s hs).1.1.hasDerivAt
+    simpa [right, right', Utime] using
+      (hu.sub_const uStar).mul (hasDerivAt_const s (Vt y))
+  have hleftDeriv := intervalDomain_joint_intervalIntegral_hasDerivAt
+    ht hleft hleft' hleftDiff
+  have hrightDeriv := intervalDomain_joint_intervalIntegral_hasDerivAt
+    ht hright hright' hrightDiff
+  have hfun :
+      (fun s => ∫ y in (0 : ℝ)..1, left s y) =ᶠ[𝓝 t]
+        fun s => ∫ y in (0 : ℝ)..1, right s y := by
+    filter_upwards [isOpen_Ioo.mem_nhds ht] with s hs
+    simpa [left, right, Ut, Vt] using
+      intervalDomain_minimal_signal_pairing_comm
+        hgamma heq hsol hs ht
+  have hslopeEq :
+      (∫ y in (0 : ℝ)..1, left' t y) =
+        ∫ y in (0 : ℝ)..1, right' t y := by
+    have := hfun.deriv_eq
+    rw [hleftDeriv.deriv, hrightDeriv.deriv] at this
+    exact this
+  have hsum :
+      (∫ y in (0 : ℝ)..1,
+        intervalDomainMinimalSignalPairingTimeIntegrand
+          u v uStar vStar t y) =
+        (∫ y in (0 : ℝ)..1, right' t y) +
+          ∫ y in (0 : ℝ)..1, left' t y := by
+    have hrightInt : IntervalIntegrable (right' t) volume 0 1 := by
+      apply ContinuousOn.intervalIntegrable
+      rw [uIcc_of_le zero_le_one]
+      exact ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hright' ht
+    have hleftInt : IntervalIntegrable (left' t) volume 0 1 := by
+      apply ContinuousOn.intervalIntegrable
+      rw [uIcc_of_le zero_le_one]
+      exact ShenWork.Paper2.intervalDomain_continuousOn_timeSlice hleft' ht
+    rw [← intervalIntegral.integral_add hrightInt hleftInt]
+    apply intervalIntegral.integral_congr
+    intro y _
+    rfl
+  rw [hsum, hslopeEq]
+  dsimp [right', Utime, Vt]
+  ring
+
+/-- Concrete signal-energy derivative identity for Theorem 2.5(ii), obtained
+without assuming a signal-energy derivative interface. -/
+theorem intervalDomain_minimal_signal_energy_hasDerivAt
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    HasDerivAt
+      (fun s => chemotaxisSignalEnergy intervalDomain p.μ vStar v s)
+      (2 * p.ν * (∫ y in (0 : ℝ)..1,
+        deriv (fun r => intervalDomainLift (u r) y) t *
+          (intervalDomainLift (v t) y - vStar))) t := by
+  have hpair := intervalDomain_minimal_signal_pairing_hasDerivAt
+    (uStar := uStar) (vStar := vStar) hsol ht
+  have hslope := intervalDomain_minimal_signal_pairing_slope_eq_twice
+    hgamma heq hsol ht
+  have hscaled := hpair.const_mul p.ν
+  have hlocal :
+      (fun s => chemotaxisSignalEnergy intervalDomain p.μ vStar v s) =ᶠ[𝓝 t]
+        fun s => p.ν * intervalDomainMinimalSignalPairing
+          u v uStar vStar s := by
+    filter_upwards [isOpen_Ioo.mem_nhds ht] with s hs
+    simpa [intervalDomainMinimalSignalPairing,
+      intervalDomainMinimalSignalPairingIntegrand] using
+        intervalDomain_chemotaxisSignalEnergy_eq_pairing
+          hgamma heq hsol hs
+  apply hlocal.hasDerivAt_iff.2
+  convert hscaled using 1
+  rw [hslope]
+  ring
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
+#print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
+#print axioms intervalDomain_minimal_signal_energy_hasDerivAt
 
 end
 
