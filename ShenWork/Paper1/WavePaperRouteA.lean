@@ -1624,7 +1624,6 @@ def paperRotheStepProducer_of_routeA_greenCore
             (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
             hin.hlam hout.analytic
         deriv_le := hbasic.2.2
-        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
@@ -1669,7 +1668,6 @@ def paperRotheStepProducer_of_routeA_greenCore
             (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
             hin.hlam hout.analytic
         deriv_le := hbasic.2.2
-        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old

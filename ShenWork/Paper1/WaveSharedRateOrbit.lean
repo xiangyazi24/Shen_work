@@ -8,7 +8,7 @@ noncomputable section
 namespace ShenWork.Paper1
 
 /-- The actual invariant required by the weighted whole-line source box.  In
-contrast to `PaperIterateBase.left_rate`, the constants `sigma`, `aL`, and `C`
+contrast to the qualitative `PaperIterateBase`, the constants `sigma`, `aL`, and `C`
 are shared by the whole orbit. -/
 structure PaperSharedRateIterateBase
     (p : CMParams) (c κ M sigma aL C : ℝ)
@@ -115,7 +115,6 @@ def paperRotheStepFacts_of_sharedRate_output
       diff := hbasic.2.1
       contDiff2 := paperStep_contDiff_two_of_core hlam hout.output.analytic
       deriv_le := hbasic.2.2
-      left_rate := ⟨sigma, aL, C, hout.ell, hsigma, hout.rate⟩
       nonneg := hnonneg
       le_barrier := hle_barrier
       le_old := hle_old
