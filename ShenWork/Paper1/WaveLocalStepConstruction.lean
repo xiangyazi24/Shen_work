@@ -99,6 +99,16 @@ theorem paperLocalFixedStepData_exists_of_trap
 
 namespace PaperLocalFixedStepData
 
+/-- Uniform coefficient in the weighted Green derivative estimate.  It is
+record-independent because the source Schauder construction now retains its
+global weight `B` in the type of every local step. -/
+def paperStepWeightedDerivCoeff (c lam κ B : ℝ) : ℝ :=
+  (greenDelta c lam)⁻¹ *
+    (greenRootPlus c lam *
+        (B / (greenRootPlus c lam - κ)) +
+      (-greenRootMinus c lam) *
+        (B / (-(greenRootMinus c lam + κ))))
+
 theorem step_op
     {p : CMParams} {c lam M κ Λ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam) (d : PaperLocalFixedStepData p c lam M κ Λ B u Z) :
@@ -120,12 +130,8 @@ theorem deriv_le
 /-- Coefficient in the weighted Green derivative estimate. -/
 def weightedDerivCoeff
     {p : CMParams} {M Λ B : ℝ} {u Z : ℝ → ℝ}
-    (c lam κ : ℝ) (d : PaperLocalFixedStepData p c lam M κ Λ B u Z) : ℝ :=
-  (greenDelta c lam)⁻¹ *
-    (greenRootPlus c lam *
-        (B / (greenRootPlus c lam - κ)) +
-      (-greenRootMinus c lam) *
-        (B / (-(greenRootMinus c lam + κ))))
+    (c lam κ : ℝ) (_d : PaperLocalFixedStepData p c lam M κ Λ B u Z) : ℝ :=
+  paperStepWeightedDerivCoeff c lam κ B
 
 theorem weightedDerivCoeff_nonneg
     {p : CMParams} {c lam M κ Λ B : ℝ} {u Z : ℝ → ℝ}
@@ -184,7 +190,7 @@ theorem deriv_abs_le_weighted_barrier
               (B * upperBarrier κ M x /
                 (-(greenRootMinus c lam + κ)))) := hraw
     _ = d.weightedDerivCoeff c lam κ * upperBarrier κ M x := by
-      unfold weightedDerivCoeff
+      unfold weightedDerivCoeff paperStepWeightedDerivCoeff
       ring
 
 end PaperLocalFixedStepData

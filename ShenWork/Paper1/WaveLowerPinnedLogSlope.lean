@@ -15,6 +15,13 @@ def lowerPinnedBarrierRatio (κ κtilde D M : ℝ) : ℝ :=
       (lowerBarrierXPlus κ κtilde D))
     (κtilde / (κtilde - κ))
 
+/-- Uniform logarithmic-slope coefficient for every lower-pinned local Green
+step built with the same source weight. -/
+def paperLowerPinnedStepLogSlopeCoeff
+    (c lam κ κtilde D M B : ℝ) : ℝ :=
+  PaperLocalFixedStepData.paperStepWeightedDerivCoeff c lam κ B *
+    lowerPinnedBarrierRatio κ κtilde D M
+
 theorem lowerPinnedBarrierRatio_nonneg
     {κ κtilde D M : ℝ}
     (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
@@ -147,8 +154,8 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
     (hW : InLowerPinnedMonotoneTrap κ M
       (lowerBarrierRaw κ κtilde D) d.fixed.W) :
     ∀ x, |deriv d.fixed.W x| ≤
-      (d.weightedDerivCoeff c lam κ *
-        lowerPinnedBarrierRatio κ κtilde D M) * d.fixed.W x := by
+      paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B *
+        d.fixed.W x := by
   intro x
   have hderiv := d.deriv_abs_le_weighted_barrier
     hlam hrpκ hrmκ hκ.le hM hB x
@@ -169,13 +176,42 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
         (lowerPinnedBarrierRatio κ κtilde D M * d.fixed.W x) :=
       mul_le_mul_of_nonneg_left
         (mul_le_mul_of_nonneg_left hplateau hratio0) hcoeff0
-    _ = (d.weightedDerivCoeff c lam κ *
-        lowerPinnedBarrierRatio κ κtilde D M) * d.fixed.W x := by ring
+    _ = paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B *
+        d.fixed.W x := by
+      unfold paperLowerPinnedStepLogSlopeCoeff
+        PaperLocalFixedStepData.weightedDerivCoeff
+      ring
+
+theorem paperLowerPinnedStepLogSlopeCoeff_nonneg
+    {c lam κ κtilde D M B : ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (hM : 0 ≤ M) (hB : 0 ≤ B) :
+    0 ≤ paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B := by
+  unfold paperLowerPinnedStepLogSlopeCoeff
+  have hcoeff : 0 ≤
+      PaperLocalFixedStepData.paperStepWeightedDerivCoeff c lam κ B := by
+    unfold PaperLocalFixedStepData.paperStepWeightedDerivCoeff
+    have hδ : 0 < greenDelta c lam := greenDelta_pos hlam
+    have hrp : 0 < greenRootPlus c lam := greenRootPlus_pos hlam
+    have hrm : greenRootMinus c lam < 0 := greenRootMinus_neg hlam
+    have hdenp : 0 < greenRootPlus c lam - κ := by linarith
+    have hdenm : 0 < -(greenRootMinus c lam + κ) := by linarith
+    exact mul_nonneg (inv_nonneg.mpr hδ.le)
+      (add_nonneg
+        (mul_nonneg hrp.le (div_nonneg hB hdenp.le))
+        (mul_nonneg (neg_nonneg.mpr hrm.le)
+          (div_nonneg hB hdenm.le)))
+  exact mul_nonneg hcoeff
+    (lowerPinnedBarrierRatio_nonneg hκ hgap hD hM)
 
 section AxiomAudit
 
 #print axioms upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
 #print axioms PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
+#print axioms paperLowerPinnedStepLogSlopeCoeff_nonneg
 
 end AxiomAudit
 
