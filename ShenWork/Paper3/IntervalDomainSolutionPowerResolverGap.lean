@@ -136,10 +136,23 @@ theorem cosinePowerSourceDeficit_resolver_eq_const_sub
         intervalNeumannResolverR p w ⟨x, hx⟩ := by
       rw [hconst_resolver, hsource_resolver]
 
-/-- Quantitative closed-interval signal gap for a positive classical slice.
-The mass premise is stated on that physical slice; callers obtain it directly
-from `HasEquilibriumMassOnPositiveTimes`. -/
-theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
+/-- Uniform pointwise signal-gap constant obtained from the power-source mass
+gap and the positive Neumann resolver kernel. -/
+def intervalDomainSignalGapConstant
+    (p : CM2Params) (uStar d : ℝ) : ℝ :=
+  unitIntervalResolverMassGapConstant p *
+    intervalPowerSourceGapConstant p uStar d
+
+theorem intervalDomainSignalGapConstant_pos
+    (p : CM2Params) {uStar d : ℝ}
+    (huStar : 0 < uStar) (hd : 0 < d) :
+    0 < intervalDomainSignalGapConstant p uStar d := by
+  exact mul_pos (unitIntervalResolverMassGapConstant_pos p)
+    (intervalPowerSourceGapConstant_pos p huStar hd)
+
+/-- Quantitative closed-interval signal gap for a positive classical slice,
+with a constant independent of the actual maximum `M`. -/
+theorem intervalDomain_solution_signalGapConstant_le
     (p : CM2Params) {T t uStar M d : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
@@ -148,8 +161,9 @@ theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
     (hmass : intervalDomain.integral (u t) = uStar)
     (hupper : ∀ z : intervalDomainPoint, u t z ≤ M)
     (hMgap : uStar + d ≤ M) :
-    ∃ q > 0, ∀ x ∈ Icc (0 : ℝ) 1,
-      q ≤ p.ν * M ^ p.γ / p.μ - intervalDomainLift (v t) x := by
+    ∀ x ∈ Icc (0 : ℝ) 1,
+      intervalDomainSignalGapConstant p uStar d ≤
+        p.ν * M ^ p.γ / p.μ - intervalDomainLift (v t) x := by
   let U : ℝ → ℝ := liftRepr (u t)
   have hU_cont : Continuous U := by
     apply liftRepr_continuous
@@ -179,9 +193,8 @@ theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
             exact hU_eq y hy
       _ = intervalDomain.integral (u t) := rfl
       _ = uStar := hmass
-  obtain ⟨qSource, hqSource, hqSource_le⟩ :=
-    intervalPowerSourceDeficit_uniform_integral_gap
-      p huStar hd hU_cont hU_nonneg hU_le hU_mass hMgap
+  have hqSource_le := intervalPowerSourceGapConstant_le_integral
+    p huStar hd hU_cont hU_nonneg hU_le hU_mass hMgap
   let source : ℝ → ℝ := fun y => p.ν * (M ^ p.γ - U y ^ p.γ)
   have hM : 0 < M := lt_of_lt_of_le (by linarith) hMgap
   have hsource_cont : Continuous source := by
@@ -208,16 +221,13 @@ theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
   have hsource_int : Integrable source (intervalMeasure 1) :=
     intervalMeasure_integrable_of_abs_bound
       hsource_cont.aestronglyMeasurable hsource_bound
-  let q : ℝ := unitIntervalResolverMassGapConstant p * qSource
-  have hq : 0 < q := mul_pos
-    (unitIntervalResolverMassGapConstant_pos p) hqSource
-  refine ⟨q, hq, ?_⟩
   intro x hx
   have hresolver := cosineResolver_ge_massGap_Icc p hsource_cont hB
     hsource_nonneg hsource_bound hsource_int hx
-  have hmassmul : q ≤ unitIntervalResolverMassGapConstant p *
+  have hmassmul : intervalDomainSignalGapConstant p uStar d ≤
+      unitIntervalResolverMassGapConstant p *
       (∫ y, source y ∂(intervalMeasure 1)) := by
-    dsimp [q]
+    dsimp [intervalDomainSignalGapConstant]
     exact mul_le_mul_of_nonneg_left hqSource_le
       (unitIntervalResolverMassGapConstant_pos p).le
   have halgebra := cosinePowerSourceDeficit_resolver_eq_const_sub
@@ -226,7 +236,8 @@ theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
     IntervalChiNegH1PhysicalResolverSupProducer.solution_v_eq_resolver_pointwise_Icc
       hsol ht hx
   calc
-    q ≤ unitIntervalResolverMassGapConstant p *
+    intervalDomainSignalGapConstant p uStar d ≤
+        unitIntervalResolverMassGapConstant p *
         (∫ y, source y ∂(intervalMeasure 1)) := hmassmul
     _ ≤ ∑' k, cosineCoeffs source k * unitIntervalCosineMode k x /
         (p.μ + unitIntervalCosineEigenvalue k) := hresolver
@@ -236,7 +247,26 @@ theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
     _ = p.ν * M ^ p.γ / p.μ - intervalDomainLift (v t) x := by
       rw [hv]
 
+/-- Existential form of the same quantitative signal gap. -/
+theorem intervalDomain_solution_signal_gap_of_mass_and_upper_gap
+    (p : CM2Params) {T t uStar M d : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (huStar : 0 < uStar) (hd : 0 < d)
+    (hmass : intervalDomain.integral (u t) = uStar)
+    (hupper : ∀ z : intervalDomainPoint, u t z ≤ M)
+    (hMgap : uStar + d ≤ M) :
+    ∃ q > 0, ∀ x ∈ Icc (0 : ℝ) 1,
+      q ≤ p.ν * M ^ p.γ / p.μ - intervalDomainLift (v t) x := by
+  exact ⟨intervalDomainSignalGapConstant p uStar d,
+    intervalDomainSignalGapConstant_pos p huStar hd,
+    intervalDomain_solution_signalGapConstant_le
+      p hsol ht huStar hd hmass hupper hMgap⟩
+
 #print axioms cosinePowerSourceDeficit_resolver_eq_const_sub
+#print axioms intervalDomainSignalGapConstant_pos
+#print axioms intervalDomain_solution_signalGapConstant_le
 #print axioms intervalDomain_solution_signal_gap_of_mass_and_upper_gap
 
 end ShenWork.Paper3
