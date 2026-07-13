@@ -81,7 +81,7 @@ theorem paper1_positiveRawContactData_of_routeAParamData
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
     ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hcontact⟩
-  obtain ⟨U, hpin, hprofile⟩ :=
+  obtain ⟨U, hpin, hprofile, hUdiff, hUderivDiff⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
       hcond hD_gt hD_ge_one hΛ0 hΛM hpar
@@ -130,8 +130,6 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  StationaryC2RegularityFromEquation p c (kappa c)
-                    (MChi p) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
                       (lowerBarrierRaw (kappa c)
@@ -152,8 +150,8 @@ theorem paper1_positiveRawSmoothContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hsmooth⟩
-  obtain ⟨U, hpin, hprofile⟩ :=
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hsmooth⟩
+  obtain ⟨U, hpin, hprofile, hUdiff, hUderivDiff⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
       hcond hD_gt hD_ge_one hΛ0 hΛM hpar
@@ -164,7 +162,7 @@ theorem paper1_positiveRawSmoothContactData_of_routeAParamData
       hprofile,
       hpin,
       hsmooth U hpin hprofile,
-      hreg⟩
+      hUdiff, hUderivDiff⟩
 
 /-- Positive contact branch from Route-A param-core data with smooth-branch
 upper-contact residuals. -/
@@ -206,8 +204,6 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  StationaryC2RegularityFromEquation p c (kappa c)
-                    (MChi p) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
                       (lowerBarrierRaw (kappa c)
@@ -240,8 +236,6 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  StationaryC2RegularityFromEquation p c (kappa c)
-                    (MChi p) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
                       (lowerBarrierRaw (kappa c)
@@ -257,10 +251,9 @@ theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM,
-      hreg, hconst⟩
+    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconst⟩
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg,
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM,
       fun U hpin hprofile =>
         PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
           (p := p) (c := c) (U := U)
@@ -280,8 +273,8 @@ theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hres⟩
-  obtain ⟨U, hpin, hprofile⟩ :=
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hres⟩
+  obtain ⟨U, hpin, hprofile, hUdiff, hUderivDiff⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
       hcond hD_gt hD_ge_one hΛ0 hΛM hpar
@@ -292,35 +285,15 @@ theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
       hprofile,
       hpin,
       hres U hpin hprofile,
-      hreg⟩
-
-/-- The remaining-residual Route-A package produces the previous smooth-param
-package by discharging the operator-comparison field. -/
-theorem paper1_routeASmoothParamData_of_routeARemainingParamData
-    (hData : Paper1PositiveLowerRawCapRouteARemainingParamData) :
-    Paper1PositiveLowerRawCapRouteASmoothParamData := by
-  refine ⟨?_⟩
-  intro p hα hχ_nonneg hχ_small c hc
-  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hres⟩
-  have hχ_star : p.χ < chiStar p :=
-    lt_of_lt_of_le hχ_small (min_le_right _ _)
-  have hM0 : 0 ≤ MChi p :=
-    (MChi_pos_of_chi_lt_chiStar p hχ_star).le
-  exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg,
-      fun U hpin hprofile =>
-        positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
-          hM0 hpin.bare hprofile.stationary_eq hreg
-          (hres U hpin hprofile)⟩
+      hUdiff, hUderivDiff⟩
 
 /-- Route-A remaining-contact param data produces the raw smooth-contact
 package. -/
 theorem paper1_positiveRawSmoothContactData_of_routeARemainingParamData
     (hData : Paper1PositiveLowerRawCapRouteARemainingParamData) :
     Paper1PositiveLowerPinnedRawSmoothContactBranchData :=
-  paper1_positiveRawSmoothContactData_of_routeAParamData
-    (paper1_routeASmoothParamData_of_routeARemainingParamData hData)
+  paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+    (paper1_positiveRawRemainingContactData_of_routeARemainingParamData hData)
 
 /-- Raw remaining-contact package from hmk-aware constant-branch Route-A data. -/
 theorem paper1_positiveRawRemainingContactData_of_routeAHmkConstParamData
@@ -397,16 +370,16 @@ upper-contact residual. -/
 theorem paper1_positiveContactBranch_of_routeARemainingParamData
     (hData : Paper1PositiveLowerRawCapRouteARemainingParamData) :
     Paper1PositiveCriticalFrozenStationaryContactBranch :=
-  paper1_positiveContactBranch_of_routeASmoothParamData
-    (paper1_routeASmoothParamData_of_routeARemainingParamData hData)
+  paper1_positiveContactBranch_of_lowerPinnedRawRemainingContactData
+    (paper1_positiveRawRemainingContactData_of_routeARemainingParamData hData)
 
 /-- Strict-barrier branch from Route-A param-core data with only the remaining
 upper-contact residual. -/
 theorem paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
     (hData : Paper1PositiveLowerRawCapRouteARemainingParamData) :
     Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
-  paper1_positiveStrictBarrierBranch_of_routeASmoothParamData
-    (paper1_routeASmoothParamData_of_routeARemainingParamData hData)
+  paper1_positiveStrictBarrierBranch_of_lowerPinnedRawRemainingContactData
+    (paper1_positiveRawRemainingContactData_of_routeARemainingParamData hData)
 
 /-- Raw smooth-contact package from hmk-aware constant-branch Route-A data. -/
 theorem paper1_positiveRawSmoothContactData_of_routeAHmkConstParamData
@@ -443,7 +416,6 @@ section AxiomAudit
 #print axioms paper1_positiveRawContactData_of_routeAParamData
 #print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
 #print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
-#print axioms paper1_routeASmoothParamData_of_routeARemainingParamData
 #print axioms Theorem_1_1.of_routeAParamData
 end AxiomAudit
 
