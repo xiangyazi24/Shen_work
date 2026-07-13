@@ -1,7 +1,10 @@
 import ShenWork.Paper3.EventualExponentialStability
 import ShenWork.Paper3.LyapunovFunction
+import ShenWork.Paper3.IntervalDomainMinimalPoincare
+import ShenWork.Paper3.IntervalDomainModelLinearizationAudit
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
+import ShenWork.Paper2.IntervalDomainProposition21
 
 /-! # Minimal-model signal energy on the unit interval
 
@@ -19,6 +22,9 @@ open scoped Interval Topology
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainLpMonotonicity
+open ShenWork.Paper2.IntervalDomainM
+open ShenWork.IntervalFullKernelRegularity
+open ShenWork.Poincare
 open ShenWork.IntervalUnderIntegralLeibniz
 
 noncomputable section
@@ -1303,6 +1309,182 @@ theorem intervalDomain_minimal_signal_energy_slope_le
   ring_nf at hscaled ⊢
   linarith
 
+/-! ## Poincare control and exponential signal decay -/
+
+/-- At `γ = 1`, conserved population mass and the integrated elliptic
+equation force the signal perturbation to have zero mean. -/
+theorem intervalDomain_minimal_signal_mean_zero
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hmass : intervalDomain.integral (u t) = uStar) :
+    (∫ y in (0 : ℝ)..1,
+        intervalDomainLift (v t) y - vStar) = 0 := by
+  have hchem := intervalDomain_chemical_mass_identity hsol ht.1 ht.2
+  have hchem' :
+      p.μ * (∫ y in (0 : ℝ)..1, intervalDomainLift (v t) y) =
+        p.ν * (∫ y in (0 : ℝ)..1, intervalDomainLift (u t) y) := by
+    simpa [hgamma] using hchem
+  have hmassLift :
+      (∫ y in (0 : ℝ)..1, intervalDomainLift (u t) y) = uStar := by
+    simpa [intervalDomain, intervalDomainIntegral] using hmass
+  rw [hmassLift] at hchem'
+  have heqRel : p.μ * vStar = p.ν * uStar := by
+    simpa [hgamma] using heq.elliptic_relation
+  have hvMean :
+      (∫ y in (0 : ℝ)..1, intervalDomainLift (v t) y) = vStar := by
+    nlinarith [p.hμ, hchem']
+  have hVInt : IntervalIntegrable (intervalDomainLift (v t)) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using
+      (hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn
+  rw [intervalIntegral.integral_sub hVInt intervalIntegrable_const,
+    hvMean, intervalIntegral.integral_const]
+  norm_num [smul_eq_mul]
+
+/-- Coarse unit-interval Poincare control for the `γ = 1` signal
+perturbation with conserved equilibrium mass. -/
+theorem intervalDomain_minimal_signal_poincare
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : p.m = 1) (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hmass : intervalDomain.integral (u t) = uStar) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (v t) y - vStar) ^ 2) ≤
+      ∫ y in (0 : ℝ)..1,
+        (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+  let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one p hm hsol
+  let V : ℝ → ℝ := intervalDomainLift (v t)
+  let F : ℝ → ℝ := liftRepr (v t)
+  let Vx : ℝ → ℝ := deriv V
+  have hV2 : ContDiffOn ℝ 2 V (Icc (0 : ℝ) 1) := by
+    simpa [V] using (hsolM.regularity.2.2.2.2.1 t ht).2.1
+  have hneu0 : derivWithin V (Icc (0 : ℝ) 1) 0 = 0 := by
+    simpa [V] using derivWithin_left_zero hsolM ht.1 ht.2 v (Or.inr rfl)
+  have hneu1 : derivWithin V (Icc (0 : ℝ) 1) 1 = 0 := by
+    simpa [V] using derivWithin_right_zero hsolM ht.1 ht.2 v (Or.inr rfl)
+  have hVx1 : ContDiffOn ℝ 1 Vx (Icc (0 : ℝ) 1) := by
+    simpa [V, Vx] using deriv_lift_contDiffOn_one_Icc hV2 hneu0 hneu1
+  have hFCont : ContinuousOn F (Icc (0 : ℝ) 1) :=
+    (liftRepr_continuous hV2.continuousOn).continuousOn
+  have hFDeriv : ∀ y ∈ Icc (0 : ℝ) 1, HasDerivAt F (Vx y) y := by
+    intro y hy
+    simpa [F, V, Vx] using
+      liftRepr_hasDerivAt_Icc_of_neumann hV2 hneu0 hneu1 y hy
+  have hVxInt : IntervalIntegrable Vx volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hVx1.continuousOn
+  have hVxSqInt : IntervalIntegrable (fun y => (Vx y) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hVx1.continuousOn.pow 2
+  have hp := poincare_unit_interval_coarse
+    hFCont hFDeriv hVxInt hVxSqInt
+  have hmeanZero := intervalDomain_minimal_signal_mean_zero
+    hgamma heq hsol ht hmass
+  have hmean : (∫ y in (0 : ℝ)..1, F y) = vStar := by
+    have hVInt : IntervalIntegrable V volume 0 1 := by
+      apply ContinuousOn.intervalIntegrable
+      simpa [uIcc_of_le zero_le_one, V] using
+        (hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn
+    have hdiff :
+        (∫ y in (0 : ℝ)..1, V y - vStar) =
+          (∫ y in (0 : ℝ)..1, V y) - vStar := by
+      rw [intervalIntegral.integral_sub hVInt intervalIntegrable_const,
+        intervalIntegral.integral_const]
+      norm_num [smul_eq_mul]
+    have hVMean : (∫ y in (0 : ℝ)..1, V y) = vStar := by
+      rw [hdiff] at hmeanZero
+      linarith
+    calc
+      (∫ y in (0 : ℝ)..1, F y) = ∫ y in (0 : ℝ)..1, V y := by
+        apply intervalIntegral.integral_congr
+        intro y hy
+        rw [uIcc_of_le zero_le_one] at hy
+        exact liftRepr_eq_on_Icc hy
+      _ = vStar := hVMean
+  calc
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (v t) y - vStar) ^ 2) =
+        ∫ y in (0 : ℝ)..1, (F y - vStar) ^ 2 := by
+      apply intervalIntegral.integral_congr
+      intro y hy
+      rw [uIcc_of_le zero_le_one] at hy
+      change (V y - vStar) ^ 2 = (F y - vStar) ^ 2
+      rw [show F y = V y by exact liftRepr_eq_on_Icc hy]
+    _ ≤ ∫ y in (0 : ℝ)..1, (Vx y) ^ 2 := by
+      simpa [hmean] using hp
+    _ = ∫ y in (0 : ℝ)..1,
+        (deriv (intervalDomainLift (v t)) y) ^ 2 := by rfl
+
+/-- The signal energy is controlled by `(μ+1)` times its gradient part on
+every positive mass-constrained `γ = 1` slice. -/
+theorem intervalDomain_minimal_signal_energy_control
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : p.m = 1) (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hmass : intervalDomain.integral (u t) = uStar) :
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v t ≤
+      (p.μ + 1) * (∫ y in (0 : ℝ)..1,
+        (deriv (intervalDomainLift (v t)) y) ^ 2) := by
+  have hpoincare := intervalDomain_minimal_signal_poincare
+    hm hgamma heq hsol ht hmass
+  have hscaled := mul_le_mul_of_nonneg_left hpoincare p.hμ.le
+  have hpair := intervalDomain_chemotaxisSignalEnergy_eq_pairing
+    hgamma heq hsol ht
+  have helliptic := intervalDomain_minimal_signal_pairing_scaled
+    hgamma heq hsol ht ht
+  have henergy :
+      chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
+        p.μ * (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (v t) y - vStar) ^ 2) +
+          ∫ y in (0 : ℝ)..1,
+            (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+    calc
+      chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
+          p.ν * (∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (u t) y - uStar) *
+              (intervalDomainLift (v t) y - vStar)) := hpair
+      _ = p.μ * (∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (v t) y - vStar) *
+              (intervalDomainLift (v t) y - vStar)) +
+            ∫ y in (0 : ℝ)..1,
+              deriv (intervalDomainLift (v t)) y *
+                deriv (intervalDomainLift (v t)) y := helliptic
+      _ = p.μ * (∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (v t) y - vStar) ^ 2) +
+            ∫ y in (0 : ℝ)..1,
+              (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+        have hvalue :
+            (∫ y in (0 : ℝ)..1,
+              (intervalDomainLift (v t) y - vStar) *
+                (intervalDomainLift (v t) y - vStar)) =
+              ∫ y in (0 : ℝ)..1,
+                (intervalDomainLift (v t) y - vStar) ^ 2 := by
+          apply intervalIntegral.integral_congr
+          intro y _
+          ring
+        have hgradient :
+            (∫ y in (0 : ℝ)..1,
+              deriv (intervalDomainLift (v t)) y *
+                deriv (intervalDomainLift (v t)) y) =
+              ∫ y in (0 : ℝ)..1,
+                (deriv (intervalDomainLift (v t)) y) ^ 2 := by
+          apply intervalIntegral.integral_congr
+          intro y _
+          ring
+        rw [hvalue, hgradient]
+  rw [henergy]
+  nlinarith
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
@@ -1313,6 +1495,9 @@ theorem intervalDomain_minimal_signal_energy_slope_le
 #print axioms minimal2SignalCoefficient_pos
 #print axioms intervalDomain_minimal_signal_chemotaxis_integral_le
 #print axioms intervalDomain_minimal_signal_energy_slope_le
+#print axioms intervalDomain_minimal_signal_mean_zero
+#print axioms intervalDomain_minimal_signal_poincare
+#print axioms intervalDomain_minimal_signal_energy_control
 
 end
 
