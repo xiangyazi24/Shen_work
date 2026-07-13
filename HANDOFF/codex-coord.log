@@ -455,3 +455,17 @@ one endpoint mechanism.  The positive-critical finite/global wrappers and
 headline were then rewired to these affine producers.  All local single-file
 audits print exactly `[propext, Classical.choice, Quot.sound]`.  The remaining
 authoritative gate is the remote root build after the integration commit.
+
+2026-07-12 [Codex] Q4603/Q4607 AUTHORITATIVE ROOT GATE.  A detached clean
+worktree at integration commit `05d57d1a` was rsynced to the warm uisai2
+checkout and `bash -lc 'lake build'` completed successfully with 9342 jobs and
+exit code 0.  The shared restarted-smoothing core, sharp B-form endpoint,
+affine Proposition 2.5 producer, global atTop producer, and
+`Theorem_1_2_intervalDomain_positive_critical_branch` all built in the root
+import graph and reported exactly `[propext, Classical.choice, Quot.sound]`.
+
+Remote-build operational note: an initial attempt to clone the whole warm
+remote checkout with `cp -a` stalled on `.lake` I/O and never reached Lean;
+it was stopped.  Reusing `~/repos/shen_work` with source-only rsync was the
+working route.  A non-login ssh shell did not expose `lake`; invoking the
+remote command through `bash -lc` supplied the Lean toolchain environment.
