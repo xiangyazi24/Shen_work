@@ -1158,6 +1158,16 @@ theorem paperFrozenEllipticSourceBox_one
     PaperFrozenEllipticSourceBox p κ 1 :=
   paperFrozenEllipticSourceBox_of_trap_parameters hκ le_rfl
 
+theorem paperFrozenEllipticSourceBox_negative_headline
+    (p : CMParams) {c : ℝ} (hc : cStarLower p < c) :
+    PaperFrozenEllipticSourceBox p (kappa c) 1 :=
+  paperFrozenEllipticSourceBox_one p (kappa_pos_of_cStarLower_lt hc)
+
+theorem paperFrozenEllipticSourceBox_positive_headline
+    (p : CMParams) {c : ℝ} (hc : 2 < c) :
+    PaperFrozenEllipticSourceBox p (kappa c) 1 :=
+  paperFrozenEllipticSourceBox_one p (kappa_pos_of_two_lt hc)
+
 theorem PaperLemma42LogisticEstimate_of_conditions
     {p : CMParams} {c κ κtilde M D : ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -3613,6 +3623,8 @@ section AxiomAudit
 #print axioms PaperLemma42EllipticVEstimate_of_conditions
 #print axioms paperFrozenEllipticSourceBox_of_trap_parameters
 #print axioms paperFrozenEllipticSourceBox_one
+#print axioms paperFrozenEllipticSourceBox_negative_headline
+#print axioms paperFrozenEllipticSourceBox_positive_headline
 #print axioms paperFrozenEllipticSourceBox_of_conditions
 #print axioms PaperLemma42LogisticEstimate_of_conditions
 #print axioms PaperLemma42KTermEstimate_of_conditions
