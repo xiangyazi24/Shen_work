@@ -1,4 +1,3 @@
-import ShenWork.Paper1.CStarStarSpecSatisfiable
 import ShenWork.Paper1.Lemma53Full
 import ShenWork.Paper1.Theorem12CoordinateAudit
 import ShenWork.Paper1.Theorem12RootObstruction
@@ -172,9 +171,13 @@ Lemma 5.3, scalar Grönwall, and interval localization have been discharged.
 -/
 
 theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hcore :
       ∀ p : CMParams, StableWaveParameterRegime p →
-      ∀ c : ℝ, cStarStarWitness p p.χ < c →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V u₀ : ℝ → ℝ,
         IsTravelingWave p c U V →
         TravelingWaveRegularity p c U V →
@@ -198,8 +201,8 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
             UniformMovingFrameLeftTailConvergence 0 (coMovingPath c u) U) :
     Theorem_1_2_amended := by
   intro p hregime
-  refine ⟨cStarStarWitness p, cStarStarWitness_asymptotic p,
-    stabilitySpeedBaseline_le_cStarStarWitness p, ?_⟩
+  rcases hcStarStar p hregime with ⟨hasymptotic, hbaseline⟩
+  refine ⟨cStarStarFn p, hasymptotic, hbaseline, ?_⟩
   intro c hc U V hTW hreg hstrict htail η hketa heta u₀ hu₀ hleft hclose
   have hsignal : Section5ProfileInitialSignalBounds p U V u₀ :=
     section5ProfileInitialSignalBounds_proved p hTW hreg
@@ -217,7 +220,7 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
       hlam hcontrol hint_direct hcont hderiv hdiss
   have hη : 0 < η :=
     eta_pos_of_stability_weight_hypotheses
-      (stabilitySpeedBaseline_le_cStarStarWitness p) hc hketa
+      hbaseline hc hketa
   exact ⟨u, v, hsol, hweighted,
     uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
       hη hint hweighted hmod hleftStep4⟩
