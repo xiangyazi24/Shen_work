@@ -93,7 +93,7 @@ theorem paper1_negativeConstruction_of_routeAParamData
     negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
   rcases hData.produce p hα hχ c hc with
     ⟨lam, D, Λ, hpar, hD1, hD, hΛ0, hΛ1, hstrict⟩
-  obtain ⟨U, hU, hprofile⟩ :=
+  obtain ⟨U, hU, hprofile, _hUdiff, _hUderivDiff⟩ :=
     b1_chiNeg_existence_paper_routeA_paramCore_noBar
       p c lam 1 (kappa c) (negativeBranchTailCap p c) D Λ
       hcond hD hD1 hΛ0 hΛ1 hpar

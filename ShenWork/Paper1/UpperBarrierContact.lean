@@ -40,16 +40,14 @@ theorem PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact
 /-- A differentiable trapped profile cannot touch the positive upper barrier at
 the nonsmooth interface.  This reuses the existing kink-avoidance lemma for
 local maxima of `U - upperBarrier`. -/
-theorem positiveUpperBarrier_interfaceNoContact_of_regular_stationary
+theorem positiveUpperBarrier_interfaceNoContact_of_profile_differentiable
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hκ : 0 < kappa c) (hM : 0 < MChi p)
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    (hUdiff : Differentiable ℝ U) :
     ∀ x, Real.exp (-(kappa c) * x) = MChi p →
       U x = MChi p → False := by
   intro x hx hUx
-  have hdiff : Differentiable ℝ U := (hreg U htrap hstat).1
   have hbarrier_x :
       upperBarrier (kappa c) (MChi p) x = MChi p :=
     upperBarrier_eq_M_of_le_exp hx.ge
@@ -67,7 +65,18 @@ theorem positiveUpperBarrier_interfaceNoContact_of_regular_stationary
   exact
     maxSub_upperBarrier_ne_interface
       (κ := kappa c) (M := MChi p) (W := U) (x := x)
-      hκ hM (hdiff x) hmax hx
+      hκ hM (hUdiff x) hmax hx
+
+theorem positiveUpperBarrier_interfaceNoContact_of_regular_stationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (hM : 0 < MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    ∀ x, Real.exp (-(kappa c) * x) = MChi p →
+      U x = MChi p → False :=
+  positiveUpperBarrier_interfaceNoContact_of_profile_differentiable
+    hκ hM htrap (hreg U htrap hstat).1
 
 /-- Regular stationary data discharges the interface field, so only the two
 smooth-branch no-contact facts remain. -/
@@ -82,6 +91,19 @@ theorem PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regul
   PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact hsmooth
     (positiveUpperBarrier_interfaceNoContact_of_regular_stationary
       hκ hM htrap hstat hreg)
+
+/-- Construction-site interface closure using regularity of the selected
+profile only. -/
+theorem PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_profile
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hsmooth : PositiveUpperBarrierSmoothBranchNoContact p c U)
+    (hκ : 0 < kappa c) (hM : 0 < MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hUdiff : Differentiable ℝ U) :
+    PositiveUpperBarrierContactContradictions p c U :=
+  PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact hsmooth
+    (positiveUpperBarrier_interfaceNoContact_of_profile_differentiable
+      hκ hM htrap hUdiff)
 
 /-- Constant-branch contact with the upper trap level forces a full left
 plateau by monotonicity. -/
@@ -194,12 +216,12 @@ theorem iteratedDeriv2_le_expDecay_of_isLocalMax_sub
 the frozen operator applied to the upper barrier.  This closes the
 `exp_operator_compare_at_contact` field from trap membership, stationarity, and
 the C² regularity frontier; no Route-A lower-pin data is used. -/
-theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+theorem positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hM0 : 0 ≤ MChi p)
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
     ∀ x, Real.exp (-(kappa c) * x) < MChi p →
       U x = Real.exp (-(kappa c) * x) →
         frozenWaveOperator p c U U x ≤
@@ -224,7 +246,6 @@ theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
     have hy_le_exp : U y - expDecay κ y ≤ 0 := by
       simpa [hy] using hy_le
     simpa [hx0] using hy_le_exp
-  rcases hreg U htrap hstat with ⟨hUdiff, hUd_diff⟩
   have hφderiv :
       deriv (fun y => U y - expDecay κ y) x = 0 :=
     hmax.deriv_eq_zero
@@ -288,6 +309,22 @@ theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
   rw [frozenWaveOperator_upperBarrier_exp_region_eq
     (p := p) (c := c) (κ := κ) (M := MChi p) (u := U) (x := x) hxExp]
   exact hle_exp
+
+/-- Universal regularity wrapper for the profile-wise contact comparison. -/
+theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hM0 : 0 ≤ MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) →
+        frozenWaveOperator p c U U x ≤
+          frozenWaveOperator p c U
+            (upperBarrier (kappa c) (MChi p)) x := by
+  rcases hreg U htrap hstat with ⟨hUdiff, hUd_diff⟩
+  exact positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
+    hM0 htrap hUdiff hUd_diff
 
 /-- Finer smooth-branch frontier for the positive upper barrier.
 
@@ -444,6 +481,31 @@ theorem positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
       simpa [hstat x] using hcmp
     exact (not_lt_of_ge hnonneg) hstrict
 
+/-- Profile-wise regularity version used at the Route-A construction site. -/
+theorem positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hM0 : 0 ≤ MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hres : PositiveUpperBarrierRemainingContactResidual p c U) :
+    PositiveUpperBarrierSmoothBranchNoContact p c U := by
+  constructor
+  · intro x hx hUx
+    exact hres.no_const_left_plateau x hx
+      (constBranch_contact_forces_left_plateau htrap hUx)
+  · intro x hx hUx
+    have hcmp :=
+      positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
+        hM0 htrap hUdiff hUd_diff x hx hUx
+    have hstrict := hres.exp_strict_super_at_contact x hx hUx
+    have hnonneg :
+        0 ≤ frozenWaveOperator p c U
+          (upperBarrier (kappa c) (MChi p)) x := by
+      simpa [hstat x] using hcmp
+    exact (not_lt_of_ge hnonneg) hstrict
+
 @[deprecated positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
   (since := "2026-06-29")]
 theorem positiveUpperBarrierSmoothBranchNoContact_of_residual
@@ -555,7 +617,7 @@ structure Paper1PositiveLowerPinnedRawRemainingContactBranchData : Prop where
           InLowerPinnedMonotoneTrap (kappa c) (MChi p)
             (lowerBarrierRaw (kappa c) κtilde D) U ∧
           PositiveUpperBarrierRemainingContactResidual p c U ∧
-          StationaryC2RegularityFromEquation p c (kappa c) (MChi p)
+          Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
 
 /-- Positive critical branch data that preserves the current raw lower pin and
 carries only smooth-branch no-contact; the interface is discharged from
@@ -572,7 +634,7 @@ structure Paper1PositiveLowerPinnedRawSmoothContactBranchData : Prop where
           InLowerPinnedMonotoneTrap (kappa c) (MChi p)
             (lowerBarrierRaw (kappa c) κtilde D) U ∧
           PositiveUpperBarrierSmoothBranchNoContact p c U ∧
-          StationaryC2RegularityFromEquation p c (kappa c) (MChi p)
+          Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
 
 /-- Remaining-contact raw data produces the previous smooth-contact package by
 closing the exponential operator comparison from regular stationarity. -/
@@ -582,16 +644,17 @@ theorem paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hres, hreg⟩
+    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hres,
+      hUdiff, hUderivDiff⟩
   have hχ_star : p.χ < chiStar p :=
     lt_of_lt_of_le hχ_small (min_le_right _ _)
   have hM0 : 0 ≤ MChi p :=
     (MChi_pos_of_chi_lt_chiStar p hχ_star).le
   exact
     ⟨κtilde, D, U, hD, hcover, hprofile, hpin,
-      positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
-        hM0 hpin.bare hprofile.stationary_eq hreg hres,
-      hreg⟩
+      positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
+        hM0 hpin.bare hprofile.stationary_eq hUdiff hUderivDiff hres,
+      hUdiff, hUderivDiff⟩
 
 /-- Raw lower-pinned smooth-branch contact data produces the full raw-contact
 package by closing the interface from regularity. -/
@@ -601,15 +664,16 @@ theorem paper1_positiveLowerPinnedRawContactData_of_smoothContactData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hsmooth, hreg⟩
+    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hsmooth,
+      hUdiff, _hUderivDiff⟩
   have hχ_star : p.χ < chiStar p :=
     lt_of_lt_of_le hχ_small (min_le_right _ _)
   exact
     ⟨κtilde, D, U, hD, hcover, hprofile, hpin,
-      PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regularStationary
+      PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_profile
         hsmooth (kappa_pos_of_two_lt hc)
         (MChi_pos_of_chi_lt_chiStar p hχ_star)
-        hpin.bare hprofile.stationary_eq hreg⟩
+        hpin.bare hUdiff⟩
 
 /-- Positive branch wrapper through raw lower-pinned smooth-contact data. -/
 theorem paper1_positiveContactBranch_of_lowerPinnedRawSmoothContactData
@@ -772,6 +836,11 @@ theorem paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactDataFac
     Paper1CombinedStatementTargets :=
   paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactData
     hData.out
+
+section AxiomAudit
+#print axioms positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
+#print axioms positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
+end AxiomAudit
 
 end
 
