@@ -320,9 +320,10 @@ theorem IntervalDomainWeakSupRestartWindowData.target
     congr 1
     ring
 
-/-- Weak-sup first-exit closure on a fixed contraction window. -/
-theorem intervalDomainWeakSupRestartWindowData_of_contraction
-    (p : CM2Params) {uStar vStar T CL delta : ℝ}
+/-- Weak-sup first-exit closure on a fixed contraction window lying strictly
+inside a finite classical horizon. -/
+theorem intervalDomainWeakSupRestartWindowData_of_contraction_of_solution
+    (p : CM2Params) {uStar vStar T CL delta H : ℝ}
     (hm : p.m = 1)
     (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hT : 0 < T) (hCL : 0 < CL)
@@ -338,7 +339,8 @@ theorem intervalDomainWeakSupRestartWindowData_of_contraction
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hclose : SupCloseToConstant intervalDomain u₀ uStar delta)
     {u v : ℝ → intervalDomainPoint → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (hHT : 5 * T / 4 < H)
     (htrace : InitialTrace intervalDomain u₀ u) :
     Nonempty (IntervalDomainWeakSupRestartWindowData
       p uStar T delta u) := by
@@ -387,10 +389,11 @@ theorem intervalDomainWeakSupRestartWindowData_of_contraction
     have : a ≤ T / 4 := min_le_right _ _
     linarith
   have haQuarter : a ≤ T / 4 := min_le_right _ _
-  let H := a + T + 1
-  have hH : 0 < H := by dsimp [H]; linarith
-  have haTH : a + T < H := by dsimp [H]; linarith
-  let hsol := hglobal H hH
+  have haTH : a + T < H := by
+    calc
+      a + T ≤ T / 4 + T := by linarith [haQuarter]
+      _ = 5 * T / 4 := by ring
+      _ < H := hHT
   let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
     p hm hsol
   let w : ℝ → intervalDomainPoint → ℝ :=
@@ -414,8 +417,7 @@ theorem intervalDomainWeakSupRestartWindowData_of_contraction
   have huaTime : a ∈ Set.Ioo (0 : ℝ) H := by
     constructor
     · exact ha
-    · dsimp [H]
-      linarith [hT]
+    · linarith [haTH, hT]
   have huaCont : Continuous (u a) :=
     solutionSlice_continuous hsolM huaTime
   have hfield := restartField_continuous hsolM ha hT.le haTH u (Or.inl rfl)
@@ -783,6 +785,35 @@ theorem intervalDomainWeakSupRestartWindowData_of_contraction
     close := by simpa [D] using hcloseWindow
   }⟩
 
+/-- Global-orbit wrapper around the finite-horizon weak restart theorem. -/
+theorem intervalDomainWeakSupRestartWindowData_of_contraction
+    (p : CM2Params) {uStar vStar T CL delta : ℝ}
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hT : 0 < T) (hCL : 0 < CL)
+    (hCLlip : ∀ r s : ℝ,
+      |r| ≤ intervalDomainWeakSupConeCeiling uStar →
+      |s| ≤ intervalDomainWeakSupConeCeiling uStar →
+      |r * (p.a - p.b * r ^ p.α) -
+        s * (p.a - p.b * s ^ p.α)| ≤ CL * |r - s|)
+    (hcontract :
+      intervalDomainWeakSupContractionCoefficient p uStar CL T < 1 / 4)
+    (hdelta : 0 < delta) (hdeltaStar : delta ≤ uStar / 16)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hclose : SupCloseToConstant intervalDomain u₀ uStar delta)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (htrace : InitialTrace intervalDomain u₀ u) :
+    Nonempty (IntervalDomainWeakSupRestartWindowData
+      p uStar T delta u) := by
+  let H : ℝ := 2 * T + 1
+  have hH : 0 < H := by dsimp [H]; linarith
+  have hHT : 5 * T / 4 < H := by dsimp [H]; linarith
+  exact intervalDomainWeakSupRestartWindowData_of_contraction_of_solution
+    p hm heq hT hCL hCLlip hcontract hdelta hdeltaStar hu₀ hclose
+      (hglobal H hH) hHT htrace
+
 /-- Uniform weak-sup restart window, with the contraction time chosen only
 from the equation and the equilibrium. -/
 theorem exists_intervalDomainWeakSupRestartWindow
@@ -812,6 +843,8 @@ theorem exists_intervalDomainWeakSupRestartWindow
 #print axioms intervalConjugateDuhamelMap_const_equilibrium
 #print axioms intervalConjugateDuhamelMap_initialDatum_diff_le
 #print axioms IntervalDomainWeakSupRestartWindowData.target
+#print axioms
+  intervalDomainWeakSupRestartWindowData_of_contraction_of_solution
 #print axioms intervalDomainWeakSupRestartWindowData_of_contraction
 #print axioms exists_intervalDomainWeakSupRestartWindow
 

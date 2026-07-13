@@ -19,23 +19,20 @@ local instance : TopologicalSpace intervalDomain.Point :=
 
 /-- Every weak-window slice has unweighted coefficient norm controlled by its
 physical sup distance from equilibrium. -/
-theorem weakRestart_perturbationCoeff_L2
-    {p : CM2Params} {uStar T delta r : ℝ}
+theorem weakRestart_perturbationCoeff_L2_of_solution
+    {p : CM2Params} {uStar T delta r H : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
     (hm : p.m = 1)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (haTH : D.a + T < H)
     (hdelta : 0 ≤ delta) (hr : r ∈ Set.Icc (0 : ℝ) T) :
     Summable (fun n : ℕ =>
       ‖intervalDomainPerturbationCosineCoeff
         uStar (u (D.a + r)) n‖ ^ 2) ∧
       coeffL2Norm (intervalDomainPerturbationCosineCoeff
         uStar (u (D.a + r))) ≤ 8 * delta := by
-  let H := D.a + T + 1
   have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
-  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
-  have haTH : D.a + T < H := by dsimp [H]; linarith
-  let hsol := hglobal H hH
   let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
     p hm hsol
   have ht : D.a + r ∈ Set.Ioo (0 : ℝ) H := by
@@ -74,6 +71,26 @@ theorem weakRestart_perturbationCoeff_L2
     have hnorm' := hnorm.trans_eq (by ring : 2 * (4 * delta) = 8 * delta)
     simpa [intervalDomainPerturbationCosineCoeff, phi,
       Complex.norm_real, Real.norm_eq_abs, sq_abs] using hnorm'
+
+/-- Global-orbit wrapper for the finite-horizon coefficient estimate. -/
+theorem weakRestart_perturbationCoeff_L2
+    {p : CM2Params} {uStar T delta r : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
+    (hm : p.m = 1)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hdelta : 0 ≤ delta) (hr : r ∈ Set.Icc (0 : ℝ) T) :
+    Summable (fun n : ℕ =>
+      ‖intervalDomainPerturbationCosineCoeff
+        uStar (u (D.a + r)) n‖ ^ 2) ∧
+      coeffL2Norm (intervalDomainPerturbationCosineCoeff
+        uStar (u (D.a + r))) ≤ 8 * delta := by
+  let H : ℝ := D.a + T + 1
+  have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
+  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
+  have haTH : D.a + T < H := by dsimp [H]; linarith
+  exact weakRestart_perturbationCoeff_L2_of_solution D hm
+    (hglobal H hH) haTH hdelta hr
 
 /-- A fixed high-strong-norm ceiling at the weak window target. -/
 def paper3WeakWindowStrongSmoothingBound
@@ -119,14 +136,15 @@ theorem paper3WeakWindowStrongSmoothingBound_pos
 /-- Uniform `X_2^rho` regularization at the fixed absolute target time `T`.
 The smoothing subwindow has length at least `T/4`, because the weak restart
 begins no later than `T/4`. -/
-theorem weakRestart_target_uniform_X2Rho
-    {p : CM2Params} {uStar vStar T delta gap rho : ℝ}
+theorem weakRestart_target_uniform_X2Rho_of_solution
+    {p : CM2Params} {uStar vStar T delta gap rho H : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
     (hm : p.m = 1)
     (heq : Paper3ConstantEquilibrium p uStar vStar)
     (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p H u v)
+    (haTH : D.a + T < H)
     (hdelta : 0 ≤ delta) (hdeltaStar : delta ≤ uStar / 16)
     (hdeltaOne : 4 * delta ≤ 1)
     (hrho : 0 < rho) (hrho1 : rho < 1) :
@@ -135,22 +153,20 @@ theorem weakRestart_target_uniform_X2Rho
         paper3WeakWindowStrongSmoothingBound
           p uStar vStar T gap rho heq := by
   let s0 := D.a + T / 2
-  let H := T + 1
   let C := unitIntervalLinearizedStrongSmoothingConstant
     p uStar vStar gap rho
   let B := paper3WeakWindowNonlinearL2Constant p uStar vStar T heq
   have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
-  have hH : 0 < H := by dsimp [H]; linarith
   have hs0 : 0 < s0 := by dsimp [s0]; linarith [D.a_pos, hT]
   have hs0T : s0 < T := by
     dsimp [s0]
     linarith [D.a_le_quarter, hT]
-  have hTH : T < H := by dsimp [H]; linarith
+  have hTH : T < H := by linarith [D.a_pos, haTH]
   have hgapTime : T / 4 ≤ T - s0 := by
     dsimp [s0]
     linarith [D.a_le_quarter]
-  have hstart := weakRestart_perturbationCoeff_L2
-    D hm hglobal hdelta
+  have hstart := weakRestart_perturbationCoeff_L2_of_solution
+    D hm hsol haTH hdelta
       (show T / 2 ∈ Set.Icc (0 : ℝ) T by constructor <;> linarith)
   have hNdata : ∀ s ∈ Set.Ioo s0 T,
       Summable (fun n : ℕ =>
@@ -166,13 +182,13 @@ theorem weakRestart_target_uniform_X2Rho
       constructor
       · linarith [hs.1]
       · linarith [hs.2, D.a_pos]
-    have hsource := weakRestart_fullNonlinearRemainderCoeff_uniform_L2
-      D hm heq hglobal hdelta hdeltaStar hdeltaOne hrr
+    have hsource := weakRestart_fullNonlinearRemainderCoeff_uniform_L2_of_solution
+      D hm heq hsol haTH hdelta hdeltaStar hdeltaOne hrr
     have htime : D.a + rr = s := by dsimp [rr]; ring
     simpa [B, htime] using hsource
   have hstrong :=
     intervalDomainX2SigmaPerturbation_and_norm_le_of_L2_restart
-      (hglobal H hH) hm hs0 hs0T hTH heq hgap hrho hrho1
+      hsol hm hs0 hs0T hTH heq hgap hrho hrho1
         hstart.1 (fun s hs => (hNdata s hs).1)
         (paper3WeakWindowNonlinearL2Constant_nonneg p heq hT)
         (fun s hs => by simpa [B] using (hNdata s hs).2)
@@ -240,9 +256,34 @@ theorem weakRestart_target_uniform_X2Rho
     _ ≤ 1 + 2 * C * (T / 4) ^ (-rho) +
         B * restartedKernelMassPositive C rho (gap / 2) := by linarith
 
+/-- Global-orbit wrapper for finite-window strong smoothing. -/
+theorem weakRestart_target_uniform_X2Rho
+    {p : CM2Params} {uStar vStar T delta gap rho : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (D : IntervalDomainWeakSupRestartWindowData p uStar T delta u)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hdelta : 0 ≤ delta) (hdeltaStar : delta ≤ uStar / 16)
+    (hdeltaOne : 4 * delta ≤ 1)
+    (hrho : 0 < rho) (hrho1 : rho < 1) :
+    IntervalDomainX2SigmaPerturbation rho uStar (u T) ∧
+      intervalDomainX2SigmaDistance rho uStar (u T) ≤
+        paper3WeakWindowStrongSmoothingBound
+          p uStar vStar T gap rho heq := by
+  let H : ℝ := D.a + T + 1
+  have hT : 0 < T := by linarith [D.a_pos, D.a_lt_half]
+  have hH : 0 < H := by dsimp [H]; linarith [D.a_pos, hT]
+  have haTH : D.a + T < H := by dsimp [H]; linarith
+  exact weakRestart_target_uniform_X2Rho_of_solution
+    D hm heq hgap (hglobal H hH) haTH hdelta hdeltaStar hdeltaOne hrho hrho1
+
 #print axioms weakRestart_perturbationCoeff_L2
+#print axioms weakRestart_perturbationCoeff_L2_of_solution
 #print axioms paper3WeakWindowStrongSmoothingBound_pos
 #print axioms weakRestart_target_uniform_X2Rho
+#print axioms weakRestart_target_uniform_X2Rho_of_solution
 
 end
 
