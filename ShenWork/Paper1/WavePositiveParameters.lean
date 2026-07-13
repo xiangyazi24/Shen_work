@@ -8,6 +8,31 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
+/-- Route-independent positive Lemma 4.2 conditions at the headline tail cap.
+This is the parameter constructor used by the genuine nonmonotone self-step;
+it deliberately does not pass through the inconsistent Route-A package. -/
+theorem positiveSelfStepExactConditions_of_branchCap
+    (p : CMParams) {c : ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ0 : 0 ≤ p.χ)
+    (hχsmall : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c) :
+    PositivePaperLemma42ExactConditions p c (kappa c)
+      (positiveBranchTailCap p c) (MChi p) := by
+  have hχhalf : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχsmall (min_le_left _ _)
+  have hχ1 : p.χ < 1 := lt_trans hχhalf (by norm_num)
+  exact
+    { hκ0 := kappa_pos_of_two_lt hc
+      hκ1 := kappa_lt_one_of_two_lt hc
+      hgap := kappa_lt_positiveBranchTailCap p hc
+      hrange := by simp [positiveBranchTailCap]
+      hM := one_le_MChi_of_chi_nonneg_lt_one p hχ0 hχ1
+      hc := (kappa_add_inv_eq_of_two_lt hc).symm
+      hχ_nonneg := hχ0
+      hχ_small := hχsmall
+      hα_eq := hα }
+
 structure Paper1PositiveLocalStepScalarData
     (p : CMParams) (c D : ℝ) : Type where
   lam : ℝ
@@ -116,6 +141,7 @@ theorem paper1PositiveLocalStepScalarData_exists
 section AxiomAudit
 
 #print axioms paper1PositiveLocalStepScalarData_exists
+#print axioms positiveSelfStepExactConditions_of_branchCap
 
 end AxiomAudit
 
