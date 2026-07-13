@@ -7,6 +7,17 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
+/-- The exact scalar coefficient in comparison with a smooth lower-pinned old
+iterate.  Unlike the earlier generic Route-A coefficient, this includes the
+weighted log-slope term needed when `1 < m < 2`. -/
+def paperPinnedStepCmono
+    (p : CMParams) (c lam M κ κtilde D B : ℝ) : ℝ :=
+  reactionLip p.α M
+    + (-p.χ) * (M ^ p.γ) * rpowLip p.m M
+    + ((-p.χ) * p.m * (M ^ p.γ) *
+        paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B *
+        (p.m - 1) * M ^ (p.m - 1))
+
 /-- Multiplication by the lower endpoint removes the power cusp with the sharp
 factor `r`. -/
 theorem lower_weighted_rpow_increment_le
@@ -228,11 +239,62 @@ theorem paperImplicitStep_le_of_pinned_smooth_old
     (E := E) (Q := M) (u := u) (Z := Z) (W := W) (B := Z)
     hlam hsmall hE0 hstep (fun _ => le_rfl) hf2 hfbound hZsuper hop
 
+/-- Successor comparison in the genuine local Green construction.  Once the
+old step is lower-pinned, all smoothness, range and logarithmic-slope inputs
+are internal; only the single explicit scalar gap remains. -/
+theorem PaperLocalFixedStepData.le_old_of_lowerPinned_old
+    {p : CMParams} {c lam M κ κtilde D Λ B : ℝ}
+    {u Z₀ : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (hM : 0 < M) (hB : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hbox : PaperFrozenEllipticSourceBox p κ M)
+    (hχ : p.χ ≤ 0)
+    (hsmall :
+      (1 / lam) * paperPinnedStepCmono p c lam M κ κtilde D B < 1)
+    (dOld : PaperLocalFixedStepData p c lam M κ Λ B u Z₀)
+    (hOldPinned : InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierRaw κ κtilde D) dOld.fixed.W)
+    (hOldSuper : ∀ x, paperWaveOperator p c u dOld.fixed.W x ≤ 0)
+    (dNew : PaperLocalFixedStepData p c lam M κ Λ B u dOld.fixed.W) :
+    ∀ x, dNew.fixed.W x ≤ dOld.fixed.W x := by
+  let K := paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B
+  have hK : 0 ≤ K :=
+    paperLowerPinnedStepLogSlopeCoeff_nonneg
+      hlam hrpκ hrmκ hκ hgap hD hM.le hB
+  have hWrange : ∀ x, dNew.fixed.W x ∈ Set.Icc (0 : ℝ) M := by
+    intro x
+    exact ⟨(dNew.range x).1,
+      (dNew.range x).2.trans (upperBarrier_le_M κ M x)⟩
+  have hZrange : ∀ x, dOld.fixed.W x ∈ Set.Icc (0 : ℝ) M := by
+    intro x
+    exact ⟨(dOld.range x).1,
+      (dOld.range x).2.trans (upperBarrier_le_M κ M x)⟩
+  apply paperImplicitStep_le_of_pinned_smooth_old
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (Cmono := paperPinnedStepCmono p c lam M κ κtilde D B)
+    (K := K) (u := u) (Z := dOld.fixed.W) (W := dNew.fixed.W)
+    hlam hM hu hbox hχ hsmall
+  · exact le_rfl
+  · exact hK
+  · exact dNew.step_op hlam
+  · exact dNew.contDiff_two hlam
+  · exact dOld.contDiff_two hlam
+  · exact hWrange
+  · exact hZrange
+  · exact hOldSuper
+  · exact dOld.deriv_abs_le_mul_self_of_lowerPinned
+      hlam hrpκ hrmκ hκ hgap hD hM.le hB hOldPinned
+
 section AxiomAudit
 
 #print axioms lower_weighted_rpow_increment_le
 #print axioms paperCrossGradient_diff_le_of_lower_log_slope
 #print axioms paperImplicitStep_le_of_pinned_smooth_old
+#print axioms PaperLocalFixedStepData.le_old_of_lowerPinned_old
 
 end AxiomAudit
 
