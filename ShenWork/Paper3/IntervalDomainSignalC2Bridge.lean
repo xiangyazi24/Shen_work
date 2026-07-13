@@ -73,10 +73,37 @@ theorem paper3QuadraticSignalGradient_hasDerivAt_laplacian
     paper3QuadraticSignalValue, paper3QuadraticEllipticSourceCoeffReal] using
     (resolvedSourceGradient_hasDerivAt_profile p H hx)
 
+theorem paper3LinearSignalGradient_continuous
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ)
+    (H : ResolvedSourceProfileRegularity
+      (paper3IntervalEllipticLinearProfile p uStar u)) :
+    Continuous (paper3LinearSignalGradient p uStar u) := by
+  rw [continuous_iff_continuousAt]
+  intro x
+  have Hd := resolvedSourceCoeffQuadraticDecay_of_profile H
+  simpa [paper3LinearSignalGradient, paper3LinearEllipticSourceCoeffReal] using
+    (paper3ResolvedSourceGradient_hasDerivAt_laplacian p Hd x).continuousAt
+
+theorem paper3QuadraticSignalGradient_continuous
+    (p : CM2Params) (uStar : ℝ)
+    (u : intervalDomainPoint → ℝ)
+    (H : ResolvedSourceProfileRegularity
+      (paper3IntervalEllipticRemainderProfile p uStar u)) :
+    Continuous (paper3QuadraticSignalGradient p uStar u) := by
+  rw [continuous_iff_continuousAt]
+  intro x
+  have Hd := resolvedSourceCoeffQuadraticDecay_of_profile H
+  simpa [paper3QuadraticSignalGradient,
+    paper3QuadraticEllipticSourceCoeffReal] using
+    (paper3ResolvedSourceGradient_hasDerivAt_laplacian p Hd x).continuousAt
+
 #print axioms resolvedSourceCoeffQuadraticDecay_of_profile
 #print axioms resolvedSourceGradient_hasDerivAt_profile
 #print axioms paper3LinearSignalGradient_hasDerivAt_laplacian
 #print axioms paper3QuadraticSignalGradient_hasDerivAt_laplacian
+#print axioms paper3LinearSignalGradient_continuous
+#print axioms paper3QuadraticSignalGradient_continuous
 
 end
 
