@@ -282,9 +282,74 @@ theorem coeffL2Norm_le {rem : ℕ → ℝ}
 
 end FullNonlinearRemainderL2Data
 
+/-- Polarized local Nemytskii estimate used by the Banach contraction.  The
+profiles realize `N(w1)-N(w2)` and carry the sharp local factor
+`(‖w1‖+‖w2‖)‖w1-w2‖`. -/
+structure FullNonlinearRemainderDifferenceL2Data
+    (remDiff : ℕ → ℝ) where
+  M1 : ℝ
+  M2 : ℝ
+  D : ℝ
+  Kchem : ℝ
+  Klog : ℝ
+  chemProfile : ℝ → ℝ
+  logProfile : ℝ → ℝ
+  M1_nonneg : 0 ≤ M1
+  M2_nonneg : 0 ≤ M2
+  D_nonneg : 0 ≤ D
+  Kchem_nonneg : 0 ≤ Kchem
+  Klog_nonneg : 0 ≤ Klog
+  chem_memLp : MemLp chemProfile 2 (intervalMeasure 1)
+  log_memLp : MemLp logProfile 2 (intervalMeasure 1)
+  chem_l2 : Real.sqrt (∫ x in (0 : ℝ)..1, (chemProfile x) ^ 2) ≤
+    Kchem * (M1 + M2) * D
+  log_l2 : Real.sqrt (∫ x in (0 : ℝ)..1, (logProfile x) ^ 2) ≤
+    Klog * (M1 + M2) * D
+  coeff_eq : ∀ n,
+    remDiff n = cosineCoeffs chemProfile n + cosineCoeffs logProfile n
+
+namespace FullNonlinearRemainderDifferenceL2Data
+
+def toL2Data {remDiff : ℕ → ℝ}
+    (H : FullNonlinearRemainderDifferenceL2Data remDiff) :
+    FullNonlinearRemainderL2Data remDiff where
+  M := H.M1 + H.M2
+  L := H.D
+  Kchem := H.Kchem
+  Klog := H.Klog
+  chemProfile := H.chemProfile
+  logProfile := H.logProfile
+  M_nonneg := add_nonneg H.M1_nonneg H.M2_nonneg
+  L_nonneg := H.D_nonneg
+  Kchem_nonneg := H.Kchem_nonneg
+  Klog_nonneg := H.Klog_nonneg
+  chem_memLp := H.chem_memLp
+  log_memLp := H.log_memLp
+  chem_l2 := H.chem_l2
+  log_l2 := H.log_l2
+  coeff_eq := H.coeff_eq
+
+def lipschitzConstant {remDiff : ℕ → ℝ}
+    (H : FullNonlinearRemainderDifferenceL2Data remDiff) : ℝ :=
+  2 * Real.sqrt 2 * (H.Kchem + H.Klog)
+
+/-- Polarized L12: the actual contraction estimate, separate from the
+one-trajectory quadratic self-map estimate. -/
+theorem coeffL2Norm_le {remDiff : ℕ → ℝ}
+    (H : FullNonlinearRemainderDifferenceL2Data remDiff) :
+    Summable (fun n : ℕ => ‖(remDiff n : ℂ)‖ ^ 2) ∧
+      coeffL2Norm (fun n => (remDiff n : ℂ)) ≤
+        H.lipschitzConstant * (H.M1 + H.M2) * H.D := by
+  simpa [toL2Data, lipschitzConstant,
+    FullNonlinearRemainderL2Data.quadraticConstant] using
+      H.toL2Data.coeffL2Norm_le
+
+end FullNonlinearRemainderDifferenceL2Data
+
 #print axioms cosineCoeffs_l2_norm_le_of_pointwise_abs_bound
 #print axioms FullNonlinearRemainderPhysicalData.coeffL2Norm_le
 #print axioms FullNonlinearRemainderL2Data.coeffL2Norm_le
+#print axioms FullNonlinearRemainderDifferenceL2Data.coeffL2Norm_le
 
 end
 
