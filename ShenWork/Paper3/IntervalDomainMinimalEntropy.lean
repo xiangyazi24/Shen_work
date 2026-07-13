@@ -90,7 +90,76 @@ theorem intervalDomain_minimal_weightedGradient_ge_l2
     _ = intervalDomainLpWeightedGradientDissipation 0 u t := by
       simpa [g, U, Ux] using hG.symm
 
+/-- The exact positive coefficient left in the Section 8.1 entropy estimate
+after Poincare, the elliptic multiplier, and the power-difference bound. -/
+def minimal1EntropyCoefficient
+    (p : CM2Params) (uStar uBar vLower : ℝ) : ℝ :=
+  uStar / 2 *
+    (uBar ^ (-2 : ℝ) -
+      p.χ₀ ^ 2 * p.ν ^ 2 * minimalPowerSlope p uStar uBar ^ 2 /
+        (4 * p.μ * ((1 + vLower) ^ p.β) ^ 2))
+
+/-- The third entry in `chiMinimal1Formula` makes the concrete entropy
+coefficient strictly positive. -/
+theorem minimal1EntropyCoefficient_pos_of_chi_lt
+    (p : CM2Params) {uStar uBar vLower : ℝ}
+    (huStar : 0 < uStar) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1Formula p 1 uStar uBar vLower) :
+    0 < minimal1EntropyCoefficient p uStar uBar vLower := by
+  let S : ℝ := minimalPowerSlope p uStar uBar
+  let B : ℝ := (1 + vLower) ^ p.β
+  have hS : 0 < S := by
+    simpa [S] using minimalPowerSlope_pos p huStar huBar
+  have hbase : 0 < 1 + vLower := by linarith
+  have hB : 0 < B := Real.rpow_pos_of_pos hbase _
+  have hGamma : GammaMinimalFormula p.γ uStar uBar = S * uBar := by
+    simpa [S] using GammaMinimalFormula_eq_slope_mul p huBar
+  have hsqrt : 0 < Real.sqrt p.μ := Real.sqrt_pos.mpr p.hμ
+  have hden : 0 < p.ν * (S * uBar) :=
+    mul_pos p.hν (mul_pos hS huBar)
+  have hthird :
+      p.χ₀ < 2 * Real.sqrt p.μ * B / (p.ν * (S * uBar)) := by
+    have := hχ.trans_le (min_le_right
+      (min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+      (2 * Real.sqrt (p.μ * 1) * (1 + vLower) ^ p.β /
+        (p.ν * GammaMinimalFormula p.γ uStar uBar)))
+    simpa [chiMinimal1Formula, B, hGamma] using this
+  have hmul :
+      p.χ₀ * (p.ν * (S * uBar)) < 2 * Real.sqrt p.μ * B :=
+    (lt_div_iff₀ hden).mp hthird
+  have hleft : 0 < p.χ₀ * (p.ν * (S * uBar)) :=
+    mul_pos hχpos hden
+  have hright : 0 < 2 * Real.sqrt p.μ * B :=
+    mul_pos (mul_pos (by norm_num) hsqrt) hB
+  have hsqrtSq : (Real.sqrt p.μ) ^ 2 = p.μ := Real.sq_sqrt p.hμ.le
+  have hsq :
+      p.χ₀ ^ 2 * p.ν ^ 2 * S ^ 2 * uBar ^ 2 <
+        4 * p.μ * B ^ 2 := by
+    have hsquare :
+        (p.χ₀ * (p.ν * (S * uBar))) ^ 2 <
+          (2 * Real.sqrt p.μ * B) ^ 2 := by
+      nlinarith [sq_nonneg
+        (2 * Real.sqrt p.μ * B - p.χ₀ * (p.ν * (S * uBar)))]
+    nlinarith [hsqrtSq]
+  have hD : 0 < 4 * p.μ * B ^ 2 :=
+    mul_pos (mul_pos (by norm_num) p.hμ) (sq_pos_of_pos hB)
+  have huSq : 0 < uBar ^ 2 := sq_pos_of_pos huBar
+  have hquot :
+      p.χ₀ ^ 2 * p.ν ^ 2 * S ^ 2 / (4 * p.μ * B ^ 2) <
+        1 / uBar ^ 2 := by
+    exact (div_lt_div_iff₀ hD huSq).2 (by simpa using hsq)
+  have huNegTwo : uBar ^ (-2 : ℝ) = 1 / uBar ^ 2 := by
+    rw [show (-2 : ℝ) = -(2 : ℝ) by norm_num,
+      Real.rpow_neg huBar.le, Real.rpow_two]
+    rw [one_div]
+  unfold minimal1EntropyCoefficient
+  rw [huNegTwo]
+  dsimp [S, B] at hquot ⊢
+  exact mul_pos (div_pos huStar (by norm_num)) (sub_pos.mpr hquot)
+
 #print axioms intervalDomain_minimal_weightedGradient_ge_l2
+#print axioms minimal1EntropyCoefficient_pos_of_chi_lt
 
 end
 
