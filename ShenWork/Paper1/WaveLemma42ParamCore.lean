@@ -81,6 +81,24 @@ def paperLowerRawRouteAParamProducer
     PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
   paperLowerRawRouteAParamGreenCore h
 
+/-- Route A is intrinsically the nonpositive-sensitivity derivative maximum
+principle.  In particular, the parameterized producer is not a satisfiable
+input for a strictly positive-sensitivity branch: its first regular Green step
+already contains `p.χ ≤ 0` in the structural Route-A payload. -/
+theorem PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M} {u : ℝ → ℝ}
+    (h : PaperLowerRawStepProducerRouteAParamCore
+      p c lam M κ κtilde D Λ hκ hM u) :
+    p.χ ≤ 0 := by
+  let core : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
+    paperLowerRawRouteAParamGreenCore h
+  have hbase :
+      PaperIterateBase p c κ M u (upperBarrier κ M) :=
+    upperBarrier_paperIterateBase hκ hM core.basePaperSuper
+  let first := core.produce_regular (upperBarrier κ M) hbase
+  exact first.2.routeA.hχ
+
 /-- The total analytic-preserving Rothe sequence induced by a trap-indexed
 parameterized Route-A Green core. -/
 def paperLowerRawParamRotheSeq
@@ -135,6 +153,19 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hκ hM u
   stationaryIdentification :
     PaperLowerRawParamRotheStationaryIdentification producer
+
+/-- The full Route-A parabolic floor inherits the sign restriction of every
+one of its step producers. -/
+theorem PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :
+    p.χ ≤ 0 := by
+  have htrap :
+      InMonotoneWaveTrapSet κ M (upperBarrier κ M) :=
+    upperBarrier_mem_InMonotoneWaveTrapSet hκ hM
+  exact (h.producer (upperBarrier κ M) htrap).chi_nonpos
 
 /-- The total map used by Schauder, with the producer invoked only on its trap
 domain and the upper barrier used outside it. -/
@@ -596,6 +627,8 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
 section AxiomAudit
 
 #print axioms paperRouteAParamGreenCore
+#print axioms PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
+#print axioms PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
 #print axioms paperLowerRawParamRotheSeq
 #print axioms paperLowerRawParamRotheSeqFromTrap
 #print axioms paperLowerRawParamGreenSourceCompactness

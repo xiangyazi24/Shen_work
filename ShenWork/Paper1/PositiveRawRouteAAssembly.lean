@@ -63,6 +63,33 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p
 
+/-- The legacy positive Route-A package is empty.  Its quantification includes
+the genuine attraction case `χ = 1/4`, whereas every Route-A parabolic floor
+contains the negative-sensitivity derivative maximum-principle hypothesis
+`χ ≤ 0`.  The positive branch therefore requires a distinct positive-sign
+step construction; it cannot be made non-vacuous by further wiring of this
+package. -/
+theorem not_Paper1PositiveLowerRawCapRouteAParamData :
+    ¬ Paper1PositiveLowerRawCapRouteAParamData := by
+  intro hData
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 1 / 4
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α = p.m + p.γ - 1 := by norm_num [p]
+  have hχ_nonneg : 0 ≤ p.χ := by norm_num [p]
+  have hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
+    norm_num [p, chiStar]
+  have hc : (2 : ℝ) < 3 := by norm_num
+  rcases hData.produce p hα hχ_nonneg hχ_small 3 hc with
+    ⟨lam, D, Λ, hpar, _hD_ge_one, _hD_gt, _hΛ0, _hΛM⟩
+  have hχ_nonpos : p.χ ≤ 0 := hpar.chi_nonpos
+  norm_num [p] at hχ_nonpos
+
 /-- Route-A param-core data produces the raw lower-pinned contact package. -/
 theorem paper1_positiveRawContactData_of_routeAParamData
     (hData : Paper1PositiveLowerRawCapRouteAParamData) :
@@ -410,6 +437,7 @@ theorem Theorem_1_1.of_routeAParamData
       (paper1_positiveStrictBarrierBranch_of_routeAParamData hpos))
 
 section AxiomAudit
+#print axioms not_Paper1PositiveLowerRawCapRouteAParamData
 #print axioms paper1_positiveRawContactData_of_routeAParamData
 #print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
 #print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
