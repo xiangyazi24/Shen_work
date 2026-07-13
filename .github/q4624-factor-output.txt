@@ -1,0 +1,25 @@
+                     SINGULAR                                 /  Development
+ A Computer Algebra System for Polynomial Computations       /   version 4.3.2
+                                                           0<
+ by: W. Decker, G.-M. Greuel, G. Pfister, H. Schoenemann     \   Feb 2023
+FB Mathematik der Universitaet, D-67653 Kaiserslautern        \  Debian 1:4.3.2-p10+ds-1.1build1
+QPLUS=
+-18U22-252U21-1002U20+936U19+14338U18+21508U17-23222U16-45216U15-61364U14-410232U13-524900U12-350608U11-1250876U10-535640U9-154988U8-1545632U7+1286630U6-1170188U5+702062U4-158680U3+13338U2-300U+2
+QPLUS_FACT=
+[1]:
+   _[1]=-2
+   _[2]=U2+2U-1
+   _[3]=3U10+18U9-5U8-128U7-66U6-108U5-506U4+144U3-449U2+74U-1
+[2]:
+   1,1,2
+QMINUS=
+-2U23-56U22-590U21-2864U20-6134U19-5080U18-17594U17-79424U16-95604U15-67824U14-346924U13-407328U12-233036U11-1187568U10-542100U9-205376U8-1601834U7+1247528U6-1189606U5+694992U4-160542U3+13000U2-338U
+QMINUS_FACT=
+[1]:
+   _[1]=-2
+   _[2]=U
+   _[3]=U2+1
+   _[4]=U10+14U9+49U8+16U7-38U6+316U5+322U4-96U3+677U2-250U+13
+[2]:
+   1,1,1,2
+Auf Wiedersehen.
