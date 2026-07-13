@@ -3,7 +3,7 @@ import ShenWork.Paper3.IntervalDomainPhysicalFluxRemainder
 import ShenWork.Paper3.IntervalDomainFluxRemainderDerivative
 import ShenWork.Paper3.IntervalDomainSignalC2Bridge
 import ShenWork.Paper3.IntervalDomainSensitivityDerivative
-import ShenWork.Paper2.IntervalTruncatedTestedSpectral
+import ShenWork.Paper2.IntervalSpectralBasicLemmas
 import ShenWork.Paper2.IntervalDomainMClassicalRestart
 
 namespace ShenWork.Paper3
