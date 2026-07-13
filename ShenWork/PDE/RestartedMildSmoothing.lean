@@ -524,6 +524,90 @@ theorem restartGlue
   have h := hlocal r hr (hdatum r hr) window hwindow.le le_rfl
   simpa [r] using h
 
+/-- A continuous first-exit bootstrap on a compact time interval.
+
+The hypothesis `himprove` is the usual restarted-mild estimate: assuming the
+trajectory stays in the radius-`q` tube up to a time `r`, the estimate improves
+the whole prefix to radius `q / 2`.  Continuity then rules out a first exit.
+
+The proof uses the continuous running maximum
+`r ↦ max_{x ∈ [0,1]} size (r*x)`.  This avoids choosing a least exit time and
+is reusable for weak-norm basin-entry arguments. -/
+theorem continuousPrefixBootstrap
+    {size : ℝ → ℝ} {T q : ℝ}
+    (hsize : Continuous size) (hT : 0 ≤ T) (hq : 0 < q)
+    (hzero : size 0 ≤ q / 2)
+    (himprove : ∀ r, 0 ≤ r → r ≤ T →
+      (∀ s, 0 ≤ s → s ≤ r → size s ≤ q) →
+        ∀ s, 0 ≤ s → s ≤ r → size s ≤ q / 2) :
+    ∀ t, 0 ≤ t → t ≤ T → size t ≤ q / 2 := by
+  let runningMax : ℝ → ℝ := fun r =>
+    sSup ((fun x : ℝ => size (r * x)) '' Set.Icc (0 : ℝ) 1)
+  have hrunning : Continuous runningMax := by
+    dsimp [runningMax]
+    apply isCompact_Icc.continuous_sSup
+    fun_prop
+  have hrunning_zero : runningMax 0 = size 0 := by
+    simp [runningMax]
+  have hle_running : ∀ {r s : ℝ}, 0 ≤ r → 0 ≤ s → s ≤ r →
+      size s ≤ runningMax r := by
+    intro r s hr hs hsr
+    by_cases hr0 : r = 0
+    · subst r
+      have hs0 : s = 0 := by linarith
+      subst s
+      rw [hrunning_zero]
+    · have hrpos : 0 < r := lt_of_le_of_ne hr (Ne.symm hr0)
+      have hx : s / r ∈ Set.Icc (0 : ℝ) 1 := by
+        constructor
+        · exact div_nonneg hs hr
+        · exact (div_le_one hrpos).2 hsr
+      have hcont : Continuous fun x : ℝ => size (r * x) := by fun_prop
+      have hbdd : BddAbove
+          ((fun x : ℝ => size (r * x)) '' Set.Icc (0 : ℝ) 1) :=
+        isCompact_Icc.bddAbove_image hcont.continuousOn
+      have hmem : size s ∈
+          (fun x : ℝ => size (r * x)) '' Set.Icc (0 : ℝ) 1 := by
+        refine ⟨s / r, hx, ?_⟩
+        field_simp
+      exact le_csSup hbdd hmem
+  have hglobal : ∀ t, 0 ≤ t → t ≤ T → size t ≤ q := by
+    intro t ht htT
+    by_contra hnot
+    have hqt : q < size t := lt_of_not_ge hnot
+    have hrun_t : q < runningMax t :=
+      hqt.trans_le (hle_running ht ht (le_refl t))
+    have hrun_zero : runningMax 0 < q := by
+      rw [hrunning_zero]
+      linarith
+    have hqmem : q ∈ Set.Icc (runningMax 0) (runningMax t) :=
+      ⟨hrun_zero.le, hrun_t.le⟩
+    obtain ⟨r, hrIcc, hrexit⟩ :=
+      (intermediate_value_Icc ht hrunning.continuousOn) hqmem
+    have hrpos : 0 < r := by
+      have hrne : r ≠ 0 := by
+        intro hre
+        subst r
+        rw [hrunning_zero] at hrexit
+        linarith
+      exact lt_of_le_of_ne hrIcc.1 (Ne.symm hrne)
+    have hprefix : ∀ s, 0 ≤ s → s ≤ r → size s ≤ q := by
+      intro s hs hsr
+      exact (hle_running hrIcc.1 hs hsr).trans_eq hrexit
+    have himproved := himprove r hrIcc.1 (hrIcc.2.trans htT) hprefix
+    have hmax_le : runningMax r ≤ q / 2 := by
+      dsimp [runningMax]
+      apply csSup_le
+      · exact ⟨size 0, ⟨0, by norm_num, by simp⟩⟩
+      · intro y hy
+        rcases hy with ⟨x, hx, rfl⟩
+        exact himproved (r * x)
+          (mul_nonneg hrIcc.1 hx.1)
+          (by nlinarith [hx.2, hrIcc.1])
+    rw [hrexit] at hmax_le
+    linarith
+  exact himprove T hT (le_refl T) (fun s hs hsT => hglobal s hs hsT)
+
 #print axioms rpow_neg_intervalIntegrable
 #print axioms integral_rpow_neg
 #print axioms restartedSmoothingKernel_integral_zero
@@ -536,6 +620,7 @@ theorem restartGlue
 #print axioms SuperlinearClosedBallData.contracting
 #print axioms SuperlinearClosedBallData.fixedPoint
 #print axioms restartGlue
+#print axioms continuousPrefixBootstrap
 
 end
 
