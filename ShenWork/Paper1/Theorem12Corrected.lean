@@ -266,6 +266,8 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       IsTravelingWave p c U V ∧
       TravelingWaveRegularity p c U V ∧
       HasStrictWaveUpperTailBound p c U ∧
+      (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+        HasWaveRightTailAsymptotic c κ₁ U) ∧
       kappa c < η ∧
       η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) ∧
       NonnegativeInitialDatum U ∧
@@ -292,13 +294,36 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     lt_of_lt_of_le hχsmall (min_le_right _ _)
   have hχ1 : p.χ < 1 := by norm_num [p]
   have hc : (2 : ℝ) < 3 := by norm_num
-  obtain ⟨U, hprofile, hU2, hV2, hreg, hupper, _htail⟩ :=
+  obtain ⟨U, hprofile, hU2, hV2, hreg, hupper, htail⟩ :=
     paper1_positiveConstruction_selfStep p hα hχ0 hχsmall 3 hc
   let V : ℝ → ℝ := frozenElliptic p U
   have hTW : IsTravelingWave p 3 U V := by
     simpa [V] using hprofile.to_travelingWave
   have hstrict : HasStrictWaveUpperTailBound p 3 U :=
     hupper.hasStrictWaveUpperTailBound hχ0 hχ1
+  have hkappa_pos : 0 < kappa (3 : ℝ) :=
+    kappa_pos_of_two_lt hc
+  have hkappa_one : kappa (3 : ℝ) < 1 :=
+    kappa_lt_one_of_two_lt hc
+  have hkappa_tailCap :
+      kappa (3 : ℝ) <
+        min ((1 + p.α) * kappa 3)
+          (min (p.m * kappa 3 + 1 / 2) 1) := by
+    apply lt_min
+    · norm_num [p]
+      linarith
+    · apply lt_min
+      · norm_num [p]
+      · exact hkappa_one
+  obtain ⟨κ₁, hkappa_κ₁, hκ₁_cap⟩ := exists_between hkappa_tailCap
+  have hκ₁_one : κ₁ < 1 :=
+    lt_of_lt_of_le hκ₁_cap
+      (le_trans (min_le_right _ _) (min_le_right _ _))
+  have htail_exists :
+      ∃ κ₁, kappa (3 : ℝ) < κ₁ ∧ κ₁ < 1 ∧
+        HasWaveRightTailAsymptotic 3 κ₁ U :=
+    ⟨κ₁, hkappa_κ₁, hκ₁_one,
+      htail κ₁ hkappa_κ₁ hκ₁_cap⟩
   have hkappa_half : kappa (3 : ℝ) < 1 / 2 := by
     unfold kappa
     have hsqrt_gt :
@@ -322,7 +347,8 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       (η := 1 / 2) hTW hstrict hU2 (by simpa [V] using hV2)
   exact ⟨p, 3, 1 / 2, U, V, hχpos, hc,
     StableWaveParameterRegime.of_positive hχ0 hχstar hα,
-    hTW, by simpa [V] using hreg, hstrict, hkappa_half, hhalf_cap, hself⟩
+    hTW, by simpa [V] using hreg, hstrict, htail_exists,
+      hkappa_half, hhalf_cap, hself⟩
 
 section Theorem12CorrectedAxiomAudit
 #print axioms CoMovingWeightedL2Convergence.of_energy_dissipation
