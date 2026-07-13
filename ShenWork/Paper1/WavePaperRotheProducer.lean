@@ -10152,14 +10152,64 @@ def rpow_selfHolderOnIcc
 
 end LeftTailQuant
 
-theorem paperFixedSourceMap_holder_kernel
+/-- The old-profile fields actually consumed by the fixed-source Schauder
+construction.  A supersolution inequality and spatial monotonicity belong to
+the Rothe order argument, not to source existence. -/
+structure PaperFixedSourceOldData
+    (κ M : ℝ) (Z : ℝ → ℝ) : Type where
+  cont : Continuous Z
+  nonneg : ∀ x, 0 ≤ Z x
+  le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
+  L : ℝ
+  L_nonneg : 0 ≤ L
+  local_lip : ∀ x y, |x - y| ≤ 1 → |Z x - Z y| ≤ L * |x - y|
+
+namespace PaperFixedSourceOldData
+
+def localLipQuant
+    {κ M : ℝ} {Z : ℝ → ℝ}
+    (hZ : PaperFixedSourceOldData κ M Z) : LocalLipQuant Z :=
+  { C := M
+    L := hZ.L
+    C_nonneg := le_trans (hZ.nonneg 0)
+      ((hZ.le_barrier 0).trans (upperBarrier_le_M κ M 0))
+    L_nonneg := hZ.L_nonneg
+    bound := fun x => by
+      rw [abs_of_nonneg (hZ.nonneg x)]
+      exact (hZ.le_barrier x).trans (upperBarrier_le_M κ M x)
+    local_lip := hZ.local_lip }
+
+def holderQuant
+    {κ M β : ℝ} {Z : ℝ → ℝ}
+    (hZ : PaperFixedSourceOldData κ M Z)
+    (hβpos : 0 < β) (hβle : β ≤ 1) : HolderQuant β Z :=
+  hZ.localLipQuant.toHolder hβpos hβle
+
+end PaperFixedSourceOldData
+
+/-- Forget the order fields of the legacy Rothe old-iterate package. -/
+def PaperIterateBase.toFixedSourceOldData
+    {p : CMParams} {c κ M : ℝ} {u Z : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hZ : PaperIterateBase p c κ M u Z) :
+    PaperFixedSourceOldData κ M Z := by
+  let q := hZ.localLipQuant (κ := κ) (M := M) hκ hM
+  exact
+    { cont := hZ.cont
+      nonneg := hZ.nonneg
+      le_barrier := hZ.le_barrier
+      L := q.L
+      L_nonneg := q.L_nonneg
+      local_lip := q.local_lip }
+
+theorem paperFixedSourceMap_holder_kernel_of_oldData
     (p : CMParams) {c lam M κ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hu : InWaveTrapSet κ M u)
-    (hZ : PaperIterateBase p c κ M u Z) :
+    (hZ : PaperFixedSourceOldData κ M Z) :
     ∃ H0 : ℝ, 0 ≤ H0 ∧
       ∀ (Hbox : ℝ) (ω : ℝ → ℝ) R,
         PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox R →
@@ -10182,8 +10232,7 @@ theorem paperFixedSourceMap_holder_kernel
   let LU : ℝ := κ * Real.exp κ * M
   let Lθ : ℝ := LU + Lw
   let CV : ℝ := M ^ p.γ
-  let LZ : ℝ := Classical.choose hZ.deriv_le
-  let LZloc : ℝ := max LU LZ
+  let LZ : ℝ := hZ.L
   let bΘ : HolderBudget :=
     { C := M
       H := max Lθ (2 * M)
@@ -10229,13 +10278,11 @@ theorem paperFixedSourceMap_holder_kernel
         exact le_trans (by positivity : 0 ≤ 2 * CV) (le_max_left _ _) }
   let bZ : HolderBudget :=
     { C := M
-      H := max LZloc (2 * M)
+      H := max LZ (2 * M)
       C_nonneg := hM.le
       H_nonneg := by
-        have hLU : 0 ≤ LU := by dsimp [LU]; positivity
-        have hLZ : 0 ≤ LZ := (Classical.choose_spec hZ.deriv_le).1
-        have hLZloc : 0 ≤ LZloc := by dsimp [LZloc]; exact le_trans hLU (le_max_left _ _)
-        exact le_trans hLZloc (le_max_left _ _) }
+        have hLZ : 0 ≤ LZ := hZ.L_nonneg
+        exact le_trans hLZ (le_max_left _ _) }
   let Hself_m1 : ℝ := max (Lθ ^ β) (2 * M ^ β)
   let Hlip_m1 : ℝ := rpowLip (p.m - 1) M * bΘ.H
   let bm1 : HolderBudget :=
@@ -10322,10 +10369,12 @@ theorem paperFixedSourceMap_holder_kernel
       (by dsimp [PaperLocalHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
       (by dsimp [PaperLocalHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
   let hZQ : HolderQuant β Z := by
-    exact (PaperIterateBase.holderQuant hκ hM.le hZ hβpos hβle).inflate
+    exact (hZ.holderQuant hβpos hβle).inflate
       bZ.C_nonneg bZ.H_nonneg
-      (by dsimp [PaperIterateBase.holderQuant, PaperIterateBase.localLipQuant, bZ, LZ, LZloc, LU]; rfl)
-      (by dsimp [PaperIterateBase.holderQuant, PaperIterateBase.localLipQuant, bZ, LZ, LZloc, LU]; rfl)
+      (by dsimp [PaperFixedSourceOldData.holderQuant,
+        PaperFixedSourceOldData.localLipQuant, bZ, LZ]; rfl)
+      (by dsimp [PaperFixedSourceOldData.holderQuant,
+        PaperFixedSourceOldData.localLipQuant, bZ, LZ]; rfl)
   let hΘm1Q : HolderQuant β (fun z => Θ z ^ (p.m - 1)) := by
     by_cases hm1 : p.m = 1
     · have hfun : (fun z => Θ z ^ (p.m - 1)) = fun _ : ℝ => (1 : ℝ) := by
@@ -10490,6 +10539,25 @@ theorem paperFixedSourceMap_holder_kernel
   rw [hWdx, hWdy]
   convert hholder using 1
   ring_nf
+
+/-- Backwards-compatible holder-kernel wrapper for a legacy Rothe iterate. -/
+theorem paperFixedSourceMap_holder_kernel
+    (p : CMParams) {c lam M κ B : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hu : InWaveTrapSet κ M u)
+    (hZ : PaperIterateBase p c κ M u Z) :
+    ∃ H0 : ℝ, 0 ≤ H0 ∧
+      ∀ (Hbox : ℝ) (ω : ℝ → ℝ) R,
+        PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox R →
+        ∀ x y,
+          |paperFixedSourceMap p c lam M κ u Z R x -
+              paperFixedSourceMap p c lam M κ u Z R y| ≤
+            H0 * |x - y| ^ paperWeightedHolderExponent p :=
+  paperFixedSourceMap_holder_kernel_of_oldData p hlam hrpκ hrmκ hκ hM hBnn
+    hu (hZ.toFixedSourceOldData hκ hM.le)
 
 theorem paperFixedSourceMap_leftTailCauchy_kernel
     (p : CMParams) {c lam M κ B Hbox : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
@@ -12278,6 +12346,8 @@ section AxiomAudit
 #print axioms rpowTrunc_continuous
 #print axioms rpowTrunc_abs_le
 #print axioms paperFixedSourceMap_continuous_of_sourceBox
+#print axioms PaperIterateBase.toFixedSourceOldData
+#print axioms paperFixedSourceMap_holder_kernel_of_oldData
 #print axioms paperFixedSourceMap_holder_kernel
 #print axioms paperFixedSourceMap_leftTailCauchy_kernel
 #print axioms paperFixedSourceMapBoxBounds_of_trap

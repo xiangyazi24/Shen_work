@@ -441,11 +441,11 @@ theorem paperFixedSource_truncated_le_upperBarrier_local_of_trap
 
 /-- Both clamps are inactive for the no-tail source fixed point once the
 paper-faithful scalar super-barrier conditions are supplied. -/
-theorem paperFixedSource_truncation_inactive_local_of_scalar
+theorem paperFixedSource_truncation_inactive_local_of_oldData
     {p : CMParams} {c lam M κ β B H : ℝ} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hB : 0 ≤ B)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hZ : PaperIterateBase p c κ M u Z)
+    (hZ : PaperFixedSourceOldData κ M Z)
     (hscalar : PaperUpperBarrierSuperScalarConditions p c κ M)
     (hR : PaperLocalHolderSourceBox κ M β B H R)
     (hRfix : paperFixedSourceMap p c lam M κ u Z R = R) :
@@ -464,12 +464,29 @@ theorem paperFixedSource_truncation_inactive_local_of_scalar
     hlam hκ hM hB hu hR hRfix hZ.le_barrier hsuper
   exact fun x => ⟨hnonneg x, hupper x⟩
 
+/-- Backwards-compatible clamp-inactivity wrapper for a full Rothe old
+iterate. -/
+theorem paperFixedSource_truncation_inactive_local_of_scalar
+    {p : CMParams} {c lam M κ β B H : ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hB : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase p c κ M u Z)
+    (hscalar : PaperUpperBarrierSuperScalarConditions p c κ M)
+    (hR : PaperLocalHolderSourceBox κ M β B H R)
+    (hRfix : paperFixedSourceMap p c lam M κ u Z R = R) :
+    ∀ x, greenConv c lam R x ∈
+      Set.Icc (0 : ℝ) (upperBarrier κ M x) :=
+  paperFixedSource_truncation_inactive_local_of_oldData
+    hlam hκ hM hB hu (hZ.toFixedSourceOldData hκ.le hM.le)
+      hscalar hR hRfix
+
 section AxiomAudit
 
 #print axioms paperImplicitStep_truncated_ge_zero_tailfree
 #print axioms paperFixedSource_truncated_ge_zero_local_of_trap
 #print axioms paperImplicitStep_truncated_le_upperBarrier_tailfree
 #print axioms paperFixedSource_truncated_le_upperBarrier_local_of_trap
+#print axioms paperFixedSource_truncation_inactive_local_of_oldData
 #print axioms paperFixedSource_truncation_inactive_local_of_scalar
 
 end AxiomAudit

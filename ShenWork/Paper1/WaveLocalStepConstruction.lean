@@ -26,7 +26,7 @@ structure PaperLocalFixedStepData
 /-- The local source Schauder construction produces the exact genuine paper
 source equation after the tail-free maximum principles deactivate the spatial
 clamp. -/
-theorem paperLocalFixedStepData_exists_of_trap
+theorem paperLocalFixedStepData_exists_of_oldData
     (p : CMParams)
     {c lam M κ Λ B H : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -34,7 +34,7 @@ theorem paperLocalFixedStepData_exists_of_trap
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 < κ) (hM : 0 < M) (hB : 0 ≤ B)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hZ : PaperIterateBase p c κ M u Z)
+    (hZ : PaperFixedSourceOldData κ M Z)
     (hsourceScalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
             greenWeightedMass1 c lam κ * B
@@ -43,7 +43,7 @@ theorem paperLocalFixedStepData_exists_of_trap
         + lam ≤ B)
     (hHolder :
       Classical.choose
-        (paperFixedSourceMap_holder_kernel
+        (paperFixedSourceMap_holder_kernel_of_oldData
           (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
           (u := u) (Z := Z)
           hlam hrpκ hrmκ hκ.le hM hB hu.trap hZ) ≤ H)
@@ -53,13 +53,13 @@ theorem paperLocalFixedStepData_exists_of_trap
       PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B H
         d.fixed.R := by
   obtain ⟨R, hR, hRfix⟩ :=
-    paperFixedSourceMap_exists_fixed_local_of_trap
+    paperFixedSourceMap_exists_fixed_local_of_oldData
       p (c := c) (lam := lam) (M := M) (κ := κ) (B := B) (H := H)
       (u := u) (Z := Z)
       hlam hrpκ hrmκ hκ.le hM hB hu hZ hsourceScalar hHolder
   have hIcc : ∀ x, greenConv c lam R x ∈
       Set.Icc (0 : ℝ) (upperBarrier κ M x) :=
-    paperFixedSource_truncation_inactive_local_of_scalar
+    paperFixedSource_truncation_inactive_local_of_oldData
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
       (u := u) (Z := Z) (R := R)
       hlam hκ hM hB hu hZ hbarrier hR hRfix
@@ -96,6 +96,41 @@ theorem paperLocalFixedStepData_exists_of_trap
         intro x
         simpa [fixed] using hR.bound x }
   exact ⟨d, by simpa [d, fixed] using hR⟩
+
+/-- Backwards-compatible local-step constructor for a full Rothe old
+iterate. -/
+theorem paperLocalFixedStepData_exists_of_trap
+    (p : CMParams)
+    {c lam M κ Λ B H : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hM : 0 < M) (hB : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase p c κ M u Z)
+    (hsourceScalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hHolder :
+      Classical.choose
+        (paperFixedSourceMap_holder_kernel
+          (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
+          (u := u) (Z := Z)
+          hlam hrpκ hrmκ hκ.le hM hB hu.trap hZ) ≤ H)
+    (hbarrier : PaperUpperBarrierSuperScalarConditions p c κ M)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M)) :
+    ∃ d : PaperLocalFixedStepData p c lam M κ Λ B u Z,
+      PaperLocalHolderSourceBox κ M (paperWeightedHolderExponent p) B H
+        d.fixed.R := by
+  let hZold := hZ.toFixedSourceOldData hκ.le hM.le
+  apply paperLocalFixedStepData_exists_of_oldData
+    p hlam hrpκ hrmκ hκ hM hB hu hZold hsourceScalar
+  · simpa using hHolder
+  · exact hbarrier
+  · exact hΛ
 
 namespace PaperLocalFixedStepData
 
@@ -264,6 +299,7 @@ noncomputable def paperGreenStepInputRouteAOrbitCore_of_localFixedStep
 
 section AxiomAudit
 
+#print axioms paperLocalFixedStepData_exists_of_oldData
 #print axioms paperLocalFixedStepData_exists_of_trap
 #print axioms PaperLocalFixedStepData.step_op
 #print axioms PaperLocalFixedStepData.contDiff_two
