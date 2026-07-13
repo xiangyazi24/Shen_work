@@ -153,6 +153,21 @@ def EventualMassConstrainedLocallyExponentiallyStableFromSup
           EventualExponentialC1ConvergenceWith
             D N u v uStar vStar A rate t₀
 
+/-- Eventual stability without a mass hypothesis is stronger than its
+mass-constrained counterpart.  This is the branch conversion used for a
+positive logistic equilibrium; the extra mass premise is simply irrelevant
+because the zero mode is dynamically damped. -/
+theorem EventualLocallyExponentiallyStableFromSup.massConstrained
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uStar vStar : ℝ}
+    (h : EventualLocallyExponentiallyStableFromSup D p N uStar vStar) :
+    EventualMassConstrainedLocallyExponentiallyStableFromSup
+      D p N uStar vStar := by
+  rcases h with ⟨δ, hδ, A, hA, rate, hrate, t₀, ht₀, hmain⟩
+  refine ⟨δ, hδ, A, hA, rate, hrate, t₀, ht₀, ?_⟩
+  intro u₀ hu₀ hclose _hmass
+  exact hmain u₀ hu₀ hclose
+
 /-- Convert the eventual raw `X^σ_p` estimate into the nonminimal sup-norm
 local stability package. -/
 theorem EventualSectorialLocalExponentialRaw.locally_from_sup_control

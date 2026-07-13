@@ -8,6 +8,7 @@
 import ShenWork.PDE.SectorialOperator
 import ShenWork.PDE.SpectralDecay
 import ShenWork.Paper3.EventualExponentialStability
+import ShenWork.Paper3.IntervalDomainFullLinearizedSemigroup
 
 namespace ShenWork.Paper3
 
@@ -191,18 +192,27 @@ def IntervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
 
-/-- The eventual steady-state frontier before imposing the conserved-mass
-condition in the zero-reaction branch.  It is retained solely for the formal
-mass-mode obstruction. -/
+/-- The valid Stage-B orbit frontier for a positive logistic equilibrium.
+
+The input neighborhood is the physical sup norm, the estimate begins only
+after a uniform positive delay, and no mass constraint is imposed.  The proof
+uses `unitIntervalFullLinearizedSemigroupCoeff`, whose multiplier is the full
+`exp (-d_k t)` for every mode, including `d_0 = a*alpha`; the projected pure
+heat semigroup in the old raw frontier is not part of this interface.
+
+The explicit `p.m = 1` condition records that the legacy `intervalDomain`
+model has flux `u`, while the general-`m` paper linearization belongs to
+`intervalDomainM`. -/
 def IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass
     (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
-  ∀ sigma pNorm uStar vStar,
-    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+  p.m = 1 ∧
+  ∀ uStar vStar,
+    0 < p.a →
     Paper3ConstantEquilibrium p uStar vStar →
     LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
-      ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+      ∃ delta > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
         ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
-          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+          SupCloseToConstant intervalDomain u₀ uStar delta →
             ∀ u v : ℝ → intervalDomain.Point → ℝ,
               IsPaper2GlobalClassicalSolution intervalDomain p u v →
               InitialTrace intervalDomain u₀ u →
@@ -210,6 +220,34 @@ def IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass
                   N.c1Distance (u t) (fun _ => uStar) +
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
+
+/-- The valid positive-equilibrium orbit frontier directly discharges the
+eventual, mass-free sup-norm stability target. -/
+theorem
+intervalDomain_eventualLocallyExponentiallyStableFromSup_of_eventualEquilibriumOrbitBound
+    (p : CM2Params) (N : StabilityNorms intervalDomain)
+    {uStar vStar : ℝ}
+    (horbit :
+      IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass
+        p N)
+    (ha : 0 < p.a)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p uStar vStar)
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta) :
+    EventualLocallyExponentiallyStableFromSup
+      intervalDomain p N uStar vStar := by
+  rcases horbit with ⟨_hm, horbit⟩
+  rcases horbit uStar vStar ha heq hstable with
+    ⟨delta, hdelta, C, hC, rate, hrate, t₀, ht₀, hbound⟩
+  refine ⟨delta, hdelta, C, hC, rate, hrate, t₀, ht₀, ?_⟩
+  intro u₀ hu₀ hclose
+  rcases hexist delta hdelta u₀ hu₀ hclose with
+    ⟨u, v, hglobal, htrace⟩
+  exact ⟨u, v, hglobal, htrace,
+    hbound u₀ hu₀ hclose u v hglobal htrace⟩
 
 /-- Corrected nonlinear orbit-control frontier for the interval sectorial
 mainline.
