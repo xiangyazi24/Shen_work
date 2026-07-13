@@ -68,6 +68,7 @@ structure ConjugateMildSolutionDataM (p : CM2Params)
   hfloor : ∀ t, 0 < t → t ≤ T → ∀ x, c ≤ u t x
   hcont : HasContinuousSlices T u
   hmeas : HasJointMeasurability u
+  datum_bound : ∀ x, |u₀ x| ≤ M
 
 /-- The positive strip recorded by a mild solution is nonempty. -/
 theorem ConjugateMildSolutionDataM.floor_le_bound
@@ -402,9 +403,34 @@ theorem positiveFloorPicardDataM_exists_uniform
 record. -/
 def conjugateMildSolutionDataM_of_picardData
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
     (D : PositiveFloorPicardData (conjugateMBase u₀) (conjugateMPhi p u₀)) :
     ConjugateMildSolutionDataM p u₀ := by
   let F := fixedPointData D
+  have hdatum : ∀ x : intervalDomainPoint, |u₀ x| ≤ D.M := by
+    intro x
+    refine le_of_forall_pos_le_add ?_
+    intro ε hε
+    obtain ⟨δ, hδ, hclose⟩ :=
+      ShenWork.IntervalPicardIterateInitialApproach.semigroup_initialApproach
+        p hu₀_cont ε hε
+    let t₀ : ℝ := min (δ / 2) D.T
+    have ht₀ : 0 < t₀ := lt_min (by linarith) D.hT
+    have ht₀T : t₀ ≤ D.T := min_le_right _ _
+    have ht₀δ : t₀ < δ :=
+      lt_of_le_of_lt (min_le_left _ _) (by linarith)
+    have hball := D.hbase_ball t₀ ht₀ ht₀T x
+    have hnear := hclose t₀ ht₀ ht₀δ x
+    have htri : |u₀ x| ≤
+        |u₀ x - conjugateMBase u₀ t₀ x| +
+          |conjugateMBase u₀ t₀ x| := by
+      have h := abs_add_le
+        (u₀ x - conjugateMBase u₀ t₀ x)
+        (conjugateMBase u₀ t₀ x)
+      simpa using h
+    have hnear' : |u₀ x - conjugateMBase u₀ t₀ x| < ε := by
+      simpa [conjugateMBase, abs_sub_comm] using hnear
+    linarith
   exact {
     T := F.T, hT := F.hT, M := F.M, hM := F.hM, c := F.c, hc := F.hc
     u := F.u
@@ -414,7 +440,8 @@ def conjugateMildSolutionDataM_of_picardData
     hbound := F.hbound
     hfloor := F.hfloor
     hcont := F.hcont
-    hmeas := F.hmeas }
+    hmeas := F.hmeas
+    datum_bound := hdatum }
 
 /-- Every paper-positive datum for the faithful domain has a genuine
 general-`m` mild solution. -/
@@ -430,7 +457,7 @@ theorem conjugateMildSolutionDataM_exists_paperPositive
     positiveFloorPicardDataM_exists_uniform p Braw floor hfloor_pos
   obtain ⟨D, _hDT⟩ := hfactory u₀ hu₀.admissible.2
     (fun x ↦ hBraw (Set.mem_range_self x)) hfloor_le
-  exact ⟨conjugateMildSolutionDataM_of_picardData D⟩
+  exact ⟨conjugateMildSolutionDataM_of_picardData hu₀.admissible.2 D⟩
 
 #print axioms positiveFloorPicardDataM_exists_uniform
 #print axioms conjugateMildSolutionDataM_of_picardData
