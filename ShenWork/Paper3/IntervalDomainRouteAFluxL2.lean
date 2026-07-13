@@ -28,7 +28,7 @@ structure EliminatedFluxDerivativeRouteAL2Data where
   z1xx_memLp : MemLp z1xx 2 (intervalMeasure 1)
   z2xx_memLp : MemLp z2xx 2 (intervalMeasure 1)
   zxx_memLp : MemLp zxx 2 (intervalMeasure 1)
-  profile_bound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  profile_bound : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
     |profile x| ≤
       eliminatedFluxDerivativeRouteAConstant bounds qStar * bounds.M * bounds.L +
         |qStar| * bounds.M * |z1xx x| +

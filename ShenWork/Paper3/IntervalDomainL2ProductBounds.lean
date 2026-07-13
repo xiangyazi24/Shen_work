@@ -31,6 +31,15 @@ private theorem memLp_sq_intervalIntegrable
     (by norm_num : (0 : ℝ) ≤ 1)]
   exact hsq.mono_set Set.Ioc_subset_Icc_self
 
+theorem ae_intervalMeasure_one_mem_Ioo :
+    ∀ᵐ x ∂ intervalMeasure 1, x ∈ Set.Ioo (0 : ℝ) 1 := by
+  unfold intervalMeasure intervalSet
+  have hrestrict : volume.restrict (Set.Icc (0 : ℝ) 1) =
+      volume.restrict (Set.Ioo (0 : ℝ) 1) :=
+    Measure.restrict_congr_set MeasureTheory.Ioo_ae_eq_Icc.symm
+  rw [hrestrict]
+  exact ae_restrict_mem measurableSet_Ioo
+
 theorem intervalL2Size_sq_integral_nonneg (f : ℝ → ℝ) :
     0 ≤ ∫ x in (0 : ℝ)..1, (f x) ^ 2 :=
   intervalIntegral.integral_nonneg (by norm_num) (fun x _ => sq_nonneg _)
@@ -40,16 +49,20 @@ theorem intervalL2Size_le_of_pointwise_mul
     {f g : ℝ → ℝ} {B : ℝ} (hB : 0 ≤ B)
     (hf : MemLp f 2 (intervalMeasure 1))
     (hg : MemLp g 2 (intervalMeasure 1))
-    (hfg : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B * |g x|) :
+    (hfg : ∀ x ∈ Set.Ioo (0 : ℝ) 1, |f x| ≤ B * |g x|) :
     intervalL2Size f ≤ B * intervalL2Size g := by
   have hfsq := memLp_sq_intervalIntegrable hf
   have hgsq := memLp_sq_intervalIntegrable hg
   have hmajor : IntervalIntegrable
       (fun x => B ^ 2 * (g x) ^ 2) volume 0 1 :=
     hgsq.const_mul (B ^ 2)
-  have hpoint : ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      (f x) ^ 2 ≤ B ^ 2 * (g x) ^ 2 := by
-    intro x hx
+  have hae : (fun x => (f x) ^ 2) ≤ᵐ[volume.restrict (Set.Icc (0 : ℝ) 1)]
+      (fun x => B ^ 2 * (g x) ^ 2) := by
+    have hrestrict : volume.restrict (Set.Icc (0 : ℝ) 1) =
+        volume.restrict (Set.Ioo (0 : ℝ) 1) :=
+      Measure.restrict_congr_set MeasureTheory.Ioo_ae_eq_Icc.symm
+    rw [hrestrict]
+    filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
     have h := hfg x hx
     have hsquared := mul_self_le_mul_self (abs_nonneg (f x)) h
     calc
@@ -60,7 +73,8 @@ theorem intervalL2Size_le_of_pointwise_mul
       B ^ 2 * (∫ x in (0 : ℝ)..1, (g x) ^ 2) := by
     calc
       _ ≤ ∫ x in (0 : ℝ)..1, B ^ 2 * (g x) ^ 2 :=
-        intervalIntegral.integral_mono_on (by norm_num) hfsq hmajor hpoint
+        intervalIntegral.integral_mono_ae_restrict
+          (by norm_num) hfsq hmajor hae
       _ = _ := by rw [intervalIntegral.integral_const_mul]
   unfold intervalL2Size
   calc
