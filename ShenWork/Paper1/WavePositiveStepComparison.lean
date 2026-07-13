@@ -9,6 +9,7 @@
 import ShenWork.Paper1.WavePositivePlateauComparison
 import ShenWork.Paper1.WavePinnedStepComparison
 import ShenWork.Paper1.WavePinnedStepParameterAsymptotics
+import ShenWork.Paper1.WavePinnedStepUniqueness
 
 open Filter Topology Set Real
 
@@ -675,12 +676,110 @@ theorem paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
     (Q := M) (X := X) (u := u) (Z := Z) (W := W) (A := A)
     hlam hsmall' hE0 hstep hprev hfcont hfbound hfX hfaway hsub hop
 
+/-- Same-right-hand-side uniqueness for positive lower-pinned smooth Green
+steps. -/
+theorem paperImplicitStep_unique_positive_of_pinned_smooth
+    {p : CMParams} {c lam M κ K : ℝ} {u Z W₁ W₂ : ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hu : InWaveTrapSet κ M u)
+    (hsmall : (1 / lam) * paperPositivePinnedStepCmono p M K < 1)
+    (hK : 0 ≤ K)
+    (hstep₁ : ∀ x, paperImplicitStepOp p c (1 / lam) u W₁ x = Z x)
+    (hstep₂ : ∀ x, paperImplicitStepOp p c (1 / lam) u W₂ x = Z x)
+    (hW₁2 : ContDiff ℝ 2 W₁) (hW₂2 : ContDiff ℝ 2 W₂)
+    (hW₁range : ∀ x, W₁ x ∈ Set.Icc (0 : ℝ) M)
+    (hW₂range : ∀ x, W₂ x ∈ Set.Icc (0 : ℝ) M)
+    (hW₁log : ∀ x, |deriv W₁ x| ≤ K * W₁ x)
+    (hW₂log : ∀ x, |deriv W₂ x| ≤ K * W₂ x) : W₁ = W₂ := by
+  have oneSide : ∀ (A C : ℝ → ℝ),
+      (∀ x, paperImplicitStepOp p c (1 / lam) u A x = Z x) →
+      (∀ x, paperImplicitStepOp p c (1 / lam) u C x = Z x) →
+      ContDiff ℝ 2 A → ContDiff ℝ 2 C →
+      (∀ x, A x ∈ Set.Icc (0 : ℝ) M) →
+      (∀ x, C x ∈ Set.Icc (0 : ℝ) M) →
+      (∀ x, |deriv C x| ≤ K * C x) → ∀ x, A x ≤ C x := by
+    intro A C hstepA hstepC hA2 hC2 hArange hCrange hClog
+    let Ccross : ℝ := |p.χ| * p.m * M ^ p.γ * K *
+      (p.m - 1) * M ^ (p.m - 1)
+    let Ecross : ℝ := |p.χ| * p.m * M ^ p.γ * M ^ (p.m - 1)
+    let E : ℝ := 1 + |c| + Ecross
+    have hE0 : 0 ≤ E := by
+      dsimp [E, Ecross]
+      have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+      have hγ : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM.le _
+      have hm1 : 0 ≤ M ^ (p.m - 1) := Real.rpow_nonneg hM.le _
+      positivity
+    have hf2 : ContDiff ℝ 2 (fun x => A x - C x) := hA2.sub hC2
+    have hfbound : ∀ x, A x - C x ≤ M := by
+      intro x
+      linarith [(hArange x).2, (hCrange x).1]
+    have hop : ∀ eta, 0 < eta → ∀ x₀,
+        0 < A x₀ - C x₀ →
+        |deriv (fun x => A x - C x) x₀| < eta →
+        deriv (deriv (fun x => A x - C x)) x₀ < eta →
+        paperWaveOperator p c u A x₀ - paperWaveOperator p c u C x₀ ≤
+          paperPositivePinnedStepCmono p M K * (A x₀ - C x₀) + E * eta := by
+      intro eta heta x₀ hcontact hfSlope hfSecond
+      have hCA : C x₀ ≤ A x₀ := by linarith
+      have hslope : |deriv A x₀ - deriv C x₀| ≤ eta := by
+        have heq : deriv (fun x => A x - C x) x₀ =
+            deriv A x₀ - deriv C x₀ :=
+          deriv_sub (hA2.differentiable (by norm_num) x₀)
+            (hC2.differentiable (by norm_num) x₀)
+        rw [heq] at hfSlope
+        exact hfSlope.le
+      have hsecond : iteratedDeriv 2 A x₀ - iteratedDeriv 2 C x₀ ≤ eta := by
+        have heq : deriv (deriv (fun x => A x - C x)) x₀ =
+            iteratedDeriv 2 A x₀ - iteratedDeriv 2 C x₀ := by
+          calc
+            deriv (deriv (fun x => A x - C x)) x₀ =
+                iteratedDeriv 2 (fun x => A x - C x) x₀ := by
+              simp [iteratedDeriv_succ, iteratedDeriv_zero]
+            _ = iteratedDeriv 2 A x₀ - iteratedDeriv 2 C x₀ :=
+              iteratedDeriv_fun_sub hA2.contDiffAt hC2.contDiffAt
+        rw [heq] at hfSecond
+        exact hfSecond.le
+      have hVd : |deriv (frozenElliptic p u) x₀| ≤ M ^ p.γ :=
+        (frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x₀).trans
+          (frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x₀)
+      have hcross :
+          (-p.χ) * p.m * (A x₀) ^ (p.m - 1) *
+                deriv (frozenElliptic p u) x₀ * deriv A x₀
+            - (-p.χ) * p.m * (C x₀) ^ (p.m - 1) *
+                deriv (frozenElliptic p u) x₀ * deriv C x₀ ≤
+          Ccross * (A x₀ - C x₀) + Ecross * eta := by
+        simpa [Ccross, Ecross, abs_neg] using
+          paperCrossGradient_diff_le_of_lower_log_slope_abs
+            (p := p) (a := -p.χ) (M := M) (BVd := M ^ p.γ)
+            (K := K) (eta := eta) (u := u) (A := A) (B := C) (x₀ := x₀)
+            hM (Real.rpow_nonneg hM.le _) hK (hCrange x₀).1 hCA
+            (hArange x₀).2 hVd (hClog x₀) hslope
+      have hop0 := paperWaveOperator_diff_le_abs_of_approx_contact
+        (p := p) (c := c) (a := -p.χ) (M := M) (BV := M ^ p.γ)
+        (Ccross := Ccross) (Ecross := Ecross) (eta := eta)
+        (u := u) (A := A) (W := C) (x₀ := x₀)
+        rfl hM.le (hArange x₀) (hCrange x₀) hCA
+        (frozenElliptic_nonneg_of_inWaveTrapSet p hu x₀)
+        (frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x₀)
+        hsecond hslope hcross
+      dsimp [Ccross, Ecross, E, paperPositivePinnedStepCmono] at hop0 ⊢
+      simpa [abs_neg] using hop0
+    exact paperImplicitStep_same_rhs_le_of_quasiMonotone_tailfree
+      (p := p) (c := c) (lam := lam)
+      (Cmono := paperPositivePinnedStepCmono p M K)
+      (E := E) (Q := M) (u := u) (Z := Z) (A := A) (B := C)
+      hlam hsmall hE0 hstepA hstepC hf2 hfbound hop
+  funext x
+  exact le_antisymm
+    (oneSide W₁ W₂ hstep₁ hstep₂ hW₁2 hW₂2 hW₁range hW₂range hW₂log x)
+    (oneSide W₂ W₁ hstep₂ hstep₁ hW₂2 hW₁2 hW₂range hW₁range hW₁log x)
+
 section AxiomAudit
 
 #print axioms paperCrossGradient_diff_le_of_lower_log_slope_abs
 #print axioms paperWaveOperator_diff_le_abs_of_approx_contact
 #print axioms paperImplicitStep_ge_barrier_piecewise_tailfree
 #print axioms paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
+#print axioms paperImplicitStep_unique_positive_of_pinned_smooth
 #print axioms paperPositivePinnedStepCmono_large_source_tendsto_zero
 #print axioms paperPositivePlateauStepCmono_large_source_tendsto_zero
 
