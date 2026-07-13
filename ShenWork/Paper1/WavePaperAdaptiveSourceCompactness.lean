@@ -296,23 +296,44 @@ def PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
         (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
           Differentiable ℝ W ∧ Differentiable ℝ (deriv W)
 
+/-- Off-diagonal adaptive closed graph restricted to an arbitrary construction
+domain embedded in the bare monotone trap. -/
+def PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn
+    (domain : (ℝ → ℝ) → Prop)
+    (p : CMParams) (c lam M κ : ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u W : ℝ → ℝ) (ks : ℕ → ℕ),
+    (∀ n, domain (seq n)) →
+      InMonotoneWaveTrapSet κ M u →
+      InMonotoneWaveTrapSet κ M W →
+      LocallyUniformConverges seq u →
+      Tendsto ks atTop atTop →
+      LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) W →
+      LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) W →
+        (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
+          Differentiable ℝ W ∧ Differentiable ℝ (deriv W)
+
 /-- The analytic-preserving whole-line Green orbit has the off-diagonal
 adaptive closed graph.  The proof extracts a derivative cluster, passes the
 actual non-diagonal source, and identifies the limit by Green-kernel dominated
 convergence. -/
-theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
+theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn_of_stepAnalytic
+    (domain : (ℝ → ℝ) → Prop)
     (p : CMParams) (c lam M κ Λ : ℝ)
     (hM : 0 < M) (hΛ : 0 ≤ Λ) (hlam : 0 < lam)
     (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
-    (hanalytic : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k,
+    (hdomain : ∀ u, domain u → InMonotoneWaveTrapSet κ M u)
+    (hanalytic : ∀ u, domain u → ∀ k,
       PaperStepAnalytic p c lam M κ Λ u (rotheSeq u k) (rotheSeq u (k + 1)))
-    (hnew0 : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k x,
+    (hnew0 : ∀ u, domain u → ∀ k x,
       0 ≤ rotheSeq u (k + 1) x)
-    (hnewM : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k x,
+    (hnewM : ∀ u, domain u → ∀ k x,
       rotheSeq u (k + 1) x ≤ M) :
-    PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
+    PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn domain
       p c lam M κ rotheSeq := by
   intro seq u W ks hseq hu hW houter _hks hold hnew
+  have hseqBare : ∀ n, InMonotoneWaveTrapSet κ M (seq n) :=
+    fun n => hdomain (seq n) (hseq n)
   let Zs : ℕ → ℝ → ℝ := fun n => rotheSeq (seq n) (ks n)
   let Ws : ℕ → ℝ → ℝ := fun n => rotheSeq (seq n) (ks n + 1)
   let A : ∀ n, PaperStepAnalytic p c lam M κ Λ (seq n) (Zs n) (Ws n) :=
@@ -382,7 +403,7 @@ theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
         (Zs (sub n)) (Ws (sub n)))
       (paperStepSource p c lam u W W) :=
     paperStepSource_locallyUniform_nonDiagonal p hM
-      (fun n => hseq (sub n)) hu
+      (fun n => hseqBare (sub n)) hu
       (fun n x => hnew0 (seq (sub n)) (hseq (sub n)) (ks (sub n)) x)
       (fun n x => hnewM (seq (sub n)) (hseq (sub n)) (ks (sub n)) x)
       hW.nonneg hW.le_M houter' hold' hWsub hWd hbddDerivW
@@ -435,10 +456,28 @@ theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
   exact ⟨paperImplicitStepOp_of_greenConv_source hlam rfl hWgreen
     hRcont hRhi hRlo, hWdiff, hWderivDiff⟩
 
+/-- Bare-trap wrapper for the domain-restricted off-diagonal closed graph. -/
+theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hM : 0 < M) (hΛ : 0 ≤ Λ) (hlam : 0 < lam)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hanalytic : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k,
+      PaperStepAnalytic p c lam M κ Λ u (rotheSeq u k) (rotheSeq u (k + 1)))
+    (hnew0 : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k x,
+      0 ≤ rotheSeq u (k + 1) x)
+    (hnewM : ∀ u, InMonotoneWaveTrapSet κ M u → ∀ k x,
+      rotheSeq u (k + 1) x ≤ M) :
+    PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
+      p c lam M κ rotheSeq := by
+  exact paperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn_of_stepAnalytic
+    (InMonotoneWaveTrapSet κ M) p c lam M κ Λ hM hΛ hlam rotheSeq
+    (fun _ hu => hu) hanalytic hnew0 hnewM
+
 section AxiomAudit
 
 #print axioms paperStepSource_locallyUniform_nonDiagonal
 #print axioms paperGreenRotheAdaptiveSourceCompactness_of_stepAnalytic
+#print axioms paperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn_of_stepAnalytic
 #print axioms paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
 
 end AxiomAudit
