@@ -1,5 +1,5 @@
 import ShenWork.Paper3.IntervalDomainMinimalPowerDifference
-import ShenWork.Paper3.IntervalDomainEntropyStrong2Dynamics
+import ShenWork.Paper3.IntervalDomainEntropyBasinEntry
 
 /-!
 # Minimal-model entropy dissipation on the unit interval
@@ -333,10 +333,56 @@ theorem intervalDomain_minimal1_exists_late_l2_lt
             hpointUpper hvLower hVfloor)
   exact ⟨t, hTle.trans htbase, htSmall⟩
 
+/-- The entropy slices from the first minimal formula branch enter every weak
+supremum neighborhood at arbitrarily late positive times. -/
+theorem intervalDomain_minimal1_exists_late_supClose
+    (p : CM2Params) (hm : p.m = 1) (hb0 : p.b = 0)
+    {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1Formula p 1 uStar uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T eps : ℝ} (heps : 0 < eps) :
+    ∃ t, T ≤ t ∧
+      SupCloseToConstant intervalDomain (u t) uStar eps := by
+  have hlate : ∀ {T q : ℝ}, 0 < q →
+      ∃ t, T ≤ t ∧
+        chemotaxisThetaDissipation intervalDomain uStar 1 (u t) < q := by
+    intro T q hq
+    obtain ⟨t, ht, hsmall⟩ := intervalDomain_minimal1_exists_late_l2_lt
+      p hm hb0 heq huBar hvLower hχpos hχ huv hmass hupper hfloor hq
+    refine ⟨t, ht, ?_⟩
+    unfold chemotaxisThetaDissipation
+    simp only [Real.rpow_one]
+    change intervalDomainIntegral
+      (fun x => (u t x - uStar) * (u t x - uStar)) < q
+    unfold intervalDomainIntegral
+    calc
+      (∫ y in (0 : ℝ)..1,
+          intervalDomainLift
+            (fun x => (u t x - uStar) * (u t x - uStar)) y) =
+          ∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (u t) y - uStar) ^ 2 := by
+        apply intervalIntegral.integral_congr
+        intro y hy
+        rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hy
+        simp [intervalDomainLift, hy, pow_two]
+      _ < q := hsmall
+  exact intervalDomain_exists_late_supClose_of_thetaDissipation_slices
+    p hm heq.u_pos (by norm_num) huv hlate heps
+
 #print axioms intervalDomain_minimal_weightedGradient_ge_l2
 #print axioms minimal1EntropyCoefficient_pos_of_chi_lt
 #print axioms intervalDomain_entropySlope_le_minimal1Coefficient
 #print axioms intervalDomain_minimal1_exists_late_l2_lt
+#print axioms intervalDomain_minimal1_exists_late_supClose
 
 end
 
