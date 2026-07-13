@@ -125,6 +125,40 @@ theorem unitIntervalLinearized_fractionalPowerNorm_le_full
       rw [Real.sqrt_mul (sq_nonneg K), Real.sqrt_sq hK]
     _ = _ := rfl
 
+/-- Full-mode positive-time smoothing produces an actual element of
+`X_2^sigma`, not merely a finite-looking `tsum`. -/
+theorem unitIntervalLinearized_fractionalPower_summable_full
+    (p : CM2Params) {uStar vStar gap sigma t : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (hsigma : 0 < sigma) (ht : 0 < t)
+    {a : ℕ → ℂ} (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Summable fun n : ℕ =>
+      fractionalPowerEnergyTerm 1 sigma
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a) n := by
+  have ha0 : Summable fun n : ℕ =>
+      fractionalPowerEnergyTerm 1 0 a n := by
+    simpa [fractionalPowerEnergyTerm, fractionalPowerWeight] using ha
+  let K : ℝ :=
+    ((sigma /
+        (Real.exp 1 *
+          ((gap /
+            (2 *
+              (gap +
+                (|p.χ₀ * p.ν * p.γ *
+                    uStar ^ (p.m + p.γ - 1) /
+                  (1 + vStar) ^ p.β| + 1)))) * t))) ^ sigma *
+      Real.exp (-(gap / 2) * t)) ^ 2
+  have hmajor : Summable fun n : ℕ =>
+      K * fractionalPowerEnergyTerm 1 0 a n := ha0.mul_left K
+  apply Summable.of_nonneg_of_le
+    (fun n => fractionalPowerEnergyTerm_nonneg 1 sigma _ n)
+    (fun n => ?_) hmajor
+  simpa [K] using
+    unitIntervalLinearized_fractionalPowerEnergyTerm_le_full
+      p heq hgap hsigma ht (sigma := 0) (theta := sigma) (a := a) n
+
 /-- Same-order full-mode decay in the strong norm. -/
 theorem unitIntervalLinearized_fractionalPowerNorm_le_exp
     (p : CM2Params) {uStar vStar gap sigma t : ℝ}
@@ -154,9 +188,47 @@ theorem unitIntervalLinearized_fractionalPowerNorm_le_exp
         Real.sqrt (∑' n : ℕ, fractionalPowerEnergyTerm 1 sigma a n) := by
       rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq hexp]
 
+/-- Same-order full-mode propagation preserves fractional-power membership. -/
+theorem unitIntervalLinearized_fractionalPower_summable_exp
+    (p : CM2Params) {uStar vStar gap sigma t : ℝ}
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => fractionalPowerEnergyTerm 1 sigma a n) :
+    Summable fun n : ℕ =>
+      fractionalPowerEnergyTerm 1 sigma
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a) n := by
+  have hmajor : Summable fun n : ℕ =>
+      Real.exp (-gap * t) ^ 2 *
+        fractionalPowerEnergyTerm 1 sigma a n :=
+    ha.mul_left (Real.exp (-gap * t) ^ 2)
+  apply Summable.of_nonneg_of_le
+    (fun n => fractionalPowerEnergyTerm_nonneg 1 sigma _ n)
+    (fun n => ?_) hmajor
+  have hg := hgap.2 n
+  have hexp :
+      Real.exp (t * unitIntervalLinearizedGrowth p uStar vStar n) ≤
+        Real.exp (-gap * t) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  have hmode :
+      (1 + unitIntervalNeumannSpectrum.eigenvalue n) ^ (0 : ℝ) *
+          Real.exp (t * unitIntervalLinearizedGrowth p uStar vStar n) ≤
+        Real.exp (-gap * t) := by simpa using hexp
+  have hleft : 0 ≤
+      (1 + unitIntervalNeumannSpectrum.eigenvalue n) ^ (0 : ℝ) *
+        Real.exp (t * unitIntervalLinearizedGrowth p uStar vStar n) := by
+    positivity
+  simpa using
+    unitIntervalLinearized_fractionalPowerEnergyTerm_le_of_mode
+      p (sigma := sigma) (theta := 0) (t := t)
+        (K := Real.exp (-gap * t)) n hmode hleft
+
 #print axioms unitInterval_fractionalPowerEnergy_zero_eq_coeffL2Energy
 #print axioms unitIntervalLinearized_fractionalPowerNorm_le_full
+#print axioms unitIntervalLinearized_fractionalPower_summable_full
 #print axioms unitIntervalLinearized_fractionalPowerNorm_le_exp
+#print axioms unitIntervalLinearized_fractionalPower_summable_exp
 
 end
 
