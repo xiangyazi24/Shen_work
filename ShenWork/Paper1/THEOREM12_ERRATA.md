@@ -1,6 +1,6 @@
 # Paper 1 Theorem 1.2 stability audit (2026-07-13)
 
-Two independent issues block a faithful proof of the literal headline as
+Three independent issues block a faithful proof of the literal headline as
 currently stated.
 
 ## 1. The root comparison in (5.35) has the wrong direction
@@ -79,6 +79,22 @@ in `Theorem12CoordinateAudit.lean`.
 The last theorem is deliberately a function-level coordinate sanity witness,
 not a claimed PDE counterexample.
 
+## 3. The exponential factor after (5.35) has the wrong sign
+
+Immediately after defining the quadratic coefficient `lambda` to be negative,
+the paper bounds the energy by `exp(-lambda t)` and says that this tends to
+zero.  For `lambda < 0`, however, `-lambda > 0`, so that factor tends to
+positive infinity.  With the displayed definition, the decaying factor is
+`exp(lambda t)`.  Equivalently, one may rename `-lambda` as a positive decay
+rate and retain the conventional `exp(-rate t)` notation.
+
+Lean certificates:
+
+- `paper531_printed_decay_factor_tendsto_atTop`
+- `paper531_corrected_decay_factor_tendsto_zero`
+
+in `Theorem12RootObstruction.lean`.
+
 ## Formalization consequence
 
 The literal Paper 1 Theorem 1.2 must not be marked complete through the
@@ -89,6 +105,29 @@ targets:
 2. the full moving-coordinate interval `eta > kappa`, but only after replacing
    the false global root comparison by a new localized coercivity proof.
 
-The whole-line Cauchy construction and nonlinear perturbation identity remain
-separate analytic frontiers after this audit.
+The corrected formal target is `Theorem_1_2_amended` in
+`Theorem12Corrected.lean`.  It uses the moving-coordinate norm and makes wave
+regularity explicit.  The following analytic blocks are now genuine Lean
+derivations rather than package projections:
 
+- the weighted resolvent estimate, `Lemma_2_5_proved`;
+- the arbitrary-pair Section 5 signal estimate, `Lemma_5_3_proved`;
+- scalar energy dissipation to exponential convergence;
+- the Step 4 upgrade from weighted convergence, a uniform spatial modulus,
+  and left-tail convergence to uniform moving-frame convergence;
+- full `TravelingWaveRegularity` for the positive Schauder wave producer.
+
+The one remaining capstone hypothesis is exposed by
+`paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4`: it asks for a
+general-data whole-line Cauchy solution together with the nonlinear weighted
+perturbation dissipation, eventual weighted integrability, a uniform spatial
+modulus, and the left-tail compactness/rigidity input.  Closing it over the
+full interval `eta > kappa` requires the new localized coercivity argument
+described above; the paper's global quadratic estimate cannot supply it.
+
+The amended conclusion is non-vacuous independently of that frontier:
+`Theorem_1_2_amended_self_initial_data_concrete_nonvacuous` instantiates the
+genuine positive-attraction Schauder wave at `chi = 1/4`, with the wave itself
+as initial datum.  `CoMovingWeightedL2Convergence` includes eventual
+integrability, preventing the Bochner integral's non-integrable default value
+from serving as a false convergence witness.

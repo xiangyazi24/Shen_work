@@ -255,6 +255,28 @@ theorem paper531_numeric_sanity_root_window_impossible :
     (rootMinus := rootMinus) (rootPlus := rootPlus)
     (by norm_num) (by norm_num) hfactor ⟨hminus, hplus⟩
 
+/-! ## Sign audit of the exponential factor following (5.35) -/
+
+/-- The factor printed after (5.35) grows, rather than decays, when the
+paper's displayed definition `lam < 0` is used. -/
+theorem paper531_printed_decay_factor_tendsto_atTop
+    {lam : ℝ} (hlam : lam < 0) :
+    Tendsto (fun t : ℝ => Real.exp (-lam * t)) atTop atTop := by
+  have hcoef : 0 < -lam := neg_pos.mpr hlam
+  have hlin : Tendsto (fun t : ℝ => -lam * t) atTop atTop :=
+    tendsto_id.const_mul_atTop hcoef
+  exact Real.tendsto_exp_atTop.comp hlin
+
+/-- With the same negative coefficient, the decaying factor is `exp (lam t)`
+(equivalently, define a positive decay rate `-lam` and write
+`exp (-(-lam)t)`). -/
+theorem paper531_corrected_decay_factor_tendsto_zero
+    {lam : ℝ} (hlam : lam < 0) :
+    Tendsto (fun t : ℝ => Real.exp (lam * t)) atTop (nhds 0) := by
+  have hlin : Tendsto (fun t : ℝ => lam * t) atTop atBot :=
+    tendsto_id.const_mul_atTop_of_neg hlam
+  exact Real.tendsto_exp_atBot.comp hlin
+
 section Theorem12RootObstructionAxiomAudit
 #print axioms paper531Quadratic_factor
 #print axioms paper531Discriminant_pos_of_speed
@@ -266,6 +288,8 @@ section Theorem12RootObstructionAxiomAudit
 #print axioms paper533VisiblePositiveTerm_pos
 #print axioms paper531_actual_correction_pos
 #print axioms paper531_numeric_sanity_root_window_impossible
+#print axioms paper531_printed_decay_factor_tendsto_atTop
+#print axioms paper531_corrected_decay_factor_tendsto_zero
 end Theorem12RootObstructionAxiomAudit
 
 end ShenWork.Paper1

@@ -21,7 +21,6 @@ open ShenWork.IntervalResolverPositivity
 open ShenWork.IntervalResolverGradientBridge
 open ShenWork.PDE
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison
 open ShenWork.IntervalPicardLimitCoeffConv
 open ShenWork.IntervalDomainLogisticWeakH2Adapter
 
@@ -202,8 +201,6 @@ theorem intervalDomain_solution_signal_lower_of_mass_upper
       _ = (intervalNeumannResolverSourceCoeff p (u t) k).re := by
         symm
         exact resolverSourceCoeff_re_eq_cosineCoeffs p (u t) k
-  have hsource_sq : Summable (fun k : ℕ => (cosineCoeffs source k) ^ 2) :=
-    cosineCoeffs_sq_summable_of_continuousOn hsource_cont.continuousOn
   have hsource_resolver :
       (∑' k, cosineCoeffs source k * unitIntervalCosineMode k x /
         (p.μ + unitIntervalCosineEigenvalue k)) =
@@ -280,10 +277,56 @@ theorem exists_minimal_eventual_upper_and_signal_lower
   have hx := hsignal x.1 x.property
   simpa [vLower, intervalDomainLift, x.property] using hx
 
+/-- The concrete orbit-independent upper/floor pair required by the two
+minimal-model thresholds.  This is a proposition with a proved producer, not
+an external constants package. -/
+def IntervalDomainMinimalEventualBox
+    (p : CM2Params) (uStar uBar vLower : ℝ) : Prop :=
+  0 < uBar ∧ 0 < vLower ∧
+    ∀ (u v : ℝ → intervalDomainPoint → ℝ),
+      PositiveGlobalBoundedSolution intervalDomain p u v →
+      HasEquilibriumMassOnPositiveTimes intervalDomain u uStar →
+        (∀ᶠ t : ℝ in atTop, intervalDomain.supNorm (u t) ≤ uBar) ∧
+        (∀ᶠ t : ℝ in atTop,
+          ∀ x : intervalDomainPoint, vLower ≤ v t x)
+
+/-- Canonical concrete constants: choose the proved eventual box when one
+exists, and use a harmless default outside that parameter regime. -/
+noncomputable def intervalDomainMinimalEventualBoxConstants
+    (p : CM2Params) (uStar : ℝ) : ℝ × ℝ := by
+  classical
+  exact
+    if h : ∃ c : ℝ × ℝ,
+        IntervalDomainMinimalEventualBox p uStar c.1 c.2 then
+      Classical.choose h
+    else
+      (1, 1)
+
+/-- In the preliminary small-sensitivity regime, the canonical constants are
+the output of the genuine interval upper/floor producer. -/
+theorem intervalDomainMinimalEventualBoxConstants_spec
+    (p : CM2Params) {uStar : ℝ}
+    (hm : p.m = 1) (ha0 : p.a = 0) (hb0 : p.b = 0)
+    (hbeta : 1 ≤ p.β) (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiBeta p) (huStar : 0 < uStar) :
+    IntervalDomainMinimalEventualBox p uStar
+      (intervalDomainMinimalEventualBoxConstants p uStar).1
+      (intervalDomainMinimalEventualBoxConstants p uStar).2 := by
+  have hex : ∃ c : ℝ × ℝ,
+      IntervalDomainMinimalEventualBox p uStar c.1 c.2 := by
+    obtain ⟨uBar, huBar, vLower, hvLower, hbox⟩ :=
+      exists_minimal_eventual_upper_and_signal_lower
+        p hm ha0 hb0 hbeta hchi hthreshold huStar
+    exact ⟨(uBar, vLower), huBar, hvLower, hbox⟩
+  rw [intervalDomainMinimalEventualBoxConstants]
+  simp only [dif_pos hex]
+  exact Classical.choose_spec hex
+
 #print axioms intervalMinimalPowerMassLower_le_integral
 #print axioms intervalMinimalSignalLower_pos
 #print axioms intervalDomain_solution_signal_lower_of_mass_upper
 #print axioms exists_minimal_eventual_upper_and_signal_lower
+#print axioms intervalDomainMinimalEventualBoxConstants_spec
 
 end
 
