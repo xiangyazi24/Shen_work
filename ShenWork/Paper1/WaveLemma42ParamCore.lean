@@ -251,7 +251,7 @@ theorem paperLowerRawParamRotheLimitClosedGraph
     simpa [Z, L] using (hdata (seq n) (hseq n).bare).locallyUniform hM
   obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
     exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hlimits)
-  obtain ⟨hstep, _hWdiff⟩ := hoff seq u W ks
+  obtain ⟨hstep, _hWdiff, _hWderivDiff⟩ := hoff seq u W ks
     (fun n => (hseq n).bare) hu.bare hW.bare houter hks
     (by simpa [Z] using hold) (by simpa [Z] using hnew)
   exact h.stationaryIdentification u W hu hW hstep
@@ -332,8 +332,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
     (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D))
-    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+      (lowerBarrierRaw κ κtilde D)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
@@ -411,17 +410,19 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ Λ hMpos hΛ0 hlam
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
-  obtain ⟨U, hU, hstat⟩ :=
+  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower hcube hgraph
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
       (fun x _hx => hU.lower x)
-  have hpos : ∀ x, 0 < U x := hsmp U hU.bare hstat hnontriv
+  have hpos : ∀ x, 0 < U x :=
+    stationaryProfile_strictlyPositive_of_trap_regularity
+      hMpos hU.bare hstat hUdiff hUderivDiff hnontriv
   have hlim_neg : Tendsto U atBot (nhds 1) :=
-    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
-      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
+      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower (hflat U hU hstat) hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
@@ -445,8 +446,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
     (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D))
-    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+      (lowerBarrierRaw κ κtilde D)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
@@ -524,17 +524,19 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ Λ hMpos hΛ0 hlam
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
-  obtain ⟨U, hU, hstat⟩ :=
+  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower hcube hgraph
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
       (fun x _hx => hU.lower x)
-  have hpos : ∀ x, 0 < U x := hsmp U hU.bare hstat hnontriv
+  have hpos : ∀ x, 0 < U x :=
+    stationaryProfile_strictlyPositive_of_trap_regularity
+      hMpos hU.bare hstat hUdiff hUderivDiff hnontriv
   have hlim_neg : Tendsto U atBot (nhds 1) :=
-    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
-      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
+      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower (hflat U hU hstat) hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
@@ -557,12 +559,11 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
     (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D))
-    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+      (lowerBarrierRaw κ κtilde D)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat hsmp
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat
 
 /-- Clean positive-branch name after the finite-cube approximation and adaptive
 Green source compactness have both become internal theorems. -/
@@ -576,12 +577,11 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
     (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D))
-    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+      (lowerBarrierRaw κ κtilde D)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat hsmp
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat
 
 section AxiomAudit
 

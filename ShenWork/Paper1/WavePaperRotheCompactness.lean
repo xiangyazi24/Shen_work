@@ -222,7 +222,7 @@ def PaperGreenRotheAdaptiveStepClosedGraphOnTrap
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) U →
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) U →
         (∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x) ∧
-          ∀ x, DifferentiableAt ℝ U x
+          Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
 
 namespace PaperGreenRotheAdaptiveStepClosedGraphOnTrap
 
@@ -246,7 +246,7 @@ theorem frozenStationary
     (hnew : LocallyUniformConverges
       (fun n => rotheSeq (seq n) (ks n + 1)) U) :
     ∀ x, frozenWaveOperator p c U U x = 0 := by
-  obtain ⟨hstep, hUdiff⟩ :=
+  obtain ⟨hstep, hUdiff, _hUderivDiff⟩ :=
     hgraph seq U ks hseq hU houter hks hold hnew
   exact frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
     p c lam U hlam hU.trap.cunif_bdd hU.nonneg hUdiff
@@ -273,7 +273,8 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
     (hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
       p c lam M κ rotheSeq) :
     ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
-      ∀ x, frozenWaveOperator p c U U x = 0 := by
+      (∀ x, frozenWaveOperator p c U U x = 0) ∧
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
   let Tmap : (ℝ → ℝ) → ℝ → ℝ := fun u => rotheLimit (rotheSeq u)
   obtain ⟨seq, hseq, happrox⟩ :=
     localUniformApproxFixedPointSequence_of_cubeApproxData
@@ -313,10 +314,17 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
       (hdata (seq (sub n)) (hseq (sub n)).bare).locallyUniform hM
   obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
     exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hTconv)
+  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+    hgraph (fun n => seq (sub n)) U ks
+      (fun n => (hseq (sub n)).bare) hUbare houter hks
+      (by simpa [Z] using hold) (by simpa [Z] using hnew)
   have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
-    hgraph.frozenStationary hlam (fun n => (hseq (sub n)).bare) hUbare
-      houter hks (by simpa [Z] using hold) (by simpa [Z] using hnew)
-  exact ⟨U, hU, hstat⟩
+    frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+      p c lam U hlam hUbare.trap.cunif_bdd hUbare.nonneg hUdiff
+      (fun x => frozenElliptic_deriv_differentiableAt p
+        hUbare.trap.cunif_bdd hUbare.nonneg x)
+      (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
+  exact ⟨U, hU, hstat, hUdiff, hUderivDiff⟩
 
 section AxiomAudit
 

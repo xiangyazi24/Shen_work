@@ -294,7 +294,7 @@ def PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) W →
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) W →
         (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
-          ∀ x, DifferentiableAt ℝ W x
+          Differentiable ℝ W ∧ Differentiable ℝ (deriv W)
 
 /-- The analytic-preserving whole-line Green orbit has the off-diagonal
 adaptive closed graph.  The proof extracts a derivative cluster, passes the
@@ -429,8 +429,11 @@ theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
         (Set.Iic x) :=
     fun x => gWeight_integrableOn_Iic_of_bounded
       (greenRootMinus_neg (c := c) hlam) hRcont hRbound x
+  obtain ⟨hWdiff, hWderivDiff⟩ :=
+    stationaryC2Regularity_of_greenRepresentation
+      hRcont hRhi hRlo hWgreen
   exact ⟨paperImplicitStepOp_of_greenConv_source hlam rfl hWgreen
-    hRcont hRhi hRlo, fun x => (hWhas x).differentiableAt⟩
+    hRcont hRhi hRlo, hWdiff, hWderivDiff⟩
 
 section AxiomAudit
 
