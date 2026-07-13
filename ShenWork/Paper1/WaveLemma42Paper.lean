@@ -460,6 +460,25 @@ def PaperLemma42EllipticVxEstimate
       |deriv (frozenElliptic p u) x| ≤
         paperEllipticVxBound M κ p.γ x
 
+/-- The frozen elliptic source box used in the paper's lower-barrier
+construction.  All coefficient bounds are uniform over the monotone wave trap;
+the right-tail field is the paper's genuine three-case estimate (subcritical,
+critical resonance, and supercritical), not a spurious single
+`min (γ * κ) 1` exponential bound. -/
+structure PaperFrozenEllipticSourceBox
+    (p : CMParams) (κ M : ℝ) : Prop where
+  value_nonneg : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
+    ∀ x, 0 ≤ frozenElliptic p u x
+  value_le : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
+    ∀ x, frozenElliptic p u x ≤ M ^ p.γ
+  deriv_abs_le : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
+    ∀ x, |deriv (frozenElliptic p u) x| ≤ M ^ p.γ
+  second_deriv_abs_le : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
+    ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ 2 * M ^ p.γ
+  antitone : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
+    Antitone (frozenElliptic p u)
+  right_tail_deriv : PaperLemma42EllipticVxEstimate p κ M
+
 private lemma integral_exp_neg_mul_interval_eq
     {δ x : ℝ} (hδ : 0 < δ) :
     (∫ y in (0 : ℝ)..x, Real.exp (-δ * y)) =
@@ -1040,6 +1059,48 @@ theorem PaperLemma42EllipticVxEstimate_of_conditions
       rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
       exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
 
+/-- The paper's frozen elliptic source box is automatic on the monotone wave
+trap.  The value, first-derivative, second-derivative, and monotonicity fields
+come directly from the whole-line kernel/ODE identities; the final field is the
+three-case right-tail estimate proved above. -/
+theorem paperFrozenEllipticSourceBox_of_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+    PaperFrozenEllipticSourceBox p κ M := by
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  refine
+    { value_nonneg := ?_
+      value_le := ?_
+      deriv_abs_le := ?_
+      second_deriv_abs_le := ?_
+      antitone := ?_
+      right_tail_deriv := PaperLemma42EllipticVxEstimate_of_conditions hcond }
+  · intro u hu x
+    exact frozenElliptic_nonneg p hu.nonneg x
+  · intro u hu x
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hMpos hu.trap x
+  · intro u hu x
+    exact le_trans
+      (frozenElliptic_deriv_abs_le p hu.trap.cunif_bdd hu.nonneg x)
+      (frozenElliptic_le_rpow_of_inWaveTrapSet p hMpos hu.trap x)
+  · intro u hu x
+    rw [frozenElliptic_deriv_deriv_eq p hu.trap.cunif_bdd hu.nonneg x]
+    have hV0 : 0 ≤ frozenElliptic p u x :=
+      frozenElliptic_nonneg p hu.nonneg x
+    have hV1 : frozenElliptic p u x ≤ M ^ p.γ :=
+      frozenElliptic_le_rpow_of_inWaveTrapSet p hMpos hu.trap x
+    have huγ0 : 0 ≤ (u x) ^ p.γ := Real.rpow_nonneg (hu.nonneg x) p.γ
+    have huγ1 : (u x) ^ p.γ ≤ M ^ p.γ :=
+      hu.trap.rpow_le_M (by linarith [p.hγ]) x
+    calc
+      |frozenElliptic p u x - (u x) ^ p.γ| ≤
+          |frozenElliptic p u x| + |(u x) ^ p.γ| := abs_sub _ _
+      _ = frozenElliptic p u x + (u x) ^ p.γ := by
+        rw [abs_of_nonneg hV0, abs_of_nonneg huγ0]
+      _ ≤ 2 * M ^ p.γ := by linarith
+  · intro u hu
+    exact frozenElliptic_antitone_of_monotone_trap p hu
+
 theorem PaperLemma42LogisticEstimate_of_conditions
     {p : CMParams} {c κ κtilde M D : ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -1511,7 +1572,7 @@ theorem PaperLemma42KTermEstimate_of_conditions
     (hD_ge_one : 1 ≤ D) :
     PaperLemma42KTermEstimate p c κ κtilde M D :=
   PaperLemma42KTermEstimate_of_ellipticVxEstimate hcond hD hD_ge_one
-    (PaperLemma42EllipticVxEstimate_of_conditions hcond)
+    (paperFrozenEllipticSourceBox_of_conditions hcond).right_tail_deriv
 
 theorem PaperLemma42BadTermEstimate_of_components
     {p : CMParams} {c κ κtilde M D : ℝ}
@@ -3496,6 +3557,7 @@ section AxiomAudit
 #print axioms paperDMin_margin_nonneg_exp
 #print axioms paperWaveOperator_lowerBarrierRaw_eq_of_kappa_speed
 #print axioms PaperLemma42EllipticVxEstimate_of_conditions
+#print axioms paperFrozenEllipticSourceBox_of_conditions
 #print axioms PaperLemma42LogisticEstimate_of_conditions
 #print axioms PaperLemma42KTermEstimate_of_conditions
 #print axioms PaperLemma42BadTermEstimate_of_components
