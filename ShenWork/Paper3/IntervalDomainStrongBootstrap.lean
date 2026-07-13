@@ -333,6 +333,78 @@ theorem intervalDomainStrongBootstrapRadius_quadratic_small
   dsimp [A] at hquad
   nlinarith
 
+/-- Every smaller positive radius inherits the quadratic closing inequality. -/
+theorem intervalDomainStrongBootstrap_quadratic_small_of_radius_le
+    (p : CM2Params) {sigma uStar vStar gap radius : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : 0 < gap) (hsigma : 0 < sigma) (hsigma1 : sigma < 1)
+    (hradius : 0 ≤ radius)
+    (hle : radius ≤
+      intervalDomainStrongBootstrapRadius p sigma uStar vStar gap heq) :
+    (unitIntervalLinearizedStrongSmoothingConstant
+          p uStar vStar gap sigma *
+        intervalDomainX2SigmaUniformNemytskiiConstant
+          p sigma uStar vStar heq) * radius ^ 2 *
+          reservedSingularKernelMass sigma (gap / 2 - gap / 4) ≤
+      radius / 4 := by
+  let C := unitIntervalLinearizedStrongSmoothingConstant
+    p uStar vStar gap sigma
+  let K := intervalDomainX2SigmaUniformNemytskiiConstant
+    p sigma uStar vStar heq
+  let M := reservedSingularKernelMass sigma (gap / 2 - gap / 4)
+  let A := C * K * M
+  have hC : 0 < C := by
+    simpa [C] using unitIntervalLinearizedStrongSmoothingConstant_pos
+      p hgap hsigma
+  have hK : 0 < K := by
+    simpa [K] using intervalDomainX2SigmaUniformNemytskiiConstant_pos
+      p sigma uStar vStar heq
+  have hd : 0 < gap / 2 - gap / 4 := by linarith
+  have hM : 0 < M := by
+    dsimp [M, reservedSingularKernelMass]
+    exact mul_pos (Real.rpow_pos_of_pos hd _)
+      (Real.Gamma_pos_of_pos (by linarith))
+  have hA : 0 < A := mul_pos (mul_pos hC hK) hM
+  have hbootstrapDen :
+      intervalDomainStrongBootstrapRadius p sigma uStar vStar gap heq ≤
+        1 / (8 * A + 1) := by
+    dsimp [intervalDomainStrongBootstrapRadius, A, C, K, M]
+    exact min_le_right _ _
+  have hrDen : radius ≤ 1 / (8 * A + 1) := hle.trans hbootstrapDen
+  have hden : 0 < 8 * A + 1 := by positivity
+  have hraw : radius * (8 * A + 1) ≤ 1 :=
+    (le_div_iff₀ hden).mp hrDen
+  have hAr : 8 * A * radius ≤ 1 := by nlinarith
+  have hquad := mul_le_mul_of_nonneg_right hAr hradius
+  change C * K * radius ^ 2 * M ≤ radius / 4
+  dsimp [A] at hquad
+  nlinarith
+
+/-- Restarted decay on any chosen smaller positivity/bootstrap ball. -/
+theorem intervalDomainX2SigmaDistance_restart_exponential_bound_of_radius_le
+    {p : CM2Params} {sigma uStar vStar gap a radius : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hm : p.m = 1) (ha : 0 < a)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (hsigmaStrong : 3 / 4 < sigma) (hsigma1 : sigma < 1)
+    (hradius : 0 < radius)
+    (hradius_le : radius ≤
+      intervalDomainStrongBootstrapRadius p sigma uStar vStar gap heq)
+    (hrestart : intervalDomainX2SigmaDistance sigma uStar (u a) ≤ radius / 2) :
+    ∀ tau, 0 ≤ tau →
+      intervalDomainX2SigmaDistance sigma uStar (u (a + tau)) ≤
+        radius * Real.exp (-(gap / 4) * tau) := by
+  apply intervalDomainX2SigmaDistance_restart_exponential_bound_of_small
+    hglobal hm ha heq hgap hsigmaStrong hsigma1 hradius
+  · exact hradius_le.trans
+      (intervalDomainStrongBootstrapRadius_le_positivity
+        p sigma uStar vStar gap heq)
+  · exact intervalDomainStrongBootstrap_quadratic_small_of_radius_le
+      p heq hgap.1 (by linarith) hsigma1 hradius.le hradius_le
+  · exact hrestart
+
 /-- Public restarted Stage-A estimate with the radius chosen internally. -/
 theorem intervalDomainX2SigmaDistance_restart_exponential_bound
     {p : CM2Params} {sigma uStar vStar gap a : ℝ}
@@ -367,6 +439,8 @@ theorem intervalDomainX2SigmaDistance_restart_exponential_bound
 #print axioms intervalDomainStrongBootstrapRadius_pos
 #print axioms intervalDomainStrongBootstrapRadius_le_positivity
 #print axioms intervalDomainStrongBootstrapRadius_quadratic_small
+#print axioms intervalDomainStrongBootstrap_quadratic_small_of_radius_le
+#print axioms intervalDomainX2SigmaDistance_restart_exponential_bound_of_radius_le
 #print axioms intervalDomainX2SigmaDistance_restart_exponential_bound
 
 end
