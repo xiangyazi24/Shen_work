@@ -30,6 +30,33 @@ case split if the trace constant vanishes. -/
 def intervalDomainX2SigmaPositivityRadius (sigma uStar : ℝ) : ℝ :=
   uStar / (2 * (1 + intervalDomainX2SigmaValueTrace sigma))
 
+def intervalDomainX2SigmaC1Envelope (sigma : ℝ) : ℝ :=
+  1 + intervalDomainX2SigmaValueTrace sigma +
+    intervalDomainX2SigmaDerivativeTrace sigma
+
+theorem intervalDomainX2SigmaC1Envelope_pos (sigma : ℝ) :
+    0 < intervalDomainX2SigmaC1Envelope sigma := by
+  unfold intervalDomainX2SigmaC1Envelope
+  linarith [intervalDomainX2SigmaValueTrace_nonneg sigma,
+    intervalDomainX2SigmaDerivativeTrace_nonneg sigma]
+
+/-- The local Nemytskii radius simultaneously preserves positivity and makes
+the common `C¹` envelope at most one. -/
+def intervalDomainX2SigmaLocalNemytskiiRadius (sigma uStar : ℝ) : ℝ :=
+  min (intervalDomainX2SigmaPositivityRadius sigma uStar)
+    (1 / intervalDomainX2SigmaC1Envelope sigma)
+
+theorem intervalDomainX2SigmaLocalNemytskiiRadius_pos
+    {sigma uStar : ℝ} (huStar : 0 < uStar) :
+    0 < intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar := by
+  unfold intervalDomainX2SigmaLocalNemytskiiRadius
+  exact lt_min
+    (by
+      unfold intervalDomainX2SigmaPositivityRadius
+      exact div_pos huStar (mul_pos (by norm_num)
+        (by linarith [intervalDomainX2SigmaValueTrace_nonneg sigma])))
+    (one_div_pos.mpr (intervalDomainX2SigmaC1Envelope_pos sigma))
+
 theorem intervalDomainX2SigmaPositivityRadius_pos
     {sigma uStar : ℝ} (huStar : 0 < uStar) :
     0 < intervalDomainX2SigmaPositivityRadius sigma uStar := by
@@ -211,6 +238,44 @@ theorem IntervalDomainX2SigmaRealizationBounds.segment_lower_bound
       linarith
   linarith
 
+theorem IntervalDomainX2SigmaRealizationBounds.local_envelope_bounds
+    {sigma uStar : ℝ} {w : intervalDomainPoint → ℝ}
+    (H : IntervalDomainX2SigmaRealizationBounds sigma uStar w)
+    (hsmall : intervalDomainX2SigmaDistance sigma uStar w ≤
+      intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar) :
+    let M := intervalDomainX2SigmaC1Envelope sigma *
+      intervalDomainX2SigmaDistance sigma uStar w
+    0 ≤ M ∧ M ≤ 1 ∧
+      (∀ x, |w x - uStar| ≤ M) ∧
+      (∀ x, intervalDomain.gradNorm (fun y => w y - uStar) x ≤ M) := by
+  dsimp only
+  let C := intervalDomainX2SigmaC1Envelope sigma
+  let d := intervalDomainX2SigmaDistance sigma uStar w
+  have hC : 0 < C := intervalDomainX2SigmaC1Envelope_pos sigma
+  have hd : 0 ≤ d := Real.sqrt_nonneg _
+  have hsmallOne : d ≤ 1 / C :=
+    hsmall.trans (min_le_right _ _)
+  have hM1 : C * d ≤ 1 := by
+    have := mul_le_mul_of_nonneg_left hsmallOne hC.le
+    field_simp [hC.ne'] at this
+    exact this
+  have hvalueTrace : intervalDomainX2SigmaValueTrace sigma ≤ C := by
+    dsimp [C, intervalDomainX2SigmaC1Envelope]
+    linarith [intervalDomainX2SigmaDerivativeTrace_nonneg sigma]
+  have hderivTrace : intervalDomainX2SigmaDerivativeTrace sigma ≤ C := by
+    dsimp [C, intervalDomainX2SigmaC1Envelope]
+    linarith [intervalDomainX2SigmaValueTrace_nonneg sigma]
+  refine ⟨mul_nonneg hC.le hd, hM1, ?_, ?_⟩
+  · intro x
+    calc
+      |w x - uStar| ≤ intervalDomainX2SigmaValueTrace sigma * d := H.value_bound x
+      _ ≤ C * d := mul_le_mul_of_nonneg_right hvalueTrace hd
+  · intro x
+    calc
+      intervalDomain.gradNorm (fun y => w y - uStar) x ≤
+          intervalDomainX2SigmaDerivativeTrace sigma * d := H.gradient_bound x
+      _ ≤ C * d := mul_le_mul_of_nonneg_right hderivTrace hd
+
 private theorem intervalSupNorm_le_of_pointwise_abs
     {f : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : ∀ x, |f x| ≤ M) : intervalDomain.supNorm f ≤ M := by
@@ -262,6 +327,7 @@ theorem IntervalDomainX2SigmaRealizationBounds.c1Distance_le
 #print axioms sqrt_eigen_mul_coeff_norm_summable
 #print axioms tsum_sqrt_eigen_mul_coeff_norm_le
 #print axioms IntervalDomainX2SigmaRealizationBounds.segment_lower_bound
+#print axioms IntervalDomainX2SigmaRealizationBounds.local_envelope_bounds
 #print axioms IntervalDomainX2SigmaRealizationBounds.c1Distance_le
 
 end
