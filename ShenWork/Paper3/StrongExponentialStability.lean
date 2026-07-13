@@ -89,7 +89,7 @@ the concrete sup distance and the `C¹` estimate begins only after a uniform
 positive smoothing time. -/
 abbrev IntervalDomainWeakSupEventualSpectralSemigroupOrbitBound
     (p : CM2Params) : Prop :=
-  IntervalDomainSpectralSemigroupOrbitBoundCorrected p
+  IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass p
     intervalDomainSectorialStabilityNorms
 
 #print axioms intervalDomainPerturbationCosineCoeff
