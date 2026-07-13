@@ -173,6 +173,51 @@ theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
 
 #print axioms exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
 
+/-- L12 in the exact strong norm: on the local positivity ball the complete
+physical modal nonlinearity is quadratic in the `X_2^sigma` distance. -/
+theorem paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
+    {p : CM2Params} {T t sigma uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (Hreal : IntervalDomainX2SigmaRealizationBounds sigma uStar (u t))
+    (hsmall : intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+      intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar) :
+    ∃ K > 0,
+      Summable (fun n : ℕ =>
+        ‖((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t n : ℝ) : ℂ)‖ ^ 2) ∧
+      ShenWork.PDE.SectorialOperator.coeffL2Norm
+          (fun n => ((paper3FullModeNonlinearRemainderCoeffM
+            p uStar vStar u v t n : ℝ) : ℂ)) ≤
+        K * intervalDomainX2SigmaDistance sigma uStar (u t) ^ 2 := by
+  rcases exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
+      hsol ht hm heq Hreal hsmall with ⟨H, hM, hL⟩
+  have hcoeff := H.coeffL2Norm_le
+  have hK0 := H.toL2Data.quadraticConstant_nonneg
+  let Cenv := intervalDomainX2SigmaC1Envelope sigma
+  let d := intervalDomainX2SigmaDistance sigma uStar (u t)
+  let K := (H.toL2Data.quadraticConstant + 1) * Cenv ^ 2
+  have hCenv : 0 < Cenv := intervalDomainX2SigmaC1Envelope_pos sigma
+  have hK : 0 < K := by
+    dsimp [K]
+    exact mul_pos (by linarith) (sq_pos_of_pos hCenv)
+  refine ⟨K, hK, hcoeff.1, ?_⟩
+  rw [hM, hL] at hcoeff
+  calc
+    _ ≤ H.toL2Data.quadraticConstant * (Cenv * d) * (Cenv * d) := by
+      simpa [Cenv, d] using hcoeff.2
+    _ ≤ K * d ^ 2 := by
+      dsimp [K]
+      have hd : 0 ≤ d := by dsimp [d]; exact Real.sqrt_nonneg _
+      nlinarith [sq_nonneg Cenv, sq_nonneg d,
+        mul_nonneg hK0 (mul_nonneg hCenv.le hd)]
+
+#print axioms
+  paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
+
 end
 
 end ShenWork.Paper3
