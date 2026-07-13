@@ -87,20 +87,18 @@ theorem vABLowerFormula_lt_part2SignalLower
   rw [if_pos hm, hbasePow, hlowerRoot]
   exact hscaled
 
-/-- The second strict formula branch yields the concrete eventual pointwise
-signal floor used in its entropy estimate. -/
-theorem intervalDomain_strong2_eventually_vABLower
+/-- The half-logistic `chiBar` threshold alone yields the concrete eventual
+pointwise signal floor.  This is the common persistence input for the second
+and fourth strict formula branches. -/
+theorem intervalDomain_eventually_vABLower_of_chi_lt_chiBar
     (p : CM2Params) (hm : p.m = 1)
     (ha : 0 < p.a) (hb : 0 < p.b) (hβ : 1 ≤ p.β)
     (hχpos : 0 < p.χ₀)
-    (hχ : p.χ₀ < chiStrong2Formula p
-      (positiveEquilibrium p ⟨ha, hb⟩).1)
+    (hχbar : p.χ₀ < chiBarFormula p)
     {u v : ℝ → intervalDomainPoint → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
     ∀ᶠ t in atTop, ∀ x : intervalDomainPoint,
       vABLowerFormula p ≤ v t x := by
-  have hχbar : p.χ₀ < chiBarFormula p :=
-    chi_lt_chiBarFormula_of_lt_chiStrong2Formula p hχ
   let theta : ℝ := Theta_beta (p.β - 1)
   have htheta : 0 < theta :=
     Theta_beta_pos_of_nonneg (by linarith)
@@ -133,9 +131,26 @@ theorem intervalDomain_strong2_eventually_vABLower
   exact intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
     ⟨hvABpos, hevInf.mono (fun _ ht => ht.le)⟩
 
+/-- The second strict formula branch yields the concrete eventual pointwise
+signal floor used in its entropy estimate. -/
+theorem intervalDomain_strong2_eventually_vABLower
+    (p : CM2Params) (hm : p.m = 1)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hβ : 1 ≤ p.β)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiStrong2Formula p
+      (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    ∀ᶠ t in atTop, ∀ x : intervalDomainPoint,
+      vABLowerFormula p ≤ v t x := by
+  exact intervalDomain_eventually_vABLower_of_chi_lt_chiBar
+    p hm ha hb hβ hχpos
+      (chi_lt_chiBarFormula_of_lt_chiStrong2Formula p hχ) huv
+
 #print axioms
   intervalDomain_infValue_v_isBoundedUnder_of_positiveGlobalBoundedSolution
 #print axioms vABLowerFormula_lt_part2SignalLower
+#print axioms intervalDomain_eventually_vABLower_of_chi_lt_chiBar
 #print axioms intervalDomain_strong2_eventually_vABLower
 
 end
