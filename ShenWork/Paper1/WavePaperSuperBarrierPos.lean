@@ -272,15 +272,15 @@ theorem chi_mul_one_add_positivePaper_coeff_lt_one
       (by simpa [add_comm] using add_le_add_left hcoeff 1) hχ0
   exact hscale.trans_lt hbudget
 
-/-- Exponential branch of the positive paper-expanded super-barrier. -/
-theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
+/-- Strict exponential branch of the positive paper-expanded super-barrier. -/
+theorem paperWaveOperator_upperBarrier_exp_region_strict_pos
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
     (hχ0 : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
     (hα : p.α = p.m + p.γ - 1)
     (hκ : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹)
     (hu : InWaveTrapSet κ M u) {x : ℝ}
     (hx : Real.exp (-κ * x) < M) :
-    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+    paperWaveOperator p c u (upperBarrier κ M) x < 0 := by
   let E : ℝ := expDecay κ x
   let V : ℝ := frozenElliptic p u x
   let Vx : ℝ := deriv (frozenElliptic p u) x
@@ -333,7 +333,7 @@ theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
       _ = p.χ * E ^ p.m * (κ * p.m * Vx - V + E ^ p.γ) := by
         ring
   have hchem :
-      p.χ * E ^ p.m * (κ * p.m * Vx - V + E ^ p.γ) ≤
+      p.χ * E ^ p.m * (κ * p.m * Vx - V + E ^ p.γ) <
         E * E ^ p.α := by
     by_cases hmk : κ * p.m ≤ 1
     · have ht := positivePaper_transport_nonpos_of_mkappa_le_one
@@ -351,9 +351,9 @@ theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
             p.χ * E ^ p.m * E ^ p.γ =
                 p.χ * (E ^ p.m * E ^ p.γ) := by ring
             _ = p.χ * (E * E ^ p.α) := by rw [hpow_mγ]
-        _ ≤ E * E ^ p.α := by
-          exact mul_le_of_le_one_left
-            (mul_nonneg hE.le (Real.rpow_nonneg hE.le _)) hχ1.le
+        _ < E * E ^ p.α := by
+          simpa only [one_mul] using mul_lt_mul_of_pos_right hχ1
+            (mul_pos hE (Real.rpow_pos_of_pos hE p.α))
     · have hmk' : 1 < κ * p.m := lt_of_not_ge hmk
       let q : ℝ := (κ * p.m - 1) / (2 * (1 + p.γ * κ))
       have ht := positivePaper_transport_le_of_one_lt_mkappa
@@ -378,9 +378,9 @@ theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
           mul_le_mul_of_nonneg_left hbracket hcoef0
         _ = (p.χ * (1 + q)) * (E ^ p.m * E ^ p.γ) := by ring
         _ = (p.χ * (1 + q)) * (E * E ^ p.α) := by rw [hpow_mγ]
-        _ ≤ E * E ^ p.α := by
-          exact mul_le_of_le_one_left
-            (mul_nonneg hE.le (Real.rpow_nonneg hE.le _)) hbudget.le
+        _ < E * E ^ p.α := by
+          simpa only [q, one_mul] using mul_lt_mul_of_pos_right hbudget
+            (mul_pos hE (Real.rpow_pos_of_pos hE p.α))
   rw [paperWaveOperator_upperBarrier_exp_region_eq_of_kappa_speed
     p (ne_of_gt hκ) hc hx]
   dsimp [E, V, Vx] at hchem hchem_eq
@@ -404,7 +404,19 @@ theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
           (κ * p.m * deriv (frozenElliptic p u) x -
             frozenElliptic p u x + (expDecay κ x) ^ p.γ) := by
       rw [hchem_eq]
-    _ ≤ 0 := by linarith
+    _ < 0 := by linarith
+
+/-- Non-strict wrapper retained for the Green-step comparison interface. -/
+theorem paperWaveOperator_upperBarrier_exp_region_nonpos_pos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ0 : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : Real.exp (-κ * x) < M) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 :=
+  (paperWaveOperator_upperBarrier_exp_region_strict_pos
+    p hχ0 hχ hα hκ hκ1 hc hu hx).le
 
 /-- Interface branch for the positive paper-expanded upper barrier. -/
 theorem paperWaveOperator_upperBarrier_interface_nonpos_pos
@@ -447,6 +459,7 @@ section AxiomAudit
 
 #print axioms positivePaper_transport_le_of_one_lt_mkappa
 #print axioms chi_mul_one_add_positivePaper_coeff_lt_one
+#print axioms paperWaveOperator_upperBarrier_exp_region_strict_pos
 #print axioms paperWaveOperator_upperBarrier_exp_region_nonpos_pos
 #print axioms paperWaveOperator_super_barrier_pos
 
