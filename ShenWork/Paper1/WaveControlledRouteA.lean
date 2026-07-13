@@ -159,6 +159,91 @@ theorem successor_rate
       (paperRouteARotheStep p c lam M κ Λ u h.toOrbitCore hκ hM k).2).1) ell
   exact ⟨(h.produce_regular _ _).2.ell, (h.produce_regular _ _).2.rate⟩
 
+/-- Direct orbit data for one quantitative core, without totalizing over a
+larger bare trap. -/
+theorem orbitData
+    {p : CMParams} {c lam M κ Λ sigma aL C_W : ℝ}
+    {u : ℝ → ℝ}
+    (h : PaperGreenStepInputRouteAQuantitativeOrbitCore
+      p c lam M κ Λ sigma aL C_W u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
+    PaperRotheOrbitData p c lam M κ
+      (fun _ => rotheSeqOfPaperRouteA p c lam M κ Λ u
+        h.toOrbitCore hκ hM) u := by
+  let z := rotheSeqOfPaperRouteA p c lam M κ Λ u h.toOrbitCore hκ hM
+  refine
+    { iterate_cont := ?_
+      anti_k := ?_
+      anti_x := ?_
+      nonneg := ?_
+      le_M := ?_
+      le_upperBarrier := ?_
+      bddBelow := ?_
+      equiLip := ?_
+      limitLip := ?_ }
+  · simpa [z] using rotheSeqOfPaperRouteA_cont h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_anti_k h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_anti_x h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_nonneg h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_le_M h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_le_barrier h.toOrbitCore hκ hM
+  · simpa [z] using rotheSeqOfPaperRouteA_bddBelow h.toOrbitCore hκ hM
+  · simpa [z] using
+      rotheSeqOfPaperRouteA_equiLip h.toOrbitCore hκ hM
+        hΛ0 hΛM hbarLip
+  · intro x y
+    simpa [z] using
+      rotheSeqOfPaperRouteA_limitLip h.toOrbitCore hκ hM
+        hΛ0 hΛM hbarLip x y
+
+/-- Shared successor rates pass to the long-time Rothe limit.  The left limit
+may vary with the successor, so it is selected in the compact interval
+`[0,M]`; local-uniform convergence then passes the quantitative estimate. -/
+theorem rotheLimit_rate
+    {p : CMParams} {c lam M κ Λ sigma aL C_W : ℝ}
+    {u : ℝ → ℝ}
+    (h : PaperGreenStepInputRouteAQuantitativeOrbitCore
+      p c lam M κ Λ sigma aL C_W u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hsigma : 0 < sigma) :
+    ∃ ell : ℝ, ell ∈ Icc (0 : ℝ) M ∧
+      ExpLeftRate sigma aL C_W
+        (rotheLimit (rotheSeqOfPaperRouteA p c lam M κ Λ u
+          h.toOrbitCore hκ hM)) ell := by
+  let z := rotheSeqOfPaperRouteA p c lam M κ Λ u h.toOrbitCore hκ hM
+  let ellSeq : ℕ → ℝ := fun k =>
+    Classical.choose (h.successor_rate hκ hM k)
+  have hellRate : ∀ k,
+      ExpLeftRate sigma aL C_W (z (k + 1)) (ellSeq k) := by
+    intro k
+    exact Classical.choose_spec (h.successor_rate hκ hM k)
+  have hellMem : ∀ k, ellSeq k ∈ Icc (0 : ℝ) M := by
+    intro k
+    exact ExpLeftRate.limit_mem_Icc hsigma (hellRate k)
+      (rotheSeqOfPaperRouteA_nonneg h.toOrbitCore hκ hM (k + 1))
+      (rotheSeqOfPaperRouteA_le_M h.toOrbitCore hκ hM (k + 1))
+  obtain ⟨ell, hell, sub, hsub, hellConv⟩ :=
+    isCompact_Icc.tendsto_subseq hellMem
+  have hzConv : LocallyUniformConverges
+      (fun n => z (sub n + 1)) (rotheLimit z) := by
+    have horbit : LocallyUniformConverges z (rotheLimit z) := by
+      let hdata := h.orbitData hκ hM hΛ0 hΛM hbarLip
+      simpa [z] using hdata.locallyUniform hM
+    exact horbit.comp_strictMono (hsub.add_const 1)
+  have hlimitRate : ExpLeftRate sigma aL C_W (rotheLimit z) ell := by
+    intro x
+    have htend : Tendsto
+        (fun n => |z (sub n + 1) x - ellSeq (sub n)|) atTop
+        (𝓝 (|rotheLimit z x - ell|)) :=
+      ((hzConv.tendsto_at x).sub hellConv).abs
+    refine le_of_tendsto htend ?_
+    exact Eventually.of_forall fun n => hellRate (sub n) x
+  exact ⟨ell, hell, by simpa [z] using hlimitRate⟩
+
 end PaperGreenStepInputRouteAQuantitativeOrbitCore
 
 /-- Build the quantitative Route-A core from the explicit source-box
@@ -192,6 +277,8 @@ section AxiomAudit
 
 #print axioms paperStepFixedSourceQuantitativeCore_of_params
 #print axioms PaperGreenStepInputRouteAQuantitativeOrbitCore.successor_rate
+#print axioms PaperGreenStepInputRouteAQuantitativeOrbitCore.orbitData
+#print axioms PaperGreenStepInputRouteAQuantitativeOrbitCore.rotheLimit_rate
 #print axioms paperRouteAQuantitativeCore_of_params
 
 end AxiomAudit
