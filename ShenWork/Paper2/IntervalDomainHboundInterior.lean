@@ -21,9 +21,8 @@ noncomputable section
 namespace ShenWork.MinPersistenceAtoms
 
 /-- **Interior min-point bound (hbound shape).** -/
-theorem hbound_interior
+theorem hbound_interior_allChi
     {p : CM2Params} {T s M' : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
     (hu_bd : ∀ y, |intervalDomainLift (u s) y| ≤ M')
@@ -55,7 +54,7 @@ theorem hbound_interior
     rw [husx_eq, ← hz_lift]
     exact csInf_le hbdd (Set.mem_image_of_mem _ z.2)
   -- Apply the interior min-point estimate.
-  have hmp := interior_min_point_of_solution hχ hsol hs0 hsT hys_int hmin hM' hu_bd
+  have hmp := interior_min_point_of_solution_allChi hsol hs0 hsT hys_int hmin hM' hu_bd
   -- Bridge `timeDeriv u s x = deriv (fun r => lift (u r) ys) s`.
   have htd_eq : intervalDomain.timeDeriv u s x
       = deriv (fun r => intervalDomainLift (u r) ys) s := by
@@ -66,5 +65,20 @@ theorem hbound_interior
     rw [hfun]
   rw [htd_eq, husx_eq] at hmp
   exact hmp
+
+/-- Compatibility wrapper for the former nonpositive-sensitivity API. -/
+theorem hbound_interior
+    {p : CM2Params} {T s M' : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
+    (hu_bd : ∀ y, |intervalDomainLift (u s) y| ≤ M')
+    {ys : ℝ} (hys_int : ys ∈ Set.Ioo (0:ℝ) 1)
+    (hargmin : intervalDomainLift (u s) ys
+        = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+      ≤ deriv (fun r => intervalDomainLift (u r) ys) s :=
+  hbound_interior_allChi hsol hs0 hsT hM' hu_bd hys_int hargmin
 
 end ShenWork.MinPersistenceAtoms

@@ -469,3 +469,22 @@ remote checkout with `cp -a` stalled on `.lake` I/O and never reached Lean;
 it was stopped.  Reusing `~/repos/shen_work` with source-only rsync was the
 working route.  A non-login ssh shell did not expose `lake`; invoking the
 remote command through `bash -lc` supplied the Lean toolchain environment.
+
+2026-07-12 [Codex] ALL-EXPONENT POSITIVE-CRITICAL CONTINUATION CLOSED.
+The positive-floor Picard factory now selects a lifespan uniformly on each
+strip `{c <= u <= M}` before seeing the datum.  The Hamilton minimum estimate
+and both boundary endpoint reducers were generalized to arbitrary chi by
+using `|chi|`, giving a maintained terminal positive floor for every bounded
+finite-horizon solution.  Restart at `T-delta/4`, datum-specific overlap
+uniqueness, and piecewise gluing then rule out a finite maximal reachable
+horizon.  The resulting canonical global solution and the unconditional
+Theorem 1.2 positive-critical headline require no alpha/gamma lower bounds
+and no external local-existence or continuation hypothesis.
+
+The uisai2 module gate
+`lake build ShenWork.Paper2.IntervalDomainTheorem12PositiveCriticalAllExponents`
+completed 8936 jobs with exit code 0.  Every capstone `#print axioms` reports
+exactly `[propext, Classical.choice, Quot.sound]`.  A simultaneous root build
+was blocked only by an unrelated shared Paper1 edit:
+`WavePaperRouteARotheAnalytic.lean` currently references undeclared `lam`.
+The new Paper2 module itself and its full dependency closure are green.

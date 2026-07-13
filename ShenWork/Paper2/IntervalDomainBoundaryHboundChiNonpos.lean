@@ -66,9 +66,8 @@ set_option maxHeartbeats 1600000 in
 -- The endpoint reducer replays the boundary second-derivative test and PDE
 -- transfer algebra in one theorem, which is near the default heartbeat budget.
 /-- **Left endpoint min-point bound from a one-sided chemDiv factor bound.** -/
-theorem hbdry_left_chi_nonpos_of_chemDiv_limit
+theorem hbdry_left_of_chemDiv_limit
     {p : CM2Params} {T s M' gchem : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
     (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
@@ -210,30 +209,44 @@ theorem hbdry_left_chi_nonpos_of_chemDiv_limit
   have hchem_lb :
       -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ)) * m
         ≤ -p.χ₀ * (m * gchem) := by
-    have hg_lower : -fluxCoeffConst p.β (p.ν * M' ^ p.γ) ≤ gchem :=
-      (abs_le.mp hgchem).1
-    have hcoef_nonneg : 0 ≤ -p.χ₀ * m :=
-      mul_nonneg (neg_nonneg.mpr hχ) hm_nonneg
-    rw [abs_of_nonpos hχ]
-    calc
-      -(-p.χ₀ * fluxCoeffConst p.β (p.ν * M' ^ p.γ)) * m
-          = -p.χ₀ * m * (-fluxCoeffConst p.β (p.ν * M' ^ p.γ)) := by ring
-      _ ≤ -p.χ₀ * m * gchem :=
-          mul_le_mul_of_nonneg_left hg_lower hcoef_nonneg
-      _ = -p.χ₀ * (m * gchem) := by ring
+    have hterm_abs : |-p.χ₀ * (m * gchem)| ≤
+        |p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) * m := by
+      rw [abs_mul, abs_neg, abs_mul, abs_of_nonneg hm_nonneg]
+      nlinarith [mul_nonneg (abs_nonneg p.χ₀) hm_nonneg,
+        mul_nonneg (abs_nonneg p.χ₀) (abs_nonneg gchem)]
+    have := (abs_le.mp hterm_abs).1
+    nlinarith
   have hkey :
       -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α) * m
         ≤ R 0 - p.χ₀ * (m * gchem) := by
     nlinarith [hR_lb, hchem_lb]
   linarith [hkey, hG0_ge]
 
+/-- Compatibility wrapper retaining the former nonpositive-sensitivity
+interface. -/
+theorem hbdry_left_chi_nonpos_of_chemDiv_limit
+    {p : CM2Params} {T s M' gchem : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
+    (hargmin : intervalDomainLift (u s) 0
+        = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1))
+    (hchem_lim : Tendsto (boundaryChemDivReal p (u s) (v s))
+      (nhdsWithin 0 (Set.Ioo (0 : ℝ) 1))
+      (nhds (intervalDomainLift (u s) 0 * gchem)))
+    (hgchem : |gchem| ≤ fluxCoeffConst p.β (p.ν * M' ^ p.γ)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+      ≤ deriv (fun r => intervalDomainLift (u r) 0) s :=
+  hbdry_left_of_chemDiv_limit hsol hs0 hsT hM' hu_le hargmin hchem_lim hgchem
+
 set_option maxHeartbeats 1600000 in
 -- The right endpoint proof mirrors the left endpoint reducer, with the same
 -- boundary limit and endpoint algebra budget.
 /-- **Right endpoint min-point bound from a one-sided chemDiv factor bound.** -/
-theorem hbdry_right_chi_nonpos_of_chemDiv_limit
+theorem hbdry_right_of_chemDiv_limit
     {p : CM2Params} {T s M' gchem : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
     (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
@@ -372,26 +385,74 @@ theorem hbdry_right_chi_nonpos_of_chemDiv_limit
   have hchem_lb :
       -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ)) * m
         ≤ -p.χ₀ * (m * gchem) := by
-    have hg_lower : -fluxCoeffConst p.β (p.ν * M' ^ p.γ) ≤ gchem :=
-      (abs_le.mp hgchem).1
-    have hcoef_nonneg : 0 ≤ -p.χ₀ * m :=
-      mul_nonneg (neg_nonneg.mpr hχ) hm_nonneg
-    rw [abs_of_nonpos hχ]
-    calc
-      -(-p.χ₀ * fluxCoeffConst p.β (p.ν * M' ^ p.γ)) * m
-          = -p.χ₀ * m * (-fluxCoeffConst p.β (p.ν * M' ^ p.γ)) := by ring
-      _ ≤ -p.χ₀ * m * gchem :=
-          mul_le_mul_of_nonneg_left hg_lower hcoef_nonneg
-      _ = -p.χ₀ * (m * gchem) := by ring
+    have hterm_abs : |-p.χ₀ * (m * gchem)| ≤
+        |p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) * m := by
+      rw [abs_mul, abs_neg, abs_mul, abs_of_nonneg hm_nonneg]
+      nlinarith [mul_nonneg (abs_nonneg p.χ₀) hm_nonneg,
+        mul_nonneg (abs_nonneg p.χ₀) (abs_nonneg gchem)]
+    have := (abs_le.mp hterm_abs).1
+    nlinarith
   have hkey :
       -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α) * m
         ≤ R 1 - p.χ₀ * (m * gchem) := by
     nlinarith [hR_lb, hchem_lb]
   linarith [hkey, hG1_ge]
 
+/-- Compatibility wrapper retaining the former nonpositive-sensitivity
+interface. -/
+theorem hbdry_right_chi_nonpos_of_chemDiv_limit
+    {p : CM2Params} {T s M' gchem : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
+    (hargmin : intervalDomainLift (u s) 1
+        = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1))
+    (hchem_lim : Tendsto (boundaryChemDivReal p (u s) (v s))
+      (nhdsWithin 1 (Set.Ioo (0 : ℝ) 1))
+      (nhds (intervalDomainLift (u s) 1 * gchem)))
+    (hgchem : |gchem| ≤ fluxCoeffConst p.β (p.ν * M' ^ p.γ)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+      ≤ deriv (fun r => intervalDomainLift (u r) 1) s :=
+  hbdry_right_of_chemDiv_limit hsol hs0 hsT hM' hu_le hargmin hchem_lim hgchem
+
 end ShenWork.MinPersistenceAtoms
 
 namespace ShenWork.MinPersistenceAtoms
+
+/-- Left endpoint min-point bound, for arbitrary sensitivity sign, from the
+packaged one-sided chemDiv residual. -/
+theorem hbdry_left_of_chemDivLimit
+    {p : CM2Params} {T s M' : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hChem : BoundaryChemDivLeftLimitBound p)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
+    (hargmin : intervalDomainLift (u s) 0 =
+        sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+      ≤ deriv (fun r => intervalDomainLift (u r) 0) s := by
+  rcases hChem hsol hs0 hsT hM' hu_le with ⟨gchem, hgchem, hlim⟩
+  exact hbdry_left_of_chemDiv_limit
+    hsol hs0 hsT hM' hu_le hargmin hlim hgchem
+
+/-- Right endpoint analogue of `hbdry_left_of_chemDivLimit`. -/
+theorem hbdry_right_of_chemDivLimit
+    {p : CM2Params} {T s M' : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hChem : BoundaryChemDivRightLimitBound p)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM' : 0 ≤ M')
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M')
+    (hargmin : intervalDomainLift (u s) 1 =
+        sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+      ≤ deriv (fun r => intervalDomainLift (u r) 1) s := by
+  rcases hChem hsol hs0 hsT hM' hu_le with ⟨gchem, hgchem, hlim⟩
+  exact hbdry_right_of_chemDiv_limit
+    hsol hs0 hsT hM' hu_le hargmin hlim hgchem
 
 /-- Left endpoint min-point bound from the packaged one-sided chemDiv residual. -/
 theorem hbdry_left_chi_nonpos_of_chemDivLimit

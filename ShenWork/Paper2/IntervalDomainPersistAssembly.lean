@@ -23,6 +23,35 @@ noncomputable section
 
 namespace ShenWork.MinPersistenceAtoms
 
+/-- Full min-point bound for arbitrary sensitivity sign. -/
+theorem hbound_full_allChi
+    {p : CM2Params} {T t₁ M' : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht₁ : 0 < t₁) (ht₁T : t₁ < T) (hM' : 0 ≤ M')
+    (hSupNorm : ∀ s ∈ Set.Ico (t₁/2) T, ∀ y,
+      |intervalDomainLift (u s) y| ≤ M')
+    (hbdry : ∀ s ∈ Set.Ico (t₁/2) T, ∀ ys ∈ Set.Icc (0:ℝ) 1, ys = 0 ∨ ys = 1 →
+      intervalDomainLift (u s) ys
+          = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) →
+        -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+            * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+          ≤ deriv (fun r => intervalDomainLift (u r) ys) s) :
+    ∀ s ∈ Set.Ico (t₁/2) T, ∀ ys ∈ Set.Icc (0:ℝ) 1,
+      intervalDomainLift (u s) ys
+          = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) →
+        -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+            * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+          ≤ deriv (fun r => intervalDomainLift (u r) ys) s := by
+  intro s hs ys hys_mem hargmin
+  have hs0 : 0 < s := lt_of_lt_of_le (by linarith) hs.1
+  have hsT : s < T := hs.2
+  rcases eq_or_lt_of_le hys_mem.1 with hy0 | hy0
+  · exact hbdry s hs ys hys_mem (Or.inl hy0.symm) hargmin
+  · rcases eq_or_lt_of_le hys_mem.2 with hy1 | hy1
+    · exact hbdry s hs ys hys_mem (Or.inr hy1) hargmin
+    · exact hbound_interior_allChi hsol hs0 hsT hM' (hSupNorm s hs)
+        ⟨hy0, hy1⟩ hargmin
+
 /-- The full min-point bound `hbound` from the interior bound + the boundary
 input + the sup bound, on the window `[t₁/2, T)`. -/
 theorem hbound_full

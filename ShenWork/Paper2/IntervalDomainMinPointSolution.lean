@@ -31,10 +31,9 @@ private theorem lift_eq_interior (f : intervalDomainPoint → ℝ)
   rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hy)]
 
 /-- **Interior min-point estimate from a classical solution.** -/
-theorem interior_min_point_of_solution
+theorem interior_min_point_of_solution_allChi
     {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
     {x : intervalDomainPoint} {M' : ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (ht0 : 0 < t) (htT : t < T)
     (hint : x.1 ∈ Set.Ioo (0:ℝ) 1)
@@ -103,12 +102,27 @@ theorem interior_min_point_of_solution
             * (p.a - p.b * (intervalDomainLift (u t) x.1) ^ p.α) := by
     rw [hux_lift]; exact hpde
   -- Assemble.
-  have hmain := min_point_estimate_interior (p := p) (u := u t) (v := v t) (x := x)
+  have hmain := min_point_estimate_interior_allChi (p := p) (u := u t) (v := v t) (x := x)
     (M' := M') (uT := intervalDomain.timeDeriv u t x)
-    hχ hux hvpair.1 hvpair.2 hv_nn hM'
+    hux hvpair.1 hvpair.2 hv_nn hM'
     (hvb.1 x.1 hint) (hvb.2 x.1 hint)
     (hu_nonneg_int x.1 hint) (hu_le_int x.1 hint)
     huxx hpde'
   rwa [hux_lift] at hmain
+
+/-- Compatibility wrapper for the former nonpositive-sensitivity API. -/
+theorem interior_min_point_of_solution
+    {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    {x : intervalDomainPoint} {M' : ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hint : x.1 ∈ Set.Ioo (0:ℝ) 1)
+    (hmin : ∀ y, u t x ≤ u t y)
+    (hM' : 0 ≤ M')
+    (hu_bd : ∀ y, |intervalDomainLift (u t) y| ≤ M') :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α) * (u t x)
+      ≤ intervalDomain.timeDeriv u t x :=
+  interior_min_point_of_solution_allChi hsol ht0 htT hint hmin hM' hu_bd
 
 end ShenWork.MinPersistenceAtoms
