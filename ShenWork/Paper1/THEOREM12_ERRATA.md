@@ -129,6 +129,7 @@ The amended conclusion is non-vacuous independently of that frontier:
 `Theorem_1_2_amended_self_initial_data_concrete_nonvacuous` instantiates the
 genuine positive-attraction Schauder wave at `chi = 1/4`, `c = 3`, and
 `eta = 1/2`; Lean verifies both strict weight-window inequalities, and the
-wave itself is the initial datum.  `CoMovingWeightedL2Convergence` includes eventual
+producer supplies a strict admissible right-tail exponent.  The wave itself is
+the initial datum.  `CoMovingWeightedL2Convergence` includes eventual
 integrability, preventing the Bochner integral's non-integrable default value
 from serving as a false convergence witness.
