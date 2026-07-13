@@ -2961,6 +2961,13 @@ theorem Lemma_2_5_from_uniform_k_class
   intro u psi hpsi_class hu hu_nn hint
   exact hC psi hpsi_class hu hu_nn hint
 
+section AxiomAudit
+
+#print axioms lemma_2_5
+#print axioms Lemma_2_5_proved
+
+end AxiomAudit
+
 end ShenWork.Paper1
 
 end
