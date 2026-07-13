@@ -8,6 +8,7 @@
 -/
 import ShenWork.Paper1.WavePositivePlateauComparison
 import ShenWork.Paper1.WavePinnedStepComparison
+import ShenWork.Paper1.WavePinnedStepParameterAsymptotics
 
 open Filter Topology Set Real
 
@@ -322,6 +323,72 @@ def paperPositivePinnedStepE
     (p : CMParams) (c M : ℝ) : ℝ :=
   1 + |c| + |p.χ| * p.m * (M ^ p.γ) * M ^ (p.m - 1)
 
+/-- With the canonical affine source radius, the positive comparison cost is
+little-o of the implicit resolvent parameter. -/
+theorem paperPositivePinnedStepCmono_large_source_tendsto_zero
+    (p : CMParams) (c M κ κtilde D C : ℝ) :
+    Tendsto
+      (fun lam : ℝ =>
+        (1 / lam) * paperPositivePinnedStepCmono p M
+          (paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+            (2 * (C + lam))))
+      atTop (nhds 0) := by
+  let A : ℝ :=
+    reactionLip p.α M
+      + |p.χ| * M ^ p.γ * rpowLip p.m M
+      + |p.χ| * rpowLip (p.m + p.γ) M
+  let Q : ℝ :=
+    |p.χ| * p.m * M ^ p.γ * (p.m - 1) * M ^ (p.m - 1)
+  let R : ℝ := lowerPinnedBarrierRatio κ κtilde D M
+  have hCdiv : Tendsto (fun lam : ℝ => C / lam) atTop (nhds 0) :=
+    tendsto_const_nhds.div_atTop tendsto_id
+  have hBdiv : Tendsto
+      (fun lam : ℝ => (2 * (C + lam)) / lam) atTop (nhds 2) := by
+    have hone : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds 1) :=
+      tendsto_const_nhds
+    have h := (hCdiv.add hone).const_mul 2
+    have h' : Tendsto (fun lam : ℝ => 2 * (C / lam + 1))
+        atTop (nhds 2) := by simpa using h
+    refine h'.congr' ?_
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with lam hlam
+    field_simp [ne_of_gt hlam]
+  have hmassB : Tendsto
+      (fun lam : ℝ =>
+        greenWeightedMass1 c lam κ * ((2 * (C + lam)) / lam))
+      atTop (nhds 0) := by
+    simpa using (greenWeightedMass1_tendsto_zero c κ).mul hBdiv
+  have hKdiv : Tendsto
+      (fun lam : ℝ =>
+        (1 / lam) *
+          paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+            (2 * (C + lam)))
+      atTop (nhds 0) := by
+    have h := hmassB.const_mul R
+    have h' : Tendsto
+        (fun lam : ℝ =>
+          R * (greenWeightedMass1 c lam κ *
+            ((2 * (C + lam)) / lam))) atTop (nhds 0) := by
+      simpa using h
+    refine h'.congr' (Filter.Eventually.of_forall ?_)
+    intro lam
+    dsimp [R]
+    rw [paperLowerPinnedStepLogSlopeCoeff,
+      paperStepWeightedDerivCoeff_eq_mass_mul]
+    ring
+  have hAdiv : Tendsto (fun lam : ℝ => A / lam) atTop (nhds 0) :=
+    tendsto_const_nhds.div_atTop tendsto_id
+  have htotal := hAdiv.add (hKdiv.const_mul Q)
+  have htotal' : Tendsto
+      (fun lam : ℝ => A / lam + Q * ((1 / lam) *
+        paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M
+          (2 * (C + lam)))) atTop (nhds 0) := by
+    simpa using htotal
+  refine htotal'.congr' (Filter.Eventually.of_forall ?_)
+  intro lam
+  dsimp [A, Q]
+  unfold paperPositivePinnedStepCmono
+  ring
+
 /-- The positive paper Green step preserves the actual plateau lower
 barrier.  This is the sign-correct replacement for the negative Route-A
 comparison: no `chi <= 0` hypothesis occurs. -/
@@ -457,6 +524,7 @@ section AxiomAudit
 #print axioms paperWaveOperator_diff_le_abs_of_approx_contact
 #print axioms paperImplicitStep_ge_barrier_piecewise_tailfree
 #print axioms paperImplicitStep_ge_lowerBarrierPlateau_positive_tailfree
+#print axioms paperPositivePinnedStepCmono_large_source_tendsto_zero
 
 end AxiomAudit
 
