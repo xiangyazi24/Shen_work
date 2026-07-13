@@ -324,7 +324,7 @@ private theorem resolverCoeff_re_time_measurable
     exact measurable_const.mul hsource
   exact Complex.continuous_re.measurable.comp hcoeff
 
-private theorem resolverR_lift_uncurry_measurable
+theorem resolverR_lift_uncurry_measurable
     {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
     (hum : HasJointMeasurability w) :
     Measurable (fun q : ℝ × ℝ =>
@@ -356,7 +356,7 @@ private theorem resolverR_lift_uncurry_measurable
   rw [hfun]
   exact Measurable.ite (measurableSet_Icc.preimage measurable_snd) hseries measurable_const
 
-private theorem resolverGradReal_uncurry_measurable
+theorem resolverGradReal_uncurry_measurable
     {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
     (hum : HasJointMeasurability w) :
     Measurable (fun q : ℝ × ℝ => ShenWork.Paper2.resolverGradReal p (w q.1) q.2) := by
