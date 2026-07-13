@@ -24,7 +24,8 @@ open ShenWork.IntervalConjugatePicard
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainGlobalTailTopologicalSpace :
+    TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 private theorem abs_le_supNorm_of_bddAbove
