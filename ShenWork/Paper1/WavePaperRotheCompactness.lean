@@ -8,6 +8,7 @@
 -/
 import ShenWork.Paper1.WaveRotheConcrete
 import ShenWork.Paper1.WaveG1Bridge
+import ShenWork.Paper1.WaveUniformModulusTrap
 
 open Filter Topology Set
 
@@ -279,8 +280,7 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
       Happrox.toLocalUniformCubeApproxData
   have hcompact : LocalUniformSequentiallyCompactRange
       (InMonotoneWaveTrapSet κ M) Tmap :=
-    paperTmap_compactRange p c lam M κ hM rotheSeq
-      (helly_pointwise_selection M) hdata
+    paperTmap_compactRange_of_uniformModulus p c lam M κ hM rotheSeq hdata
   obtain ⟨sub, hsub, U, hUbare, hTconv⟩ :=
     hcompact seq (fun n => (hseq n).bare)
   have hTlower : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
