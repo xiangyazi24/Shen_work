@@ -1917,6 +1917,90 @@ theorem intervalDomain_minimal2_exists_late_signal_lap_lt
         exact le_trans hslope (by nlinarith [mul_nonneg hc.le hGnonneg]))
   exact ⟨t, hTle.trans htbase, by simpa [D] using htSmall⟩
 
+/-- The decaying signal energy and arbitrarily late small signal-Laplacian
+slices force arbitrarily late small population `L²` slices. -/
+theorem intervalDomain_minimal2_exists_late_l2_lt
+    (p : CM2Params) (hm : p.m = 1)
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (hbeta : 1 ≤ p.β) {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal2Formula p uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T q : ℝ} (hq : 0 < q) :
+    ∃ t, T ≤ t ∧
+      (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y - uStar) ^ 2) < q := by
+  let E : ℝ → ℝ := fun s ⇒
+    chemotaxisSignalEnergy intervalDomain p.μ vStar v s
+  let L2 : ℝ → ℝ := fun s ⇒ ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u s) y - uStar) ^ 2
+  let Lap2 : ℝ → ℝ := fun s ⇒ ∫ y in (0 : ℝ)..1,
+    (deriv (fun z ⇒ deriv (intervalDomainLift (v s)) z) y) ^ 2
+  let energyTarget : ℝ := q * p.ν ^ 2 / (8 * p.μ)
+  let lapTarget : ℝ := q * p.ν ^ 2 / 8
+  have henergyTarget : 0 < energyTarget := by
+    dsimp [energyTarget]
+    positivity
+  have hlapTarget : 0 < lapTarget := by
+    dsimp [lapTarget]
+    positivity
+  have hconv : Tendsto E atTop (𝒩 0) := by
+    simpa [E] using intervalDomain_minimal2_signal_energy_tendsto_zero
+      p hm ha0 hb0 hgamma hbeta heq huBar hvLower hchi hthreshold
+        huv hmass hupper hfloor
+  have henergyEventually : ∀ᶠ s : ℝ in atTop, E s < energyTarget :=
+    hconv.eventually (Iio_mem_nhds henergyTarget)
+  rcases eventually_atTop.1 henergyEventually with ⟨Te, hTe⟩
+  let Tbase : ℝ := max (max T Te) 1
+  obtain ⟨t, htbase, hlap⟩ :=
+    intervalDomain_minimal2_exists_late_signal_lap_lt
+      p ha0 hb0 hgamma hbeta heq huBar hvLower hchi hthreshold
+        huv hupper hfloor (T := Tbase) hlapTarget
+  have htT : T ≤ t :=
+    (le_max_left T Te).trans ((le_max_left (max T Te) 1).trans htbase)
+  have htTe : Te ≤ t :=
+    (le_max_right T Te).trans ((le_max_left (max T Te) 1).trans htbase)
+  have htPos : 0 < t :=
+    lt_of_lt_of_le zero_lt_one ((le_max_right (max T Te) 1).trans htbase)
+  have henergy : E t < energyTarget := hTe t htTe
+  have hH : 0 < t + 1 := by linarith
+  have helliptic : p.ν ^ 2 * L2 t ≤
+      2 * p.μ * E t + 2 * Lap2 t := by
+    simpa [E, L2, Lap2] using intervalDomain_minimal_signal_elliptic_l2
+      hgamma heq (huv.classical (t + 1) hH)
+        (⟨htPos, by linarith⟩ : t ∈ Ioo (0 : ℝ) (t + 1))
+  have henergyScaled : 2 * p.μ * E t < q * p.ν ^ 2 / 4 := by
+    have hmul := mul_lt_mul_of_pos_left henergy
+      (mul_pos (by norm_num : (0 : ℝ) < 2) p.hμ)
+    have hrewrite : 2 * p.μ * energyTarget = q * p.ν ^ 2 / 4 := by
+      dsimp [energyTarget]
+      field_simp [ne_of_gt p.hμ]
+      <;> ring
+    rw [hrewrite] at hmul
+    exact hmul
+  have hlapScaled : 2 * Lap2 t < q * p.ν ^ 2 / 4 := by
+    have hmul := mul_lt_mul_of_pos_left hlap (by norm_num : (0 : ℝ) < 2)
+    have hrewrite : 2 * lapTarget = q * p.ν ^ 2 / 4 := by
+      dsimp [lapTarget]
+      ring
+    simpa [Lap2, hrewrite] using hmul
+  have hrhs : 2 * p.μ * E t + 2 * Lap2 t < p.ν ^ 2 * q := by
+    have hsum := add_lt_add henergyScaled hlapScaled
+    nlinarith
+  have hscaled : p.ν ^ 2 * L2 t < p.ν ^ 2 * q :=
+    helliptic.trans_lt hrhs
+  have hnuSq : 0 < p.ν ^ 2 := sq_pos_of_pos p.hν
+  have hL2 : L2 t < q := (mul_lt_mul_left hnuSq).mp hscaled
+  exact ⟨t, htT, by simpa [L2] using hL2⟩
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_minimal_signal_lap_sq_intervalIntegrable
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
@@ -1935,6 +2019,7 @@ theorem intervalDomain_minimal2_exists_late_signal_lap_lt
 #print axioms intervalDomain_minimal2_signal_energy_exponential_decay
 #print axioms intervalDomain_minimal2_signal_energy_tendsto_zero
 #print axioms intervalDomain_minimal2_exists_late_signal_lap_lt
+#print axioms intervalDomain_minimal2_exists_late_l2_lt
 
 end
 
