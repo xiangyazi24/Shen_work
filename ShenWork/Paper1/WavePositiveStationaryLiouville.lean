@@ -155,11 +155,12 @@ theorem frozenElliptic_between_global_rpow
 /-- Positive stationary rectangle Liouville theorem.  Spatial monotonicity is
 not assumed. -/
 theorem positiveStationary_eq_one_of_uniformlyPositive
-    (p : CMParams) {c κ M d : ℝ} {U : ℝ → ℝ}
+    (p : CMParams) {c M d : ℝ} {U : ℝ → ℝ}
     (hα : p.α = p.m + p.γ - 1)
     (hχ0 : 0 ≤ p.χ) (hχhalf : p.χ < 1 / 2)
     (hM : 0 < M) (hd : 0 < d)
-    (hU : InWaveTrapSet κ M U) (hlower : ∀ x, d ≤ U x)
+    (hU : IsCUnifBdd U) (hU0 : ∀ x, 0 ≤ U x)
+    (hUM : ∀ x, U x ≤ M) (hlower : ∀ x, d ≤ U x)
     (hU2 : ContDiff ℝ 2 U)
     (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
     U = fun _ => (1 : ℝ) := by
@@ -169,7 +170,7 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
   have hUbdd : BddAbove (Set.range U) := by
     refine ⟨M, ?_⟩
     rintro _ ⟨x, rfl⟩
-    exact hU.le_M x
+    exact hUM x
   have hNbdd : BddAbove (Set.range fun x => -U x) := by
     refine ⟨-d, ?_⟩
     rintro _ ⟨x, rfl⟩
@@ -191,15 +192,15 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
   have hLM : L ≤ M := by
     refine csSup_le (Set.range_nonempty _) ?_
     rintro _ ⟨x, rfl⟩
-    exact hU.le_M x
+    exact hUM x
   have hlpos : 0 < l := lt_of_lt_of_le hd hdl
   have hLpos : 0 < L := lt_of_lt_of_le hlpos hlL
   have hL0 : 0 ≤ L := hLpos.le
   have hl0 : 0 ≤ l := hlpos.le
   have hUabs : ∀ x, |U x| ≤ M := by
     intro x
-    rw [abs_of_nonneg (hU.nonneg x)]
-    exact hU.le_M x
+    rw [abs_of_nonneg (hU0 x)]
+    exact hUM x
   let eta : ℕ → ℝ := fun n => 1 / ((n : ℝ) + 1)
   have heta_pos : ∀ n, 0 < eta n := by
     intro n
@@ -277,12 +278,13 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
   have hVbounds : ∀ x,
       l ^ p.γ ≤ frozenElliptic p U x ∧
         frozenElliptic p U x ≤ L ^ p.γ :=
-    frozenElliptic_between_global_rpow p hU.cunif_bdd hl0
+    frozenElliptic_between_global_rpow p hU hl0
       (fun x => ⟨hlU x, hUL x⟩)
   have hVdBound : ∀ x, |deriv (frozenElliptic p U) x| ≤ M ^ p.γ := by
     intro x
-    exact (frozenElliptic_deriv_abs_le p hU.cunif_bdd hU.nonneg x).trans
-      ((frozenElliptic_le_rpow_of_inWaveTrapSet p hM hU x))
+    exact (frozenElliptic_deriv_abs_le p hU hU0 x).trans
+      ((hVbounds x).2.trans
+        (Real.rpow_le_rpow hL0 hLM (le_trans zero_le_one p.hγ)))
   let C : ℝ := |c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ
   have hC0 : 0 ≤ C := by dsimp [C]; positivity
   have htransport : ∀ x,
@@ -293,14 +295,14 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
     intro x
     have hm10 : 0 ≤ p.m - 1 := by linarith [p.hm]
     have hpow : (U x) ^ (p.m - 1) ≤ M ^ (p.m - 1) :=
-      Real.rpow_le_rpow (hU.nonneg x) (hU.le_M x) hm10
+      Real.rpow_le_rpow (hU0 x) (hUM x) hm10
     have hchem :
         |p.χ * p.m * (U x) ^ (p.m - 1) *
             deriv (frozenElliptic p U) x * deriv U x| ≤
           (|p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ) *
             |deriv U x| := by
       rw [abs_mul, abs_mul, abs_mul, abs_mul,
-        abs_of_nonneg (Real.rpow_nonneg (hU.nonneg x) _)]
+        abs_of_nonneg (Real.rpow_nonneg (hU0 x) _)]
       exact mul_le_mul_of_nonneg_right
         (mul_le_mul
           (mul_le_mul_of_nonneg_left hpow
@@ -327,9 +329,9 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
   have hpaper : ∀ x, paperWaveOperator p c U U x = 0 := by
     intro x
     rw [paperWaveOperator_eq_frozenWaveOperator_at_fixed_point p x
-      hU.cunif_bdd hU.nonneg
+      hU hU0
       (hU2.differentiable (by norm_num) x)
-      (frozenElliptic_deriv_differentiableAt p hU.cunif_bdd hU.nonneg x)
+      (frozenElliptic_deriv_differentiableAt p hU hU0 x)
       ((hU2.differentiable (by norm_num) x).rpow_const (Or.inr p.hm))]
     exact hstat x
   have hiter : ∀ x, iteratedDeriv 2 U x = deriv (deriv U) x := by
@@ -376,8 +378,8 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
       rw [hpow]
       have hv := (hVbounds (xMax n)).1
       have hcoef : 0 ≤ p.χ * (U (xMax n)) ^ (p.m - 1) :=
-        mul_nonneg hχ0 (Real.rpow_nonneg (hU.nonneg _) _)
-      nlinarith [mul_nonneg (hU.nonneg (xMax n))
+        mul_nonneg hχ0 (Real.rpow_nonneg (hU0 _) _)
+      nlinarith [mul_nonneg (hU0 (xMax n))
         (mul_nonneg hcoef (sub_nonneg.mpr hv))]
     rw [hreact] at htarget
     have hTupper : T ≤ C * eta n := le_of_abs_le hT
@@ -418,8 +420,8 @@ theorem positiveStationary_eq_one_of_uniformlyPositive
       rw [hpow]
       have hv := (hVbounds (xMin n)).2
       have hcoef : 0 ≤ p.χ * (U (xMin n)) ^ (p.m - 1) :=
-        mul_nonneg hχ0 (Real.rpow_nonneg (hU.nonneg _) _)
-      nlinarith [mul_nonneg (hU.nonneg (xMin n))
+        mul_nonneg hχ0 (Real.rpow_nonneg (hU0 _) _)
+      nlinarith [mul_nonneg (hU0 (xMin n))
         (mul_nonneg hcoef (sub_nonneg.mpr hv))]
     rw [hreact] at htarget
     have hThi : -T ≤ C * eta n := (le_abs_self (-T)).trans (by simpa using hT)
