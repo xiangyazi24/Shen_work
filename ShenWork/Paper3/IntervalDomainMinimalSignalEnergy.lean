@@ -1,5 +1,6 @@
 import ShenWork.Paper3.EventualExponentialStability
 import ShenWork.Paper3.EventualGlobalStability
+import ShenWork.Paper3.IntervalDomainEntropyBasinEntry
 import ShenWork.Paper3.LyapunovFunction
 import ShenWork.Paper3.IntervalDomainMinimalPoincare
 import ShenWork.Paper3.IntervalDomainModelLinearizationAudit
@@ -2001,6 +2002,53 @@ theorem intervalDomain_minimal2_exists_late_l2_lt
   have hL2 : L2 t < q := (mul_lt_mul_left hnuSq).mp hscaled
   exact ⟨t, htT, by simpa [L2] using hL2⟩
 
+/-- The signal-energy slices from the second minimal formula branch enter
+every weak supremum neighborhood at arbitrarily late positive times. -/
+theorem intervalDomain_minimal2_exists_late_supClose
+    (p : CM2Params) (hm : p.m = 1)
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (hbeta : 1 ≤ p.β) {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal2Formula p uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T eps : ℝ} (heps : 0 < eps) :
+    ∃ t, T ≤ t ∧
+      SupCloseToConstant intervalDomain (u t) uStar eps := by
+  have hlate : ∀ {T q : ℝ}, 0 < q →
+      ∃ t, T ≤ t ∧
+        chemotaxisThetaDissipation intervalDomain uStar 1 (u t) < q := by
+    intro T q hq
+    obtain ⟨t, ht, hsmall⟩ := intervalDomain_minimal2_exists_late_l2_lt
+      p hm ha0 hb0 hgamma hbeta heq huBar hvLower hchi hthreshold
+        huv hmass hupper hfloor hq
+    refine ⟨t, ht, ?_⟩
+    unfold chemotaxisThetaDissipation
+    simp only [Real.rpow_one]
+    change intervalDomainIntegral
+      (fun x ⇒ (u t x - uStar) * (u t x - uStar)) < q
+    unfold intervalDomainIntegral
+    calc
+      (∫ y in (0 : ℝ)..1,
+          intervalDomainLift
+            (fun x ⇒ (u t x - uStar) * (u t x - uStar)) y) =
+          ∫ y in (0 : ℝ)..1,
+            (intervalDomainLift (u t) y - uStar) ^ 2 := by
+        apply intervalIntegral.integral_congr
+        intro y hy
+        rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hy
+        simp [intervalDomainLift, hy, pow_two]
+      _ < q := hsmall
+  exact intervalDomain_exists_late_supClose_of_thetaDissipation_slices
+    p hm heq.u_pos (by norm_num) huv hlate heps
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_minimal_signal_lap_sq_intervalIntegrable
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
@@ -2020,6 +2068,7 @@ theorem intervalDomain_minimal2_exists_late_l2_lt
 #print axioms intervalDomain_minimal2_signal_energy_tendsto_zero
 #print axioms intervalDomain_minimal2_exists_late_signal_lap_lt
 #print axioms intervalDomain_minimal2_exists_late_l2_lt
+#print axioms intervalDomain_minimal2_exists_late_supClose
 
 end
 
