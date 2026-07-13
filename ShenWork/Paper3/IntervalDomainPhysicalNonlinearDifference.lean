@@ -137,6 +137,7 @@ theorem exists_fullNonlinearRemainderDifferenceL2Data_of_routeA
             p uStar vStar u₁ v₁ t n -
           paper3FullModeNonlinearRemainderCoeffM
             p uStar vStar u₂ v₂ t n),
+      H.M1 = M₁ ∧ H.M2 = M₂ ∧ H.D = D ∧
       H.Kchem = paper3RouteAPolarizedChemL2Constant
         p uStar vStar Cself Cdiff ∧ H.Klog = Klog := by
   let C := paper3RouteAPolarizedPointConstant p Cself Cdiff
@@ -248,7 +249,7 @@ theorem exists_fullNonlinearRemainderDifferenceL2Data_of_routeA
           paper3FullModeNonlinearRemainderCoeffM_eq_parts,
           hchem₁, hchem₂, hlog₁, hlog₂, hchemCoeff, hlogCoeff]
         ring }
-  exact ⟨H, rfl, rfl⟩
+  exact ⟨H, rfl, rfl, rfl, rfl, rfl⟩
 
 #print axioms paper3RouteAPolarizedChemL2Constant_nonneg
 #print axioms exists_fullNonlinearRemainderDifferenceL2Data_of_routeA

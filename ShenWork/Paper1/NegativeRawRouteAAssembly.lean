@@ -1,0 +1,141 @@
+/-
+  Negative Paper 1 Route-A assembly at the sharp right-tail cap.
+-/
+import ShenWork.Paper1.StationaryUpperTail
+import ShenWork.Paper1.WaveLemma42ParamCore
+
+namespace ShenWork.Paper1
+
+noncomputable section
+
+/-- The sharp branch endpoint, used as the raw lower-barrier exponent. -/
+def negativeBranchTailCap (p : CMParams) (c : ℝ) : ℝ :=
+  min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
+
+theorem kappa_lt_negativeBranchTailCap
+    (p : CMParams) {c : ℝ} (hc : cStarLower p < c) :
+    kappa c < negativeBranchTailCap p c := by
+  have hc2 : 2 < c := two_lt_of_cStarLower_lt hc
+  have hκpos : 0 < kappa c := kappa_pos_of_cStarLower_lt hc
+  have hκlt1 : kappa c < 1 := kappa_lt_one_of_two_lt hc2
+  have hcoeff : (1 : ℝ) < 1 + p.α := by linarith [p.hα]
+  have hleft : kappa c < (1 + p.α) * kappa c := by
+    calc
+      kappa c = (1 : ℝ) * kappa c := by ring
+      _ < (1 + p.α) * kappa c :=
+        mul_lt_mul_of_pos_right hcoeff hκpos
+  have hmk : kappa c ≤ p.m * kappa c := by
+    calc
+      kappa c = (1 : ℝ) * kappa c := by ring
+      _ ≤ p.m * kappa c :=
+        mul_le_mul_of_nonneg_right p.hm hκpos.le
+  have hmid : kappa c < p.m * kappa c + 1 / 2 := by linarith
+  simpa [negativeBranchTailCap] using lt_min hleft (lt_min hmid hκlt1)
+
+/-- Negative Lemma 4.2 conditions at the exact headline tail endpoint. -/
+theorem negativePaperLemma42ExactConditions_of_branchCap
+    (p : CMParams) {c : ℝ}
+    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
+    (hc : cStarLower p < c) :
+    PaperLemma42ExactConditions p c (kappa c)
+      (negativeBranchTailCap p c) 1 :=
+  { hκ0 := kappa_pos_of_cStarLower_lt hc
+    hκ1 := kappa_lt_one_of_two_lt (two_lt_of_cStarLower_lt hc)
+    hgap := kappa_lt_negativeBranchTailCap p hc
+    hrange := by simp [negativeBranchTailCap]
+    hM := le_rfl
+    hc := (kappa_add_inv_eq_of_two_lt (two_lt_of_cStarLower_lt hc)).symm
+    hχ := hχ
+    hα_le := hα }
+
+/-- Route-A construction data for the negative branch after source compactness,
+finite-cube Schauder, adaptive stationarity, `C²`, strict positivity, left
+flatness, and the right-tail family have all become internal.
+
+The only branch-specific scalar retained beyond the parabolic floor is strict
+non-contact at the saturated point `x = 0`. -/
+structure Paper1NegativeLowerRawCapRouteAParamData : Prop where
+  produce :
+    ∀ p : CMParams, ∀ hα : p.α ≤ p.m + p.γ - 1,
+      ∀ hχ : p.χ ≤ 0, ∀ c : ℝ, ∀ hc : cStarLower p < c,
+        ∃ lam D Λ : ℝ,
+          let hcond : PaperLemma42ExactConditions p c (kappa c)
+              (negativeBranchTailCap p c) 1 :=
+            negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
+          ∃ hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+              p c lam 1 (kappa c) (negativeBranchTailCap p c) D Λ
+              hcond.hκ0.le (le_trans zero_le_one hcond.hM),
+            1 ≤ D ∧
+            paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+              p.m p.γ c < D ∧
+            0 ≤ Λ ∧ Λ ≤ 1 ∧
+            (∀ U : ℝ → ℝ,
+              InLowerPinnedMonotoneTrap (kappa c) 1
+                (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) U →
+              FrozenStationaryWaveProfile p c U → U 0 < 1)
+
+/-- Full negative branch from the orbit-faithful Route-A parameter data. -/
+theorem paper1_negativeConstruction_of_routeAParamData
+    (hData : Paper1NegativeLowerRawCapRouteAParamData) :
+    ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+      ∀ c : ℝ, cStarLower p < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+          (∀ x, deriv U x ≤ 0) ∧
+          (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+          ShenUpperBoundNegative c U ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < negativeBranchTailCap p c →
+              HasWaveRightTailAsymptotic c κ₁ U := by
+  intro p hα hχ c hc
+  let hcond : PaperLemma42ExactConditions p c (kappa c)
+      (negativeBranchTailCap p c) 1 :=
+    negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
+  rcases hData.produce p hα hχ c hc with
+    ⟨lam, D, Λ, hpar, hD1, hD, hΛ0, hΛ1, hstrict⟩
+  obtain ⟨U, hU, hprofile⟩ :=
+    b1_chiNeg_existence_paper_routeA_paramCore_noBar
+      p c lam 1 (kappa c) (negativeBranchTailCap p c) D Λ
+      hcond hD hD1 hΛ0 hΛ1 hpar
+  have hupper : ShenUpperBoundNegative c U :=
+    ShenUpperBoundNegative_of_strictAtZero hcond.hκ0 hU.bare
+      hprofile.U_pos (hstrict U hU hprofile)
+  have htail : ∀ κ₁, kappa c < κ₁ →
+      κ₁ < negativeBranchTailCap p c →
+        HasWaveRightTailAsymptotic c κ₁ U :=
+    lowerPinnedRawMonotoneTrap_tail_family_for_branch
+      (le_trans zero_le_one hD1) (by simp [negativeBranchTailCap]) hU
+  exact ⟨U, hprofile, hU.bare.deriv_nonpos,
+    frozenElliptic_deriv_nonpos_of_monotone_trap
+      p (kappa c) 1 U hU.bare,
+    hupper, htail⟩
+
+/-- Theorem 1.1 once the positive construction branch is supplied. -/
+theorem Theorem_1_1.of_negativeRouteAParamData
+    (hneg : Paper1NegativeLowerRawCapRouteAParamData)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+            ShenUpperBoundPositive p c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ < min ((1 + p.α) * kappa c)
+                (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_assumed_frozenStationaryProfile_branches
+    (by simpa [negativeBranchTailCap] using
+      paper1_negativeConstruction_of_routeAParamData hneg)
+    hpos
+
+section AxiomAudit
+#print axioms negativePaperLemma42ExactConditions_of_branchCap
+#print axioms paper1_negativeConstruction_of_routeAParamData
+#print axioms Theorem_1_1.of_negativeRouteAParamData
+end AxiomAudit
+
+end
+
+end ShenWork.Paper1
