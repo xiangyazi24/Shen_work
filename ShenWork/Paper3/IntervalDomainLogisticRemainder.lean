@@ -57,7 +57,61 @@ theorem quadratic_remainder_le_of_deriv_lipschitzOn
     (L * |x - y|) * |x - y| at hmv
   convert hmv using 1
   · ring
-  · ring
+  · simp [pow_two, mul_assoc]
+
+/-- Polarized form of the local Taylor estimate.  This is the scalar core of
+the Nemytskii contraction bound; all points remain in the same convex set, so
+singular real-power derivatives are never evaluated at zero. -/
+theorem quadratic_remainder_sub_le_of_deriv_lipschitzOn
+    {f f' : ℝ → ℝ} {s : Set ℝ} {L x₁ x₂ y : ℝ}
+    (hs : Convex ℝ s) (hL : 0 ≤ L)
+    (hder : ∀ z ∈ s, HasDerivAt f (f' z) z)
+    (hlip : ∀ z ∈ s, ∀ w ∈ s, |f' z - f' w| ≤ L * |z - w|)
+    (hx₁ : x₁ ∈ s) (hx₂ : x₂ ∈ s) (hy : y ∈ s) :
+    |(f x₁ - f y - f' y * (x₁ - y)) -
+        (f x₂ - f y - f' y * (x₂ - y))| ≤
+      L * (|x₁ - y| + |x₂ - y|) * |x₁ - x₂| := by
+  let seg : Set ℝ := segment ℝ x₁ x₂
+  let g : ℝ → ℝ := fun z => f z - f' y * z
+  let R : ℝ := |x₁ - y| + |x₂ - y|
+  have hR : 0 ≤ R := add_nonneg (abs_nonneg _) (abs_nonneg _)
+  have hseg : seg ⊆ s := hs.segment_subset hx₁ hx₂
+  have hx₁seg : x₁ ∈ seg := left_mem_segment ℝ x₁ x₂
+  have hx₂seg : x₂ ∈ seg := right_mem_segment ℝ x₁ x₂
+  have hx₁ball : x₁ ∈ Metric.closedBall y R := by
+    rw [Metric.mem_closedBall, Real.dist_eq]
+    dsimp [R]
+    rw [abs_sub_comm]
+    exact le_add_of_nonneg_right (abs_nonneg _)
+  have hx₂ball : x₂ ∈ Metric.closedBall y R := by
+    rw [Metric.mem_closedBall, Real.dist_eq]
+    dsimp [R]
+    rw [abs_sub_comm]
+    exact le_add_of_nonneg_left (abs_nonneg _)
+  have hsegBall : seg ⊆ Metric.closedBall y R :=
+    (convex_closedBall y R).segment_subset hx₁ball hx₂ball
+  have hgder : ∀ z ∈ seg,
+      HasDerivWithinAt g (f' z - f' y) seg z := by
+    intro z hz
+    have hf := hder z (hseg hz)
+    have hlin : HasDerivAt (fun w : ℝ => f' y * w) (f' y) z := by
+      simpa using (hasDerivAt_id z).const_mul (f' y)
+    exact (hf.sub hlin).hasDerivWithinAt
+  have hgbound : ∀ z ∈ seg, ‖f' z - f' y‖ ≤ L * R := by
+    intro z hz
+    have hlocal := hlip z (hseg hz) y hy
+    have hzR : |z - y| ≤ R := by
+      have hzball := hsegBall hz
+      rw [Metric.mem_closedBall, Real.dist_eq] at hzball
+      simpa [abs_sub_comm] using hzball
+    rw [Real.norm_eq_abs]
+    exact hlocal.trans (mul_le_mul_of_nonneg_left hzR hL)
+  have hmv : ‖g x₁ - g x₂‖ ≤ (L * R) * ‖x₁ - x₂‖ :=
+    Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      hgder hgbound (convex_segment x₁ x₂) hx₂seg hx₁seg
+  rw [Real.norm_eq_abs, Real.norm_eq_abs] at hmv
+  dsimp [g, R] at hmv ⊢
+  convert hmv using 1 <;> ring
 
 /-- Logistic reaction and its derivative at positive arguments. -/
 def paper3LogisticReaction (p : CM2Params) (z : ℝ) : ℝ :=
@@ -183,6 +237,43 @@ theorem paper3LogisticReaction_quadratic_remainder
 /-- Pointwise nonlinear logistic remainder after extracting the mean damping. -/
 def paper3LogisticRemainder (p : CM2Params) (uStar z : ℝ) : ℝ :=
   paper3LogisticReaction p z + p.a * p.α * (z - uStar)
+
+/-- Polarized logistic remainder on the same positivity neighborhood. -/
+theorem paper3LogisticRemainder_sub_local_lipschitz
+    (p : CM2Params) {uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    ∃ K > 0, ∀ x₁ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      ∀ x₂ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+        |paper3LogisticRemainder p uStar x₁ -
+            paper3LogisticRemainder p uStar x₂| ≤
+          K * (|x₁ - uStar| + |x₂ - uStar|) * |x₁ - x₂| := by
+  rcases paper3LogisticReactionDeriv_local_lipschitz p heq.u_pos with
+    ⟨K, hK, hLip⟩
+  have huI : uStar ∈ Set.Icc (uStar / 2) (3 * uStar / 2) := by
+    constructor <;> linarith [heq.u_pos]
+  have hrel : p.a = p.b * uStar ^ p.α := by
+    rcases mul_eq_zero.mp heq.reaction_eq_zero with hu0 | hrel
+    · exact False.elim (heq.u_pos.ne' hu0)
+    · linarith
+  have hderEq : paper3LogisticReactionDeriv p uStar = -p.a * p.α := by
+    simp only [paper3LogisticReactionDeriv]
+    rw [hrel]
+    ring
+  have hreactEq : paper3LogisticReaction p uStar = 0 := by
+    simpa [paper3LogisticReaction] using heq.reaction_eq_zero
+  refine ⟨K, hK, ?_⟩
+  intro x₁ hx₁ x₂ hx₂
+  have hrem := quadratic_remainder_sub_le_of_deriv_lipschitzOn
+    (f := paper3LogisticReaction p)
+    (f' := paper3LogisticReactionDeriv p)
+    (s := Set.Icc (uStar / 2) (3 * uStar / 2))
+    (L := K) (x₁ := x₁) (x₂ := x₂) (y := uStar)
+    (convex_Icc _ _) hK.le
+    (fun z hz => paper3LogisticReaction_hasDerivAt p
+      (lt_of_lt_of_le (by linarith [heq.u_pos]) hz.1))
+    hLip hx₁ hx₂ huI
+  rw [hreactEq, hderEq] at hrem
+  simpa [paper3LogisticRemainder] using hrem
 
 /-- The abstractly defined mean forcing is exactly the spatial integral of the
 pointwise logistic remainder. -/
@@ -310,6 +401,7 @@ theorem intervalDomainMeanLogisticRemainder_abs_le_sup_sq
 #print axioms quadratic_remainder_le_of_deriv_lipschitzOn
 #print axioms paper3LogisticReactionDeriv_local_lipschitz
 #print axioms paper3LogisticReaction_quadratic_remainder
+#print axioms paper3LogisticRemainder_sub_local_lipschitz
 #print axioms intervalDomainMeanLogisticRemainder_eq_integral
 #print axioms intervalDomainMeanLogisticRemainder_abs_le_sup_sq
 

@@ -101,6 +101,35 @@ theorem paper3Power_quadratic_remainder
     hLip hx huI
   simpa [paper3PowerLinearizationRemainder] using hrem
 
+/-- Polarized quadratic source remainder. -/
+theorem paper3Power_quadratic_remainder_sub
+    {gamma uStar : ℝ} (huStar : 0 < uStar) :
+    ∃ K > 0, ∀ x₁ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      ∀ x₂ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+        |paper3PowerLinearizationRemainder gamma uStar x₁ -
+            paper3PowerLinearizationRemainder gamma uStar x₂| ≤
+          K * (|x₁ - uStar| + |x₂ - uStar|) * |x₁ - x₂| := by
+  rcases paper3PowerDeriv_local_lipschitz
+      (gamma := gamma) huStar with ⟨K, hK, hLip⟩
+  have huI : uStar ∈ Set.Icc (uStar / 2) (3 * uStar / 2) := by
+    constructor <;> linarith
+  refine ⟨K, hK, ?_⟩
+  intro x₁ hx₁ x₂ hx₂
+  have hrem := quadratic_remainder_sub_le_of_deriv_lipschitzOn
+    (f := fun z : ℝ => z ^ gamma)
+    (f' := paper3PowerDeriv gamma)
+    (s := Set.Icc (uStar / 2) (3 * uStar / 2))
+    (L := K) (x₁ := x₁) (x₂ := x₂) (y := uStar)
+    (convex_Icc _ _) hK.le
+    (fun z hz => by
+      have hzpos : 0 < z :=
+        lt_of_lt_of_le (by linarith [huStar]) hz.1
+      simpa [paper3PowerDeriv] using
+        (Real.hasDerivAt_rpow_const
+          (x := z) (p := gamma) (Or.inl hzpos.ne')))
+    hLip hx₁ hx₂ huI
+  simpa [paper3PowerLinearizationRemainder] using hrem
+
 /-- The actual elliptic source remainder, including its coefficient `ν`. -/
 def paper3EllipticSourceRemainder
     (p : CM2Params) (uStar z : ℝ) : ℝ :=
@@ -121,9 +150,28 @@ theorem paper3EllipticSource_quadratic_remainder
   rw [paper3EllipticSourceRemainder, abs_mul, abs_of_pos p.hν]
   simpa [K, mul_assoc] using mul_le_mul_of_nonneg_left h p.hν.le
 
+/-- Polarized elliptic source estimate used by the contraction map. -/
+theorem paper3EllipticSource_quadratic_remainder_sub
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar) :
+    ∃ K > 0, ∀ x₁ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      ∀ x₂ ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+        |paper3EllipticSourceRemainder p uStar x₁ -
+            paper3EllipticSourceRemainder p uStar x₂| ≤
+          K * (|x₁ - uStar| + |x₂ - uStar|) * |x₁ - x₂| := by
+  rcases paper3Power_quadratic_remainder_sub
+      (gamma := p.γ) huStar with ⟨K₀, hK₀, hrem⟩
+  refine ⟨p.ν * K₀, mul_pos p.hν hK₀, ?_⟩
+  intro x₁ hx₁ x₂ hx₂
+  have h := hrem x₁ hx₁ x₂ hx₂
+  rw [paper3EllipticSourceRemainder,
+    paper3EllipticSourceRemainder, ← mul_sub, abs_mul, abs_of_pos p.hν]
+  nlinarith [p.hν.le]
+
 #print axioms paper3PowerDeriv_local_lipschitz
 #print axioms paper3Power_quadratic_remainder
+#print axioms paper3Power_quadratic_remainder_sub
 #print axioms paper3EllipticSource_quadratic_remainder
+#print axioms paper3EllipticSource_quadratic_remainder_sub
 
 end
 
