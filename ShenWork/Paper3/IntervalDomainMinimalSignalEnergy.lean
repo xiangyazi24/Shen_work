@@ -234,6 +234,61 @@ theorem intervalDomain_minimal_elliptic_difference
   rw [hlap, hu, hv, hgamma, Real.rpow_one] at hpde
   linarith
 
+/-- The squared signal Laplacian is integrable on a classical `γ = 1` slice;
+the elliptic equation represents it by continuous zeroth-order fields. -/
+theorem intervalDomain_minimal_signal_lap_sq_intervalIntegrable
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    IntervalIntegrable
+      (fun y =>
+        (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2)
+      volume 0 1 := by
+  let U : ℝ → ℝ := fun y => intervalDomainLift (u t) y - uStar
+  let W : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let Lap : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (v t)) z) y
+  have hUCont : ContinuousOn U (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn).sub
+      continuousOn_const
+  have hWCont : ContinuousOn W (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hrepCont : ContinuousOn
+      (fun y => p.μ * W y - p.ν * U y) (uIcc (0 : ℝ) 1) :=
+    (hWCont.const_mul p.μ).sub (hUCont.const_mul p.ν)
+  have hrepSqInt : IntervalIntegrable
+      (fun y => (p.μ * W y - p.ν * U y) ^ 2) volume 0 1 :=
+    (hrepCont.pow 2).intervalIntegrable
+  have hLapSqInt : IntervalIntegrable (fun y => (Lap y) ^ 2) volume 0 1 := by
+    refine hrepSqInt.congr_ae ?_
+    rw [uIoc_of_le zero_le_one]
+    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := Real.volume_singleton
+    refine (ae_iff).2 (measure_mono_null ?_ hnull)
+    intro y hy
+    simp only [mem_setOf_eq] at hy
+    push_neg at hy
+    obtain ⟨hyIoc, hne⟩ := hy
+    simp only [mem_singleton_iff]
+    by_contra hy1
+    have hdiff := intervalDomain_minimal_elliptic_difference
+      hgamma heq hsol ht ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩
+    apply hne
+    dsimp [U, W, Lap]
+    have hrearranged :
+        p.μ * (intervalDomainLift (v t) y - vStar) -
+            p.ν * (intervalDomainLift (u t) y - uStar) =
+          deriv (fun z => deriv (intervalDomainLift (v t)) z) y := by
+      linarith
+    rw [hrearranged]
+  simpa [Lap] using hLapSqInt
+
 /-- The scaled cross pairing has the symmetric resolvent representation. -/
 theorem intervalDomain_minimal_signal_pairing_scaled
     {p : CM2Params} {T s t uStar vStar : ℝ}
@@ -1070,34 +1125,9 @@ theorem intervalDomain_minimal_signal_diffusion_pairing
     simpa [mul_comm] using hLapInt.continuousOn_mul hUCont
   have hWLapInt : IntervalIntegrable (fun y => W y * Lap y) volume 0 1 := by
     simpa [mul_comm] using hLapInt.continuousOn_mul hWCont
-  have hrepCont : ContinuousOn
-      (fun y => p.μ * W y - p.ν * U y) (uIcc (0 : ℝ) 1) :=
-    (hWCont.const_mul p.μ).sub (hUCont.const_mul p.ν)
   have hLapSqInt : IntervalIntegrable (fun y => (Lap y) ^ 2) volume 0 1 := by
-    have hrepSqInt : IntervalIntegrable
-        (fun y => (p.μ * W y - p.ν * U y) ^ 2) volume 0 1 :=
-      (hrepCont.pow 2).intervalIntegrable
-    refine hrepSqInt.congr_ae ?_
-    rw [uIoc_of_le zero_le_one]
-    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
-    have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := Real.volume_singleton
-    refine (ae_iff).2 (measure_mono_null ?_ hnull)
-    intro y hy
-    simp only [mem_setOf_eq] at hy
-    push_neg at hy
-    obtain ⟨hyIoc, hne⟩ := hy
-    simp only [mem_singleton_iff]
-    by_contra hy1
-    have hdiff := intervalDomain_minimal_elliptic_difference
-      hgamma heq hsol ht ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩
-    apply hne
-    dsimp [U, W, Lap]
-    have hrearranged :
-        p.μ * (intervalDomainLift (v t) y - vStar) -
-            p.ν * (intervalDomainLift (u t) y - uStar) =
-          deriv (fun z => deriv (intervalDomainLift (v t)) z) y := by
-      linarith
-    rw [hrearranged]
+    simpa [Lap] using intervalDomain_minimal_signal_lap_sq_intervalIntegrable
+      hgamma heq hsol ht
   have hpoint : EqOn (fun y => p.ν * (U y * Lap y))
       (fun y => p.μ * (W y * Lap y) - (Lap y) ^ 2)
       (Ioo (0 : ℝ) 1) := by
@@ -1477,6 +1507,123 @@ theorem intervalDomain_minimal_signal_energy_eq_raw
         ring
       rw [hvalue, hgradient]
 
+/-- The `γ = 1` elliptic equation controls the population `L²` distance by
+the signal energy and the squared signal Laplacian. -/
+theorem intervalDomain_minimal_signal_elliptic_l2
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    p.ν ^ 2 * (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y - uStar) ^ 2) ≤
+      2 * p.μ * chemotaxisSignalEnergy intervalDomain p.μ vStar v t +
+        2 * (∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2) := by
+  let U : ℝ → ℝ := fun y => intervalDomainLift (u t) y - uStar
+  let W : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let Lap : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (v t)) z) y
+  have hUCont : ContinuousOn U (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn).sub
+      continuousOn_const
+  have hWCont : ContinuousOn W (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hU2Int : IntervalIntegrable (fun y => (U y) ^ 2) volume 0 1 :=
+    (hUCont.pow 2).intervalIntegrable
+  have hW2Int : IntervalIntegrable (fun y => (W y) ^ 2) volume 0 1 :=
+    (hWCont.pow 2).intervalIntegrable
+  have hLap2Int : IntervalIntegrable (fun y => (Lap y) ^ 2) volume 0 1 := by
+    simpa [Lap] using intervalDomain_minimal_signal_lap_sq_intervalIntegrable
+      hgamma heq hsol ht
+  have hleftInt : IntervalIntegrable
+      (fun y => (p.ν * U y) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    exact ((continuousOn_const.mul hUCont).pow 2)
+  have hWTermInt : IntervalIntegrable
+      (fun y => 2 * (p.μ * W y) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    exact continuousOn_const.mul ((continuousOn_const.mul hWCont).pow 2)
+  have hrightInt : IntervalIntegrable
+      (fun y => 2 * (p.μ * W y) ^ 2 + 2 * (Lap y) ^ 2)
+      volume 0 1 :=
+    hWTermInt.add (hLap2Int.const_mul 2)
+  have hae : (fun y => (p.ν * U y) ^ 2) ≤ᵐ[
+      volume.restrict (Icc (0 : ℝ) 1)]
+      (fun y => 2 * (p.μ * W y) ^ 2 + 2 * (Lap y) ^ 2) := by
+    have hrestrict : volume.restrict (Icc (0 : ℝ) 1) =
+        volume.restrict (Ioo (0 : ℝ) 1) :=
+      Measure.restrict_congr_set MeasureTheory.Ioo_ae_eq_Icc.symm
+    rw [hrestrict]
+    filter_upwards [ae_restrict_mem measurableSet_Ioo] with y hy
+    have hdiff := intervalDomain_minimal_elliptic_difference
+      hgamma heq hsol ht hy
+    change p.ν * U y = p.μ * W y - Lap y at hdiff
+    rw [hdiff]
+    nlinarith [sq_nonneg (p.μ * W y + Lap y)]
+  have hmono := intervalIntegral.integral_mono_ae_restrict
+    (by norm_num : (0 : ℝ) ≤ 1) hleftInt hrightInt hae
+  have hleftEq :
+      (∫ y in (0 : ℝ)..1, (p.ν * U y) ^ 2) =
+        p.ν ^ 2 * (∫ y in (0 : ℝ)..1, (U y) ^ 2) := by
+    calc
+      (∫ y in (0 : ℝ)..1, (p.ν * U y) ^ 2) =
+          ∫ y in (0 : ℝ)..1, p.ν ^ 2 * (U y) ^ 2 := by
+        apply intervalIntegral.integral_congr
+        intro y _
+        ring
+      _ = p.ν ^ 2 * (∫ y in (0 : ℝ)..1, (U y) ^ 2) := by
+        rw [intervalIntegral.integral_const_mul]
+  have hrightEq :
+      (∫ y in (0 : ℝ)..1,
+        2 * (p.μ * W y) ^ 2 + 2 * (Lap y) ^ 2) =
+        2 * p.μ ^ 2 * (∫ y in (0 : ℝ)..1, (W y) ^ 2) +
+          2 * (∫ y in (0 : ℝ)..1, (Lap y) ^ 2) := by
+    rw [intervalIntegral.integral_add hWTermInt (hLap2Int.const_mul 2),
+      intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_const_mul]
+    have hmu :
+        (∫ y in (0 : ℝ)..1, (p.μ * W y) ^ 2) =
+          p.μ ^ 2 * (∫ y in (0 : ℝ)..1, (W y) ^ 2) := by
+      calc
+        (∫ y in (0 : ℝ)..1, (p.μ * W y) ^ 2) =
+            ∫ y in (0 : ℝ)..1, p.μ ^ 2 * (W y) ^ 2 := by
+          apply intervalIntegral.integral_congr
+          intro y _
+          ring
+        _ = _ := by rw [intervalIntegral.integral_const_mul]
+    rw [hmu]
+    ring
+  rw [hleftEq, hrightEq] at hmono
+  have henergy := intervalDomain_minimal_signal_energy_eq_raw
+    hgamma heq hsol ht
+  have hGnonneg : 0 ≤
+      ∫ y in (0 : ℝ)..1,
+        (deriv (intervalDomainLift (v t)) y) ^ 2 :=
+    intervalIntegral.integral_nonneg (by norm_num) (fun _ _ => sq_nonneg _)
+  have hWle :
+      p.μ * (∫ y in (0 : ℝ)..1, (W y) ^ 2) ≤
+        chemotaxisSignalEnergy intervalDomain p.μ vStar v t := by
+    change chemotaxisSignalEnergy intervalDomain p.μ vStar v t =
+      p.μ * (∫ y in (0 : ℝ)..1, (W y) ^ 2) +
+        ∫ y in (0 : ℝ)..1,
+          (deriv (intervalDomainLift (v t)) y) ^ 2 at henergy
+    linarith
+  have hWscaled :
+      (2 * p.μ) * (p.μ * (∫ y in (0 : ℝ)..1, (W y) ^ 2)) ≤
+        (2 * p.μ) *
+          chemotaxisSignalEnergy intervalDomain p.μ vStar v t :=
+    mul_le_mul_of_nonneg_left hWle
+      (mul_nonneg (by norm_num) p.hμ.le)
+  change p.ν ^ 2 * (∫ y in (0 : ℝ)..1, (U y) ^ 2) ≤
+    2 * p.μ * chemotaxisSignalEnergy intervalDomain p.μ vStar v t +
+      2 * (∫ y in (0 : ℝ)..1, (Lap y) ^ 2)
+  nlinarith
+
 /-- The signal energy is controlled by `(μ+1)` times its gradient part on
 every positive mass-constrained `γ = 1` slice. -/
 theorem intervalDomain_minimal_signal_energy_control
@@ -1771,6 +1918,7 @@ theorem intervalDomain_minimal2_exists_late_signal_lap_lt
   exact ⟨t, hTle.trans htbase, by simpa [D] using htSmall⟩
 
 #print axioms intervalDomain_minimal_signal_pairing_comm
+#print axioms intervalDomain_minimal_signal_lap_sq_intervalIntegrable
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
 #print axioms intervalDomain_minimal_signal_energy_hasDerivAt
@@ -1783,6 +1931,7 @@ theorem intervalDomain_minimal2_exists_late_signal_lap_lt
 #print axioms intervalDomain_minimal_signal_mean_zero
 #print axioms intervalDomain_minimal_signal_poincare
 #print axioms intervalDomain_minimal_signal_energy_control
+#print axioms intervalDomain_minimal_signal_elliptic_l2
 #print axioms intervalDomain_minimal2_signal_energy_exponential_decay
 #print axioms intervalDomain_minimal2_signal_energy_tendsto_zero
 #print axioms intervalDomain_minimal2_exists_late_signal_lap_lt
