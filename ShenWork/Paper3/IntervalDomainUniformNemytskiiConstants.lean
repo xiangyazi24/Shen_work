@@ -30,6 +30,28 @@ theorem paper3UniformEllipticTaylorConstant_bound
   (Classical.choose_spec
     (paper3EllipticSource_quadratic_remainder p huStar)).2
 
+/-- Fixed polarized elliptic Taylor constant on the positivity interval. -/
+def paper3UniformEllipticPolarConstant
+    (p : CM2Params) (uStar : ℝ) (huStar : 0 < uStar) : ℝ :=
+  Classical.choose (paper3EllipticSource_quadratic_remainder_sub p huStar)
+
+theorem paper3UniformEllipticPolarConstant_pos
+    (p : CM2Params) (uStar : ℝ) (huStar : 0 < uStar) :
+    0 < paper3UniformEllipticPolarConstant p uStar huStar :=
+  (Classical.choose_spec
+    (paper3EllipticSource_quadratic_remainder_sub p huStar)).1
+
+theorem paper3UniformEllipticPolarConstant_bound
+    (p : CM2Params) (uStar : ℝ) (huStar : 0 < uStar) :
+    ∀ x ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      ∀ y ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+        |paper3EllipticSourceRemainder p uStar x -
+            paper3EllipticSourceRemainder p uStar y| ≤
+          paper3UniformEllipticPolarConstant p uStar huStar *
+            (|x - uStar| + |y - uStar|) * |x - y| :=
+  (Classical.choose_spec
+    (paper3EllipticSource_quadratic_remainder_sub p huStar)).2
+
 /-- A fixed logistic Taylor constant on the same positive neighborhood. -/
 def paper3UniformLogisticTaylorConstant
     (p : CM2Params) {uStar vStar : ℝ}
@@ -51,6 +73,31 @@ theorem paper3UniformLogisticTaylorConstant_bound
         paper3UniformLogisticTaylorConstant p heq * |x - uStar| ^ 2 :=
   (Classical.choose_spec
     (paper3LogisticReaction_quadratic_remainder p heq)).2
+
+/-- Fixed polarized logistic Taylor constant on the positivity interval. -/
+def paper3UniformLogisticPolarConstant
+    (p : CM2Params) {uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) : ℝ :=
+  Classical.choose (paper3LogisticRemainder_sub_local_lipschitz p heq)
+
+theorem paper3UniformLogisticPolarConstant_pos
+    (p : CM2Params) {uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    0 < paper3UniformLogisticPolarConstant p heq :=
+  (Classical.choose_spec
+    (paper3LogisticRemainder_sub_local_lipschitz p heq)).1
+
+theorem paper3UniformLogisticPolarConstant_bound
+    (p : CM2Params) {uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    ∀ x ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      ∀ y ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+        |paper3LogisticRemainder p uStar x -
+            paper3LogisticRemainder p uStar y| ≤
+          paper3UniformLogisticPolarConstant p heq *
+            (|x - uStar| + |y - uStar|) * |x - y| :=
+  (Classical.choose_spec
+    (paper3LogisticRemainder_sub_local_lipschitz p heq)).2
 
 /-- One fixed constant controlling the linear and quadratic resolver values,
 gradients, and elliptic-laplacian representatives. -/
@@ -288,6 +335,8 @@ theorem paper3SignalComponents_strong_bounds_uniform
 #print axioms paper3SignalComponents_strong_bounds_uniform
 #print axioms paper3UniformSignalStrongConstant_pos
 #print axioms paper3UniformLogisticTaylorConstant_bound
+#print axioms paper3UniformEllipticPolarConstant_bound
+#print axioms paper3UniformLogisticPolarConstant_bound
 
 end
 
