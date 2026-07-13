@@ -49,6 +49,30 @@ def Paper1NegativePinnedRotheL10Core : Prop :=
       PaperNegativePinnedRotheL10 hcond
         (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c) s
 
+/-- Canonical form of the single irreducible negative-branch residual after
+adaptive Green closure: uniqueness of the normalized lower-pinned stationary
+selection for each frozen profile. -/
+def Paper1NegativePinnedStationaryIdentificationCore : Prop :=
+  ∀ p : CMParams, ∀ hα : p.α ≤ p.m + p.γ - 1,
+    ∀ hχ : p.χ ≤ 0, ∀ c : ℝ, ∀ hc : cStarLower p < c,
+      let hcond := negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
+      let D := paper1NegativeRotheD p c
+      let s := paper1NegativeLocalStepScalars p hα hχ hc
+      PaperNegativePinnedStationaryIdentification hcond
+        (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c) s
+
+/-- The adaptive moving-index closed graph and compact range turn the exact
+stationary-identification core into L10. -/
+theorem paper1NegativePinnedRotheL10Core_of_stationaryIdentification
+    (hidentify : Paper1NegativePinnedStationaryIdentificationCore) :
+    Paper1NegativePinnedRotheL10Core := by
+  intro p hα hχ c hc
+  exact paperNegativePinnedRotheL10_of_stationaryIdentification
+    (negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc)
+    (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c)
+    (paper1NegativeLocalStepScalars p hα hχ hc)
+    (hidentify p hα hχ c hc)
+
 /-- Full negative headline branch from the genuine pinned Rothe construction,
 conditional only on its exact L10 stability theorem. -/
 theorem paper1_negativeConstruction_of_pinnedRotheL10
@@ -121,6 +145,23 @@ theorem paper1_negativeConstruction_of_pinnedRotheL10
       p (kappa c) 1 U hUpin.bare,
     hupper, htail⟩
 
+/-- Negative construction with every Rothe/Schauder/Green hypothesis
+discharged except the exact stationary-identification theorem. -/
+theorem paper1_negativeConstruction_of_stationaryIdentification
+    (hidentify : Paper1NegativePinnedStationaryIdentificationCore) :
+    ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+      ∀ c : ℝ, cStarLower p < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+          (∀ x, deriv U x ≤ 0) ∧
+          (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+          ShenUpperBoundNegative c U ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < negativeBranchTailCap p c →
+              HasWaveRightTailAsymptotic c κ₁ U :=
+  paper1_negativeConstruction_of_pinnedRotheL10
+    (paper1NegativePinnedRotheL10Core_of_stationaryIdentification hidentify)
+
 /-- Headline adapter after the genuine negative Rothe construction.  The
 positive-attraction construction remains a separate input; in particular this
 theorem does not mention the inconsistent Route-A positive ParamData package. -/
@@ -141,6 +182,26 @@ theorem Theorem_1_1.of_negativePinnedRotheL10
   Theorem_1_1.of_assumed_frozenStationaryProfile_branches
     (by simpa [negativeBranchTailCap] using
       paper1_negativeConstruction_of_pinnedRotheL10 hL10)
+    hpos
+
+/-- Headline adapter exposing the exact remaining negative stationary
+identification theorem and the genuinely separate positive construction. -/
+theorem Theorem_1_1.of_negativeStationaryIdentification
+    (hidentify : Paper1NegativePinnedStationaryIdentificationCore)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+            ShenUpperBoundPositive p c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ < min ((1 + p.α) * kappa c)
+                (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_negativePinnedRotheL10
+    (paper1NegativePinnedRotheL10Core_of_stationaryIdentification hidentify)
     hpos
 
 /-- The single remaining negative-branch analytic theorem.
@@ -250,8 +311,11 @@ section AxiomAudit
 
 #print axioms paper1NegativeRotheD_one_le
 #print axioms paper1NegativeRotheD_gt
+#print axioms paper1NegativePinnedRotheL10Core_of_stationaryIdentification
 #print axioms paper1_negativeConstruction_of_pinnedRotheL10
+#print axioms paper1_negativeConstruction_of_stationaryIdentification
 #print axioms Theorem_1_1.of_negativePinnedRotheL10
+#print axioms Theorem_1_1.of_negativeStationaryIdentification
 #print axioms paper1NegativeParamProducer
 #print axioms paper1NegativeRotheAnalyticCore_of_rest_l10
 #print axioms paper1NegativeLowerRawCapRouteAParamData_of_analyticCore
