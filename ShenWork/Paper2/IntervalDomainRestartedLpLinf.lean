@@ -647,6 +647,48 @@ noncomputable def conjugateLpLinftyConstant (p : ℝ) : ℝ :=
   (fullHeatShortConstant * 2 ^ (1 / 2 : ℝ)) ^ (1 / p) *
     (heatGradientLinftyLinftyConstant * 2 ^ (1 / 2 : ℝ))
 
+theorem conjugateLpLinftyTheta_pos {p : ℝ} (hp : 0 < p) :
+    0 < conjugateLpLinftyTheta p := by
+  simp only [conjugateLpLinftyTheta]
+  have : 0 < 1 / (2 * p) := by positivity
+  linarith
+
+theorem conjugateLpLinftyTheta_lt_one {p : ℝ} (hp : 1 < p) :
+    conjugateLpLinftyTheta p < 1 := by
+  simp only [conjugateLpLinftyTheta]
+  have h2p : 2 < 2 * p := by linarith
+  have hinv : 1 / (2 * p) < 1 / 2 := by
+    exact one_div_lt_one_div_of_lt (by norm_num) h2p
+  linarith
+
+theorem intervalIntegrable_sub_rpow_neg_conjugateTheta
+    {p r : ℝ} (hp : 1 < p) :
+    IntervalIntegrable
+      (fun s : ℝ => (r - s) ^ (-conjugateLpLinftyTheta p))
+      volume 0 r := by
+  have h0 : IntervalIntegrable
+      (fun x : ℝ => x ^ (-conjugateLpLinftyTheta p)) volume 0 r :=
+    intervalIntegral.intervalIntegrable_rpow'
+      (by linarith [conjugateLpLinftyTheta_lt_one hp])
+  simpa using (h0.comp_sub_left r).symm
+
+theorem integral_sub_rpow_neg_conjugateTheta
+    {p r : ℝ} (hp : 1 < p) (hr : 0 ≤ r) :
+    (∫ s in (0 : ℝ)..r,
+      (r - s) ^ (-conjugateLpLinftyTheta p)) =
+      r ^ (1 - conjugateLpLinftyTheta p) /
+        (1 - conjugateLpLinftyTheta p) := by
+  rw [intervalIntegral.integral_comp_sub_left
+    (fun x : ℝ => x ^ (-conjugateLpLinftyTheta p)) r]
+  simp only [sub_self, sub_zero]
+  rw [integral_rpow
+    (Or.inl (by linarith [conjugateLpLinftyTheta_lt_one hp]))]
+  have hne : 1 - conjugateLpLinftyTheta p ≠ 0 := by
+    linarith [conjugateLpLinftyTheta_lt_one hp]
+  rw [show -conjugateLpLinftyTheta p + 1 =
+      1 - conjugateLpLinftyTheta p by ring,
+    Real.zero_rpow hne, sub_zero]
+
 theorem half_rpow_neg_half
     {t : ℝ} (ht : 0 < t) :
     (t / 2) ^ (-(1 / 2 : ℝ)) =
