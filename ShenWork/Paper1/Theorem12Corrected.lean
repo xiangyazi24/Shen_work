@@ -1,4 +1,5 @@
 import ShenWork.Paper1.Lemma53Full
+import ShenWork.Paper1.CStarStarSpecSatisfiable
 import ShenWork.Paper1.Theorem12CoordinateAudit
 import ShenWork.Paper1.Theorem12RootObstruction
 import ShenWork.Paper1.WavePositiveConstruction
@@ -263,6 +264,10 @@ an abstract consistency assumption. -/
 theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     ∃ p : CMParams, ∃ c η : ℝ, ∃ U V : ℝ → ℝ,
       0 < p.χ ∧ 2 < c ∧ StableWaveParameterRegime p ∧
+      (∃ cStarStar : ℝ → ℝ,
+        StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+        stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
+        cStarStar p.χ < c) ∧
       IsTravelingWave p c U V ∧
       TravelingWaveRegularity p c U V ∧
       HasStrictWaveUpperTailBound p c U ∧
@@ -294,6 +299,22 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     lt_of_lt_of_le hχsmall (min_le_right _ _)
   have hχ1 : p.χ < 1 := by norm_num [p]
   have hc : (2 : ℝ) < 3 := by norm_num
+  have hpow_lt : |p.χ| ^ (1 / 6 : ℝ) < 1 := by
+    apply Real.rpow_lt_one
+    · positivity
+    · norm_num [p]
+    · norm_num
+  have hcStarStar_lt : cStarStarWitness p p.χ < 3 := by
+    unfold cStarStarWitness
+    norm_num [p] at hpow_lt ⊢
+    linarith
+  have hthreshold :
+      ∃ cStarStar : ℝ → ℝ,
+        StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+        stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
+        cStarStar p.χ < 3 :=
+    ⟨cStarStarWitness p, cStarStarWitness_asymptotic p,
+      stabilitySpeedBaseline_le_cStarStarWitness p, hcStarStar_lt⟩
   obtain ⟨U, hprofile, hU2, hV2, hreg, hupper, htail⟩ :=
     paper1_positiveConstruction_selfStep p hα hχ0 hχsmall 3 hc
   let V : ℝ → ℝ := frozenElliptic p U
@@ -331,11 +352,6 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       Real.lt_sqrt_of_sq_lt (by norm_num)
     norm_num at hsqrt_gt ⊢
     linarith
-  have hpow_lt : |p.χ| ^ (1 / 6 : ℝ) < 1 := by
-    apply Real.rpow_lt_one
-    · positivity
-    · norm_num [p]
-    · norm_num
   have hhalf_cap :
       (1 / 2 : ℝ) < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
     have hden_pos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by
@@ -347,7 +363,7 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       (η := 1 / 2) hTW hstrict hU2 (by simpa [V] using hV2)
   exact ⟨p, 3, 1 / 2, U, V, hχpos, hc,
     StableWaveParameterRegime.of_positive hχ0 hχstar hα,
-    hTW, by simpa [V] using hreg, hstrict, htail_exists,
+    hthreshold, hTW, by simpa [V] using hreg, hstrict, htail_exists,
       hkappa_half, hhalf_cap, hself⟩
 
 section Theorem12CorrectedAxiomAudit
