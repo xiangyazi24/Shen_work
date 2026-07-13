@@ -47,6 +47,32 @@ theorem cosineCoeffs_add_of_intervalIntegrable
   rw [hsplit]
   ring
 
+/-- Scalar linearity of the normalized cosine coefficient under the minimal
+interval-integrability hypothesis. -/
+theorem cosineCoeffs_const_mul_of_intervalIntegrable
+    {f : ℝ → ℝ} (c : ℝ) (k : ℕ)
+    (hf : IntervalIntegrable f volume 0 1) :
+    cosineCoeffs (fun x => c * f x) k = c * cosineCoeffs f k := by
+  rw [ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral,
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_eq_factor_mul_integral]
+  let w : ℝ → ℝ := fun x => Real.cos ((k : ℝ) * Real.pi * x)
+  have hw : ContinuousOn w (Set.uIcc (0 : ℝ) 1) := by
+    exact (Real.continuous_cos.comp (by fun_prop)).continuousOn
+  have hfw : IntervalIntegrable (fun x => w x * f x) volume 0 1 :=
+    hf.continuousOn_mul hw
+  have hsplit :
+      (∫ x in (0 : ℝ)..1, w x * (c * f x)) =
+        c * ∫ x in (0 : ℝ)..1, w x * f x := by
+    calc
+      (∫ x in (0 : ℝ)..1, w x * (c * f x)) =
+          ∫ x in (0 : ℝ)..1, c * (w x * f x) := by
+        refine intervalIntegral.integral_congr (fun x _ => ?_)
+        ring
+      _ = c * ∫ x in (0 : ℝ)..1, w x * f x := by
+        rw [intervalIntegral.integral_const_mul]
+  rw [hsplit]
+  ring
+
 /-- Cosine coefficients only depend on values on the physical unit interval. -/
 theorem paper3_cosineCoeffs_congr_on_Icc
     {f g : ℝ → ℝ}
@@ -333,6 +359,7 @@ theorem paper3IntervalEllipticRemainder_coeff_l2
       (B := K * M) (mul_nonneg hK.le hM) hphi hrem_meas hpoint)
 
 #print axioms cosineCoeffs_l2_norm_le_of_pointwise_mul
+#print axioms cosineCoeffs_const_mul_of_intervalIntegrable
 #print axioms intervalNeumannResolverSourceCoeff_split
 #print axioms intervalNeumannResolverCoeff_split
 #print axioms paper3IntervalEllipticRemainder_coeff_l2
