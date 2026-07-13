@@ -218,11 +218,75 @@ theorem paperNegativePinnedSelfStepMap_continuousOn
   (paperNegativePinnedSelfStepMap_compactRange hcond hD hD1 s).continuousOn_of_closedGraph
     (paperNegativePinnedSelfStepMap_closedGraph hcond hD hD1 s)
 
+/-! ## Direct Schauder fixed point and stationarity -/
+
+/-- Schauder--Tychonoff on the regular compact-convex trap produces a fixed
+point of the genuine self-step map.  The constant-orbit specialization of the
+whole-line Green theorem then supplies stationarity and the source tail used
+by the left-endpoint argument. -/
+theorem paperNegativePinned_fixed_stationary_of_selfStep
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) :
+    ∃ U,
+      InLowerPinnedC1UniformModulusMonotoneTrap (kappa c) 1
+        (paperNegativePinnedOrbitModulus s)
+        (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) U ∧
+      paperNegativePinnedSelfStepMap s U = U ∧
+      (∀ x, frozenWaveOperator p c U U x = 0) ∧
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+      PaperGreenSourceTailData c s.lam U := by
+  let trap := InLowerPinnedC1UniformModulusMonotoneTrap (kappa c) 1
+    (paperNegativePinnedOrbitModulus s)
+    (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D)
+  have hne : ∃ u, trap u :=
+    paperNegativePinnedC1UniformTrap_nonempty hcond hD hD1 s
+  have hmap : ∀ u, trap u → trap (paperNegativePinnedSelfStepMap s u) :=
+    fun _ hu => paperNegativePinnedSelfStepMap_mapsTo hcond hD hD1 s hu
+  obtain ⟨U, hU, hfix⟩ :=
+    (InLowerPinnedC1UniformModulusMonotoneTrap.boundedConvexProfileTrapData
+      hne).exists_fixed hmap
+      (paperNegativePinnedSelfStepMap_continuousOn hcond hD hD1 s)
+      (paperNegativePinnedSelfStepMap_compactRange hcond hD hD1 s)
+  let d := paperNegativePinnedSelfStepData s hU
+  have hdU : d.fixed.W = U := by
+    calc
+      d.fixed.W = paperNegativePinnedSelfStepMap s U :=
+        (paperNegativePinnedSelfStepMap_eq s hU).symm
+      _ = U := hfix
+  have hA : PaperStepAnalytic p c s.lam 1 (kappa c) s.Λ U U U := by
+    simpa only [hdU] using
+      (paperStepAnalytic_of_core s.hlam d.fixed.analyticCore)
+  have hconst : LocallyUniformConverges (fun _ : ℕ => U) U :=
+    LocallyUniformConverges.const U
+  have hgreen := paperGreenSingleOrbitClosedGraph_of_stepAnalytic
+    p c s.lam 1 (kappa c) s.Λ one_pos s.hΛ0 s.hlam
+    U hU.bare (fun _ : ℕ => U) (fun _ => hA)
+    (fun _ x => hU.bare.nonneg x) (fun _ x => hU.bare.le_M x)
+    U hU.bare id tendsto_id (by simpa using hconst) (by simpa using hconst) rfl
+  have hstep : ∀ x, paperImplicitStepOp p c (1 / s.lam) U U x = U x :=
+    hgreen.1
+  have hUdiff : Differentiable ℝ U := hgreen.2.1
+  have hUderivDiff : Differentiable ℝ (deriv U) := hgreen.2.2.1
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+      p c s.lam U s.hlam hU.bare.trap.cunif_bdd hU.bare.nonneg
+      hUdiff
+      (fun x => frozenElliptic_deriv_differentiableAt p
+        hU.bare.trap.cunif_bdd hU.bare.nonneg x)
+      (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
+  exact ⟨U, hU, hfix, hstat, hUdiff, hUderivDiff, hgreen.2.2.2⟩
+
 section AxiomAudit
 
 #print axioms paperOneStep_closedGraph_of_stepAnalytic
 #print axioms paperNegativePinnedSelfStepMap_closedGraph
 #print axioms paperNegativePinnedSelfStepMap_continuousOn
+#print axioms paperNegativePinned_fixed_stationary_of_selfStep
 
 end AxiomAudit
 
