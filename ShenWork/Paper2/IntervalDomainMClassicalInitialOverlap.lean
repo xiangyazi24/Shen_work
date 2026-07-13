@@ -519,8 +519,259 @@ theorem intervalDomainM_classical_initial_u_unique_on_short
   rw [show a + (t - a) = t by ring, ← hqdef, hediv] at hdiff
   linarith
 
+/-- A faithful positive classical branch has a uniform positive lower bound
+and a uniform absolute upper bound on every compact positive-time slab. -/
+theorem intervalDomainM_u_two_sided_on_compact
+    {p : CM2Params} {T s t : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs : 0 < s) (hst : s ≤ t) (htT : t < T) :
+    ∃ c M : ℝ, 0 < c ∧ c ≤ M ∧
+      ∀ τ ∈ Icc s t, ∀ x : intervalDomainPoint,
+        c ≤ u τ x ∧ |u τ x| ≤ M := by
+  classical
+  let K : Set (ℝ × ℝ) := Icc s t ×ˢ Icc (0 : ℝ) 1
+  have hK : IsCompact K := isCompact_Icc.prod isCompact_Icc
+  have hKne : K.Nonempty :=
+    ⟨(s, 0), ⟨Set.left_mem_Icc.mpr hst, by constructor <;> norm_num⟩⟩
+  have hsub : K ⊆ Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1 := by
+    rintro ⟨τ, y⟩ ⟨hτ, hy⟩
+    exact ⟨⟨hs.trans_le hτ.1, hτ.2.trans_lt htT⟩, hy⟩
+  have hfield : ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (y : ℝ) => intervalDomainLift (u τ) y))
+      K := (hsol.regularity.2.2.2.2.2.2.1).mono hsub
+  obtain ⟨qmin, hqmin, hmin⟩ := hK.exists_isMinOn hKne hfield
+  obtain ⟨qmax, hqmax, hmax⟩ := hK.exists_isMaxOn hKne hfield.abs
+  set c : ℝ := intervalDomainLift (u qmin.1) qmin.2 with hcdef
+  set B : ℝ := |intervalDomainLift (u qmax.1) qmax.2| with hBdef
+  set M : ℝ := max c B with hMdef
+  have hc : 0 < c := by
+    rw [hcdef]
+    exact solution_lift_pos_Icc hsol
+      ⟨hs.trans_le hqmin.1.1, hqmin.1.2.trans_lt htT⟩ qmin.2 hqmin.2
+  have hcM : c ≤ M := by rw [hMdef]; exact le_max_left _ _
+  refine ⟨c, M, hc, hcM, ?_⟩
+  intro τ hτ x
+  have hz : (τ, x.1) ∈ K := ⟨hτ, x.2⟩
+  have hlo : c ≤ intervalDomainLift (u τ) x.1 := by
+    rw [hcdef]
+    exact isMinOn_iff.mp hmin (τ, x.1) hz
+  have hup : |intervalDomainLift (u τ) x.1| ≤ M := by
+    have hB : |intervalDomainLift (u τ) x.1| ≤ B := by
+      rw [hBdef]
+      exact isMaxOn_iff.mp hmax (τ, x.1) hz
+    exact hB.trans (by rw [hMdef]; exact le_max_right _ _)
+  constructor
+  · simpa [intervalDomainLift, x.2] using hlo
+  · simpa [intervalDomainLift, x.2] using hup
+
+/-- On a positive slice the chemical component is determined uniquely by the
+cell-density component through the Neumann elliptic resolver. -/
+theorem intervalDomainM_solution_v_eq_of_u_eq
+    {p : CM2Params} {T₁ T₂ t : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomainM p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomainM p T₂ u₂ v₂)
+    (ht₁ : t ∈ Ioo (0 : ℝ) T₁) (ht₂ : t ∈ Ioo (0 : ℝ) T₂)
+    (hu : u₁ t = u₂ t) : v₁ t = v₂ t := by
+  have hv₁cont : ContinuousOn (intervalDomainLift (v₁ t)) (Icc (0 : ℝ) 1) :=
+    (hsol₁.regularity.2.2.2.2.1 t ht₁).2.1.continuousOn
+  have hv₂cont : ContinuousOn (intervalDomainLift (v₂ t)) (Icc (0 : ℝ) 1) :=
+    (hsol₂.regularity.2.2.2.2.1 t ht₂).2.1.continuousOn
+  have hinterior : Set.EqOn (intervalDomainLift (v₁ t))
+      (intervalDomainLift (v₂ t)) (Ioo (0 : ℝ) 1) := by
+    intro y hy
+    rw [← solution_v_eq_resolver_pointwiseM hsol₁ ht₁ hy,
+      ← solution_v_eq_resolver_pointwiseM hsol₂ ht₂ hy, hu]
+  have hclosed : Set.EqOn (intervalDomainLift (v₁ t))
+      (intervalDomainLift (v₂ t)) (Icc (0 : ℝ) 1) := by
+    refine hinterior.of_subset_closure hv₁cont hv₂cont Ioo_subset_Icc_self ?_
+    rw [closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)]
+  funext x
+  simpa [intervalDomainLift, x.2] using hclosed x.2
+
+/-- Faithful overlap uniqueness on the whole common lifespan.  A compact
+positive-time slab is covered by finitely many uniform restart-contraction
+windows. -/
+theorem intervalDomainM_classicalSolution_overlap_unique
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀)
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomainM p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomainM p T₂ u₂ v₂)
+    (htr₁ : InitialTrace intervalDomainM u₀ u₁)
+    (htr₂ : InitialTrace intervalDomainM u₀ u₂) :
+    ∀ t, 0 < t → t < min T₁ T₂ →
+      ∀ x : intervalDomainPoint, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x := by
+  obtain ⟨Hinit, hHinit, hinit⟩ :=
+    intervalDomainM_classical_initial_u_unique_on_short
+      hu₀ hsol₁ hsol₂ htr₁ htr₂
+  intro t ht htT x
+  set a : ℝ := min (Hinit / 2) (t / 2) with hadef
+  have ha : 0 < a := lt_min (by linarith) (by linarith)
+  have haH : a < Hinit := by
+    have := min_le_left (Hinit / 2) (t / 2)
+    rw [← hadef] at this
+    linarith
+  have hat : a < t := by
+    have := min_le_right (Hinit / 2) (t / 2)
+    rw [← hadef] at this
+    linarith
+  have heq_a : u₁ a = u₂ a := by
+    funext y
+    exact hinit a ha haH y
+  have htT₁ : t < T₁ := htT.trans_le (min_le_left _ _)
+  have htT₂ : t < T₂ := htT.trans_le (min_le_right _ _)
+  obtain ⟨c₁, M₁, hc₁, hcM₁, hb₁⟩ :=
+    intervalDomainM_u_two_sided_on_compact hsol₁ ha hat.le htT₁
+  obtain ⟨c₂, M₂, hc₂, hcM₂, hb₂⟩ :=
+    intervalDomainM_u_two_sided_on_compact hsol₂ ha hat.le htT₂
+  set c : ℝ := min c₁ c₂ with hcdef
+  set M : ℝ := max M₁ M₂ with hMdef
+  have hc : 0 < c := by rw [hcdef]; exact lt_min hc₁ hc₂
+  have hcM : c ≤ M := by
+    rw [hcdef, hMdef]
+    exact (min_le_left _ _).trans (hcM₁.trans (le_max_left _ _))
+  obtain ⟨CL, hCL, hCL_lip⟩ :=
+    ShenWork.IntervalDomainExistence.intervalLogisticSource_lipschitz p
+      (hc.trans_le hcM)
+  set CQ : ℝ := chemFluxMLipschitzConstant p c M with hCQdef
+  have hCQ : 0 ≤ CQ := chemFluxMLipschitzConstant_nonneg p hc hcM
+  set A : ℝ := |p.χ₀| *
+      (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        2 * CQ) with hAdef
+  have hA : 0 ≤ A := by
+    rw [hAdef]
+    exact mul_nonneg (abs_nonneg _)
+      (mul_nonneg
+        (mul_nonneg heatGradientLinftyLinftyConstant_nonneg (by norm_num)) hCQ)
+  obtain ⟨h₀, hh₀, hsmall⟩ :=
+    exists_small_contraction_time_target hA hCL.le one_pos
+  obtain ⟨n, hn⟩ := exists_nat_gt ((t - a) / h₀)
+  have hratio : 0 < (t - a) / h₀ := div_pos (sub_pos.mpr hat) hh₀
+  have hnreal : 0 < (n : ℝ) := hratio.trans hn
+  have hnpos : 0 < n := by exact_mod_cast hnreal
+  set hstep : ℝ := (t - a) / (n : ℝ) with hstepdef
+  have hhstep : 0 < hstep := by
+    rw [hstepdef]
+    exact div_pos (sub_pos.mpr hat) hnreal
+  have hstep_lt : hstep < h₀ := by
+    have hmul : t - a < (n : ℝ) * h₀ := (div_lt_iff₀ hh₀).mp hn
+    rw [hstepdef]
+    exact (div_lt_iff₀ hnreal).2 (by simpa [mul_comm] using hmul)
+  have hstep_contract :
+      |p.χ₀| *
+          (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+            (2 * Real.sqrt hstep) * chemFluxMLipschitzConstant p c M) +
+        hstep * CL < 1 := by
+    have hsqrt : Real.sqrt hstep ≤ Real.sqrt h₀ :=
+      Real.sqrt_le_sqrt hstep_lt.le
+    have hAstep : A * Real.sqrt hstep ≤ A * Real.sqrt h₀ :=
+      mul_le_mul_of_nonneg_left hsqrt hA
+    have hCLstep : CL * hstep ≤ CL * h₀ :=
+      mul_le_mul_of_nonneg_left hstep_lt.le hCL.le
+    have hmono := add_le_add hAstep hCLstep
+    rw [hAdef, hCQdef] at hmono
+    calc
+      _ = |p.χ₀| *
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              2 * chemFluxMLipschitzConstant p c M) * Real.sqrt hstep +
+          CL * hstep := by ring
+      _ ≤ |p.χ₀| *
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              2 * chemFluxMLipschitzConstant p c M) * Real.sqrt h₀ +
+          CL * h₀ := hmono
+      _ < 1 := hsmall
+  have hend : a + (n : ℝ) * hstep = t := by
+    rw [hstepdef]
+    field_simp [ne_of_gt hnreal]
+    <;> ring
+  have hgrid : ∀ k : ℕ, k ≤ n →
+      u₁ (a + (k : ℝ) * hstep) = u₂ (a + (k : ℝ) * hstep) := by
+    intro k
+    induction k with
+    | zero =>
+        intro _
+        simpa using heq_a
+    | succ k ih =>
+        intro hkn
+        have hklt : k < n := Nat.lt_of_succ_le hkn
+        have hkle : k ≤ n := hklt.le
+        have heqk := ih hkle
+        set ak : ℝ := a + (k : ℝ) * hstep with hakdef
+        have hak : 0 < ak := by
+          rw [hakdef]
+          exact add_pos_of_pos_of_nonneg ha
+            (mul_nonneg (Nat.cast_nonneg _) hhstep.le)
+        have hendk : ak + hstep = a + ((k + 1 : ℕ) : ℝ) * hstep := by
+          rw [hakdef, Nat.cast_add, Nat.cast_one]
+          ring
+        have hkend_le : a + ((k + 1 : ℕ) : ℝ) * hstep ≤ t := by
+          rw [← hend]
+          gcongr
+        have hakT₁ : ak + hstep < T₁ := by rw [hendk]; exact hkend_le.trans_lt htT₁
+        have hakT₂ : ak + hstep < T₂ := by rw [hendk]; exact hkend_le.trans_lt htT₂
+        have htraj₁ : ∀ s, 0 < s → s ≤ hstep → ∀ y,
+            c ≤ classicalRestartTrajectoryM ak hstep u₁ s y ∧
+              |classicalRestartTrajectoryM ak hstep u₁ s y| ≤ M := by
+          intro s hs hsh y
+          have htime_lo : a ≤ ak + s := by
+            rw [hakdef]
+            have hkterm : 0 ≤ (k : ℝ) * hstep :=
+              mul_nonneg (Nat.cast_nonneg _) hhstep.le
+            linarith
+          have htime_hi : ak + s ≤ t := by
+            calc
+              ak + s ≤ ak + hstep := by linarith
+              _ = a + ((k + 1 : ℕ) : ℝ) * hstep := hendk
+              _ ≤ t := hkend_le
+          have hb := hb₁ (ak + s) ⟨htime_lo, htime_hi⟩ y
+          rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsh⟩]
+          exact ⟨(min_le_left _ _).trans hb.1,
+            hb.2.trans (by rw [hMdef]; exact le_max_left _ _)⟩
+        have htraj₂ : ∀ s, 0 < s → s ≤ hstep → ∀ y,
+            c ≤ classicalRestartTrajectoryM ak hstep u₂ s y ∧
+              |classicalRestartTrajectoryM ak hstep u₂ s y| ≤ M := by
+          intro s hs hsh y
+          have htime_lo : a ≤ ak + s := by
+            rw [hakdef]
+            have hkterm : 0 ≤ (k : ℝ) * hstep :=
+              mul_nonneg (Nat.cast_nonneg _) hhstep.le
+            linarith
+          have htime_hi : ak + s ≤ t := by
+            calc
+              ak + s ≤ ak + hstep := by linarith
+              _ = a + ((k + 1 : ℕ) : ℝ) * hstep := hendk
+              _ ≤ t := hkend_le
+          have hb := hb₂ (ak + s) ⟨htime_lo, htime_hi⟩ y
+          rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsh⟩]
+          exact ⟨(min_le_right _ _).trans hb.1,
+            hb.2.trans (by rw [hMdef]; exact le_max_right _ _)⟩
+        have hnext := intervalDomainM_classical_restart_unique_of_eq_at
+          hsol₁ hsol₂ hak hhstep hakT₁ hakT₂ hc hcM hCL.le hCL_lip
+          (fun s hs hsh y => (htraj₁ s hs hsh y).2)
+          (fun s hs hsh y => (htraj₁ s hs hsh y).1)
+          (fun s hs hsh y => (htraj₂ s hs hsh y).2)
+          (fun s hs hsh y => (htraj₂ s hs hsh y).1)
+          hstep_contract (by simpa [ak, hakdef] using heqk)
+          hstep hhstep.le le_rfl
+        rw [hendk] at hnext
+        funext y
+        exact hnext y
+  have hu : u₁ t = u₂ t := by
+    rw [← hend]
+    exact hgrid n le_rfl
+  have hv : v₁ t = v₂ t :=
+    intervalDomainM_solution_v_eq_of_u_eq hsol₁ hsol₂
+      ⟨ht, htT₁⟩ ⟨ht, htT₂⟩ hu
+  exact ⟨congrFun hu x, congrFun hv x⟩
+
 #print axioms intervalDomainM_classical_restart_diff_bound
 #print axioms intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
 #print axioms intervalDomainM_classical_initial_u_unique_on_short
+#print axioms intervalDomainM_u_two_sided_on_compact
+#print axioms intervalDomainM_solution_v_eq_of_u_eq
+#print axioms intervalDomainM_classicalSolution_overlap_unique
 
 end ShenWork.Paper2.IntervalDomainM
