@@ -27,11 +27,9 @@ theorem hasEquilibriumMassOnPositiveTimes_timeShift
   intro t ht
   exact hmass (t + tau) (by linarith)
 
-/-- A uniformly convergent bounded minimal-model orbit on the physical-mass
-hyperplane eventually enters the strong basin and then decays exponentially
-in the concrete physical `C¹` gauge.  The zero mode is removed only through
-the stated physical-mass hypothesis. -/
-theorem intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
+/-- Restart the mass-constrained Stage B theorem from one positive classical
+slice already lying in its concrete weak-sup basin. -/
+theorem intervalDomain_minimal_eventualC1_of_supCloseSlice_of_massGap
     (p : CM2Params) (hm : p.m = 1) (ha0 : p.a = 0) (hb0 : p.b = 0)
     {uStar vStar gap : ℝ}
     (heq : Paper3ConstantEquilibrium p uStar vStar)
@@ -39,7 +37,14 @@ theorem intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
     {u v : ℝ → intervalDomainPoint → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
-    (hconv : UniformConvergesInSup intervalDomain u uStar) :
+    {tau : ℝ} (htau : 0 < tau)
+    (hclose :
+      let sigma : ℝ := 7 / 8
+      let witness := intervalDomainMassSupToStrongBasinEntry_proved
+        p (by norm_num : 3 / 4 < sigma) (by norm_num : sigma < 1)
+          hm ha0 hb0 heq hgap
+      let delta := Classical.choose witness
+      SupCloseToConstant intervalDomain (u tau) uStar delta) :
     ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
       EventualExponentialC1ConvergenceWith
         intervalDomain intervalDomainSectorialStabilityNorms
@@ -49,20 +54,12 @@ theorem intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
     norm_num [sigma]
   have hsigma1 : sigma < 1 := by
     norm_num [sigma]
-  rcases intervalDomainMassSupToStrongBasinEntry_proved
-      p hsigmaStrong hsigma1 hm ha0 hb0 heq hgap with
-    ⟨delta, hdelta, T, hT, henter⟩
-  have hevent :
-      ∀ᶠ t : ℝ in atTop,
-        intervalDomain.supNorm (fun x => u t x - uStar) < delta :=
-    hconv.eventually (Iio_mem_nhds hdelta)
-  rcases eventually_atTop.1 hevent with ⟨threshold, hthreshold⟩
-  let tau : ℝ := max threshold 1
-  have htau : 0 < tau :=
-    lt_of_lt_of_le (by norm_num) (le_max_right _ _)
-  have hthresholdTau : threshold ≤ tau := le_max_left _ _
-  have hclose : SupCloseToConstant intervalDomain (u tau) uStar delta :=
-    hthreshold tau hthresholdTau
+  let witness := intervalDomainMassSupToStrongBasinEntry_proved
+    p hsigmaStrong hsigma1 hm ha0 hb0 heq hgap
+  let delta : ℝ := Classical.choose witness
+  have hspec := Classical.choose_spec witness
+  rcases hspec with ⟨hdelta, T, hT, henter⟩
+  change SupCloseToConstant intervalDomain (u tau) uStar delta at hclose
   have hpid :=
     intervalDomain_globalClassicalSolution_slice_positiveInitialDatum
       huv.classical htau
@@ -187,7 +184,48 @@ theorem intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
       have het0 : 0 ≤ Real.exp (-rate * t) := (Real.exp_pos _).le
       nlinarith [mul_nonneg hR.le (mul_nonneg he0 het0)]
 
+/-- A uniformly convergent bounded minimal-model orbit on the physical-mass
+hyperplane eventually enters the strong basin and then decays exponentially
+in the concrete physical `C¹` gauge.  The zero mode is removed only through
+the stated physical-mass hypothesis. -/
+theorem intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
+    (p : CM2Params) (hm : p.m = 1) (ha0 : p.a = 0) (hb0 : p.b = 0)
+    {uStar vStar gap : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar gap)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hconv : UniformConvergesInSup intervalDomain u uStar) :
+    ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+      EventualExponentialC1ConvergenceWith
+        intervalDomain intervalDomainSectorialStabilityNorms
+          u v uStar vStar C rate t₀ := by
+  let sigma : ℝ := 7 / 8
+  have hsigmaStrong : 3 / 4 < sigma := by
+    norm_num [sigma]
+  have hsigma1 : sigma < 1 := by
+    norm_num [sigma]
+  let witness := intervalDomainMassSupToStrongBasinEntry_proved
+    p hsigmaStrong hsigma1 hm ha0 hb0 heq hgap
+  let delta : ℝ := Classical.choose witness
+  have hdelta : 0 < delta := (Classical.choose_spec witness).1
+  have hevent :
+      ∀ᶠ t : ℝ in atTop,
+        intervalDomain.supNorm (fun x => u t x - uStar) < delta :=
+    hconv.eventually (Iio_mem_nhds hdelta)
+  rcases eventually_atTop.1 hevent with ⟨threshold, hthreshold⟩
+  let tau : ℝ := max threshold 1
+  have htau : 0 < tau :=
+    lt_of_lt_of_le (by norm_num) (le_max_right _ _)
+  have hclose : SupCloseToConstant intervalDomain (u tau) uStar delta :=
+    hthreshold tau (le_max_left _ _)
+  exact intervalDomain_minimal_eventualC1_of_supCloseSlice_of_massGap
+    p hm ha0 hb0 heq hgap huv hmass htau
+      (by simpa [sigma, witness, delta] using hclose)
+
 #print axioms hasEquilibriumMassOnPositiveTimes_timeShift
+#print axioms intervalDomain_minimal_eventualC1_of_supCloseSlice_of_massGap
 #print axioms intervalDomain_minimal_eventualC1_of_uniformSup_of_massGap
 
 end
