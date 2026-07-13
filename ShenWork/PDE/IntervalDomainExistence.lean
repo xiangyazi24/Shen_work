@@ -4863,7 +4863,7 @@ private lemma intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn
     rw [Filter.EventuallyEq.deriv_eq hsup_eventually]
     exact hreg.deriv_nonpos t ht
 
-private lemma intervalDomainClassicalRegularity_congr_Ioo
+lemma intervalDomainClassicalRegularity_congr_Ioo
     {T : ℝ} {u v U V : ℝ → intervalDomainPoint → ℝ}
     (hreg : intervalDomainClassicalRegularity T U V)
     (hEq : ∀ t, 0 < t → t < T → u t = U t)
@@ -4994,7 +4994,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
       simp only [Function.uncurry]
       rw [hEqV t ht.1 ht.2]
 
-private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
+lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}
     (hfg : ∀ x : intervalDomainPoint, f x = g x)
     {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
@@ -5007,7 +5007,7 @@ private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     simp [hyIcc, hfg ⟨y, hyIcc⟩]
   exact Set.EqOn.eventuallyEq_of_mem hEqOn (isOpen_Ioo.mem_nhds hx)
 
-private lemma intervalDomainLift_deriv_eventuallyEq_of_pointwise_eq
+lemma intervalDomainLift_deriv_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}
     (hfg : ∀ x : intervalDomainPoint, f x = g x)
     {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
@@ -5024,7 +5024,7 @@ private lemma intervalDomainLift_deriv_eventuallyEq_of_pointwise_eq
       (intervalDomainLift_eventuallyEq_of_pointwise_eq hfg hy_inside)
   exact Set.EqOn.eventuallyEq_of_mem hEqOn (isOpen_Ioo.mem_nhds hx)
 
-private lemma intervalDomainTimeDeriv_eq_of_Ioo_eq
+lemma intervalDomainTimeDeriv_eq_of_Ioo_eq
     {T t : ℝ} {u U : ℝ → intervalDomainPoint → ℝ}
     (hEq : ∀ s, 0 < s → s < T → u s = U s)
     (ht0 : 0 < t) (htT : t < T) (x : intervalDomainPoint) :
@@ -5039,7 +5039,7 @@ private lemma intervalDomainTimeDeriv_eq_of_Ioo_eq
   change deriv (fun s : ℝ => u s x) t = deriv (fun s : ℝ => U s x) t
   exact Filter.EventuallyEq.deriv_eq heventually
 
-private lemma intervalDomainLaplacian_eq_of_pointwise_eq
+lemma intervalDomainLaplacian_eq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}
     (hfg : ∀ x : intervalDomainPoint, f x = g x)
     {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
