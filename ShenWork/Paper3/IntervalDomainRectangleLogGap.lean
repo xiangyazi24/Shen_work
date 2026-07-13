@@ -43,6 +43,22 @@ def intervalDomain_rectangleLogGapChoice
   Real.log (intervalDomain_equilibriumChoiceValue uStar u t q.1) -
     Real.log (intervalDomain_equilibriumChoiceValue uStar u t q.2)
 
+/-- Time slope of one equilibrium/spatial envelope choice. -/
+def intervalDomain_equilibriumChoiceSlope
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (t : ℝ) : intervalRectangleEnvelopeChoice → ℝ
+  | Sum.inl _ => 0
+  | Sum.inr x => deriv (fun s => u s x) t
+
+/-- Exact time slope of one logarithmic upper/lower choice pair. -/
+def intervalDomain_rectangleLogGapChoiceSlope
+    (uStar : ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    (t : ℝ) (q : intervalRectangleGapChoice) : ℝ :=
+  intervalDomain_equilibriumChoiceSlope u t q.1 /
+      intervalDomain_equilibriumChoiceValue uStar u t q.1 -
+    intervalDomain_equilibriumChoiceSlope u t q.2 /
+      intervalDomain_equilibriumChoiceValue uStar u t q.2
+
 /-- Population maximum clamped from below at the positive equilibrium. -/
 def intervalDomain_clampedUpper
     (uStar : ℝ) (u : ℝ → intervalDomainPoint → ℝ)
@@ -271,17 +287,16 @@ theorem intervalDomain_rectangleLogGapChoice_sSup_eq
   · rw [← hqstar]
     exact le_csSup hbdd hmem
 
-/-- Joint continuity of the compact-choice logarithmic spread on a closed
+/-- Joint continuity of one equilibrium/spatial choice on a closed
 positive-time slab. -/
-theorem intervalDomain_rectangleLogGapChoice_jointContinuousOn
+theorem intervalDomain_equilibriumChoiceValue_jointContinuousOn
     {p : CM2Params} {T a b uStar : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
-    (huStar : 0 < uStar)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
     ContinuousOn
-      (Function.uncurry (intervalDomain_rectangleLogGapChoice uStar u))
-      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+      (Function.uncurry (intervalDomain_equilibriumChoiceValue uStar u))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleEnvelopeChoice)) := by
   let Time := {t : ℝ // t ∈ Icc a b}
   obtain ⟨_, _, _, _, _, _, hjoint⟩ := hsol.regularity
   have hU : Continuous (fun z : Time × intervalDomainPoint =>
@@ -318,33 +333,245 @@ theorem intervalDomain_rectangleLogGapChoice_jointContinuousOn
       rcases q with z | x <;> rfl
     rw [heq]
     exact hsum.comp e.continuous
-  have hgap : Continuous (fun z : Time × intervalRectangleGapChoice =>
-      intervalDomain_rectangleLogGapChoice uStar u z.1.1 z.2) := by
-    have htop : Continuous (fun z : Time × intervalRectangleGapChoice =>
-        value (z.1, z.2.1)) := hvalue.comp (by fun_prop)
-    have hbot : Continuous (fun z : Time × intervalRectangleGapChoice =>
-        value (z.1, z.2.2)) := hvalue.comp (by fun_prop)
-    have htopLog := htop.log (fun z => by
-      exact ne_of_gt (intervalDomain_equilibriumChoiceValue_pos huStar hsol
-        (hab z.1.2) z.2.1))
-    have hbotLog := hbot.log (fun z => by
-      exact ne_of_gt (intervalDomain_equilibriumChoiceValue_pos huStar hsol
-        (hab z.1.2) z.2.2))
-    simpa [value, intervalDomain_rectangleLogGapChoice] using
-      htopLog.sub hbotLog
   rw [continuousOn_iff_continuous_restrict]
   have hmap : Continuous
-      (fun z : ↑(Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) =>
+      (fun z : ↑(Icc a b ×ˢ
+          (Set.univ : Set intervalRectangleEnvelopeChoice)) =>
         ((⟨z.1.1, z.2.1⟩ : Time), z.1.2)) := by
     fun_prop
-  simpa [Function.uncurry] using hgap.comp hmap
+  simpa [Function.uncurry, value] using hvalue.comp hmap
+
+/-- Joint continuity of the compact-choice logarithmic spread on a closed
+positive-time slab. -/
+theorem intervalDomain_rectangleLogGapChoice_jointContinuousOn
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn
+      (Function.uncurry (intervalDomain_rectangleLogGapChoice uStar u))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+  let S : Set (ℝ × intervalRectangleGapChoice) :=
+    Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)
+  have hv := intervalDomain_equilibriumChoiceValue_jointContinuousOn
+    (uStar := uStar) hsol hab
+  have hmapTop : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.1)) S :=
+    (continuous_fst.prodMk (continuous_fst.comp continuous_snd)).continuousOn
+  have hmapBot : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.2)) S :=
+    (continuous_fst.prodMk (continuous_snd.comp continuous_snd)).continuousOn
+  have htop : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice =>
+        intervalDomain_equilibriumChoiceValue uStar u z.1 z.2.1) S := by
+    apply hv.comp hmapTop
+    intro z hz
+    change z.1 ∈ Icc a b ∧ z.2 ∈ Set.univ at hz
+    exact ⟨hz.1, Set.mem_univ _⟩
+  have hbot : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice =>
+        intervalDomain_equilibriumChoiceValue uStar u z.1 z.2.2) S := by
+    apply hv.comp hmapBot
+    intro z hz
+    change z.1 ∈ Icc a b ∧ z.2 ∈ Set.univ at hz
+    exact ⟨hz.1, Set.mem_univ _⟩
+  have htopLog := htop.log (fun z hz => ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+      (hab hz.1) z.2.1))
+  have hbotLog := hbot.log (fun z hz => ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+      (hab hz.1) z.2.2))
+  simpa [S, Function.uncurry, intervalDomain_rectangleLogGapChoice] using
+    htopLog.sub hbotLog
+
+/-- Exact derivative of one equilibrium/spatial envelope choice. -/
+theorem intervalDomain_equilibriumChoiceValue_hasDerivAt
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    ∀ q : intervalRectangleEnvelopeChoice,
+      HasDerivAt
+        (fun s => intervalDomain_equilibriumChoiceValue uStar u s q)
+        (intervalDomain_equilibriumChoiceSlope u t q) t := by
+  obtain ⟨_, htime, _, _, _, _, _⟩ := hsol.regularity
+  rintro (z | x)
+  · simpa [intervalDomain_equilibriumChoiceValue,
+      intervalDomain_equilibriumChoiceSlope] using
+      (hasDerivAt_const (x := t) (c := uStar))
+  · simpa [intervalDomain_equilibriumChoiceValue,
+      intervalDomain_equilibriumChoiceSlope] using
+      ((htime x t ht).1.1.hasDerivAt)
+
+/-- Exact derivative of the logarithmic choice spread. -/
+theorem intervalDomain_rectangleLogGapChoice_hasDerivAt
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (q : intervalRectangleGapChoice) :
+    HasDerivAt
+      (fun s => intervalDomain_rectangleLogGapChoice uStar u s q)
+      (intervalDomain_rectangleLogGapChoiceSlope uStar u t q) t := by
+  have htop := intervalDomain_equilibriumChoiceValue_hasDerivAt
+    (uStar := uStar) hsol ht q.1
+  have hbot := intervalDomain_equilibriumChoiceValue_hasDerivAt
+    (uStar := uStar) hsol ht q.2
+  have htop0 := ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol ht q.1)
+  have hbot0 := ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol ht q.2)
+  simpa [intervalDomain_rectangleLogGapChoice,
+    intervalDomain_rectangleLogGapChoiceSlope] using
+    (htop.log htop0).sub (hbot.log hbot0)
+
+/-- The `deriv` selected by Lean is the explicit logarithmic choice slope. -/
+theorem intervalDomain_rectangleLogGapChoice_deriv_eq
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (q : intervalRectangleGapChoice) :
+    deriv (fun s => intervalDomain_rectangleLogGapChoice uStar u s q) t =
+      intervalDomain_rectangleLogGapChoiceSlope uStar u t q :=
+  (intervalDomain_rectangleLogGapChoice_hasDerivAt
+    huStar hsol ht q).deriv
+
+/-- Joint continuity of the exact envelope-choice slope on a closed
+positive-time slab. -/
+theorem intervalDomain_equilibriumChoiceSlope_jointContinuousOn
+    {p : CM2Params} {T a b : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn
+      (Function.uncurry (intervalDomain_equilibriumChoiceSlope u))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleEnvelopeChoice)) := by
+  let Time := {t : ℝ // t ∈ Icc a b}
+  obtain ⟨_, _, _, _, _, hderivJoint, _⟩ := hsol.regularity
+  have hUt : Continuous (fun z : Time × intervalDomainPoint =>
+      deriv (fun s => u s z.2) z.1.1) := by
+    have hbase := continuousOn_iff_continuous_restrict.mp
+      (hderivJoint.1.mono (Set.prod_mono hab (le_refl _)))
+    have hmap : Continuous (fun z : Time × intervalDomainPoint =>
+        (⟨(z.1.1, z.2.1), ⟨z.1.2, z.2.2⟩⟩ :
+          ↑(Icc a b ×ˢ Icc (0 : ℝ) 1))) := by
+      exact Continuous.subtype_mk
+        ((continuous_subtype_val.comp continuous_fst).prodMk
+          (continuous_subtype_val.comp continuous_snd)) _
+    have hc := hbase.comp hmap
+    change Continuous (fun z : Time × intervalDomainPoint =>
+      deriv (fun s => intervalDomainLift (u s) z.2.1) z.1.1) at hc
+    have heq : (fun z : Time × intervalDomainPoint =>
+        deriv (fun s => intervalDomainLift (u s) z.2.1) z.1.1) =
+        fun z => deriv (fun s => u s z.2) z.1.1 := by
+      funext z
+      congr 1
+      funext s
+      simp [intervalDomainLift]
+    rw [heq] at hc
+    exact hc
+  let leftSlope : Time × Unit → ℝ := fun _ => 0
+  let rightSlope : Time × intervalDomainPoint → ℝ :=
+    fun z => deriv (fun s => u s z.2) z.1.1
+  let slope : Time × intervalRectangleEnvelopeChoice → ℝ :=
+    fun z => intervalDomain_equilibriumChoiceSlope u z.1.1 z.2
+  have hslope : Continuous slope := by
+    have hsum : Continuous (Sum.elim leftSlope rightSlope) :=
+      Continuous.sumElim continuous_const hUt
+    let e : Time × (Unit ⊕ intervalDomainPoint) ≃ₜ
+        (Time × Unit) ⊕ (Time × intervalDomainPoint) :=
+      Homeomorph.prodSumDistrib
+    have heq : slope = (Sum.elim leftSlope rightSlope) ∘ e := by
+      funext z
+      rcases z with ⟨t, q⟩
+      rcases q with z | x <;> rfl
+    rw [heq]
+    exact hsum.comp e.continuous
+  rw [continuousOn_iff_continuous_restrict]
+  have hmap : Continuous
+      (fun z : ↑(Icc a b ×ˢ
+          (Set.univ : Set intervalRectangleEnvelopeChoice)) =>
+        ((⟨z.1.1, z.2.1⟩ : Time), z.1.2)) := by
+    fun_prop
+  simpa [Function.uncurry, slope] using hslope.comp hmap
+
+/-- Joint continuity of the explicit logarithmic choice slope. -/
+theorem intervalDomain_rectangleLogGapChoiceSlope_jointContinuousOn
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn
+      (Function.uncurry (intervalDomain_rectangleLogGapChoiceSlope uStar u))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+  let S : Set (ℝ × intervalRectangleGapChoice) :=
+    Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)
+  have hv := intervalDomain_equilibriumChoiceValue_jointContinuousOn
+    (uStar := uStar) hsol hab
+  have hs := intervalDomain_equilibriumChoiceSlope_jointContinuousOn hsol hab
+  have hmapTop : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.1)) S :=
+    (continuous_fst.prodMk (continuous_fst.comp continuous_snd)).continuousOn
+  have hmapBot : ContinuousOn
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.2)) S :=
+    (continuous_fst.prodMk (continuous_snd.comp continuous_snd)).continuousOn
+  have hmapsTop : MapsTo
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.1)) S
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleEnvelopeChoice)) := by
+    intro z hz
+    change z.1 ∈ Icc a b ∧ z.2 ∈ Set.univ at hz
+    exact ⟨hz.1, Set.mem_univ _⟩
+  have hmapsBot : MapsTo
+      (fun z : ℝ × intervalRectangleGapChoice => (z.1, z.2.2)) S
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleEnvelopeChoice)) := by
+    intro z hz
+    change z.1 ∈ Icc a b ∧ z.2 ∈ Set.univ at hz
+    exact ⟨hz.1, Set.mem_univ _⟩
+  have hvTop := hv.comp hmapTop hmapsTop
+  have hvBot := hv.comp hmapBot hmapsBot
+  have hsTop := hs.comp hmapTop hmapsTop
+  have hsBot := hs.comp hmapBot hmapsBot
+  have htop := hsTop.div hvTop (fun z hz => ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+      (hab hz.1) z.2.1))
+  have hbot := hsBot.div hvBot (fun z hz => ne_of_gt
+    (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+      (hab hz.1) z.2.2))
+  simpa [S, Function.uncurry,
+    intervalDomain_rectangleLogGapChoiceSlope] using htop.sub hbot
+
+/-- The actual `deriv` field required by compact Danskin is jointly continuous. -/
+theorem intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn
+      (Function.uncurry (fun s q =>
+        deriv (fun r => intervalDomain_rectangleLogGapChoice uStar u r q) s))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+  have hs := intervalDomain_rectangleLogGapChoiceSlope_jointContinuousOn
+    huStar hsol hab
+  apply hs.congr
+  intro z hz
+  exact (intervalDomain_rectangleLogGapChoice_deriv_eq
+    huStar hsol (hab hz.1) z.2)
 
 #print axioms intervalDomain_equilibriumChoiceValue_pos
 #print axioms intervalDomain_clampedLower_pos
 #print axioms intervalDomain_rectangleLogGap_nonneg
 #print axioms intervalDomain_equilibriumChoiceValue_mem_clamped
 #print axioms intervalDomain_rectangleLogGapChoice_sSup_eq
+#print axioms intervalDomain_equilibriumChoiceValue_jointContinuousOn
 #print axioms intervalDomain_rectangleLogGapChoice_jointContinuousOn
+#print axioms intervalDomain_rectangleLogGapChoice_hasDerivAt
+#print axioms intervalDomain_rectangleLogGapChoice_deriv_jointContinuousOn
 
 end
 
