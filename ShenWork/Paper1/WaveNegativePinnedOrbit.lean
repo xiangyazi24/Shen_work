@@ -196,12 +196,48 @@ theorem paperNegativePinnedRotheSeq_stepFacts
   | succ n =>
       exact (paperNegativePinnedStepState hcond hD hD1 s u hu (n + 1)).facts
 
+/-- Every positive-index state of the genuine orbit carries the same
+logarithmic-slope bound.  This is a local Green-source estimate, not a
+family-uniform spatial-tail assumption. -/
+theorem paperNegativePinnedRotheSeq_succ_logSlope
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (u : ℝ → ℝ)
+    (hu : InLowerPinnedMonotoneTrap (kappa c) 1
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u) :
+    ∀ n x,
+      |deriv (paperNegativePinnedRotheSeq hcond hD hD1 s u hu (n + 1)) x| ≤
+        paperLowerPinnedStepLogSlopeCoeff c s.lam (kappa c)
+            (negativeBranchTailCap p c) D 1 s.B *
+          paperNegativePinnedRotheSeq hcond hD hD1 s u hu (n + 1) x := by
+  have hDpos : 0 < D := D_pos_of_paperDMin_lt hcond hD
+  intro n x
+  cases n with
+  | zero =>
+      let st := paperNegativePinnedStepState hcond hD hD1 s u hu 0
+      simpa [paperNegativePinnedRotheSeq, st] using
+        st.data.deriv_abs_le_mul_self_of_lowerPinned
+          s.hlam s.hrpκ s.hrmκ s.hκ (sub_pos.mpr hcond.hgap)
+          hDpos zero_le_one s.hB st.pinned x
+  | succ n =>
+      let st := paperNegativePinnedStepState hcond hD hD1 s u hu (n + 1)
+      simpa [paperNegativePinnedRotheSeq, st] using
+        st.data.deriv_abs_le_mul_self_of_lowerPinned
+          s.hlam s.hrpκ s.hrmκ s.hκ (sub_pos.mpr hcond.hgap)
+          hDpos zero_le_one s.hB st.pinned x
+
 section AxiomAudit
 
 #print axioms PaperLocalFixedStepData.toRotheStepFacts
 #print axioms paperNegativePinnedLocalStep
 #print axioms paperNegativePinnedStepState
 #print axioms paperNegativePinnedRotheSeq_stepFacts
+#print axioms paperNegativePinnedRotheSeq_succ_logSlope
 
 end AxiomAudit
 
