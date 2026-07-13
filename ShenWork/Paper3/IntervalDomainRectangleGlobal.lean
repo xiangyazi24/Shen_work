@@ -1,4 +1,5 @@
 import ShenWork.Paper3.IntervalDomainRectangleLogGap
+import ShenWork.Paper3.IntervalDomainTheorem23PositiveEventual
 
 /-!
 # Rectangle global-attraction route on the unit interval
@@ -286,11 +287,480 @@ theorem intervalDomain_rectangleLogGapSlopeBound_le_strong3
   dsimp only
   convert hfinal using 1 <;> ring
 
+/-- A positive logarithmic gap between two numbers straddling one forces a
+quantitative positive power gap. -/
+theorem one_sub_exp_neg_mul_le_rpow_gap_of_straddles_one
+    {L U alpha epsilon : ℝ}
+    (hL : 0 < L) (hL1 : L ≤ 1) (h1U : 1 ≤ U)
+    (halpha : 0 < alpha)
+    (hlog : epsilon ≤ Real.log U - Real.log L) :
+    1 - Real.exp (-alpha * epsilon) ≤ U ^ alpha - L ^ alpha := by
+  let q : ℝ := L / U
+  have hU : 0 < U := lt_of_lt_of_le zero_lt_one h1U
+  have hq : 0 < q := div_pos hL hU
+  have hq1 : q ≤ 1 := (div_le_one hU).2 (hL1.trans h1U)
+  have hlogq : Real.log q ≤ -epsilon := by
+    rw [Real.log_div hL.ne' hU.ne']
+    linarith
+  have hqpow : q ^ alpha ≤ Real.exp (-alpha * epsilon) := by
+    rw [Real.rpow_def_of_pos hq]
+    apply Real.exp_le_exp.mpr
+    have hmul := mul_le_mul_of_nonneg_right hlogq halpha.le
+    nlinarith
+  have hqpow1 : q ^ alpha ≤ 1 :=
+    Real.rpow_le_one hq.le hq1 halpha.le
+  have hUpow1 : 1 ≤ U ^ alpha :=
+    Real.one_le_rpow h1U halpha.le
+  have hLfactor : L = U * q := by
+    dsimp [q]
+    field_simp [hU.ne']
+  have hLpow : L ^ alpha = U ^ alpha * q ^ alpha := by
+    rw [hLfactor, Real.mul_rpow hU.le hq.le]
+  calc
+    1 - Real.exp (-alpha * epsilon) ≤ 1 - q ^ alpha := by linarith
+    _ ≤ U ^ alpha * (1 - q ^ alpha) := by
+      nlinarith [mul_nonneg (sub_nonneg.mpr hUpow1)
+        (sub_nonneg.mpr hqpow1)]
+    _ = U ^ alpha - L ^ alpha := by rw [hLpow]; ring
+
+/-- A uniform negative upper bound in the one-sided Dini condition integrates
+to a linear decrease on a compact window. -/
+theorem le_sub_mul_of_dini_upper_bound
+    {M g : ℝ → ℝ} {a b q t₁ t₂ : ℝ}
+    (hcont : ContinuousOn M (Icc a b))
+    (hDini : ∀ x ∈ Ico a b, ∀ r : ℝ, g x < r →
+      ∃ᶠ z in nhdsWithin x (Ioi x),
+        (z - x)⁻¹ * (M z - M x) < r)
+    (hg : ∀ x ∈ Ico a b, g x ≤ -q)
+    (ht₁ : t₁ ∈ Icc a b) (ht₂ : t₂ ∈ Icc a b)
+    (ht : t₁ ≤ t₂) :
+    M t₂ ≤ M t₁ - q * (t₂ - t₁) := by
+  have hsub : Icc t₁ t₂ ⊆ Icc a b := by
+    intro s hs
+    exact ⟨ht₁.1.trans hs.1, hs.2.trans ht₂.2⟩
+  have hfreq : ∀ x ∈ Ico t₁ t₂, ∀ r : ℝ, -q < r →
+      ∃ᶠ z in nhdsWithin x (Ioi x),
+        (z - x)⁻¹ * (M z - M x) < r := by
+    intro x hx r hr
+    have hx' : x ∈ Ico a b :=
+      ⟨ht₁.1.trans hx.1, hx.2.trans_le ht₂.2⟩
+    exact hDini x hx' r ((hg x hx').trans_lt hr)
+  have hbound : ∀ x ∈ Ico t₁ t₂,
+      (-q : ℝ) ≤ 0 * M x + -q := by
+    intro x hx
+    simp
+  have hgron := le_gronwallBound_of_liminf_deriv_right_le
+    (f := M) (f' := fun _ => -q)
+    (δ := M t₁) (K := 0) (ε := -q) (a := t₁) (b := t₂)
+    (hcont.mono hsub) hfreq (le_refl _) hbound
+  have hlast := hgron t₂ (Set.right_mem_Icc.mpr ht)
+  rw [gronwallBound_K0] at hlast
+  dsimp at hlast
+  linarith
+
+/-- The strong-three rectangle logarithmic gap is nonincreasing after any
+fixed positive time. -/
+theorem intervalDomain_rectangleLogGap_antitone_strong3
+    (p : CM2Params) (hm : p.m = 1)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ : 1 ≤ p.γ)
+    (hrel : p.α + 1 ≥ p.m + p.γ +
+      (if p.β = 0 then 0 else p.γ))
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiStrong3Formula p
+      (unitIntervalNormalizedResolverGradientConstant p)
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    AntitoneOn
+      (intervalDomain_rectangleLogGap
+        (positiveEquilibrium p ⟨ha, hb⟩).1 u)
+      (Ici (1 : ℝ)) := by
+  let uStar := (positiveEquilibrium p ⟨ha, hb⟩).1
+  let vStar := (positiveEquilibrium p ⟨ha, hb⟩).2
+  let M0 := unitIntervalNormalizedResolverGradientConstant p
+  intro t₁ ht₁ t₂ ht₂ ht
+  change 1 ≤ t₁ at ht₁
+  change 1 ≤ t₂ at ht₂
+  let T := t₂ + 1
+  have hT : 0 < T := by dsimp [T]; linarith
+  have hab : Icc t₁ t₂ ⊆ Ioo (0 : ℝ) T := by
+    intro s hs
+    rcases hs with ⟨hs₁, hs₂⟩
+    exact ⟨lt_of_lt_of_le zero_lt_one (ht₁.trans hs₁), by
+      dsimp [T]
+      exact lt_of_le_of_lt hs₂ (lt_add_one t₂)⟩
+  have hsol := huv.classical T hT
+  have huStar : 0 < uStar := by
+    simpa [uStar] using positiveEquilibrium_fst_pos p ⟨ha, hb⟩
+  have hcont := intervalDomain_rectangleLogGap_continuousOn
+    huStar hsol hab
+  have hdiniRaw := intervalDomain_rectangleLogGap_dini
+    hχpos.le huStar (positiveEquilibrium_logistic_zero p ⟨ha, hb⟩)
+      hsol hab
+  have hslope : ∀ x ∈ Ico t₁ t₂,
+      intervalDomain_rectangleLogGapSlopeBound p uStar u x ≤ 0 := by
+    intro x hx
+    have hxpos : x ∈ Ioo (0 : ℝ) T := hab (Ico_subset_Icc_self hx)
+    have hs := intervalDomain_rectangleLogGapSlopeBound_le_strong3
+      p hm ha hb hγ hrel hχpos hχ hsol hxpos
+    let U := intervalDomain_clampedUpper uStar u x
+    let L := intervalDomain_clampedLower uStar u x
+    have hL : 0 < L := intervalDomain_clampedLower_pos huStar hsol hxpos
+    have hLu : L ≤ uStar :=
+      (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+        uStar u x).1
+    have huU : uStar ≤ U :=
+      (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+        uStar u x).2
+    have hgap : 0 ≤ (U / uStar) ^ p.α - (L / uStar) ^ p.α := by
+      exact sub_nonneg.mpr (Real.rpow_le_rpow
+        (div_pos hL huStar).le
+        (div_le_div_of_nonneg_right (hLu.trans huU) huStar.le)
+        p.hα.le)
+    have hc : 0 < p.a - p.χ₀ * p.ν * uStar ^ p.γ *
+        (2 + p.β * vStar * M0 ^ 2) := by
+      simpa [uStar, vStar, M0] using
+        intervalDomain_strong3_decayCoefficient_pos p hm ha hb hχ
+    have hnonpos : -(p.a - p.χ₀ * p.ν * uStar ^ p.γ *
+        (2 + p.β * vStar * M0 ^ 2)) *
+          ((U / uStar) ^ p.α - (L / uStar) ^ p.α) ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr hc.le) hgap
+    have hs' : intervalDomain_rectangleLogGapSlopeBound p uStar u x ≤
+        -(p.a - p.χ₀ * p.ν * uStar ^ p.γ *
+          (2 + p.β * vStar * M0 ^ 2)) *
+            ((U / uStar) ^ p.α - (L / uStar) ^ p.α) := by
+      simpa [uStar, vStar, M0, U, L] using hs
+    exact hs'.trans hnonpos
+  have hdini : ∀ x ∈ Ico t₁ t₂, ∀ r : ℝ, 0 < r →
+      ∃ᶠ z in nhdsWithin x (Ioi x),
+        (z - x)⁻¹ *
+          (intervalDomain_rectangleLogGap uStar u z -
+            intervalDomain_rectangleLogGap uStar u x) < r := by
+    intro x hx r hr
+    exact hdiniRaw x hx r ((hslope x hx).trans_lt hr)
+  exact ShenWork.Paper2.Lemma31Closure.mono_of_dini_window hcont hdini
+    (Set.left_mem_Icc.mpr ht) (Set.right_mem_Icc.mpr ht) ht
+
+/-- The strong-three clamped logarithmic gap converges to zero for every
+positive global bounded orbit. -/
+theorem intervalDomain_rectangleLogGap_tendsto_zero_strong3
+    (p : CM2Params) (hm : p.m = 1)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ : 1 ≤ p.γ)
+    (hrel : p.α + 1 ≥ p.m + p.γ +
+      (if p.β = 0 then 0 else p.γ))
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiStrong3Formula p
+      (unitIntervalNormalizedResolverGradientConstant p)
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    Tendsto
+      (intervalDomain_rectangleLogGap
+        (positiveEquilibrium p ⟨ha, hb⟩).1 u)
+      atTop (nhds 0) := by
+  let uStar := (positiveEquilibrium p ⟨ha, hb⟩).1
+  let vStar := (positiveEquilibrium p ⟨ha, hb⟩).2
+  let M0 := unitIntervalNormalizedResolverGradientConstant p
+  let G := intervalDomain_rectangleLogGap uStar u
+  let c := p.a - p.χ₀ * p.ν * uStar ^ p.γ *
+    (2 + p.β * vStar * M0 ^ 2)
+  have huStar : 0 < uStar := by
+    simpa [uStar] using positiveEquilibrium_fst_pos p ⟨ha, hb⟩
+  have hc : 0 < c := by
+    simpa [c, uStar, vStar, M0] using
+      intervalDomain_strong3_decayCoefficient_pos p hm ha hb hχ
+  have hnonneg : ∀ t : ℝ, 1 ≤ t → 0 ≤ G t := by
+    intro t ht
+    let T := t + 1
+    have hT : 0 < T := by dsimp [T]; linarith
+    have htT : t ∈ Ioo (0 : ℝ) T := by
+      exact ⟨lt_of_lt_of_le zero_lt_one ht, by
+        dsimp [T]
+        exact lt_add_one t⟩
+    exact intervalDomain_rectangleLogGap_nonneg huStar
+      (huv.classical T hT) htT
+  have hmono : AntitoneOn G (Ici (1 : ℝ)) := by
+    simpa [G, uStar] using
+      intervalDomain_rectangleLogGap_antitone_strong3
+        p hm ha hb hγ hrel hχpos hχ huv
+  rw [Metric.tendsto_atTop]
+  intro epsilon hepsilon
+  have hexists : ∃ tau : ℝ, 1 ≤ tau ∧ G tau < epsilon := by
+    by_contra hnone
+    push Not at hnone
+    let q : ℝ := c * (1 - Real.exp (-p.α * epsilon))
+    have hexp : Real.exp (-p.α * epsilon) < 1 := by
+      rw [Real.exp_lt_one_iff]
+      nlinarith [mul_pos p.hα hepsilon]
+    have hq : 0 < q := by
+      exact mul_pos hc (sub_pos.mpr hexp)
+    let B : ℝ := 1 + (G 1 + 1) / q
+    have hG1 : 0 ≤ G 1 := hnonneg 1 le_rfl
+    have hB : 1 ≤ B := by
+      dsimp [B]
+      exact le_add_of_nonneg_right
+        (div_nonneg (by linarith) hq.le)
+    let T := B + 1
+    have hT : 0 < T := by dsimp [T]; linarith
+    have hab : Icc (1 : ℝ) B ⊆ Ioo (0 : ℝ) T := by
+      intro s hs
+      rcases hs with ⟨hs₁, hs₂⟩
+      exact ⟨lt_of_lt_of_le zero_lt_one hs₁, by
+        dsimp [T]
+        exact lt_of_le_of_lt hs₂ (lt_add_one B)⟩
+    have hsol := huv.classical T hT
+    have hcont : ContinuousOn G (Icc (1 : ℝ) B) := by
+      simpa [G] using intervalDomain_rectangleLogGap_continuousOn
+        huStar hsol hab
+    have hdini : ∀ x ∈ Ico (1 : ℝ) B, ∀ r : ℝ,
+        intervalDomain_rectangleLogGapSlopeBound p uStar u x < r →
+          ∃ᶠ z in nhdsWithin x (Ioi x),
+            (z - x)⁻¹ * (G z - G x) < r := by
+      simpa [G] using intervalDomain_rectangleLogGap_dini
+        hχpos.le huStar (positiveEquilibrium_logistic_zero p ⟨ha, hb⟩)
+          hsol hab
+    have hslope : ∀ x ∈ Ico (1 : ℝ) B,
+        intervalDomain_rectangleLogGapSlopeBound p uStar u x ≤ -q := by
+      intro x hx
+      have hxpos : x ∈ Ioo (0 : ℝ) T := hab (Ico_subset_Icc_self hx)
+      have hs := intervalDomain_rectangleLogGapSlopeBound_le_strong3
+        p hm ha hb hγ hrel hχpos hχ hsol hxpos
+      let U := intervalDomain_clampedUpper uStar u x
+      let L := intervalDomain_clampedLower uStar u x
+      let X := U / uStar
+      let Y := L / uStar
+      let Gα := X ^ p.α - Y ^ p.α
+      have hL : 0 < L := intervalDomain_clampedLower_pos huStar hsol hxpos
+      have hLu : L ≤ uStar :=
+        (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+          uStar u x).1
+      have huU : uStar ≤ U :=
+        (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+          uStar u x).2
+      have hX : 1 ≤ X := (one_le_div huStar).2 huU
+      have hY : 0 < Y := div_pos hL huStar
+      have hY1 : Y ≤ 1 := (div_le_one huStar).2 hLu
+      have hUpos : 0 < U := huStar.trans_le huU
+      have hlogNorm : G x = Real.log X - Real.log Y := by
+        dsimp [G, intervalDomain_rectangleLogGap, X, Y, U, L]
+        rw [Real.log_div hUpos.ne' huStar.ne',
+          Real.log_div hL.ne' huStar.ne']
+        ring
+      have hgapLower : 1 - Real.exp (-p.α * epsilon) ≤ Gα := by
+        exact one_sub_exp_neg_mul_le_rpow_gap_of_straddles_one
+          hY hY1 hX p.hα (by rw [← hlogNorm]; exact hnone x hx.1)
+      have hs' : intervalDomain_rectangleLogGapSlopeBound p uStar u x ≤
+          -c * Gα := by
+        simpa [uStar, vStar, M0, c, U, L, X, Y, Gα] using hs
+      calc
+        intervalDomain_rectangleLogGapSlopeBound p uStar u x ≤
+            -c * Gα := hs'
+        _ ≤ -c * (1 - Real.exp (-p.α * epsilon)) :=
+          mul_le_mul_of_nonpos_left hgapLower (neg_nonpos.mpr hc.le)
+        _ = -q := by dsimp [q]; ring
+    have hdecay := le_sub_mul_of_dini_upper_bound
+      hcont hdini hslope (t₁ := (1 : ℝ)) (t₂ := B)
+      (Set.left_mem_Icc.mpr hB) (Set.right_mem_Icc.mpr hB) hB
+    have hneg : G B ≤ -1 := by
+      calc
+        G B ≤ G 1 - q * (B - 1) := hdecay
+        _ = -1 := by
+          dsimp [B]
+          field_simp [hq.ne']
+          ring
+    have hGB := hnonneg B hB
+    linarith
+  obtain ⟨tau, htau, hclose⟩ := hexists
+  refine ⟨tau, ?_⟩
+  intro t httau
+  have ht : 1 ≤ t := htau.trans httau
+  have hGt : G t ≤ G tau :=
+    hmono htau ht httau
+  rw [Real.dist_eq, sub_zero, abs_of_nonneg (hnonneg t ht)]
+  exact hGt.trans_lt hclose
+
+/-- The physical sup distance to the equilibrium is squeezed by an explicit
+continuous function of the clamped logarithmic gap. -/
+theorem intervalDomain_supNorm_sub_equilibrium_le_logGapEnvelope
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    0 ≤ intervalDomain.supNorm (fun x => u t x - uStar) ∧
+      intervalDomain.supNorm (fun x => u t x - uStar) ≤
+        uStar *
+          (Real.exp (intervalDomain_rectangleLogGap uStar u t) -
+            Real.exp (-intervalDomain_rectangleLogGap uStar u t)) := by
+  let U := intervalDomain_clampedUpper uStar u t
+  let L := intervalDomain_clampedLower uStar u t
+  let G := intervalDomain_rectangleLogGap uStar u t
+  have hL : 0 < L := intervalDomain_clampedLower_pos huStar hsol ht
+  have hLu : L ≤ uStar :=
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).1
+  have huU : uStar ≤ U :=
+    (intervalDomain_clampedLower_le_equilibrium_le_clampedUpper
+      uStar u t).2
+  have hU : 0 < U := huStar.trans_le huU
+  have hpoint : ∀ x : intervalDomainPoint, |u t x - uStar| ≤ U - L := by
+    intro x
+    have hx := intervalDomain_equilibriumChoiceValue_mem_clamped
+      (uStar := uStar) hsol ht (Sum.inr x)
+    simp only [intervalDomain_equilibriumChoiceValue_inr] at hx
+    rw [abs_le]
+    constructor <;> linarith
+  have hsup : intervalDomain.supNorm (fun x => u t x - uStar) ≤ U - L :=
+    intervalDomain_supNorm_le_of_pointwise_abs_le hpoint
+  have hsup0 : 0 ≤ intervalDomain.supNorm (fun x => u t x - uStar) :=
+    intervalDomain_supNorm_nonneg_of_pointwise_abs_bounded hpoint
+  have hG : G = Real.log U - Real.log L := by
+    rfl
+  have hexpG : Real.exp G = U / L := by
+    rw [hG, Real.exp_sub, Real.exp_log hU, Real.exp_log hL]
+  have hexpNegG : Real.exp (-G) = L / U := by
+    rw [hG]
+    have hneg : -(Real.log U - Real.log L) =
+        Real.log L - Real.log U := by ring
+    rw [hneg, Real.exp_sub, Real.exp_log hL, Real.exp_log hU]
+  have hUeq : U = L * Real.exp G := by
+    rw [hexpG]
+    field_simp [hL.ne']
+  have hLeq : L = U * Real.exp (-G) := by
+    rw [hexpNegG]
+    field_simp [hU.ne']
+  have hUupper : U ≤ uStar * Real.exp G := by
+    rw [hUeq]
+    exact mul_le_mul_of_nonneg_right hLu (Real.exp_pos _).le
+  have hLlower : uStar * Real.exp (-G) ≤ L := by
+    rw [hLeq]
+    exact mul_le_mul_of_nonneg_right huU (Real.exp_pos _).le
+  have henvelope : U - L ≤
+      uStar * (Real.exp G - Real.exp (-G)) := by
+    nlinarith
+  exact ⟨hsup0, hsup.trans henvelope⟩
+
+/-- Vanishing of the clamped logarithmic gap implies uniform convergence of
+the population component, with no compactness package. -/
+theorem intervalDomain_uniformConvergesInSup_of_rectangleLogGap
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hgap : Tendsto (intervalDomain_rectangleLogGap uStar u)
+      atTop (nhds 0)) :
+    UniformConvergesInSup intervalDomain u uStar := by
+  let G := intervalDomain_rectangleLogGap uStar u
+  let B : ℝ → ℝ := fun t =>
+    uStar * (Real.exp (G t) - Real.exp (-G t))
+  have hexpG : Tendsto (fun t => Real.exp (G t)) atTop (nhds 1) := by
+    have h := Real.continuous_exp.continuousAt.tendsto.comp hgap
+    simpa [G] using h
+  have hexpNegG : Tendsto (fun t => Real.exp (-G t)) atTop (nhds 1) := by
+    have hneg : Tendsto (fun t => -G t) atTop (nhds 0) := by
+      simpa [G] using hgap.neg
+    have h := Real.continuous_exp.continuousAt.tendsto.comp hneg
+    simpa using h
+  have hB : Tendsto B atTop (nhds 0) := by
+    have hconst : Tendsto (fun _ : ℝ => uStar) atTop (nhds uStar) :=
+      tendsto_const_nhds
+    have h := hconst.mul (hexpG.sub hexpNegG)
+    simpa [B] using h
+  have hbounds : ∀ᶠ t : ℝ in atTop,
+      0 ≤ intervalDomain.supNorm (fun x => u t x - uStar) ∧
+        intervalDomain.supNorm (fun x => u t x - uStar) ≤ B t := by
+    filter_upwards [eventually_ge_atTop (1 : ℝ)] with t ht
+    let T := t + 1
+    have hT : 0 < T := by dsimp [T]; linarith
+    have htT : t ∈ Ioo (0 : ℝ) T := by
+      exact ⟨lt_of_lt_of_le zero_lt_one ht, by
+        dsimp [T]
+        exact lt_add_one t⟩
+    simpa [B, G] using
+      intervalDomain_supNorm_sub_equilibrium_le_logGapEnvelope
+        huStar (huv.classical T hT) htT
+  unfold UniformConvergesInSup
+  exact squeeze_zero' (hbounds.mono fun _ h => h.1)
+    (hbounds.mono fun _ h => h.2) hB
+
+/-- Concrete qualitative global-attractor producer for the third formula
+branch.  Nonpositive sensitivity reuses Theorem 2.3; positive sensitivity is
+the rectangle argument proved above. -/
+theorem intervalDomain_strong3_globallyAsymptoticallyStableNonminimal
+    (p : CM2Params) (hm : p.m = 1)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ : 1 ≤ p.γ)
+    (hrel : p.α + 1 ≥ p.m + p.γ +
+      (if p.β = 0 then 0 else p.γ))
+    (hχ : p.χ₀ < chiStrong3Formula p
+      (unitIntervalNormalizedResolverGradientConstant p)
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    GloballyAsymptoticallyStableNonminimal intervalDomain p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  by_cases hχnonpos : p.χ₀ ≤ 0
+  · exact intervalDomain_chiNonpos_globallyAsymptoticallyStableNonminimal
+      p hm hχnonpos ha hb
+  · have hχpos : 0 < p.χ₀ := lt_of_not_ge hχnonpos
+    intro u v huv
+    exact intervalDomain_uniformConvergesInSup_of_rectangleLogGap
+      p (positiveEquilibrium_fst_pos p ⟨ha, hb⟩) huv
+      (intervalDomain_rectangleLogGap_tendsto_zero_strong3
+        p hm ha hb hγ hrel hχpos hχ huv)
+
+/-- Unconditional third formula branch of faithful eventual Theorem 2.4 on
+the implemented `m = 1` unit-interval equation. -/
+theorem
+    intervalDomain_eventuallyGloballyExponentiallyStableNonminimal_strong3
+    (p : CM2Params) (hm : p.m = 1)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ : 1 ≤ p.γ)
+    (hrel : p.α + 1 ≥ p.m + p.γ +
+      (if p.β = 0 then 0 else p.γ))
+    (hχ : p.χ₀ < chiStrong3Formula p
+      (unitIntervalNormalizedResolverGradientConstant p)
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    EventuallyGloballyExponentiallyStableNonminimal intervalDomain p
+      intervalDomainSectorialStabilityNorms eq.1 eq.2 := by
+  let eq := positiveEquilibrium p ⟨ha, hb⟩
+  let M0 := unitIntervalNormalizedResolverGradientConstant p
+  have hmge : 1 ≤ p.m := by rw [hm]
+  have hcond : NonminimalGlobalStabilityFormulaCondition
+      p eq.1 eq.2 M0 :=
+    Or.inr (Or.inr (Or.inl
+      ⟨hmge, hγ, hrel, by simpa [eq, M0] using hχ⟩))
+  have hstable : LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+    simpa [eq] using hcond.linearlyStable_unitInterval p ha hb
+  have hglobal : GloballyAsymptoticallyStableNonminimal
+      intervalDomain p eq.1 eq.2 := by
+    simpa [eq, M0] using
+      intervalDomain_strong3_globallyAsymptoticallyStableNonminimal
+        p hm ha hb hγ hrel hχ
+  exact intervalDomain_eventuallyGloballyExponentiallyStableNonminimal_of_global
+    p hm ha (by simpa [eq] using paper3ConstantEquilibrium_positive p ha hb)
+      hstable hglobal
+
 #print axioms rpow_gap_mono_exponent_of_straddles_one
 #print axioms sq_rpow_gap_le_rpow_gap_two_mul_of_straddles_one
 #print axioms sq_rpow_gap_le_rpow_gap_of_two_mul_le
 #print axioms intervalDomain_strong3_decayCoefficient_pos
 #print axioms intervalDomain_rectangleLogGapSlopeBound_le_strong3
+#print axioms one_sub_exp_neg_mul_le_rpow_gap_of_straddles_one
+#print axioms le_sub_mul_of_dini_upper_bound
+#print axioms intervalDomain_rectangleLogGap_antitone_strong3
+#print axioms intervalDomain_rectangleLogGap_tendsto_zero_strong3
+#print axioms intervalDomain_supNorm_sub_equilibrium_le_logGapEnvelope
+#print axioms intervalDomain_uniformConvergesInSup_of_rectangleLogGap
+#print axioms
+  intervalDomain_strong3_globallyAsymptoticallyStableNonminimal
+#print axioms
+  intervalDomain_eventuallyGloballyExponentiallyStableNonminimal_strong3
 
 end
 
