@@ -887,6 +887,53 @@ theorem criticalFiniteSeed_positive_intervalDomain
     simpa [intervalDomainM, intervalDomain] using hLpM
   exact ⟨p0, hp0, hLp⟩
 
+/-- The finite critical seed packaged as the exact abstract bootstrap input
+with the paper-critical gain `rho = gamma`. -/
+theorem criticalAbstractLpBootstrapHypothesis_positive_intervalDomain
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    ∃ p0,
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T p.γ p0 := by
+  obtain ⟨p0, hp0, hLp⟩ :=
+    criticalFiniteSeed_positive_intervalDomain hguard hu₀ hsol htrace
+      hbeta hm hchi hthreshold
+  exact ⟨p0, p.hγ, hsol.T_pos, hp0, hLp⟩
+
+/-- Complete Blocker-1 payload: the `rho = gamma` cross estimate, its
+abstract finite seed, and the resulting per-exponent PDE energy family. -/
+theorem criticalLpBootstrapEnergyInputs_positive_intervalDomain
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    ∃ p0,
+      CrossDiffusionBootstrapEstimate intervalDomain p T p.γ u v ∧
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T p.γ p0 ∧
+      LpBootstrapEnergyInequality intervalDomain u T p.γ p0 := by
+  obtain ⟨p0, hboot⟩ :=
+    criticalAbstractLpBootstrapHypothesis_positive_intervalDomain
+      hguard hu₀ hsol htrace hbeta hm hchi hthreshold
+  have hcross :
+      CrossDiffusionBootstrapEstimate intervalDomain p T p.γ u v :=
+    intervalDomain_crossDiffusionBootstrapEstimate_sharp hsol hbeta
+  exact ⟨p0, hcross, hboot,
+    ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality.intervalDomain_LpBootstrapEnergyInequality_of_regularity
+      hsol hcross hboot⟩
+
 /-- Positive-sensitivity realization of the exact finite-horizon
 `hcriticalBootstrap` frontier in the legacy Theorem 1.2 assembly.
 
@@ -946,6 +993,8 @@ theorem critical_bounded_before_positive_intervalDomain
 #print axioms critical_two_scale_terms_le
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard
 #print axioms criticalFiniteSeed_positive_intervalDomain
+#print axioms criticalAbstractLpBootstrapHypothesis_positive_intervalDomain
+#print axioms criticalLpBootstrapEnergyInputs_positive_intervalDomain
 #print axioms criticalBootstrapFrontier_positive_intervalDomain
 #print axioms critical_bounded_before_positive
 #print axioms critical_bounded_before_positive_intervalDomain
