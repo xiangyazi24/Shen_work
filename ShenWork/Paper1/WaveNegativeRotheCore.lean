@@ -5,15 +5,6 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
-/-- Canonical global Green-step constants supplied by the large-parameter
-theorem. -/
-noncomputable def paper1NegativeLocalStepScalars
-    (p : CMParams) {c : ℝ}
-    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
-    (hc : cStarLower p < c) :
-    Paper1NegativeLocalStepScalarData p c :=
-  Classical.choice (paper1NegativeLocalStepScalarData_exists p hα hχ hc)
-
 /-- Canonical strict lower-barrier coefficient. -/
 def paper1NegativeRotheD (p : CMParams) (c : ℝ) : ℝ :=
   max 1
@@ -29,6 +20,17 @@ theorem paper1NegativeRotheD_gt (p : CMParams) (c : ℝ) :
         p.m p.γ c < paper1NegativeRotheD p c := by
   unfold paper1NegativeRotheD
   exact lt_of_lt_of_le (lt_add_one _) (le_max_right _ _)
+
+/-- Canonical global Green-step constants supplied by the large-parameter
+theorem, including the lower-pinned successor comparison gap. -/
+noncomputable def paper1NegativeLocalStepScalars
+    (p : CMParams) {c : ℝ}
+    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
+    (hc : cStarLower p < c) :
+    Paper1NegativeLocalStepScalarData p c (paper1NegativeRotheD p c) :=
+  Classical.choice
+    (paper1NegativeLocalStepScalarData_exists p (paper1NegativeRotheD p c)
+      hα hχ hc)
 
 /-- The single remaining negative-branch analytic theorem.
 
