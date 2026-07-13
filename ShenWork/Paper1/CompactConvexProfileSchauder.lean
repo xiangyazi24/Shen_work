@@ -943,7 +943,7 @@ theorem convexProfileResidual_le
         sum_schauderBumpWeight_of_sum_pos hsum_pos
     have hcoord : ∀ i : Fin d, |a i - p i| ≤ c := by
       intro i
-      have hi := coord_abs_sub_le_of_norm hclose i
+      have hi := projectedCube_coord_abs_sub_le_of_norm hclose i
       simpa [p, c, d, Pi.sub_apply, abs_sub_comm] using hi
     have hq_p_sum : ∑ i : Fin d, |q i - p i| ≤
         (d : ℝ) * (2 * (d + 1 : ℝ) * c) := by
