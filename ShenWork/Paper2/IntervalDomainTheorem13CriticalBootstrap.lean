@@ -93,27 +93,27 @@ theorem intervalDomainM_supNorm_rpow_le_energy_plus_weighted
 
 /-- A faithful general-`m` solution with one `L^p0` seed admits the
 seed-relative one-dimensional interpolation used for a fixed target power. -/
-theorem intervalDomainM_agmon_absorbed_of_lp_seed
-    {p : CM2Params} {T rho p0 P : ℝ}
+theorem intervalDomainM_agmon_absorbed_of_lp_bound
+    {p : CM2Params} {T rho p0 P C0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hrho : 0 < rho) (hp0 : 0 < p0) (hP : p0 ≤ P)
     (hrho2 : rho < 2 * p0)
-    (hseed : LpPowerBoundedBefore intervalDomainM p0 T u) :
-    ∀ eps > 0, ∃ Ceps : ℝ, ∀ t, 0 < t → t < T →
+    (hseed : ∀ t, 0 < t → t < T →
+      intervalDomainM.integral (fun x => (u t x) ^ p0) ≤ C0) :
+    ∀ eps > 0, ∀ t, 0 < t → t < T →
       intervalDomain.integral (fun x => (u t x) ^ (P + rho)) ≤
         eps * ((P ^ 2 / 4) *
-          intervalDomainLpWeightedGradientDissipation P u t) + Ceps := by
+          intervalDomainLpWeightedGradientDissipation P u t) +
+            scalarSeedAgmonAbsorbConstant (max C0 0) P p0 rho eps := by
   intro eps heps
-  obtain ⟨C0, hC0⟩ := hseed
   let M0 : ℝ := max C0 0
   have hM0 : 0 ≤ M0 := le_max_right _ _
   have hseedBound : ∀ t, 0 < t → t < T →
       intervalDomain.integral (fun x => (u t x) ^ p0) ≤ M0 := by
     intro t ht0 htT
-    exact (hC0 t ht0 htT).trans (le_max_left _ _)
+    exact (hseed t ht0 htT).trans (le_max_left _ _)
   have hPpos : 0 < P := hp0.trans_le hP
-  refine ⟨scalarSeedAgmonAbsorbConstant M0 P p0 rho eps, ?_⟩
   intro t ht0 htT
   let U : ℝ := intervalDomainSupNorm (u t)
   let S : ℝ := U ^ P
@@ -228,6 +228,24 @@ theorem intervalDomainM_agmon_absorbed_of_lp_seed
       _ = M0 * S ^ ((P + rho - p0) / P) := by rw [hUalpha]; ring
   exact hhighLe.trans (scalar_seed_agmon_absorb hM0 hS0 hG0
     hp0 hP hrho hrho2 heps hSineq)
+
+/-- Existential wrapper retained for the finite-horizon boundedness chain. -/
+theorem intervalDomainM_agmon_absorbed_of_lp_seed
+    {p : CM2Params} {T rho p0 P : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hrho : 0 < rho) (hp0 : 0 < p0) (hP : p0 ≤ P)
+    (hrho2 : rho < 2 * p0)
+    (hseed : LpPowerBoundedBefore intervalDomainM p0 T u) :
+    ∀ eps > 0, ∃ Ceps : ℝ, ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x => (u t x) ^ (P + rho)) ≤
+        eps * ((P ^ 2 / 4) *
+          intervalDomainLpWeightedGradientDissipation P u t) + Ceps := by
+  obtain ⟨C0, hC0⟩ := hseed
+  intro eps heps
+  refine ⟨scalarSeedAgmonAbsorbConstant (max C0 0) P p0 rho eps, ?_⟩
+  exact intervalDomainM_agmon_absorbed_of_lp_bound hsol hrho hp0 hP
+    hrho2 hC0 eps heps
 
 /-- Equation (5.3) at an arbitrary finite target exponent.  The threshold is
 not used here; it was used only to create the low seed. -/
@@ -458,16 +476,28 @@ theorem critical_case_iv_cross_bound
   rw [← hGeq, hZeq] at hcross
   simpa [Cj, Cmix, beta'] using hcross
 
-/-- A low seed plus one target cross estimate yields linear damping at that
-target.  This is the finite, fixed-target replacement for an externalized
-Corollary 2.1 package. -/
-theorem critical_target_lp_energy_damping_of_cross
-    {p : CM2Params} {T p0 P epsCross Kcross : ℝ}
+/-- Parameter-only target damping remainder after fixing a uniform low seed. -/
+def criticalTargetDampingConstant
+    (p : CM2Params) (p0 P epsCross Kcross C0 : ℝ) : ℝ :=
+  let gap : ℝ := P - 1 - epsCross
+  let cGrad : ℝ := P ^ 2 / 4
+  let K : ℝ := Kcross + 1
+  let epsInterp : ℝ := gap / (2 * K * cGrad)
+  let Ceps : ℝ := scalarSeedAgmonAbsorbConstant
+    (max C0 0) P p0 p.α epsInterp
+  let K0 : ℝ := integralRpowAbsorbConstant P (P + p.α) (p.a + 1) 1
+  max 0 (K * Ceps + K0)
+
+/-- A fixed low-seed bound plus one target cross estimate yields autonomous
+linear damping at that target. -/
+theorem critical_target_lp_energy_damping_of_bound
+    {p : CM2Params} {T p0 P epsCross Kcross C0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
     (hP : 1 < P) (hp0 : 0 < p0) (hp0P : p0 ≤ P)
     (halpha2 : p.α < 2 * p0)
-    (hseed : LpPowerBoundedBefore intervalDomainM p0 T u)
+    (hseed : ∀ t, 0 < t → t < T →
+      intervalDomainM.integral (fun x => (u t x) ^ p0) ≤ C0)
     (hepsGap : epsCross < P - 1)
     (hKcross : 0 ≤ Kcross)
     (hcross : ∀ t, 0 < t → t < T →
@@ -475,9 +505,11 @@ theorem critical_target_lp_energy_damping_of_cross
         epsCross * intervalDomainLpWeightedGradientDissipation P u t +
           Kcross * intervalDomain.integral
             (fun x => (u t x) ^ (P + p.α))) :
-    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ criticalTargetDampingConstant p p0 P epsCross Kcross C0 ∧
+      ∀ t, 0 < t → t < T →
       (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
-        intervalDomainLpEnergy P u t ≤ D := by
+        intervalDomainLpEnergy P u t ≤
+          criticalTargetDampingConstant p p0 P epsCross Kcross C0 := by
   let gap : ℝ := P - 1 - epsCross
   let cGrad : ℝ := P ^ 2 / 4
   let K : ℝ := Kcross + 1
@@ -489,15 +521,21 @@ theorem critical_target_lp_energy_damping_of_cross
   have hepsInterp : 0 < epsInterp := by
     dsimp [epsInterp]
     positivity
-  obtain ⟨Ceps, hinterp⟩ := intervalDomainM_agmon_absorbed_of_lp_seed
+  let Ceps : ℝ := scalarSeedAgmonAbsorbConstant
+    (max C0 0) P p0 p.α epsInterp
+  have hinterp := intervalDomainM_agmon_absorbed_of_lp_bound
     hsol p.hα hp0 hp0P halpha2 hseed epsInterp hepsInterp
   let K0 : ℝ := integralRpowAbsorbConstant P (P + p.α) (p.a + 1) 1
   obtain ⟨hK0, hYabs⟩ := integral_rpow_absorb
     (r := P) (s := P + p.α) (A := p.a + 1) (eps := 1)
       hsol hP0 (by linarith [p.hα]) (by linarith [p.ha]) zero_lt_one
   let D : ℝ := max 0 (K * Ceps + K0)
+  have hDfixed : D =
+      criticalTargetDampingConstant p p0 P epsCross Kcross C0 := by
+    simp only [D, criticalTargetDampingConstant, gap, cGrad, K, epsInterp,
+      Ceps, K0]
   have hD : 0 ≤ D := le_max_left _ _
-  refine ⟨D, hD, ?_⟩
+  refine ⟨by simpa [hDfixed] using hD, ?_⟩
   intro t ht0 htT
   let Y : ℝ := intervalDomainLpEnergy P u t
   let G : ℝ := intervalDomainLpWeightedGradientDissipation P u t
@@ -552,9 +590,33 @@ theorem critical_target_lp_energy_damping_of_cross
     nlinarith
   have hbZ : 0 ≤ p.b * Z := mul_nonneg p.hb hZ0
   have hDtop : K * Ceps + K0 ≤ D := le_max_right _ _
+  rw [← hDfixed]
   change (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t + Y ≤ D
   dsimp [gap, K] at hKinterp
   nlinarith
+
+/-- Existential wrapper retained for the finite-horizon boundedness chain. -/
+theorem critical_target_lp_energy_damping_of_cross
+    {p : CM2Params} {T p0 P epsCross Kcross : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hP : 1 < P) (hp0 : 0 < p0) (hp0P : p0 ≤ P)
+    (halpha2 : p.α < 2 * p0)
+    (hseed : LpPowerBoundedBefore intervalDomainM p0 T u)
+    (hepsGap : epsCross < P - 1)
+    (hKcross : 0 ≤ Kcross)
+    (hcross : ∀ t, 0 < t → t < T →
+      p.χ₀ * (P - 1) * lpSignedCrossIntegralM p P u v t ≤
+        epsCross * intervalDomainLpWeightedGradientDissipation P u t +
+          Kcross * intervalDomain.integral
+            (fun x => (u t x) ^ (P + p.α))) :
+    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+      (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
+        intervalDomainLpEnergy P u t ≤ D := by
+  obtain ⟨C0, hseed0⟩ := hseed
+  refine ⟨criticalTargetDampingConstant p p0 P epsCross Kcross C0, ?_⟩
+  exact critical_target_lp_energy_damping_of_bound hsol hP hp0 hp0P
+    halpha2 hseed0 hepsGap hKcross hcross
 
 theorem critical_target_lp_power_bounded_before_of_cross
     {p : CM2Params} {T p0 P epsCross Kcross : ℝ}

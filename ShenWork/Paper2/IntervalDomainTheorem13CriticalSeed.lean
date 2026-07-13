@@ -253,6 +253,16 @@ def criticalCaseIVCoefficient (p : CM2Params) (P : ℝ) : ℝ :=
   (P - 1) * p.χ₀ ^ 2 / 4 *
     Theta_beta (2 * p.β - 1) * theorem13CriticalProfile p P
 
+/-- Autonomous damping remainder in critical alternative (iii). -/
+def criticalCaseIIIDampingConstant (p : CM2Params) (P : ℝ) : ℝ :=
+  integralRpowAbsorbConstant P (P + p.α) (p.a + 1)
+    (p.b - criticalCaseIIICoefficient p P)
+
+/-- Autonomous damping remainder in critical alternative (iv). -/
+def criticalCaseIVDampingConstant (p : CM2Params) (P : ℝ) : ℝ :=
+  integralRpowAbsorbConstant P (P + p.α) (p.a + 1)
+    (p.b - criticalCaseIVCoefficient p P)
+
 set_option maxHeartbeats 900000 in
 /-- Fixed-exponent damping for the critical alternative (iii), assuming the
 literal paper coefficient `F(P)` is below `b`. -/
@@ -263,9 +273,10 @@ theorem critical_case_iii_lp_energy_damping
     (hchi : 0 < p.χ₀) (hbeta : 0 ≤ p.β)
     (hcrit : p.α = p.m + p.γ - 1) (hP : 1 < P)
     (hcoef : criticalCaseIIICoefficient p P < p.b) :
-    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ criticalCaseIIIDampingConstant p P ∧
+      ∀ t, 0 < t → t < T →
       (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
-        intervalDomainLpEnergy P u t ≤ D := by
+        intervalDomainLpEnergy P u t ≤ criticalCaseIIIDampingConstant p P := by
   let r : ℝ := P + p.m - 1
   let s : ℝ := P + p.α
   let q : ℝ := s / p.γ
@@ -290,7 +301,9 @@ theorem critical_case_iii_lp_energy_damping
     (r := P) (s := s) (A := p.a + 1) (eps := c)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (by linarith [p.ha] : 0 ≤ p.a + 1) hc
-  refine ⟨K0, hK0, ?_⟩
+  have hKfixed : K0 = criticalCaseIIIDampingConstant p P := by
+    simp only [K0, criticalCaseIIIDampingConstant, s, c, F]
+  refine ⟨by simpa [hKfixed] using hK0, ?_⟩
   intro t ht0 htT
   let Y : ℝ := ∫ x in (0 : ℝ)..1, intervalDomainLift (u t) x ^ P
   let G : ℝ := ∫ x in (0 : ℝ)..1,
@@ -416,7 +429,7 @@ theorem critical_case_iii_lp_energy_damping
   change (p.a + 1) * Y ≤ c * Z + K0 at hYabs_t
   have hEeq : intervalDomainLpEnergy P u t = Y :=
     lpEnergy_eq_lift_power_of_solution hsol ht0 htT
-  rw [hEeq]
+  rw [hEeq, ← hKfixed]
   have hG0 : 0 ≤ G := by
     dsimp [G]
     exact intervalIntegral.integral_nonneg (by norm_num) (fun x hx =>
@@ -437,7 +450,7 @@ theorem critical_case_iii_lp_power_bounded_before
     (hcrit : p.α = p.m + p.γ - 1) (hP : 1 < P)
     (hcoef : criticalCaseIIICoefficient p P < p.b) :
     LpPowerBoundedBefore intervalDomainM P T u := by
-  obtain ⟨D, _hD, hdamp⟩ := critical_case_iii_lp_energy_damping
+  obtain ⟨_hD, hdamp⟩ := critical_case_iii_lp_energy_damping
     hsol hchi hbeta hcrit hP hcoef
   exact lp_power_bounded_before_of_linear_damping hu₀ hsol htrace
     hP zero_lt_one (by simpa using hdamp)
@@ -453,9 +466,10 @@ theorem critical_case_iv_lp_energy_damping
     (hcrit : p.α = 2 * p.m + p.γ - 2) (hP : 1 < P)
     (hvalid : 2 - 2 * p.m < P)
     (hcoef : criticalCaseIVCoefficient p P < p.b) :
-    ∃ D ≥ 0, ∀ t, 0 < t → t < T →
+    0 ≤ criticalCaseIVDampingConstant p P ∧
+      ∀ t, 0 < t → t < T →
       (1 / P) * deriv (fun τ => intervalDomainLpEnergy P u τ) t +
-        intervalDomainLpEnergy P u t ≤ D := by
+        intervalDomainLpEnergy P u t ≤ criticalCaseIVDampingConstant p P := by
   let r0 : ℝ := P + p.m - 1
   let r2 : ℝ := P + 2 * p.m - 2
   let s : ℝ := P + p.α
@@ -490,7 +504,9 @@ theorem critical_case_iv_lp_energy_damping
     (r := P) (s := s) (A := p.a + 1) (eps := c)
     hsol hP0 (by dsimp [s]; linarith [p.hα])
       (by linarith [p.ha] : 0 ≤ p.a + 1) hc
-  refine ⟨K0, hK0, ?_⟩
+  have hKfixed : K0 = criticalCaseIVDampingConstant p P := by
+    simp only [K0, criticalCaseIVDampingConstant, s, c, F]
+  refine ⟨by simpa [hKfixed] using hK0, ?_⟩
   intro t ht0 htT
   let Y : ℝ := ∫ x in (0 : ℝ)..1, intervalDomainLift (u t) x ^ P
   let G : ℝ := ∫ x in (0 : ℝ)..1,
@@ -584,7 +600,7 @@ theorem critical_case_iv_lp_energy_damping
   change (p.a + 1) * Y ≤ c * Z + K0 at hYabs_t
   have hEeq : intervalDomainLpEnergy P u t = Y :=
     lpEnergy_eq_lift_power_of_solution hsol ht0 htT
-  rw [hEeq]
+  rw [hEeq, ← hKfixed]
   dsimp [c] at hYabs_t
   nlinarith
 
@@ -600,7 +616,7 @@ theorem critical_case_iv_lp_power_bounded_before
     (hvalid : 2 - 2 * p.m < P)
     (hcoef : criticalCaseIVCoefficient p P < p.b) :
     LpPowerBoundedBefore intervalDomainM P T u := by
-  obtain ⟨D, _hD, hdamp⟩ := critical_case_iv_lp_energy_damping
+  obtain ⟨_hD, hdamp⟩ := critical_case_iv_lp_energy_damping
     hsol hbeta hcrit hP hvalid hcoef
   exact lp_power_bounded_before_of_linear_damping hu₀ hsol htrace
     hP zero_lt_one (by simpa using hdamp)
