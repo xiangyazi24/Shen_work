@@ -1,6 +1,7 @@
 import ShenWork.Paper2.IntervalConjugatePicardFloorCoreInhabit
 import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.Paper2.IntervalChiNegV6DirectClassical
+import ShenWork.Paper2.IntervalDomainQuantFromThreshold
 
 /-!
 # Paper-positive local existence for all positive exponents
@@ -17,17 +18,16 @@ namespace ShenWork.Paper2.IntervalDomainM
 open ShenWork.IntervalConjugatePicard
 open ShenWork.Paper2.IntervalChiNegV6Assembly
 
-/-- Faithful local classical existence for arbitrary paper-positive data and
-all parameter exponents allowed by `CM2Params`. -/
-theorem intervalDomain_localExistence_paperPositive_allExponents
-    (p : CM2Params) :
-    ∀ u₀ : intervalDomainPoint → ℝ,
-      PaperPositiveInitialDatum intervalDomain u₀ →
-        ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
-          IsPaper2ClassicalSolution intervalDomain p T u v ∧
-          InitialTrace intervalDomain u₀ u := by
-  intro u₀ hu₀
-  obtain ⟨D, _⟩ := conjugateMildExistenceFloorData_exists p hu₀
+/-- Upgrade any inhabited positive-floor Picard datum to a classical solution
+at its explicit horizon. -/
+theorem intervalDomain_classicalSolution_of_floorData_allExponents
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (D : ConjugateMildExistenceFloorData p u₀) :
+    let S : ConjugateMildSolutionData p u₀ := conjugateMildSolutionData_of_floorData D
+    ∃ v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p D.T S.u v ∧
+      InitialTrace intervalDomain u₀ S.u := by
   let S : ConjugateMildSolutionData p u₀ := conjugateMildSolutionData_of_floorData D
   have htrace : InitialTrace intervalDomain u₀ S.u :=
     ShenWork.Paper2.BFormInitialTrace.conjugateMildSolutionData_initialTrace
@@ -80,11 +80,47 @@ theorem intervalDomain_localExistence_paperPositive_allExponents
     ShenWork.IntervalCoupledRegularityBootstrap.regularityBootstrap_of_coupledDuhamel_reducedClassicalCore
       p hcore
   obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace'⟩ := hreg
-  exact ⟨S.T, S.hT, S.u, v,
+  exact ⟨v,
     IsPaper2ClassicalSolution.of_components S.hT hclassreg hpos hvnn hpde_u hpde_v hbc,
     htrace'⟩
 
+/-- Faithful local classical existence for arbitrary paper-positive data and
+all parameter exponents allowed by `CM2Params`. -/
+theorem intervalDomain_localExistence_paperPositive_allExponents
+    (p : CM2Params) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PaperPositiveInitialDatum intervalDomain u₀ →
+        ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, _⟩ := conjugateMildExistenceFloorData_exists p hu₀
+  let S : ConjugateMildSolutionData p u₀ := conjugateMildSolutionData_of_floorData D
+  obtain ⟨v, hsol, htrace⟩ :=
+    intervalDomain_classicalSolution_of_floorData_allExponents p hu₀ D
+  exact ⟨D.T, D.hT, S.u, v, hsol, htrace⟩
+
+/-- The local lifespan is uniform on every positive strip
+`{w | |w| ≤ M, c ≤ w}` for all positive exponents. -/
+theorem intervalDomain_thresholdLocalExistence_positiveStrip_allExponents
+    (p : CM2Params) :
+    QuantFromThreshold.ThresholdQuantitativeLocalExistence p := by
+  intro M c hM hc
+  obtain ⟨δ, hδ, hfactory⟩ :=
+    conjugateMildExistenceFloorData_exists_uniform p M c hc
+  refine ⟨δ, hδ, ?_⟩
+  intro w hw hbound hfloor
+  have hwPaper : PaperPositiveInitialDatum intervalDomain w :=
+    ⟨hw.admissible, ⟨c, hc, hfloor⟩⟩
+  obtain ⟨D, hDδ⟩ := hfactory w hw.admissible.2 hbound hfloor
+  let S : ConjugateMildSolutionData p w := conjugateMildSolutionData_of_floorData D
+  obtain ⟨v, hsol, htrace⟩ :=
+    intervalDomain_classicalSolution_of_floorData_allExponents p hwPaper D
+  subst δ
+  exact ⟨S.u, v, hsol, htrace⟩
+
 #print axioms intervalDomain_localExistence_paperPositive_allExponents
+#print axioms intervalDomain_thresholdLocalExistence_positiveStrip_allExponents
 
 end ShenWork.Paper2.IntervalDomainM
 

@@ -28,12 +28,11 @@ namespace ShenWork.MinPersistenceAtoms
 
 set_option maxHeartbeats 1000000 in
 /-- **Uniform-`c` persistence (the `ClassicalMinPersistence` body).** -/
-theorem minPersist_existsC_uniform
+theorem minPersist_existsC_uniform_allChi
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {δ t₁ M' : ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (ht₁ : 0 < t₁) (ht₁δ : t₁ < δ) (hM' : 0 ≤ M')
-    (hOverlap : GlueExtension.OverlapUniqueForPID p)
+    (hOverlap : ShenWork.IntervalDomainExistence.IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hSupNorm : ∀ {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
       InitialTrace intervalDomain u₀ u →
@@ -72,7 +71,7 @@ theorem minPersist_existsC_uniform
     refine ⟨m0 * Real.exp (-Kp * (δ - t₁/2)), by positivity, ?_⟩
     intro T hTlo hThi u v hsol htr t htlo thtT x
     -- Hamilton bound for `u` on `[t₁/2, t]`.
-    have hbf := hbound_full hχ hsol (by linarith)
+    have hbf := hbound_full_allChi hsol (by linarith)
       (lt_of_le_of_lt htlo thtT) hM' (hSupNorm hsol htr) (hbdry hsol htr)
     have hbnd := solution_minPersist_of_conjuncts (a := t₁/2) (b := t) (Kp := Kp)
       hsol (by linarith) thtT (by linarith)
@@ -81,7 +80,10 @@ theorem minPersist_existsC_uniform
       t (Set.right_mem_Icc.mpr (by linarith)) x
     -- `m_u(t₁/2) = m0` by overlap uniqueness.
     have hagree : ∀ y : intervalDomainPoint, u (t₁/2) y = u_s (t₁/2) y := fun y =>
-      (hOverlap hu₀ hsol hsol_s htr htr_s (t₁/2) (by linarith)
+      (hOverlap
+        { T_pos := hsol.T_pos, u := u, v := v, sol := hsol, trace := htr }
+        { T_pos := hsol_s.T_pos, u := u_s, v := v_s, sol := hsol_s, trace := htr_s }
+        (t₁/2) (by linarith)
         (lt_min (by linarith) hhalf_lt_Ts) y).1
     have hmeq : sInf (intervalDomainLift (u (t₁/2)) '' Set.Icc (0:ℝ) 1) = m0 :=
       sliceMin_eq_of_slices_eq hagree
@@ -99,5 +101,36 @@ theorem minPersist_existsC_uniform
     refine ⟨1, one_pos, ?_⟩
     intro T hTlo hThi u v hsol htr _ _ _ _
     exact absurd ⟨T, hTlo, hThi, u, v, hsol, htr⟩ hex
+
+/-- Compatibility wrapper for the former nonpositive-sensitivity API. -/
+theorem minPersist_existsC_uniform
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {δ t₁ M' : ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (ht₁ : 0 < t₁) (ht₁δ : t₁ < δ) (hM' : 0 ≤ M')
+    (hOverlap : GlueExtension.OverlapUniqueForPID p)
+    (hSupNorm : ∀ {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+      ∀ s ∈ Set.Ico (t₁/2) T, ∀ y, |intervalDomainLift (u s) y| ≤ M')
+    (hbdry : ∀ {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+      ∀ s ∈ Set.Ico (t₁/2) T, ∀ ys ∈ Set.Icc (0:ℝ) 1, ys = 0 ∨ ys = 1 →
+        intervalDomainLift (u s) ys
+            = sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) →
+          -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+              * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
+            ≤ deriv (fun r => intervalDomainLift (u r) ys) s) :
+    ∃ c : ℝ, 0 < c ∧ ∀ T : ℝ, t₁ < T → T ≤ δ →
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+        ∀ t, t₁ ≤ t → t < T → ∀ x : intervalDomainPoint, c ≤ u t x :=
+  minPersist_existsC_uniform_allChi hu₀ ht₁ ht₁δ hM'
+    (by
+      intro T₁ T₂ d₁ d₂ t ht0 htmin x
+      exact hOverlap hu₀ d₁.sol d₂.sol d₁.trace d₂.trace t ht0 htmin x)
+    hSupNorm hbdry
 
 end ShenWork.MinPersistenceAtoms

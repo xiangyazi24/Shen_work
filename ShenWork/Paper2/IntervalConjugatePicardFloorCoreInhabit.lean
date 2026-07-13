@@ -18,7 +18,8 @@ namespace ShenWork.IntervalConjugatePicard
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalNeumannFullKernel
-  (intervalFullSemigroupOperator intervalFullSemigroupOperator_Linfty_bound)
+  (intervalFullSemigroupOperator intervalFullSemigroupOperator_Linfty_bound
+   intervalFullSemigroupOperator_lower_bound)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
 open ShenWork.IntervalConjugateDuhamelMap
   (intervalConjugateDuhamelMap intervalConjugateKernelOperator)
@@ -28,7 +29,8 @@ open ShenWork.IntervalConjugateChemFluxIntegrable
 open ShenWork.IntervalConjugateKernelJointMeas
   (intervalConjugateKernelOperator_continuous_of_bounded)
 open ShenWork.Paper2
-  (PaperPositiveInitialDatum intervalConjugateDuhamelMap_ge_half_floor_of_ball)
+  (PaperPositiveInitialDatum
+   intervalConjugateDuhamelMap_ge_half_floor_of_semigroup_lower)
 open ShenWork.IntervalPositiveFloorNonlinearLipschitz (powerLip powerLip_nonneg)
 open ShenWork.IntervalPositiveFloorConjugateContraction
   (intervalConjugateDuhamelMap_diff_bound_of_positive_cone)
@@ -44,19 +46,18 @@ open ShenWork.IntervalDuhamelIntegrability
   (intervalFullSemigroupOperator_continuous_of_bounded
    chemFluxLifted_integrable_of_continuous)
 
-/-- The positive-floor Picard data exist for every paper-positive initial
-datum, with no lower bound `1 ≤ α,γ`. -/
-theorem conjugateMildExistenceFloorData_exists
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀) :
-    ∃ D : ConjugateMildExistenceFloorData p u₀, True := by
+/-- Uniform positive-strip Picard construction.  The horizon is selected from
+`p`, the upper bound `Braw`, and the positive floor `floor` before the datum is
+introduced; hence it is common to the whole strip. -/
+theorem conjugateMildExistenceFloorData_exists_uniform
+    (p : CM2Params) (Braw floor : ℝ) (hfloor_pos : 0 < floor) :
+    ∃ T : ℝ, 0 < T ∧
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        Continuous u₀ →
+        (∀ x, |u₀ x| ≤ Braw) →
+        (∀ x, floor ≤ u₀ x) →
+        ∃ D : ConjugateMildExistenceFloorData p u₀, D.T = T := by
   classical
-  have hadm := PaperPositiveInitialDatum.admissible hu₀
-  change BddAbove (Set.range fun x : intervalDomainPoint ↦ |u₀ x|) ∧ Continuous u₀ at hadm
-  obtain ⟨hBdd, hu₀_cont⟩ := hadm
-  obtain ⟨Braw, hBraw⟩ := hBdd
-  set floor : ℝ := paperPositiveFloor hu₀ with hfloor
-  have hfloor_pos : 0 < floor := paperPositiveFloor_pos hu₀
   set c : ℝ := floor / 2 with hc
   have hc_pos : 0 < c := by rw [hc]; linarith
   set B0 : ℝ := max (max Braw floor) 1 with hB0
@@ -64,11 +65,6 @@ theorem conjugateMildExistenceFloorData_exists
   have hB0_pos : 0 < B0 := one_pos.trans_le hB0_ge_one
   have hfloor_le_B0 : floor ≤ B0 :=
     (le_max_right Braw floor).trans (le_max_left _ _)
-  have hu₀_le_B0 : ∀ x, |u₀ x| ≤ B0 := fun x ↦
-    (hBraw (Set.mem_range_self x)).trans
-      ((le_max_left Braw floor).trans (le_max_left _ _))
-  have hu₀_floor : ∀ x, floor ≤ u₀ x := paperPositiveFloor_le hu₀
-  have hu₀_nonneg : ∀ x, 0 ≤ u₀ x := fun x ↦ hfloor_pos.le.trans (hu₀_floor x)
   set M : ℝ := 2 * B0 with hM
   have hM_pos : 0 < M := by rw [hM]; linarith
   have hM_nn : 0 ≤ M := hM_pos.le
@@ -123,6 +119,12 @@ theorem conjugateMildExistenceFloorData_exists
   have hδ_pos : 0 < δ := lt_min one_pos (lt_min hc_pos hB0_pos)
   obtain ⟨T, hT_pos, hAT⟩ :=
     exists_small_contraction_time_target hA_nn hBc_nn hδ_pos
+  refine ⟨T, hT_pos, ?_⟩
+  intro u₀ hu₀_cont hBraw hu₀_floor
+  have hu₀_le_B0 : ∀ x, |u₀ x| ≤ B0 := fun x ↦
+    (hBraw x).trans ((le_max_left Braw floor).trans (le_max_left _ _))
+  have hu₀_nonneg : ∀ x, 0 ≤ u₀ x := fun x ↦
+    hfloor_pos.le.trans (hu₀_floor x)
   have hsqrt_nn : 0 ≤ Real.sqrt T := Real.sqrt_nonneg T
   have hbudget_mono : ∀ q l : ℝ, 0 ≤ q → 0 ≤ l → q ≤ CQmax → l ≤ CLmax →
       |p.χ₀| * (Cg * (2 * Real.sqrt T) * q) + T * l ≤
@@ -172,6 +174,14 @@ theorem conjugateMildExistenceFloorData_exists
     · simp
   have hLift_meas : Measurable (intervalDomainLift u₀) :=
     intervalDomainLift_measurable_of_continuous' hu₀_cont
+  have hsemigroup_floor : ∀ t, 0 < t → ∀ y,
+      floor ≤ intervalFullSemigroupOperator t (intervalDomainLift u₀) y := by
+    intro t ht y
+    exact intervalFullSemigroupOperator_lower_bound ht hfloor_pos.le hfloor_le_B0
+      hLift_meas.aestronglyMeasurable
+      (fun z hz => by
+        simpa [intervalDomainLift, hz] using hu₀_floor ⟨z, hz⟩)
+      hLift_bound y
   have hflux_sup_w : ∀ (w : ℝ → intervalDomainPoint → ℝ),
       (∀ τ, 0 < τ → τ ≤ T → ∀ x, |w τ x| ≤ M) →
       (∀ τ, 0 < τ → τ ≤ T → ∀ x, c ≤ w τ x) →
@@ -232,13 +242,13 @@ theorem conjugateMildExistenceFloorData_exists
     have hwn : ∀ τ, 0 < τ → τ ≤ T → ∀ z, 0 ≤ w τ z := by
       intro τ hτ hτT z
       exact hc_pos.le.trans (hwf τ hτ hτT z)
-    have hfloor_le := intervalConjugateDuhamelMap_ge_half_floor_of_ball
-      hu₀ hCQsup_nn hCLsup_nn hfloor_small ht htT x
+    have hfloor_le := intervalConjugateDuhamelMap_ge_half_floor_of_semigroup_lower
+      hCQsup_nn hCLsup_nn hfloor_small ht x (hsemigroup_floor t ht x.1)
       (conjugateDuhamel_sup_bound_of_ball_univ p hM_nn hCQsup_nn hwb hwn hwc
         (hflux_sup_w w hwb hwf hwc) ht htT x)
       (valueDuhamel_sup_bound_of_ball p hM_pos hCLsup_nn hwb
         (hlog_sup_w w hwb) ht htT x)
-    simpa [c, floor] using hfloor_le
+    simpa [hc] using hfloor_le
   have hcont_preserved_pf : ∀ (w : ℝ → intervalDomainPoint → ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, c ≤ w t x) →
@@ -290,7 +300,7 @@ theorem conjugateMildExistenceFloorData_exists
         hB0_le_M
     hbase_floor := by
       intro t ht _ x
-      have hbase := intervalFullSemigroupOperator_ge_paperPositiveFloor hu₀ ht x.1
+      have hbase := hsemigroup_floor t ht x.1
       simp only [conjugatePicardIter]
       rw [hc]
       linarith
@@ -321,7 +331,7 @@ theorem conjugateMildExistenceFloorData_exists
       have hiter0_floor : ∀ τ, 0 < τ → τ ≤ T → ∀ z,
           c ≤ conjugatePicardIter p u₀ 0 τ z := by
         intro τ hτ _ z
-        have hb := intervalFullSemigroupOperator_ge_paperPositiveFloor hu₀ hτ z.1
+        have hb := hsemigroup_floor τ hτ z.1
         simp only [conjugatePicardIter]
         rw [hc]
         linarith
@@ -357,6 +367,21 @@ theorem conjugateMildExistenceFloorData_exists
         hSg_meas measurable_const
     hmeas_preserved := hmeas_preserved_pf
   }
+  exact ⟨D, rfl⟩
+
+/-- The positive-floor Picard data exist for every paper-positive initial
+datum, with no lower bound `1 ≤ α,γ`. -/
+theorem conjugateMildExistenceFloorData_exists
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀) :
+    ∃ D : ConjugateMildExistenceFloorData p u₀, True := by
+  obtain ⟨Braw, hBraw⟩ := hu₀.admissible.1
+  let floor := paperPositiveFloor hu₀
+  obtain ⟨T, _hT, hfactory⟩ :=
+    conjugateMildExistenceFloorData_exists_uniform
+      p Braw floor (paperPositiveFloor_pos hu₀)
+  obtain ⟨D, _hDT⟩ := hfactory u₀ hu₀.admissible.2
+    (fun x => hBraw (Set.mem_range_self x)) (paperPositiveFloor_le hu₀)
   exact ⟨D, trivial⟩
 
 theorem conjugateMildSolutionData_exists_all_positive_exponents
@@ -368,6 +393,7 @@ theorem conjugateMildSolutionData_exists_all_positive_exponents
   exact ⟨D, ⟨conjugateMildSolutionData_of_floorData D⟩⟩
 
 #print axioms conjugateMildExistenceFloorData_exists
+#print axioms conjugateMildExistenceFloorData_exists_uniform
 #print axioms conjugateMildSolutionData_exists_all_positive_exponents
 
 end ShenWork.IntervalConjugatePicard

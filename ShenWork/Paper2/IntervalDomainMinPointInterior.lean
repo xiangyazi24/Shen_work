@@ -27,10 +27,9 @@ namespace ShenWork.MinPersistenceAtoms
 `x*` of `u(t,·)`, with `χ₀ ≤ 0` and the B4 derivative bounds `|v_x|,|v_xx| ≤
 2νM'^γ`, the parabolic time derivative obeys
 `−(|χ₀|·K₁ + b·M'^α)·u(x*) ≤ u_t(x*)`, `K₁ = fluxCoeffConst β (νM'^γ)`. -/
-theorem min_point_estimate_interior
+theorem min_point_estimate_interior_allChi
     {p : CM2Params} {u v : intervalDomainPoint → ℝ} {x : intervalDomainPoint}
     {vx vxx M' uT : ℝ}
-    (hχ : p.χ₀ ≤ 0)
     (hux : HasDerivAt (intervalDomainLift u) 0 x.1)
     (hv : HasDerivAt (intervalDomainLift v) vx x.1)
     (hvxx : HasDerivAt (deriv (intervalDomainLift v)) vxx x.1)
@@ -55,6 +54,29 @@ theorem min_point_estimate_interior
   have hG := flux_coeff_bound (β := p.β) (v := intervalDomainLift v x.1)
     (vx := vx) (vxx := vxx) (B := B) p.hβ hB_nonneg (hvnn x.1) hvx_bd hvxx_bd
   -- Apply the abstract min-point estimate.
-  exact min_point_estimate hχ p.ha p.hb p.hα.le hu_nonneg hu_le huxx hcd hG hpde
+  exact min_point_estimate_allChi p.ha p.hb p.hα.le hu_nonneg hu_le huxx hcd hG hpde
+
+/-- Compatibility wrapper for the former `χ₀ ≤ 0` interface. -/
+theorem min_point_estimate_interior
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    {vx vxx M' uT : ℝ}
+    (_hχ : p.χ₀ ≤ 0)
+    (hux : HasDerivAt (intervalDomainLift u) 0 x.1)
+    (hv : HasDerivAt (intervalDomainLift v) vx x.1)
+    (hvxx : HasDerivAt (deriv (intervalDomainLift v)) vxx x.1)
+    (hvnn : ∀ y, 0 ≤ intervalDomainLift v y)
+    (hM'pos : 0 ≤ M')
+    (hvx_bd : |vx| ≤ 2 * (p.ν * M' ^ p.γ))
+    (hvxx_bd : |vxx| ≤ 2 * (p.ν * M' ^ p.γ))
+    (hu_nonneg : 0 ≤ intervalDomainLift u x.1)
+    (hu_le : intervalDomainLift u x.1 ≤ M')
+    (huxx : 0 ≤ deriv (deriv (intervalDomainLift u)) x.1)
+    (hpde : uT = deriv (deriv (intervalDomainLift u)) x.1
+        - p.χ₀ * intervalDomainChemotaxisDiv p u v x
+        + intervalDomainLift u x.1 * (p.a - p.b * (intervalDomainLift u x.1) ^ p.α)) :
+    -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α)
+        * intervalDomainLift u x.1 ≤ uT :=
+  min_point_estimate_interior_allChi hux hv hvxx hvnn hM'pos hvx_bd hvxx_bd
+    hu_nonneg hu_le huxx hpde
 
 end ShenWork.MinPersistenceAtoms

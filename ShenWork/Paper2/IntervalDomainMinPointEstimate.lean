@@ -30,28 +30,25 @@ namespace ShenWork.MinPersistenceAtoms
 `uT = uxx − χ₀·cd + m·(a − b·m^α)` at a spatial argmin (so `uxx ≥ 0` and the
 flux `cd = m·G` with `|G| ≤ K₁`), with `0 ≤ m ≤ M`, the time derivative obeys
 `−(|χ₀|·K₁ + b·M^α)·m ≤ uT`. -/
-theorem min_point_estimate
+theorem min_point_estimate_allChi
     {χ₀ a b α m M uxx cd G K₁ uT : ℝ}
-    (hχ : χ₀ ≤ 0) (ha : 0 ≤ a) (hb : 0 ≤ b) (hα : 0 ≤ α)
+    (ha : 0 ≤ a) (hb : 0 ≤ b) (hα : 0 ≤ α)
     (hm_nonneg : 0 ≤ m) (hm_le : m ≤ M)
     (huxx : 0 ≤ uxx)
     (hcd : cd = m * G) (hG : |G| ≤ K₁)
     (hpde : uT = uxx - χ₀ * cd + m * (a - b * m ^ α)) :
     -(|χ₀| * K₁ + b * M ^ α) * m ≤ uT := by
   have hM_nonneg : 0 ≤ M := le_trans hm_nonneg hm_le
-  -- Chemotaxis term: `−χ₀·cd = |χ₀|·m·G ≥ −|χ₀|·K₁·m`.
-  have hχabs : |χ₀| = -χ₀ := abs_of_nonpos hχ
+  -- Chemotaxis term: for either sign of `χ₀`, its absolute value is
+  -- bounded by `|χ₀|·K₁·m`.
   have hcd_lb : -(|χ₀| * K₁) * m ≤ -χ₀ * cd := by
-    rw [hcd, hχabs]
-    -- `-χ₀·(m·G) = (-χ₀)·m·G ≥ (-χ₀)·m·(-K₁)`  since `G ≥ -K₁`, `(-χ₀)·m ≥ 0`.
-    have hcoef_nonneg : 0 ≤ -χ₀ * m := mul_nonneg (by linarith) hm_nonneg
-    have hG_lb : -K₁ ≤ G := by
-      have := (abs_le.mp hG).1; linarith
-    have : -χ₀ * m * (-K₁) ≤ -χ₀ * m * G :=
-      mul_le_mul_of_nonneg_left hG_lb hcoef_nonneg
-    calc -(-χ₀ * K₁) * m = -χ₀ * m * (-K₁) := by ring
-      _ ≤ -χ₀ * m * G := this
-      _ = -χ₀ * (m * G) := by ring
+    have hterm_abs : |-χ₀ * cd| ≤ |χ₀| * K₁ * m := by
+      rw [hcd, abs_mul, abs_neg, abs_mul, abs_of_nonneg hm_nonneg]
+      have hK : |G| ≤ K₁ := hG
+      nlinarith [mul_nonneg (abs_nonneg χ₀) hm_nonneg,
+        mul_nonneg (abs_nonneg χ₀) (abs_nonneg G)]
+    have := (abs_le.mp hterm_abs).1
+    nlinarith
   -- Reaction term: `m·(a − b·m^α) ≥ −b·M^α·m`.
   have hpow_le : m ^ α ≤ M ^ α := Real.rpow_le_rpow hm_nonneg hm_le hα
   have hMpow_nonneg : 0 ≤ M ^ α := Real.rpow_nonneg hM_nonneg α
@@ -67,5 +64,17 @@ theorem min_point_estimate
       = -(|χ₀| * K₁) * m + -(b * M ^ α) * m := by ring
   rw [hexpand]
   linarith [hcd_lb, hreact_lb, huxx]
+
+/-- Compatibility form retaining the former nonpositive-sensitivity
+hypothesis.  The estimate itself is sign-agnostic. -/
+theorem min_point_estimate
+    {χ₀ a b α m M uxx cd G K₁ uT : ℝ}
+    (_hχ : χ₀ ≤ 0) (ha : 0 ≤ a) (hb : 0 ≤ b) (hα : 0 ≤ α)
+    (hm_nonneg : 0 ≤ m) (hm_le : m ≤ M)
+    (huxx : 0 ≤ uxx)
+    (hcd : cd = m * G) (hG : |G| ≤ K₁)
+    (hpde : uT = uxx - χ₀ * cd + m * (a - b * m ^ α)) :
+    -(|χ₀| * K₁ + b * M ^ α) * m ≤ uT :=
+  min_point_estimate_allChi ha hb hα hm_nonneg hm_le huxx hcd hG hpde
 
 end ShenWork.MinPersistenceAtoms
