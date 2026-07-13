@@ -12,7 +12,7 @@ open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalConjugateDuhamelMap
   (intervalConjugateDuhamelMap intervalConjugateKernelOperator)
 open ShenWork.IntervalConjugatePicard
-  (ConjugateMildExistenceData conjugateMildSolutionData_of_data
+  (ConjugateMildExistenceData ConjugateMildSolutionData conjugateMildSolutionData_of_data
    conjugatePicardLimit)
 open ShenWork.HeatKernelGradientEstimates
   (heatGradientLinftyLinftyConstant heatGradientLinftyLinftyConstant_nonneg)
@@ -171,16 +171,15 @@ theorem conjugateDuhamel_sup_bound_of_integrable_sources
 /-- B-form Picard map approaches the initial datum as `t → 0+`.  The proof
 consumes the homogeneous semigroup initial approach and the two Duhamel
 small-time bounds. -/
-theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
+theorem intervalConjugateDuhamelMap_initialApproach_of_solution_data
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (hu₀_cont : Continuous u₀)
-    (DB : ConjugateMildExistenceData p u₀) :
+    (D : ConjugateMildSolutionData p u₀) :
     ∀ ε, 0 < ε → ∃ δ > 0, ∀ t, 0 < t → t < δ →
       ∀ x : intervalDomainPoint,
         |intervalConjugateDuhamelMap p u₀
-            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε := by
+            (D.u) t x - u₀ x| < ε := by
   intro ε hε
-  let D := conjugateMildSolutionData_of_data DB
   set M : ℝ := D.M with hMdef
   have hM_pos : 0 < M := by simpa [M] using D.hM
   have hM_nonneg : 0 ≤ M := hM_pos.le
@@ -212,46 +211,46 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
   obtain ⟨δD, hδD, hDsmall⟩ :=
     exists_small_contraction_time_target hA_nonneg hCL_nonneg
       (show 0 < ε / 2 by linarith)
-  refine ⟨min (min δS δD) DB.T, lt_min (lt_min hδS hδD) DB.hT, ?_⟩
+  refine ⟨min (min δS δD) D.T, lt_min (lt_min hδS hδD) D.hT, ?_⟩
   intro t ht htδ x
   have htδS : t < δS :=
     lt_of_lt_of_le htδ ((min_le_left _ _).trans (min_le_left _ _))
   have htδD : t < δD :=
     lt_of_lt_of_le htδ ((min_le_left _ _).trans (min_le_right _ _))
-  have htT_lt : t < DB.T := lt_of_lt_of_le htδ (min_le_right _ _)
-  have htT : t ≤ DB.T := le_of_lt htT_lt
+  have htT_lt : t < D.T := lt_of_lt_of_le htδ (min_le_right _ _)
+  have htT : t ≤ D.T := le_of_lt htT_lt
   have hSg_close :
       |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
           (intervalDomainLift u₀) x.1 - u₀ x| < ε / 2 :=
     hSclose t ht htδS x
   set r_chem : ℝ → ℝ → ℝ := fun s y =>
-    if 0 < s ∧ s ≤ DB.T then
-      chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s) y
+    if 0 < s ∧ s ≤ D.T then
+      chemFluxLifted p ((D.u) s) y
     else 0
   have hr_chem_bound : ∀ s y, |r_chem s y| ≤ C_Q := by
     intro s y
-    by_cases hs : 0 < s ∧ s ≤ DB.T
+    by_cases hs : 0 < s ∧ s ≤ D.T
     · have h :=
         chemFluxLifted_bound_of_ball p hM_nonneg
-          (by simpa [D, M] using D.hbound s hs.1 hs.2)
-          (by simpa [D] using D.hnonneg s hs.1 hs.2)
-          (by simpa [D] using D.hcont s hs.1 hs.2) y
+          (by simpa [M] using D.hbound s hs.1 hs.2)
+          (by simpa using D.hnonneg s hs.1 hs.2)
+          (by simpa using D.hcont s hs.1 hs.2) y
       simpa [r_chem, hs, C_Q, hCQdef, M] using h
     · simp [r_chem, hs, hCQ_nonneg]
   have hr_chem_int : ∀ s, Integrable (r_chem s) (intervalMeasure 1) := by
     intro s
-    by_cases hs : 0 < s ∧ s ≤ DB.T
+    by_cases hs : 0 < s ∧ s ≤ D.T
     · have h :=
         ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
-          p (by simpa [D, M] using D.hbound s hs.1 hs.2) hM_nonneg
-          (by simpa [D] using D.hcont s hs.1 hs.2)
-          (by simpa [D] using D.hnonneg s hs.1 hs.2)
+          p (by simpa [M] using D.hbound s hs.1 hs.2) hM_nonneg
+          (by simpa using D.hcont s hs.1 hs.2)
+          (by simpa using D.hnonneg s hs.1 hs.2)
       simpa [r_chem, hs] using h
     · simp [r_chem, hs]
   have hchem_eq :
       (∫ s in (0:ℝ)..t,
         intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+          (chemFluxLifted p ((D.u) s)) x.1)
         =
       ∫ s in (0:ℝ)..t,
         intervalConjugateKernelOperator (t - s) (r_chem s) x.1 := by
@@ -262,27 +261,27 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
   have hchem_bound :
       |∫ s in (0:ℝ)..t,
         intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1|
+          (chemFluxLifted p ((D.u) s)) x.1|
         ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt t) * C_Q := by
     rw [hchem_eq]
     exact conjugateDuhamel_sup_bound_of_integrable_sources
       ht (le_refl t) hr_chem_int hCQ_nonneg hr_chem_bound x.1
   set r_val : ℝ → ℝ → ℝ := fun s y =>
-    if 0 < s ∧ s ≤ DB.T then
-      logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s) y
+    if 0 < s ∧ s ≤ D.T then
+      logisticLifted p ((D.u) s) y
     else 0
   have hr_val_bound : ∀ s y, |r_val s y| ≤ C_L := by
     intro s y
-    by_cases hs : 0 < s ∧ s ≤ DB.T
+    by_cases hs : 0 < s ∧ s ≤ D.T
     · have h :=
         ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
-          p hM_pos (by simpa [D, M] using D.hbound s hs.1 hs.2) y
+          p hM_pos (by simpa [M] using D.hbound s hs.1 hs.2) y
       simpa [r_val, hs, C_L, hCLdef, M] using h
     · simp [r_val, hs, hCL_nonneg]
   have hval_eq :
       (∫ s in (0:ℝ)..t,
         ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-          (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+          (logisticLifted p ((D.u) s)) x.1)
         =
       ∫ s in (0:ℝ)..t,
         ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
@@ -294,7 +293,7 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
   have hval_bound :
       |∫ s in (0:ℝ)..t,
         ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-          (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1|
+          (logisticLifted p ((D.u) s)) x.1|
         ≤ t * C_L := by
     rw [hval_eq]
     exact ShenWork.IntervalDuhamelIntegrability.valueDuhamel_sup_bound_universal
@@ -303,34 +302,34 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
       |(-p.χ₀) *
           (∫ s in (0:ℝ)..t,
             intervalConjugateKernelOperator (t - s)
-              (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+              (chemFluxLifted p ((D.u) s)) x.1)
         + (∫ s in (0:ℝ)..t,
             ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-              (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)|
+              (logisticLifted p ((D.u) s)) x.1)|
         ≤ A_corr * Real.sqrt t + C_L * t := by
     calc
       |(-p.χ₀) *
           (∫ s in (0:ℝ)..t,
             intervalConjugateKernelOperator (t - s)
-              (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+              (chemFluxLifted p ((D.u) s)) x.1)
         + (∫ s in (0:ℝ)..t,
             ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-              (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)|
+              (logisticLifted p ((D.u) s)) x.1)|
           ≤ |(-p.χ₀) *
               (∫ s in (0:ℝ)..t,
                 intervalConjugateKernelOperator (t - s)
-                  (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)|
+                  (chemFluxLifted p ((D.u) s)) x.1)|
             + |∫ s in (0:ℝ)..t,
                 ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-                  (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1| :=
+                  (logisticLifted p ((D.u) s)) x.1| :=
             abs_add_le _ _
       _ = |p.χ₀| *
             |∫ s in (0:ℝ)..t,
               intervalConjugateKernelOperator (t - s)
-                (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1|
+                (chemFluxLifted p ((D.u) s)) x.1|
             + |∫ s in (0:ℝ)..t,
                 ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-                  (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1| := by
+                  (logisticLifted p ((D.u) s)) x.1| := by
           rw [abs_mul, abs_neg]
       _ ≤ |p.χ₀| *
             (heatGradientLinftyLinftyConstant * (2 * Real.sqrt t) * C_Q)
@@ -355,20 +354,20 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
         + (-p.χ₀) *
             (∫ s in (0:ℝ)..t,
               intervalConjugateKernelOperator (t - s)
-                (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+                (chemFluxLifted p ((D.u) s)) x.1)
         + (∫ s in (0:ℝ)..t,
             ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-              (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+              (logisticLifted p ((D.u) s)) x.1)
         - u₀ x|
         = |(ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
             (intervalDomainLift u₀) x.1 - u₀ x)
           + ((-p.χ₀) *
               (∫ s in (0:ℝ)..t,
                 intervalConjugateKernelOperator (t - s)
-                  (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+                  (chemFluxLifted p ((D.u) s)) x.1)
             + (∫ s in (0:ℝ)..t,
                 ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-                  (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1))| := by
+                  (logisticLifted p ((D.u) s)) x.1))| := by
             congr 1
             ring
     _ ≤ |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
@@ -376,13 +375,56 @@ theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
           + |(-p.χ₀) *
               (∫ s in (0:ℝ)..t,
                 intervalConjugateKernelOperator (t - s)
-                  (chemFluxLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)
+                  (chemFluxLifted p ((D.u) s)) x.1)
             + (∫ s in (0:ℝ)..t,
                 ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator (t - s)
-                  (logisticLifted p ((conjugatePicardLimit p u₀ DB.T) s)) x.1)| :=
+                  (logisticLifted p ((D.u) s)) x.1)| :=
           abs_add_le _ _
     _ < ε / 2 + ε / 2 := add_lt_add hSg_close (lt_of_le_of_lt hcorr_le hcorr_small)
     _ = ε := by ring
+
+/-- Compatibility wrapper for the original Picard-data interface. -/
+theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
+    (DB : ConjugateMildExistenceData p u₀) :
+    ∀ ε, 0 < ε → ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x : intervalDomainPoint,
+        |intervalConjugateDuhamelMap p u₀
+            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε := by
+  simpa using intervalConjugateDuhamelMap_initialApproach_of_solution_data
+    p hu₀_cont (conjugateMildSolutionData_of_data DB)
+
+/-- Initial trace of the B-form Picard fixed point, derived from the B-form
+map initial approach and the fixed-point equation. -/
+theorem conjugateMildSolutionData_initialTrace
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
+    (D : ConjugateMildSolutionData p u₀) :
+    InitialTrace intervalDomain u₀ D.u := by
+  intro ε hε
+  have hMapApproach :=
+    intervalConjugateDuhamelMap_initialApproach_of_solution_data p hu₀_cont D
+  obtain ⟨δ₀, hδ₀, hsmall⟩ := hMapApproach (ε / 2) (by linarith)
+  refine ⟨min δ₀ D.T, lt_min hδ₀ D.hT, fun t ht htδ ↦ ?_⟩
+  have htδ₀ : t < δ₀ := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htT : t ≤ D.T := le_of_lt (lt_of_lt_of_le htδ (min_le_right _ _))
+  change ShenWork.IntervalDomain.intervalDomainSupNorm
+    (fun x ↦ D.u t x - u₀ x) < ε
+  unfold ShenWork.IntervalDomain.intervalDomainSupNorm
+  have hpt : ∀ x : intervalDomainPoint, |D.u t x - u₀ x| < ε / 2 := by
+    intro x
+    rw [D.hmild t ht htT x]
+    exact hsmall t ht htδ₀ x
+  haveI : Nonempty intervalDomainPoint :=
+    ⟨⟨0, by constructor <;> norm_num⟩⟩
+  have hle : sSup (Set.range (fun x : intervalDomainPoint ↦ |D.u t x - u₀ x|)) ≤
+      ε / 2 := by
+    apply csSup_le (Set.range_nonempty _)
+    intro y hy
+    rcases hy with ⟨x, rfl⟩
+    exact le_of_lt (hpt x)
+  linarith
 
 /-- Initial trace of the B-form Picard fixed point, derived from the B-form
 map initial approach and the fixed-point equation. -/
@@ -423,7 +465,9 @@ theorem conjugatePicardLimit_initialTrace_of_conjugate_data
 
 #print axioms chemFluxLifted_bound_of_ball
 #print axioms conjugateDuhamel_sup_bound_of_integrable_sources
+#print axioms intervalConjugateDuhamelMap_initialApproach_of_solution_data
 #print axioms intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
+#print axioms conjugateMildSolutionData_initialTrace
 #print axioms conjugatePicardLimit_initialTrace_of_conjugate_data
 
 end ShenWork.Paper2.BFormInitialTrace
