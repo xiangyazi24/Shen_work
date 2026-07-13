@@ -49,9 +49,55 @@ theorem paper3SensitivityFactor_sub_abs_le
     ShenWork.IntervalChemFluxLipschitz.oneAddRpow_neg_lipschitz
       hbeta hv₁ hv₂
 
+/-- Polarized Lipschitz estimate for the differentiated sensitivity.  The
+first term measures the gradient difference; the second is the coefficient
+difference times one reference gradient. -/
+theorem paper3SensitivityDerivativeValue_sub_abs_le
+    {beta v₁ v₂ vx₁ vx₂ : ℝ} (hbeta : 0 ≤ beta)
+    (hv₁ : 0 ≤ v₁) (hv₂ : 0 ≤ v₂) :
+    |paper3SensitivityDerivativeValue beta v₁ vx₁ -
+        paper3SensitivityDerivativeValue beta v₂ vx₂| ≤
+      beta * |vx₁ - vx₂| +
+        beta * (beta + 1) * |v₁ - v₂| * |vx₂| := by
+  let A₁ := (1 + v₁) ^ (-beta - 1)
+  let A₂ := (1 + v₂) ^ (-beta - 1)
+  have hbeta1 : 0 ≤ beta + 1 := by linarith
+  have hA₁ : 0 ≤ A₁ := by dsimp [A₁]; positivity
+  have hA₂ : 0 ≤ A₂ := by dsimp [A₂]; positivity
+  have hA₁le : A₁ ≤ 1 := by
+    dsimp [A₁]
+    exact Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by linarith)
+  have hAdiff : |A₁ - A₂| ≤ (beta + 1) * |v₁ - v₂| := by
+    simpa [A₁, A₂, show -(beta + 1) = -beta - 1 by ring] using
+      (ShenWork.IntervalChemFluxLipschitz.oneAddRpow_neg_lipschitz
+        hbeta1 hv₁ hv₂)
+  unfold paper3SensitivityDerivativeValue
+  change |-beta * A₁ * vx₁ - (-beta * A₂ * vx₂)| ≤ _
+  have hsplit :
+      -beta * A₁ * vx₁ - (-beta * A₂ * vx₂) =
+        (-beta * A₁) * (vx₁ - vx₂) +
+          (-beta) * (A₁ - A₂) * vx₂ := by ring
+  rw [hsplit]
+  calc
+    _ ≤ |(-beta * A₁) * (vx₁ - vx₂)| +
+        |(-beta) * (A₁ - A₂) * vx₂| := abs_add_le _ _
+    _ = beta * A₁ * |vx₁ - vx₂| +
+        beta * |A₁ - A₂| * |vx₂| := by
+      rw [abs_mul, abs_mul, abs_mul, abs_mul, abs_neg,
+        abs_of_nonneg hbeta, abs_of_nonneg hA₁]
+    _ ≤ beta * 1 * |vx₁ - vx₂| +
+        beta * ((beta + 1) * |v₁ - v₂|) * |vx₂| := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hA₁le hbeta) (abs_nonneg _))
+        (mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hAdiff hbeta) (abs_nonneg _))
+    _ = _ := by ring
+
 #print axioms paper3SensitivityFactor_comp_hasDerivAt
 #print axioms paper3SensitivityDerivativeValue_abs_le
 #print axioms paper3SensitivityFactor_sub_abs_le
+#print axioms paper3SensitivityDerivativeValue_sub_abs_le
 
 end
 
