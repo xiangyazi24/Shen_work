@@ -330,9 +330,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hpar :
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
-        (le_trans zero_le_one hcond.hM))
-    (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D)) :
+        (le_trans zero_le_one hcond.hM)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
@@ -410,7 +408,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ Λ hMpos hΛ0 hlam
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
-  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower hcube hgraph
@@ -420,9 +418,15 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hpos : ∀ x, 0 < U x :=
     stationaryProfile_strictlyPositive_of_trap_regularity
       hMpos hU.bare hstat hUdiff hUderivDiff hnontriv
+  have hsource : FrozenStationaryGreenSourceTail c lam U := by
+    simpa [PaperGreenSourceTailData, FrozenStationaryGreenSourceTail] using
+      hsourceTail
+  have hflatU : FrozenStationaryFlatAtLeft p U :=
+    frozenStationaryFlatAtLeft_of_green_source_tail
+      hlam hMpos hU hUdiff hsource
   have hlim_neg : Tendsto U atBot (nhds 1) :=
     InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
-      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower (hflat U hU hstat) hstat
+      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower hflatU hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
@@ -444,9 +448,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hpar :
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
-        (le_trans zero_le_one hcond.hM))
-    (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D)) :
+        (le_trans zero_le_one hcond.hM)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
@@ -524,7 +526,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         p c lam M κ Λ hMpos hΛ0 hlam
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
-  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩ :=
     paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
       hdata hlower hcube hgraph
@@ -534,9 +536,15 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hpos : ∀ x, 0 < U x :=
     stationaryProfile_strictlyPositive_of_trap_regularity
       hMpos hU.bare hstat hUdiff hUderivDiff hnontriv
+  have hsource : FrozenStationaryGreenSourceTail c lam U := by
+    simpa [PaperGreenSourceTailData, FrozenStationaryGreenSourceTail] using
+      hsourceTail
+  have hflatU : FrozenStationaryFlatAtLeft p U :=
+    frozenStationaryFlatAtLeft_of_green_source_tail
+      hlam hMpos hU hUdiff hsource
   have hlim_neg : Tendsto U atBot (nhds 1) :=
     InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
-      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower (hflat U hU hstat) hstat
+      hcond.hκ0 hgap_pos hDpos hU.bare hU.lower hflatU hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
@@ -557,13 +565,11 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar
     (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
     (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
-        (le_trans zero_le_one hcond.hM))
-    (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D)) :
+        (le_trans zero_le_one hcond.hM)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar
 
 /-- Clean positive-branch name after the finite-cube approximation and adaptive
 Green source compactness have both become internal theorems. -/
@@ -575,13 +581,11 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
     (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
     (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
-        (le_trans zero_le_one hcond.hM))
-    (hflat : PaperLowerPinnedFlatFloor p c κ M
-      (lowerBarrierRaw κ κtilde D)) :
+        (le_trans zero_le_one hcond.hM)) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar hflat
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar
 
 section AxiomAudit
 

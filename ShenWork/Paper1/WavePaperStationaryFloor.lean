@@ -1021,10 +1021,10 @@ theorem inLowerPinnedMonotoneTrap_frozenElliptic_tail_atBot
       hU.bare.trap.cunif_bdd hU.bare.nonneg hUlim⟩
 
 theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
-    {p : CMParams} {κ M : ℝ} {φ U : ℝ → ℝ} {L : ℝ}
+    {p : CMParams} {κ M : ℝ} {U : ℝ → ℝ} {L : ℝ}
     (hM : 0 < M)
-    (hU : InLowerPinnedMonotoneTrap κ M φ U)
-    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hU_diff : Differentiable ℝ U)
     (hUlim : Tendsto U atBot (𝓝 L))
     (hVlim : Tendsto (frozenElliptic p U) atBot (𝓝 (L ^ p.γ)))
     (hD1 : Tendsto (fun x => deriv U x) atBot (𝓝 0)) :
@@ -1032,7 +1032,7 @@ theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
       (fun x => deriv
         (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
       atBot (𝓝 0) := by
-  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hbare : InMonotoneWaveTrapSet κ M U := hU
   have hUcb : IsCUnifBdd U := hbare.trap.cunif_bdd
   have hUnonneg : ∀ x, 0 ≤ U x := hbare.nonneg
   have hVdiff : ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x :=
@@ -1100,7 +1100,7 @@ theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
     funext x
     have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
         (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
-      (hdiff.U_diff U hU x).hasDerivAt.rpow_const (Or.inr p.hm)
+      (hU_diff x).hasDerivAt.rpow_const (Or.inr p.hm)
     have hV'' := frozenElliptic_deriv_deriv_eq p hUcb hUnonneg x
     have hV_deriv : HasDerivAt (deriv (frozenElliptic p U))
         (frozenElliptic p U x - (U x) ^ p.γ) x := by
@@ -1116,14 +1116,14 @@ theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
   simpa [hflux_eq] using hterm1.add hterm2
 
 theorem crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
-    {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {L : ℝ}
+    {p : CMParams} {lam κ M : ℝ} {U : ℝ → ℝ} {L : ℝ}
     (hM : 0 < M)
-    (hU : InLowerPinnedMonotoneTrap κ M φ U)
-    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hU_diff : Differentiable ℝ U)
     (hUlim : Tendsto U atBot (𝓝 L))
     (hD1 : Tendsto (fun x => deriv U x) atBot (𝓝 0)) :
     ∃ LR, Tendsto (crossSource p lam U U U) atBot (𝓝 LR) := by
-  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hbare : InMonotoneWaveTrapSet κ M U := hU
   have hVlim :
       Tendsto (frozenElliptic p U) atBot (𝓝 (L ^ p.γ)) :=
     frozenElliptic_tendsto_atBot_of_profile_tendsto p
@@ -1134,8 +1134,8 @@ theorem crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
           (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
         atBot (𝓝 0) :=
     frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
-      (p := p) (κ := κ) (M := M) (φ := φ) (U := U) (L := L)
-      hM hU hdiff hUlim hVlim hD1
+      (p := p) (κ := κ) (M := M) (U := U) (L := L)
+      hM hU hU_diff hUlim hVlim hD1
   have hα_nonneg : 0 ≤ p.α := le_trans zero_le_one p.hα
   have hpow :
       Tendsto (fun x => (U x) ^ p.α) atBot (𝓝 (L ^ p.α)) :=
@@ -1169,8 +1169,7 @@ theorem lowerPinned_crossSource_tendsto_atBot_of_c3
     {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
     (hM : 0 < M)
     (hU : InLowerPinnedMonotoneTrap κ M φ U)
-    (hc3 : PaperC3BootstrapData U z)
-    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ) :
+    (hc3 : PaperC3BootstrapData U z) :
     ∃ LR, Tendsto (crossSource p lam U U U) atBot (𝓝 LR) := by
   rcases (inLowerPinnedMonotoneTrap_profile_tail_limits hU).1 with
     ⟨LU, hUlim⟩
@@ -1188,8 +1187,8 @@ theorem lowerPinned_crossSource_tendsto_atBot_of_c3
     antitone_deriv_tendsto_atBot_zero_of_tail_of_second_bound
       hU.bare.antitone hUlim hU_diff hU'_diff hC2_nonneg hsecond_bound
   exact crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
-    (p := p) (lam := lam) (κ := κ) (M := M) (φ := φ) (U := U)
-    (L := LU) hM hU hdiff hUlim hD1
+    (p := p) (lam := lam) (κ := κ) (M := M) (U := U)
+    (L := LU) hM hU.bare hU_diff hUlim hD1
 
 theorem lowerPinned_crossSource_continuous_of_c3
     {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
@@ -1929,7 +1928,6 @@ theorem lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
     (hlam : 0 < lam) (hM : 0 < M)
     (hU : InLowerPinnedMonotoneTrap κ M φ U)
     (hc3 : PaperC3BootstrapData U z)
-    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
     (hdata : StationaryCrossGreenData p c lam U)
     (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
     FrozenStationaryGreenSourceTail c lam U := by
@@ -1941,7 +1939,7 @@ theorem lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
       ∃ L : ℝ, Tendsto (crossSource p lam U U U) atBot (𝓝 L) :=
     lowerPinned_crossSource_tendsto_atBot_of_c3
       (p := p) (lam := lam) (κ := κ) (M := M) (φ := φ) (U := U)
-      (z := z) hM hU hc3 hdiff
+      (z := z) hM hU hc3
   have hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B := by
     obtain ⟨C1, _hC1_nonneg, hC1⟩ := hc3.limit_deriv_bound
     obtain ⟨C2, _hC2_nonneg, hC2⟩ := hc3.limit_second_bound
@@ -1989,7 +1987,7 @@ theorem frozenStationaryFlatAtLeft_of_green_source_tail
     {p : CMParams} {c lam κ M : ℝ} {φ U : ℝ → ℝ}
     (hlam : 0 < lam) (hM : 0 < M)
     (hU : InLowerPinnedMonotoneTrap κ M φ U)
-    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hU_diff : Differentiable ℝ U)
     (hsource : FrozenStationaryGreenSourceTail c lam U) :
     FrozenStationaryFlatAtLeft p U := by
   rcases hsource with ⟨R, B, LR, hRcont, hRbound, hRlim, hgreen⟩
@@ -2010,9 +2008,9 @@ theorem frozenStationaryFlatAtLeft_of_green_source_tail
   exact
     ⟨hD2, hD1,
       frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
-        (p := p) (κ := κ) (M := M) (φ := φ) (U := U)
+        (p := p) (κ := κ) (M := M) (U := U)
         (L := LR * lam⁻¹)
-        hM hU hdiff hUlim hVlim hD1⟩
+        hM hU.bare hU_diff hUlim hVlim hD1⟩
 
 theorem paperLowerPinnedStationaryFlatFloor_of_fixedStepIdentity
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
@@ -2404,11 +2402,11 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
     (fun U hU hstat =>
       frozenStationaryFlatAtLeft_of_green_source_tail
         (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (φ := φ)
-        (U := U) hlam hM hU hdiff
+        (U := U) hlam hM hU (hdiff.U_diff U hU)
         (lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
           (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
           (φ := φ) (U := U) (z := rotheSeq U)
-          hlam hM hU (hc3 U hU) hdiff
+          hlam hM hU (hc3 U hU)
           (stationaryCrossGreenData_of_trap
             (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
             (φ := φ) (U := U) (z := rotheSeq U)

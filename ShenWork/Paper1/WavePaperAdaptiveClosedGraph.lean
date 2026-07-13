@@ -8,6 +8,7 @@
 import ShenWork.Paper1.WavePaperRotheCompactness
 import ShenWork.Paper1.WavePaperTermConvergence
 import ShenWork.Paper1.WaveFrozenEllipticValueDep
+import ShenWork.Paper1.WavePaperStationaryFloor
 
 open Filter Topology Set MeasureTheory
 
@@ -322,10 +323,43 @@ theorem paperGreenRotheAdaptiveStepClosedGraph_of_sourceCompactness
     fun x => gWeight_integrableOn_Iic_of_bounded
       (greenRootMinus_neg (c := c) hlam) cluster.R_cont
       cluster.limit_bound x
+  have hbddAbove : BddAbove (Set.range U) := by
+    refine ⟨M, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    exact hU.le_M x
+  have hbddBelow : BddBelow (Set.range U) := by
+    refine ⟨0, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    exact hU.nonneg x
+  obtain ⟨⟨LU, hUlim⟩, _⟩ :=
+    antitone_tendsto_atBot_atTop_of_bdd hU.antitone hbddAbove hbddBelow
+  have hsecondBound : ∀ x, |deriv (deriv U) x| ≤ C2 := by
+    intro x
+    rw [(hUhas2 x).deriv]
+    exact hC2 x
+  have hD1 : Tendsto (fun x => deriv U x) atBot (nhds 0) :=
+    antitone_deriv_tendsto_atBot_zero_of_tail_of_second_bound
+      hU.antitone hUlim (fun x => (hUhas x).differentiableAt)
+      (fun x => (hUhas2 x).differentiableAt) hC20 hsecondBound
+  obtain ⟨LR, hcrossTail⟩ :=
+    crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
+      (p := p) (lam := lam) (M := M) hM hU
+      (fun x => (hUhas x).differentiableAt) hUlim hD1
+  have hdiagSource :
+      paperStepSource p c lam U U U = crossSource p lam U U U :=
+    paperStepSource_self_eq_crossSource
+      hU.trap.cunif_bdd hU.nonneg hUhas
+  have hRtail : Tendsto cluster.R atBot (nhds LR) := by
+    rw [hsourceEq, hdiagSource]
+    exact hcrossTail
+  have hsourceTail : PaperGreenSourceTailData c lam U :=
+    ⟨cluster.R, cluster.B, LR, cluster.R_cont, cluster.limit_bound,
+      hRtail, hUgreen⟩
   exact ⟨paperImplicitStepOp_of_greenConv_source hlam hsourceEq hUgreen
     cluster.R_cont hRhi hRlo,
     fun x => (hUhas x).differentiableAt,
-    fun x => (hUhas2 x).differentiableAt⟩
+    fun x => (hUhas2 x).differentiableAt,
+    hsourceTail⟩
 
 section AxiomAudit
 
