@@ -19,7 +19,7 @@ theorem Theorem_1_1.unconditional : Theorem_1_1 := by
         hprofile.to_monotoneTravelingWave hUmono hVmono,
         hupper, by simpa [negativeBranchTailCap] using htail⟩
   · intro p hα hχ0 hχsmall c hc
-    obtain ⟨U, hprofile, hupper, htail⟩ :=
+    obtain ⟨U, hprofile, _hU2, _hV2, hupper, htail⟩ :=
       paper1_positiveConstruction_selfStep p hα hχ0 hχsmall c hc
     exact
       ⟨U, frozenElliptic p U, hprofile.to_travelingWave, hupper, htail⟩
@@ -45,7 +45,7 @@ theorem Theorem_1_1.unconditional_positive_nonvacuous :
   have hχsmall : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
     norm_num [p, chiStar]
   have hc : (2 : ℝ) < 3 := by norm_num
-  obtain ⟨U, hprofile, hupper, _htail⟩ :=
+  obtain ⟨U, hprofile, _hU2, _hV2, hupper, _htail⟩ :=
     paper1_positiveConstruction_selfStep p hα hχ0 hχsmall 3 hc
   exact ⟨p, 3, U, frozenElliptic p U, hα, hχ0, hχsmall, hc,
     hprofile.to_travelingWave, hupper, hprofile.U_pos 0⟩

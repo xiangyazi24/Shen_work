@@ -1,6 +1,7 @@
 import ShenWork.Paper1.Lemma53Full
 import ShenWork.Paper1.Theorem12CoordinateAudit
 import ShenWork.Paper1.Theorem12RootObstruction
+import ShenWork.Paper1.WavePositiveConstruction
 import ShenWork.Paper1.WaveStabilityUpgrade
 
 open Filter Topology MeasureTheory
@@ -239,7 +240,6 @@ theorem Theorem_1_2_amended_self_initial_data_nonvacuous
     {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
     (hTW : IsTravelingWave p c U V)
     (hstrict : HasStrictWaveUpperTailBound p c U)
-    (hreg : TravelingWaveRegularity p c U V)
     (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
     NonnegativeInitialDatum U ∧
       StrictlyPositiveAtLeft U ∧
@@ -248,7 +248,7 @@ theorem Theorem_1_2_amended_self_initial_data_nonvacuous
         IsGlobalCauchySolutionFrom p U u v ∧
         CoMovingWeightedL2Convergence η c u U ∧
         UniformMovingFrameConvergence c u U := by
-  refine ⟨hstrict.nonnegativeInitialDatum_of_continuous hreg.U_cont,
+  refine ⟨hstrict.nonnegativeInitialDatum_of_continuous hU_diff.continuous,
     IsTravelingWave.strictlyPositiveAtLeft hTW,
     WeightedL2InitialCloseness.refl η U, ?_⟩
   exact ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
@@ -256,12 +256,60 @@ theorem Theorem_1_2_amended_self_initial_data_nonvacuous
     IsTravelingWave.coMovingWeightedL2Convergence_self hTW,
     IsTravelingWave.uniformMovingFrameConvergence_self hTW⟩
 
+/-- A concrete positive-attraction instance of the amended conclusion.
+The wave and both `C²` profiles come from the genuine Paper 1 Schauder
+construction, so none of the hypotheses in the preceding self-data lemma is
+an abstract consistency assumption. -/
+theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
+    ∃ p : CMParams, ∃ c η : ℝ, ∃ U V : ℝ → ℝ,
+      0 < p.χ ∧ 2 < c ∧ StableWaveParameterRegime p ∧
+      IsTravelingWave p c U V ∧
+      HasStrictWaveUpperTailBound p c U ∧
+      NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        CoMovingWeightedL2Convergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 1 / 4
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α = p.m + p.γ - 1 := by norm_num [p]
+  have hχ0 : 0 ≤ p.χ := by norm_num [p]
+  have hχpos : 0 < p.χ := by norm_num [p]
+  have hχsmall : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
+    norm_num [p, chiStar]
+  have hχstar : p.χ < chiStar p :=
+    lt_of_lt_of_le hχsmall (min_le_right _ _)
+  have hχ1 : p.χ < 1 := by norm_num [p]
+  have hc : (2 : ℝ) < 3 := by norm_num
+  obtain ⟨U, hprofile, hU2, hV2, hupper, _htail⟩ :=
+    paper1_positiveConstruction_selfStep p hα hχ0 hχsmall 3 hc
+  let V : ℝ → ℝ := frozenElliptic p U
+  have hTW : IsTravelingWave p 3 U V := by
+    simpa [V] using hprofile.to_travelingWave
+  have hstrict : HasStrictWaveUpperTailBound p 3 U :=
+    hupper.hasStrictWaveUpperTailBound hχ0 hχ1
+  have hself :=
+    Theorem_1_2_amended_self_initial_data_nonvacuous
+      (η := 0) hTW hstrict hU2 (by simpa [V] using hV2)
+  exact ⟨p, 3, 0, U, V, hχpos, hc,
+    StableWaveParameterRegime.of_positive hχ0 hχstar hα,
+    hTW, hstrict, hself⟩
+
 section Theorem12CorrectedAxiomAudit
 #print axioms CoMovingWeightedL2Convergence.of_energy_dissipation
 #print axioms uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
 #print axioms section5ProfileInitialSignalBounds_proved
 #print axioms paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
 #print axioms Theorem_1_2_amended_self_initial_data_nonvacuous
+#print axioms Theorem_1_2_amended_self_initial_data_concrete_nonvacuous
 end Theorem12CorrectedAxiomAudit
 
 end ShenWork.Paper1
