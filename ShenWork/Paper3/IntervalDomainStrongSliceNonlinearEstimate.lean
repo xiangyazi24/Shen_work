@@ -4,6 +4,7 @@ import ShenWork.Paper3.IntervalDomainSignalRegularityProducer
 import ShenWork.Paper3.IntervalDomainFluxDerivativeIntegrability
 import ShenWork.Paper3.IntervalDomainStrongEmbedding
 import ShenWork.Paper3.IntervalDomainStrongRealizationProducer
+import ShenWork.Paper3.IntervalDomainUniformNemytskiiConstants
 import ShenWork.Paper2.IntervalDomainMass
 import ShenWork.Paper2.IntervalDomainMPhysicalRestart
 
@@ -19,7 +20,7 @@ noncomputable section
 /-- Strong fractional smallness produces every local Nemytskii hypothesis,
 including the load-bearing positive lower bound and the qualitative
 integrability of the already-identified physical flux derivative. -/
-theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
+theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball_uniform
     {p : CM2Params} {T t sigma uStar vStar : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
@@ -37,7 +38,11 @@ theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
             intervalDomainX2SigmaDistance sigma uStar (u t) ∧
         H.flux.bounds.L =
           intervalDomainX2SigmaC1Envelope sigma *
-            intervalDomainX2SigmaDistance sigma uStar (u t) := by
+            intervalDomainX2SigmaDistance sigma uStar (u t) ∧
+        H.toL2Data.quadraticConstant =
+          paper3RouteAFullQuadraticConstant p uStar vStar
+            (paper3UniformSignalStrongConstant p uStar heq.u_pos)
+            (paper3UniformLogisticTaylorConstant p heq) := by
   let d := intervalDomainX2SigmaDistance sigma uStar (u t)
   let M := intervalDomainX2SigmaC1Envelope sigma * d
   have henv := Hreal.local_envelope_bounds hsmall
@@ -152,10 +157,17 @@ theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
     ⟨⟨Hlin, Hquad⟩⟩
   let Hsplit := intervalSolutionSignalSplitData_of_classical_slice
     (p := p) (uStar := uStar) hsol ht
-  obtain ⟨Csignal, hCsignal, hsignal⟩ :=
-    paper3SignalComponents_strong_bounds p heq.u_pos hM0 (u t) hu_near
-      hphi Hlin.profile_aestronglyMeasurable
-        Hquad.profile_aestronglyMeasurable hphi_sup hphi_l2
+  let Csignal := paper3UniformSignalStrongConstant p uStar heq.u_pos
+  let Klog := paper3UniformLogisticTaylorConstant p heq
+  have hCsignal : 0 < Csignal := by
+    simpa [Csignal] using
+      paper3UniformSignalStrongConstant_pos p uStar heq.u_pos
+  have hKlog : 0 < Klog := by
+    simpa [Klog] using paper3UniformLogisticTaylorConstant_pos p heq
+  have hsignal := paper3SignalComponents_strong_bounds_uniform
+    p heq.u_pos hM0 (u t) hu_near hphi
+      Hlin.profile_aestronglyMeasurable
+      Hquad.profile_aestronglyMeasurable hphi_sup hphi_l2
   have hz1xxMem : MemLp (paper3LinearSignalLaplacian p uStar (u t)) 2
       (intervalMeasure 1) := by
     apply memLp_two_of_hasDerivAt_Ioo_and_abs_bound_Icc
@@ -167,13 +179,134 @@ theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
       exact (hsignal x hx).2.2.1
   have hfluxDerivInt := paper3ChemFluxRemainder_deriv_intervalIntegrable
     (vStar := vStar) hsol ht hm Hlin hz1xxMem
-  rcases exists_fullNonlinearRemainderRouteAData_of_strong_slice
-      hsol ht hm heq Hsplit Hlin Hquad hM0 hM1 hu_near hphi hphi_sup
-        hphi_l2 hphiInt hreact hlog_meas hwx hfluxDerivInt with
-    ⟨H, hHM, hHL⟩
-  exact ⟨H, by simpa [M, d] using hHM, by simpa [M, d] using hHL⟩
+  rcases exists_fullNonlinearRemainderRouteAData_of_strong_slice_with_constants
+      hsol ht hm heq Hsplit Hlin Hquad Csignal Klog hCsignal hKlog
+        hsignal (paper3UniformLogisticTaylorConstant_bound p heq)
+        hM0 hM1 hu_near hphi hphi_sup hphi_l2 hphiInt hreact hlog_meas
+        hwx hfluxDerivInt with
+    ⟨H, hHM, hHL, hconst⟩
+  exact ⟨H, by simpa [M, d] using hHM,
+    by simpa [M, d] using hHL, by simpa [Csignal, Klog] using hconst⟩
+
+#print axioms exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball_uniform
+
+/-- Compatibility form of the strong-ball producer. -/
+theorem exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
+    {p : CM2Params} {T t sigma uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (Hreal : IntervalDomainX2SigmaRealizationBounds sigma uStar (u t))
+    (hsmall : intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+      intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar) :
+    ∃ H : FullNonlinearRemainderRouteAData
+        (paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t),
+      H.flux.bounds.M =
+          intervalDomainX2SigmaC1Envelope sigma *
+            intervalDomainX2SigmaDistance sigma uStar (u t) ∧
+        H.flux.bounds.L =
+          intervalDomainX2SigmaC1Envelope sigma *
+            intervalDomainX2SigmaDistance sigma uStar (u t) := by
+  rcases exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball_uniform
+      hsol ht hm heq Hreal hsmall with ⟨H, hM, hL, _⟩
+  exact ⟨H, hM, hL⟩
 
 #print axioms exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball
+
+/-- One trajectory-independent quadratic constant for the actual modal
+nonlinearity on the strong positivity ball. -/
+def intervalDomainX2SigmaUniformNemytskiiConstant
+    (p : CM2Params) (sigma uStar vStar : ℝ)
+    (heq : Paper3ConstantEquilibrium p uStar vStar) : ℝ :=
+  let Csignal := paper3UniformSignalStrongConstant p uStar heq.u_pos
+  let Klog := paper3UniformLogisticTaylorConstant p heq
+  let Q := paper3RouteAFullQuadraticConstant
+    p uStar vStar Csignal Klog
+  (Q + 1) * intervalDomainX2SigmaC1Envelope sigma ^ 2
+
+theorem intervalDomainX2SigmaUniformNemytskiiConstant_pos
+    (p : CM2Params) (sigma uStar vStar : ℝ)
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    0 < intervalDomainX2SigmaUniformNemytskiiConstant
+      p sigma uStar vStar heq := by
+  let Csignal := paper3UniformSignalStrongConstant p uStar heq.u_pos
+  let Klog := paper3UniformLogisticTaylorConstant p heq
+  have hC : 0 < Csignal := by
+    simpa [Csignal] using
+      paper3UniformSignalStrongConstant_pos p uStar heq.u_pos
+  have hKlog : 0 < Klog := by
+    simpa [Klog] using paper3UniformLogisticTaylorConstant_pos p heq
+  have hflux : 0 ≤ paper3RouteAFluxL2Constant
+      p uStar vStar Csignal := by
+    unfold paper3RouteAFluxL2Constant
+    dsimp only
+    have hU : 0 ≤ uStar + 1 := by linarith [heq.u_pos]
+    have hCq : 0 ≤ 2 * p.β * Csignal :=
+      mul_nonneg (mul_nonneg (by norm_num) p.hβ) hC.le
+    have hK0 : 0 ≤
+        |paper3SensitivityFactor p.β vStar| * Csignal +
+          |paper3SensitivityFactor p.β vStar| * Csignal +
+          (2 * p.β * Csignal) * (2 * Csignal) +
+          (uStar + 1) * (2 * p.β * Csignal) * (2 * Csignal) := by
+      positivity
+    positivity
+  have hQ : 0 ≤ paper3RouteAFullQuadraticConstant
+      p uStar vStar Csignal Klog := by
+    unfold paper3RouteAFullQuadraticConstant
+    positivity
+  unfold intervalDomainX2SigmaUniformNemytskiiConstant
+  dsimp only
+  exact mul_pos (by linarith)
+    (sq_pos_of_pos (intervalDomainX2SigmaC1Envelope_pos sigma))
+
+/-- Uniform L12 self estimate.  The constant is fixed before the trajectory,
+time slice, and local strong datum are quantified. -/
+theorem paper3FullModeNonlinearRemainderCoeffM_uniform_self_bound
+    {p : CM2Params} {sigma uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    ∀ {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      t ∈ Set.Ioo (0 : ℝ) T →
+      p.m = 1 →
+      IntervalDomainX2SigmaRealizationBounds sigma uStar (u t) →
+      intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+        intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar →
+      Summable (fun n : ℕ =>
+        ‖((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t n : ℝ) : ℂ)‖ ^ 2) ∧
+      ShenWork.PDE.SectorialOperator.coeffL2Norm
+          (fun n => ((paper3FullModeNonlinearRemainderCoeffM
+            p uStar vStar u v t n : ℝ) : ℂ)) ≤
+        intervalDomainX2SigmaUniformNemytskiiConstant
+          p sigma uStar vStar heq *
+            intervalDomainX2SigmaDistance sigma uStar (u t) ^ 2 := by
+  intro T t u v hsol ht hm Hreal hsmall
+  rcases exists_fullNonlinearRemainderRouteAData_of_X2Sigma_ball_uniform
+      hsol ht hm heq Hreal hsmall with ⟨H, hM, hL, hconst⟩
+  have hcoeff := H.coeffL2Norm_le
+  have hQ0 := H.toL2Data.quadraticConstant_nonneg
+  let Cenv := intervalDomainX2SigmaC1Envelope sigma
+  let d := intervalDomainX2SigmaDistance sigma uStar (u t)
+  rw [hM, hL, hconst] at hcoeff
+  refine ⟨hcoeff.1, ?_⟩
+  calc
+    _ ≤ paper3RouteAFullQuadraticConstant p uStar vStar
+          (paper3UniformSignalStrongConstant p uStar heq.u_pos)
+          (paper3UniformLogisticTaylorConstant p heq) *
+        (Cenv * d) * (Cenv * d) := by
+      simpa [Cenv, d] using hcoeff.2
+    _ ≤ intervalDomainX2SigmaUniformNemytskiiConstant
+          p sigma uStar vStar heq * d ^ 2 := by
+      dsimp [intervalDomainX2SigmaUniformNemytskiiConstant, Cenv]
+      have hd : 0 ≤ d := by dsimp [d]; exact Real.sqrt_nonneg _
+      nlinarith [sq_nonneg (intervalDomainX2SigmaC1Envelope sigma),
+        sq_nonneg d, hQ0]
+
+#print axioms paper3FullModeNonlinearRemainderCoeffM_uniform_self_bound
+#print axioms intervalDomainX2SigmaUniformNemytskiiConstant_pos
 
 /-- L12 in the exact strong norm: on the local positivity ball the complete
 physical modal nonlinearity is quadratic in the `X_2^sigma` distance. -/
