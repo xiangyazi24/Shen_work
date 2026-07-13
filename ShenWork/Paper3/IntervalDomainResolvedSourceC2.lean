@@ -1,12 +1,15 @@
 /- C1 gradient / elliptic-laplacian bridge for an arbitrary resolved source. -/
 import ShenWork.Paper3.IntervalDomainResolvedSourceBounds
 import ShenWork.PDE.IntervalResolverGradientBridge
+import ShenWork.PDE.IntervalCosineInversion
 
 namespace ShenWork.Paper3
 
 open Real
 open ShenWork.PDE
 open ShenWork.IntervalResolverGradientBridge
+open ShenWork.IntervalCosineInversion
+open ShenWork.IntervalNeumannFullKernel
 
 noncomputable section
 
@@ -196,10 +199,36 @@ theorem paper3ResolvedSourceGradient_hasDerivAt_elliptic
   rw [← hreconstruct x, ← paper3ResolvedSourceLaplacian_eq_elliptic p H x]
   exact paper3ResolvedSourceGradient_hasDerivAt_laplacian p H x
 
+/-- Pointwise source reconstruction from the existing cosine inversion
+theorem.  A globally continuous representative is used because physical
+profiles are only prescribed on the closed unit interval. -/
+theorem paper3ResolvedSourceSourceValue_eq_of_cosineRepresentative
+    {a : ℕ → ℝ} {f G : ℝ → ℝ}
+    (hG : Continuous G)
+    (hGsum : Summable (fun n : ℤ => fourierCoeff (reflCircle G) n))
+    (ha : ∀ k, a k = cosineCoeffs G k)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hGf : G x = f x) :
+    paper3ResolvedSourceSourceValue a x = f x := by
+  have hinv := intervalCosine_hasSum_pointwise G hG hx hGsum
+  have hterm : ∀ k : ℕ,
+      unitIntervalCosineMode k x * cosineCoeffs G k =
+        a k * Real.cos ((k : ℝ) * Real.pi * x) := by
+    intro k
+    rw [ha]
+    unfold unitIntervalCosineMode
+    ring
+  have hinv' : HasSum
+      (fun k => a k * Real.cos ((k : ℝ) * Real.pi * x)) (G x) :=
+    hinv.congr_fun (fun k => (hterm k).symm)
+  unfold paper3ResolvedSourceSourceValue
+  rw [hinv'.tsum_eq, hGf]
+
 #print axioms ResolvedSourceCoeffQuadraticDecay.abs_summable
 #print axioms paper3ResolvedSourceGradient_hasDerivAt_laplacian
 #print axioms paper3ResolvedSourceLaplacian_eq_elliptic
 #print axioms paper3ResolvedSourceGradient_hasDerivAt_elliptic
+#print axioms paper3ResolvedSourceSourceValue_eq_of_cosineRepresentative
 
 end
 
