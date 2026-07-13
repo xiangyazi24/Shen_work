@@ -271,11 +271,80 @@ theorem intervalDomain_rectangleLogGapChoice_sSup_eq
   · rw [← hqstar]
     exact le_csSup hbdd hmem
 
+/-- Joint continuity of the compact-choice logarithmic spread on a closed
+positive-time slab. -/
+theorem intervalDomain_rectangleLogGapChoice_jointContinuousOn
+    {p : CM2Params} {T a b uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huStar : 0 < uStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hab : Icc a b ⊆ Ioo (0 : ℝ) T) :
+    ContinuousOn
+      (Function.uncurry (intervalDomain_rectangleLogGapChoice uStar u))
+      (Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) := by
+  let Time := {t : ℝ // t ∈ Icc a b}
+  obtain ⟨_, _, _, _, _, _, hjoint⟩ := hsol.regularity
+  have hU : Continuous (fun z : Time × intervalDomainPoint =>
+      u z.1.1 z.2) := by
+    have hbase := continuousOn_iff_continuous_restrict.mp
+      (hjoint.1.mono (Set.prod_mono hab (le_refl _)))
+    have hmap : Continuous (fun z : Time × intervalDomainPoint =>
+        (⟨(z.1.1, z.2.1), ⟨z.1.2, z.2.2⟩⟩ :
+          ↑(Icc a b ×ˢ Icc (0 : ℝ) 1))) := by
+      exact Continuous.subtype_mk
+        ((continuous_subtype_val.comp continuous_fst).prodMk
+          (continuous_subtype_val.comp continuous_snd)) _
+    have hc := hbase.comp hmap
+    change Continuous (fun z : Time × intervalDomainPoint =>
+      intervalDomainLift (u z.1.1) z.2.1) at hc
+    convert hc using 1
+    funext z
+    simp [intervalDomainLift]
+  let leftValue : Time × Unit → ℝ := fun _ => uStar
+  let rightValue : Time × intervalDomainPoint → ℝ :=
+    fun z => u z.1.1 z.2
+  let value : Time × intervalRectangleEnvelopeChoice → ℝ :=
+    fun z => intervalDomain_equilibriumChoiceValue uStar u z.1.1 z.2
+  have hvalue : Continuous value := by
+    have hsum : Continuous (Sum.elim leftValue rightValue) :=
+      Continuous.sumElim continuous_const hU
+    let e : Time × (Unit ⊕ intervalDomainPoint) ≃ₜ
+        (Time × Unit) ⊕ (Time × intervalDomainPoint) :=
+      Homeomorph.prodSumDistrib
+    have heq : value =
+        (Sum.elim leftValue rightValue) ∘ e := by
+      funext z
+      rcases z with ⟨t, q⟩
+      rcases q with z | x <;> rfl
+    rw [heq]
+    exact hsum.comp e.continuous
+  have hgap : Continuous (fun z : Time × intervalRectangleGapChoice =>
+      intervalDomain_rectangleLogGapChoice uStar u z.1.1 z.2) := by
+    have htop : Continuous (fun z : Time × intervalRectangleGapChoice =>
+        value (z.1, z.2.1)) := hvalue.comp (by fun_prop)
+    have hbot : Continuous (fun z : Time × intervalRectangleGapChoice =>
+        value (z.1, z.2.2)) := hvalue.comp (by fun_prop)
+    have htopLog := htop.log (fun z => by
+      exact ne_of_gt (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+        (hab z.1.2) z.2.1))
+    have hbotLog := hbot.log (fun z => by
+      exact ne_of_gt (intervalDomain_equilibriumChoiceValue_pos huStar hsol
+        (hab z.1.2) z.2.2))
+    simpa [value, intervalDomain_rectangleLogGapChoice] using
+      htopLog.sub hbotLog
+  rw [continuousOn_iff_continuous_restrict]
+  have hmap : Continuous
+      (fun z : ↑(Icc a b ×ˢ (Set.univ : Set intervalRectangleGapChoice)) =>
+        ((⟨z.1.1, z.2.1⟩ : Time), z.1.2)) := by
+    fun_prop
+  simpa [Function.uncurry] using hgap.comp hmap
+
 #print axioms intervalDomain_equilibriumChoiceValue_pos
 #print axioms intervalDomain_clampedLower_pos
 #print axioms intervalDomain_rectangleLogGap_nonneg
 #print axioms intervalDomain_equilibriumChoiceValue_mem_clamped
 #print axioms intervalDomain_rectangleLogGapChoice_sSup_eq
+#print axioms intervalDomain_rectangleLogGapChoice_jointContinuousOn
 
 end
 
