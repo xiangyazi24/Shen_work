@@ -19,29 +19,19 @@ def paperRotheStepFacts_of_routeA_output
   have hbasic :
       Continuous W ∧ Differentiable ℝ W ∧ ∀ x, |deriv W x| ≤ Λ :=
     smooth_paperStep_basic_regular_of_core hin.hlam hout.analytic
-  have hnonneg : ∀ x, 0 ≤ W x := by
-    have hle := paperStep_ge_lower
-      (c := c) (lam := lam) hin.hlam hstep hout.lowerZero
-    intro x
-    exact hle x
-  have hle_old : ∀ x, W x ≤ Z x :=
-    paperStep_le_upper (c := c) (lam := lam) hin.hlam hstep hout.upperOld
-  have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
-    paperStep_le_upper
-      (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
   exact
     { step_op := hstep
       cont := hbasic.1
       diff := hbasic.2.1
       contDiff2 := paperStep_contDiff_two_of_core hin.hlam hout.analytic
       deriv_le := hbasic.2.2
-      nonneg := hnonneg
-      le_barrier := hle_barrier
-      le_old := hle_old
-      anti := paperStep_antitone_of_trap_via_mollification hin.hlam hout.approx
+      nonneg := hout.nonneg
+      le_barrier := hout.le_barrier
+      le_old := hout.le_old
+      anti := hout.anti
       paperSuper :=
         paperWaveOperator_nonpos_of_implicitStep_le
-          (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+          (p := p) (c := c) (lam := lam) hin.hlam hstep hout.le_old }
 
 /-- Route-A Rothe recursion which retains the concrete Green output selected at
 every successor.  The older `rotheSeqOfPaper` deliberately erased this payload;

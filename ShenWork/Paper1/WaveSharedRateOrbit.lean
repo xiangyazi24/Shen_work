@@ -81,7 +81,7 @@ noncomputable def paperSharedRateRouteACore_of_params
     let out := hrest Z hZ q.fixed
     exact
       ⟨q.fixed.W,
-        { output := out.toOutputRouteACore.2
+        { output := (out.toOutputRouteACore params.hlam).2
           ell := q.ell
           rate := ExpLeftRate.mono_C hstep q.W_rate }⟩
 
@@ -100,29 +100,20 @@ def paperRotheStepFacts_of_sharedRate_output
   have hbasic :
       Continuous W ∧ Differentiable ℝ W ∧ ∀ x, |deriv W x| ≤ Λ :=
     smooth_paperStep_basic_regular_of_core hlam hout.output.analytic
-  have hnonneg : ∀ x, 0 ≤ W x := by
-    have hle := paperStep_ge_lower
-      (c := c) (lam := lam) hlam hstep hout.output.lowerZero
-    exact fun x => hle x
-  have hle_old : ∀ x, W x ≤ Z x :=
-    paperStep_le_upper (c := c) (lam := lam) hlam hstep hout.output.upperOld
-  have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
-    paperStep_le_upper
-      (c := c) (lam := lam) hlam hstep hout.output.upperBarrier
   exact
     { step_op := hstep
       cont := hbasic.1
       diff := hbasic.2.1
       contDiff2 := paperStep_contDiff_two_of_core hlam hout.output.analytic
       deriv_le := hbasic.2.2
-      nonneg := hnonneg
-      le_barrier := hle_barrier
-      le_old := hle_old
-      anti := paperStep_antitone_of_trap_via_mollification hlam hout.output.approx
+      nonneg := hout.output.nonneg
+      le_barrier := hout.output.le_barrier
+      le_old := hout.output.le_old
+      anti := hout.output.anti
       paperSuper :=
         paperWaveOperator_nonpos_of_implicitStep_le
           (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
-          hlam hstep hle_old }
+          hlam hstep hout.output.le_old }
 
 /-- The dependent Rothe recursion on the true quantitative invariant. -/
 def paperSharedRateRotheStep

@@ -1345,14 +1345,10 @@ than the shifted sliding wrapper. -/
 structure PaperStepOutputRouteACore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
-  C_chem : ℝ
-  lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
-  upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
-  upperBarrier :
-    PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
-  Cmono : ℝ
-  routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
-  approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W
+  nonneg : ∀ x, 0 ≤ W x
+  le_barrier : ∀ x, W x ≤ upperBarrier κ M x
+  le_old : ∀ x, W x ≤ Z x
+  anti : Antitone W
 
 /-- The Schauder-side data needed to turn a fixed source into the Route-A paper
 step output.  The `fixed` field supplies `W = greenConv R` and the analytic
@@ -1378,17 +1374,24 @@ namespace PaperStepOutputRouteAAssemblyData
 data. -/
 def toOutputRouteACore
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
     (h : PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z) :
-    Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
-  ⟨h.fixed.W,
-    { analytic := h.fixed.analyticCore
-      C_chem := h.C_chem
-      lowerZero := h.lowerZero
-      upperOld := h.upperOld
-      upperBarrier := h.upperBarrier
-      Cmono := h.Cmono
-      routeA := h.routeA
-      approx := h.approx }⟩
+    Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W := by
+  have hstep :
+      ∀ x, paperImplicitStepOp p c (1 / lam) u h.fixed.W x = Z x :=
+    smooth_paperStep_step_op_of_core hlam h.fixed.analyticCore
+  exact
+    ⟨h.fixed.W,
+      { analytic := h.fixed.analyticCore
+        nonneg := fun x =>
+          paperStep_ge_lower (c := c) (lam := lam) hlam hstep h.lowerZero x
+        le_barrier :=
+          paperStep_le_upper
+            (c := c) (lam := lam) hlam hstep h.upperBarrier
+        le_old :=
+          paperStep_le_upper (c := c) (lam := lam) hlam hstep h.upperOld
+        anti :=
+          paperStep_antitone_of_trap_via_mollification hlam h.approx }⟩
 
 end PaperStepOutputRouteAAssemblyData
 
@@ -1431,9 +1434,10 @@ def toAssemblyData
 def toOutputRouteACore
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
     {fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z}
+    (hlam : 0 < lam)
     (h : PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
     Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
-  h.toAssemblyData.toOutputRouteACore
+  h.toAssemblyData.toOutputRouteACore hlam
 
 end PaperStepOutputRouteAFixedRestData
 
@@ -1517,7 +1521,7 @@ def paperGreenStepInputRouteACore_of_assembly
   basePaperSuper := hbase
   produce := by
     intro Z hZc hZa hZ0 hZB hZsuper
-    exact (hstep Z hZc hZa hZ0 hZB hZsuper).toOutputRouteACore
+    exact (hstep Z hZc hZa hZ0 hZB hZsuper).toOutputRouteACore hlam
 
 /-- Assemble the super-core from a concrete super-trap fixed-source existence
 statement plus the remaining Route-A data. -/
@@ -1537,7 +1541,7 @@ def paperGreenStepInputRouteASuperCore_of_fixedSource
       PaperStepFixedSourceCore.of_existsForSuperTrap
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
         (u := u) (Z := Z) hfixed hu hZc hZa hZ0 hZB hZsuper
-    exact (hrest Z hZc hZa hZ0 hZB hZsuper fixed).toOutputRouteACore
+    exact (hrest Z hZc hZa hZ0 hZB hZsuper fixed).toOutputRouteACore hlam
 
 /-- Forget the super-core to the existing Route-A core.
 
@@ -1639,16 +1643,6 @@ def paperRotheStepProducer_of_routeA_greenCore
       smooth_paperStep_basic_regular_of_core
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
         hin.hlam hout.analytic
-    have hnonneg : ∀ x, 0 ≤ W x := by
-      have hle := paperStep_ge_lower
-        (c := c) (lam := lam) hin.hlam hstep hout.lowerZero
-      intro x
-      exact hle x
-    have hle_old : ∀ x, W x ≤ Z x :=
-      paperStep_le_upper (c := c) (lam := lam) hin.hlam hstep hout.upperOld
-    have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
-      paperStep_le_upper
-        (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
       { step_op := hstep
@@ -1659,16 +1653,13 @@ def paperRotheStepProducer_of_routeA_greenCore
             (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
             hin.hlam hout.analytic
         deriv_le := hbasic.2.2
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_of_trap_via_mollification
-          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
-          hin.hlam hout.approx
+        nonneg := hout.nonneg
+        le_barrier := hout.le_barrier
+        le_old := hout.le_old
+        anti := hout.anti
         paperSuper :=
           paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+            (p := p) (c := c) (lam := lam) hin.hlam hstep hout.le_old }
   produce_regular := by
     intro Z hZbase
     obtain ⟨W, hout⟩ :=
@@ -1683,16 +1674,6 @@ def paperRotheStepProducer_of_routeA_greenCore
       smooth_paperStep_basic_regular_of_core
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
         hin.hlam hout.analytic
-    have hnonneg : ∀ x, 0 ≤ W x := by
-      have hle := paperStep_ge_lower
-        (c := c) (lam := lam) hin.hlam hstep hout.lowerZero
-      intro x
-      exact hle x
-    have hle_old : ∀ x, W x ≤ Z x :=
-      paperStep_le_upper (c := c) (lam := lam) hin.hlam hstep hout.upperOld
-    have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
-      paperStep_le_upper
-        (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
       { step_op := hstep
@@ -1703,16 +1684,13 @@ def paperRotheStepProducer_of_routeA_greenCore
             (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
             hin.hlam hout.analytic
         deriv_le := hbasic.2.2
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_of_trap_via_mollification
-          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
-          hin.hlam hout.approx
+        nonneg := hout.nonneg
+        le_barrier := hout.le_barrier
+        le_old := hout.le_old
+        anti := hout.anti
         paperSuper :=
           paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+            (p := p) (c := c) (lam := lam) hin.hlam hstep hout.le_old }
 
 theorem paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
