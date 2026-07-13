@@ -1106,6 +1106,30 @@ structure PaperGreenStepInputRouteACore
       (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
 
+/-- The exact Route-A interface consumed by the Rothe recursion.
+
+Only iterates already carrying `PaperIterateBase` occur in the recursion.  In
+particular this interface does not ask an arbitrary continuous trapped
+supersolution to possess the `C²` and exponential-tail regularity needed by the
+Green source box. -/
+structure PaperGreenStepInputRouteAOrbitCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
+  hlam : 0 < lam
+  basePaperSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0
+  produce_regular : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+      Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
+
+/-- The legacy all-supertrap core supplies the smaller orbit-faithful core. -/
+def PaperGreenStepInputRouteACore.toOrbitCore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (h : PaperGreenStepInputRouteACore p c lam M κ Λ u) :
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u where
+  hlam := h.hlam
+  basePaperSuper := h.basePaperSuper
+  produce_regular := by
+    intro Z hZ
+    exact h.produce Z hZ.cont hZ.anti hZ.nonneg hZ.le_barrier hZ.paperSuper
+
 /-- Route-A Green input with the super-trap precondition threaded into
 `produce`.  This is the satisfiable interface for the Schauder fixed-source step:
 the descent orbit supplies `F_u(Z) ≤ 0` inductively, while the bare
