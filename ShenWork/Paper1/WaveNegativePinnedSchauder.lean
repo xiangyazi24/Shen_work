@@ -199,11 +199,188 @@ theorem paperNegativePinnedRotheSeq_orbitData
     | zero => exact le_rfl
     | succ n => exact (hstep n).le_barrier x
 
+/-- Forget only the uniform modulus, retaining the lower-pinned bare trap. -/
+def InLowerPinnedUniformModulusMonotoneTrap.toLowerPinned
+    {κ M L : ℝ} {φ u : ℝ → ℝ}
+    (hu : InLowerPinnedUniformModulusMonotoneTrap κ M L φ u) :
+    InLowerPinnedMonotoneTrap κ M φ u :=
+  ⟨hu.uniformTrap.bare, hu.lower⟩
+
+/-- Orbit compactness after totalization on the compact Schauder domain. -/
+theorem paperNegativePinnedRotheSeqFromTrap_orbitData
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    {u : ℝ → ℝ}
+    (hu : InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u) :
+    PaperRotheOrbitDataWithModulus p c s.lam 1 (kappa c)
+      (paperNegativePinnedOrbitModulus s)
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u) := by
+  let hu' := hu.toLowerPinned
+  simpa only [paperNegativePinnedRotheSeqFromTrap_eq hcond hD hD1 s hu'] using
+    paperNegativePinnedRotheSeq_orbitData hcond hD hD1 s u hu'
+
+/-- Each totalized successor over the actual compact domain retains its
+whole-line Green representation. -/
+noncomputable def paperNegativePinnedRotheSeqFromTrap_stepAnalytic
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    {u : ℝ → ℝ}
+    (hu : InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u)
+    (n : ℕ) :
+    PaperStepAnalytic p c s.lam 1 (kappa c) s.Λ u
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u n)
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u (n + 1)) := by
+  let hu' := hu.toLowerPinned
+  rw [paperNegativePinnedRotheSeqFromTrap_eq hcond hD hD1 s hu']
+  exact paperNegativePinnedRotheSeq_stepAnalytic hcond hD hD1 s u hu' n
+
+/-- The genuine long-time map preserves the common modulus and raw lower pin. -/
+theorem paperNegativePinnedRotheSeqFromTrap_mapsTo
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    {u : ℝ → ℝ}
+    (hu : InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u) :
+    InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D)
+      (rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)) := by
+  let hu' := hu.toLowerPinned
+  let data := paperNegativePinnedRotheSeqFromTrap_orbitData
+    hcond hD hD1 s hu
+  have hbare : InMonotoneWaveTrapSet (kappa c) 1
+      (rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)) :=
+    rotheLimit_mem_trap
+      (data.limit_continuous (paperNegativePinnedOrbitModulus_nonneg s))
+      data.bddBelow data.anti_x data.nonneg data.le_upperBarrier
+      (upperBarrier_isBddFun zero_le_one)
+  refine ⟨⟨hbare, data.limitLip⟩, ?_⟩
+  intro x
+  rw [paperNegativePinnedRotheSeqFromTrap_eq hcond hD hD1 s hu']
+  exact rotheLimit_ge_of_ge
+    (paperNegativePinnedRotheSeq_lower hcond hD hD1 s u hu') x
+
+/-- The compact lower-pinned uniform-modulus trap is inhabited.  We use the
+upper barrier as its member; the raw floor lies below the plateau, and the
+plateau already lies below the upper barrier. -/
+theorem paperNegativePinnedUniformModulusTrap_nonempty
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) :
+    ∃ u, InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u := by
+  have hgap : 0 < negativeBranchTailCap p c - kappa c :=
+    sub_pos.mpr hcond.hgap
+  have hDpos : 0 < D := D_pos_of_paperDMin_lt hcond hD
+  have hExp : Real.exp
+      (-kappa c * lowerBarrierXPlus (kappa c)
+        (negativeBranchTailCap p c) D) ≤ 1 :=
+    lowerBarrierExpXPlus_le_one_of_one_le_D
+      hcond.hκ0 hgap hD1 hcond.hM
+  have hplat : InMonotoneWaveTrapSet (kappa c) 1
+      (lowerBarrierPlateau (kappa c) (negativeBranchTailCap p c) D) :=
+    lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
+      hcond.hκ0 hgap hDpos hExp
+  refine ⟨upperBarrier (kappa c) 1, ?_⟩
+  refine
+    { uniformTrap :=
+        { bare := upperBarrier_mem_InMonotoneWaveTrapSet
+            hcond.hκ0.le zero_le_one
+          modulus := ?_ }
+      lower := ?_ }
+  · intro x y
+    exact (hcond.upperBarrier_barLip x y).trans
+      (mul_le_mul_of_nonneg_right
+        (one_le_paperNegativePinnedOrbitModulus s) (abs_nonneg _))
+  · intro x
+    exact (lowerBarrierRaw_le_plateau hcond.hκ0 hgap hDpos x).trans
+      (hplat.le_upperBarrier x)
+
+/-- Exact L10 continuous-dependence statement for the genuine orbit on the
+compact convex uniform-modulus trap.  It contains no per-step construction,
+source-box, finite-cube, compactness, tail, or closed-graph hypotheses. -/
+def PaperNegativePinnedRotheL10
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) : Prop :=
+  LocalUniformContinuousOn
+    (InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D))
+    (fun u => rotheLimit
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u))
+
+/-- Direct Schauder--Tychonoff closure of the genuine negative orbit.  The
+uniform modulus makes the domain compact in `C⁰_loc`; the whole-line Green
+closed graph turns the Schauder fixed point into a stationary profile. -/
+theorem paperNegativePinned_fixed_stationary_of_L10
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (hL10 : PaperNegativePinnedRotheL10 hcond hD hD1 s) :
+    ∃ U,
+      InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+        (paperNegativePinnedOrbitModulus s)
+        (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) U ∧
+      rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s U) = U ∧
+      (∀ x, frozenWaveOperator p c U U x = 0) ∧
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+  exact paperUniformModulusLowerPinned_fixed_stationary
+    p c s.lam 1 (kappa c) s.Λ (paperNegativePinnedOrbitModulus s)
+    (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D)
+    one_pos s.hΛ0 (paperNegativePinnedOrbitModulus_nonneg s) s.hlam
+    (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s)
+    (paperNegativePinnedUniformModulusTrap_nonempty hcond hD hD1 s)
+    (fun _ hu => paperNegativePinnedRotheSeqFromTrap_orbitData
+      hcond hD hD1 s hu)
+    (fun _ hu => paperNegativePinnedRotheSeqFromTrap_mapsTo
+      hcond hD hD1 s hu)
+    hL10
+    (fun _ hu n => paperNegativePinnedRotheSeqFromTrap_stepAnalytic
+      hcond hD hD1 s hu n)
+
 section AxiomAudit
 
 #print axioms paperNegativePinnedRotheSeq_stepAnalytic
 #print axioms paperNegativePinnedRotheSeq_lower
 #print axioms paperNegativePinnedRotheSeq_orbitData
+#print axioms paperNegativePinnedRotheSeqFromTrap_orbitData
+#print axioms paperNegativePinnedRotheSeqFromTrap_mapsTo
+#print axioms paperNegativePinnedUniformModulusTrap_nonempty
+#print axioms paperNegativePinned_fixed_stationary_of_L10
 
 end AxiomAudit
 
