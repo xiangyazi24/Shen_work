@@ -115,12 +115,15 @@ structure EliminatedFluxDerivativePolarizedPointData where
 
 namespace EliminatedFluxDerivativePolarizedPointData
 
+def eliminatedFluxDerivativePolarizedConstant (qStar C U : ℝ) : ℝ :=
+  |qStar| * C * (5 + U) + C ^ 2 * (5 + 4 * U)
+
 def lipschitzConstant (H : EliminatedFluxDerivativePolarizedPointData) : ℝ :=
-  |H.qStar| * H.C * (5 + H.U) + H.C ^ 2 * (5 + 4 * H.U)
+  eliminatedFluxDerivativePolarizedConstant H.qStar H.C H.U
 
 theorem lipschitzConstant_nonneg (H : EliminatedFluxDerivativePolarizedPointData) :
     0 ≤ H.lipschitzConstant := by
-  unfold lipschitzConstant
+  unfold lipschitzConstant eliminatedFluxDerivativePolarizedConstant
   have h5U : 0 ≤ 5 + H.U := by linarith [H.U_nonneg]
   have h54U : 0 ≤ 5 + 4 * H.U := by linarith [H.U_nonneg]
   exact add_nonneg
@@ -379,7 +382,7 @@ theorem difference_le (H : EliminatedFluxDerivativePolarizedPointData) :
         H.C ^ 2 * (1 + 2 * H.U) * S * H.D +
         H.C ^ 2 * (1 + 2 * H.U) * S * H.D := by linarith
     _ = H.lipschitzConstant * (H.M₁ + H.M₂) * H.D := by
-      unfold lipschitzConstant
+      unfold lipschitzConstant eliminatedFluxDerivativePolarizedConstant
       dsimp [S]
       ring
 

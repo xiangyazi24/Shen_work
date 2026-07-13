@@ -189,27 +189,38 @@ def StationaryLinearGronwallData
               ‖stationaryJetDeriv (fun t => U (-t)) x‖ ≤
                 K * ‖stationaryJet (fun t => U (-t)) x‖)
 
-/-- The direct strong-maximum-principle theorem from the real-exponent
-linear-ODE structure.  If a nonnegative trapped stationary profile touches zero,
-then the interior minimum gives `U'=0`; the Grönwall zero-Cauchy uniqueness
-propagates the zero profile to both sides, contradicting nontriviality. -/
-theorem stationaryStrongMaxPrinciple_of_linearGronwall
-    {p : CMParams} {c κ M : ℝ}
-    (hlin : StationaryLinearGronwallData p c κ M) :
-    StationaryStrongMaxPrinciple p c κ M := by
-  intro U hU hstat hnontriv x₀
-  rcases hlin U hU hstat with
-    ⟨hU_diff, hUd_diff, hzeroCauchy⟩
+/-- Profile-wise version of the linear Grönwall payload. -/
+def StationaryLinearGronwallProfileData (U : ℝ → ℝ) : Prop :=
+  ∀ x₀, U x₀ = 0 → deriv U x₀ = 0 →
+    (∀ y, x₀ ≤ y →
+      ∃ K : ℝ, ∀ x ∈ Ico x₀ y,
+        ‖stationaryJetDeriv U x‖ ≤ K * ‖stationaryJet U x‖) ∧
+    (∀ y, y ≤ x₀ →
+      ∃ K : ℝ, ∀ x ∈ Ico (-x₀) (-y),
+        ‖stationaryJetDeriv (fun t => U (-t)) x‖ ≤
+          K * ‖stationaryJet (fun t => U (-t)) x‖)
+
+/-- The strong maximum principle for one profile once its regularity and
+linear Grönwall data are available. -/
+theorem stationaryProfile_strictlyPositive_of_linearGronwall
+    {U : ℝ → ℝ}
+    (hU_nonneg : ∀ x, 0 ≤ U x)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hlin : StationaryLinearGronwallProfileData U)
+    (hnontriv : ProfileNontrivial U) :
+    ∀ x, 0 < U x := by
+  intro x₀
   by_contra hnot
   have hx₀_zero : U x₀ = 0 :=
-    le_antisymm (not_lt.mp hnot) (hU.nonneg x₀)
+    le_antisymm (not_lt.mp hnot) (hU_nonneg x₀)
   have hmin : IsLocalMin U x₀ := by
     dsimp [IsLocalMin, IsMinFilter]
     exact Eventually.of_forall fun x => by
-      simpa [hx₀_zero] using hU.nonneg x
+      simpa [hx₀_zero] using hU_nonneg x
   have hx₀_deriv : deriv U x₀ = 0 :=
     hmin.hasDerivAt_eq_zero (hU_diff x₀).hasDerivAt
-  rcases hzeroCauchy x₀ hx₀_zero hx₀_deriv with ⟨hright, hleft⟩
+  rcases hlin x₀ hx₀_zero hx₀_deriv with ⟨hright, hleft⟩
   have hzero_all : ∀ y, U y = 0 := by
     intro y
     by_cases hxy : x₀ ≤ y
@@ -244,6 +255,20 @@ theorem stationaryStrongMaxPrinciple_of_linearGronwall
       simpa [Urev] using hrez.1
   have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero_all
   exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
+
+/-- The direct strong-maximum-principle theorem from the real-exponent
+linear-ODE structure.  If a nonnegative trapped stationary profile touches zero,
+then the interior minimum gives `U'=0`; the Grönwall zero-Cauchy uniqueness
+propagates the zero profile to both sides, contradicting nontriviality. -/
+theorem stationaryStrongMaxPrinciple_of_linearGronwall
+    {p : CMParams} {c κ M : ℝ}
+    (hlin : StationaryLinearGronwallData p c κ M) :
+    StationaryStrongMaxPrinciple p c κ M := by
+  intro U hU hstat hnontriv
+  rcases hlin U hU hstat with
+    ⟨hU_diff, hUd_diff, hzeroCauchy⟩
+  exact stationaryProfile_strictlyPositive_of_linearGronwall
+    hU.nonneg hU_diff hUd_diff hzeroCauchy hnontriv
 
 private theorem rpow_le_mul_rpow_sub_one_of_mem_band
     {u M a : ℝ} (ha : 1 ≤ a)
@@ -753,6 +778,68 @@ theorem stationaryC2RegularityFromEquation_of_trap
   exact stationaryC2Regularity_of_crossImplicitMap_fixed
     (p := p) (c := c) (lam := lam) (U := U)
     hlam hdata hR_cont hRhi hRlo hcross
+
+/-- Build the real-exponent linear Grönwall payload for one stationary trapped
+profile. -/
+theorem stationaryLinearGronwallProfileData_of_trap
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hM : 0 < M)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    StationaryLinearGronwallProfileData U := by
+  intro x₀ _hx₀ _hDx₀
+  let A : ℝ := |c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ
+  let B : ℝ := |p.χ| * M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) +
+    (1 + M ^ p.α)
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    positivity
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    positivity
+  have hsecond : ∀ x,
+      |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x| := by
+    intro x
+    simpa [A, B] using
+      stationary_second_deriv_abs_le_of_trap
+        (p := p) (c := c) (κ := κ) (M := M) (U := U)
+        hM hU hstat hU_diff x
+  obtain ⟨K, hK⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := U) hA_nonneg hB_nonneg hsecond
+  have hsecond_rev :
+      ∀ x,
+        |deriv (deriv (fun t => U (-t))) x| ≤
+          A * |deriv (fun t => U (-t)) x| +
+            B * |(fun t => U (-t)) x| :=
+    reflected_second_deriv_abs_le hUd_diff hsecond
+  obtain ⟨Krev, hKrev⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := fun t => U (-t)) hA_nonneg hB_nonneg hsecond_rev
+  constructor
+  · intro y _hy
+    exact ⟨K, fun x _hx => hK x⟩
+  · intro y _hy
+    exact ⟨Krev, fun x _hx => hKrev x⟩
+
+/-- Strict positivity for one nontrivial stationary profile, with its `C²`
+regularity supplied by the construction. -/
+theorem stationaryProfile_strictlyPositive_of_trap_regularity
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hM : 0 < M)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hnontriv : ProfileNontrivial U) :
+    ∀ x, 0 < U x :=
+  stationaryProfile_strictlyPositive_of_linearGronwall
+    hU.nonneg hU_diff hUd_diff
+      (stationaryLinearGronwallProfileData_of_trap
+        hM hU hstat hU_diff hUd_diff)
+    hnontriv
 
 /-- Once the missing C² regularity frontier is supplied, the real-exponent
 trap-band estimates construct the `StationaryLinearGronwallData` needed by the
@@ -1441,6 +1528,9 @@ section AxiomAudit
 #print axioms not_profileNontrivial_zero
 #print axioms frozenWaveOperator_zero_eq_zero
 #print axioms stationaryJet_zero_of_gronwall_right
+#print axioms stationaryProfile_strictlyPositive_of_linearGronwall
+#print axioms stationaryLinearGronwallProfileData_of_trap
+#print axioms stationaryProfile_strictlyPositive_of_trap_regularity
 #print axioms stationaryStrongMaxPrinciple_of_linearGronwall
 #print axioms stationaryC2Regularity_of_greenRepresentation
 #print axioms stationaryC2Regularity_of_crossImplicitMap_fixed

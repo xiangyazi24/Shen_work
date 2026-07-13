@@ -323,7 +323,9 @@ theorem paperGreenRotheAdaptiveStepClosedGraph_of_sourceCompactness
       (greenRootMinus_neg (c := c) hlam) cluster.R_cont
       cluster.limit_bound x
   exact ⟨paperImplicitStepOp_of_greenConv_source hlam hsourceEq hUgreen
-    cluster.R_cont hRhi hRlo, fun x => (hUhas x).differentiableAt⟩
+    cluster.R_cont hRhi hRlo,
+    fun x => (hUhas x).differentiableAt,
+    fun x => (hUhas2 x).differentiableAt⟩
 
 section AxiomAudit
 
