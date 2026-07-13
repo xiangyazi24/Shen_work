@@ -231,10 +231,143 @@ theorem intervalDomainX2SigmaDistance_restart_exponential_bound_of_small
         simpa [C, K] using hquadratic }
   simpa [size] using H.exponential_bound
 
+/-- A uniform radius on which both physical positivity and the quadratic
+weighted convolution close.  The extra `+1` in the denominator makes the
+smallness proof denominator-safe without case splits. -/
+def intervalDomainStrongBootstrapRadius
+    (p : CM2Params) (sigma uStar vStar gap : ℝ)
+    (heq : Paper3ConstantEquilibrium p uStar vStar) : ℝ :=
+  let A :=
+    unitIntervalLinearizedStrongSmoothingConstant
+        p uStar vStar gap sigma *
+      intervalDomainX2SigmaUniformNemytskiiConstant
+        p sigma uStar vStar heq *
+      reservedSingularKernelMass sigma (gap / 2 - gap / 4)
+  min (intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar)
+    (1 / (8 * A + 1))
+
+theorem intervalDomainStrongBootstrapRadius_pos
+    (p : CM2Params) {sigma uStar vStar gap : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : 0 < gap) (hsigma : 0 < sigma) (hsigma1 : sigma < 1) :
+    0 < intervalDomainStrongBootstrapRadius
+      p sigma uStar vStar gap heq := by
+  let C := unitIntervalLinearizedStrongSmoothingConstant
+    p uStar vStar gap sigma
+  let K := intervalDomainX2SigmaUniformNemytskiiConstant
+    p sigma uStar vStar heq
+  let M := reservedSingularKernelMass sigma (gap / 2 - gap / 4)
+  let A := C * K * M
+  have hC : 0 < C := by
+    simpa [C] using unitIntervalLinearizedStrongSmoothingConstant_pos
+      p hgap hsigma
+  have hK : 0 < K := by
+    simpa [K] using intervalDomainX2SigmaUniformNemytskiiConstant_pos
+      p sigma uStar vStar heq
+  have hd : 0 < gap / 2 - gap / 4 := by linarith
+  have hM : 0 < M := by
+    dsimp [M, reservedSingularKernelMass]
+    exact mul_pos (Real.rpow_pos_of_pos hd _)
+      (Real.Gamma_pos_of_pos (by linarith))
+  have hA : 0 < A := mul_pos (mul_pos hC hK) hM
+  unfold intervalDomainStrongBootstrapRadius
+  dsimp only
+  exact lt_min
+    (intervalDomainX2SigmaLocalNemytskiiRadius_pos heq.u_pos)
+    (one_div_pos.mpr (by nlinarith [hA]))
+
+theorem intervalDomainStrongBootstrapRadius_le_positivity
+    (p : CM2Params) (sigma uStar vStar gap : ℝ)
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    intervalDomainStrongBootstrapRadius p sigma uStar vStar gap heq ≤
+      intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar := by
+  unfold intervalDomainStrongBootstrapRadius
+  exact min_le_left _ _
+
+theorem intervalDomainStrongBootstrapRadius_quadratic_small
+    (p : CM2Params) {sigma uStar vStar gap : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : 0 < gap) (hsigma : 0 < sigma) (hsigma1 : sigma < 1) :
+    (unitIntervalLinearizedStrongSmoothingConstant
+          p uStar vStar gap sigma *
+        intervalDomainX2SigmaUniformNemytskiiConstant
+          p sigma uStar vStar heq) *
+        intervalDomainStrongBootstrapRadius
+            p sigma uStar vStar gap heq ^ 2 *
+          reservedSingularKernelMass sigma (gap / 2 - gap / 4) ≤
+      intervalDomainStrongBootstrapRadius p sigma uStar vStar gap heq / 4 := by
+  let C := unitIntervalLinearizedStrongSmoothingConstant
+    p uStar vStar gap sigma
+  let K := intervalDomainX2SigmaUniformNemytskiiConstant
+    p sigma uStar vStar heq
+  let M := reservedSingularKernelMass sigma (gap / 2 - gap / 4)
+  let A := C * K * M
+  let r := intervalDomainStrongBootstrapRadius
+    p sigma uStar vStar gap heq
+  have hC : 0 < C := by
+    simpa [C] using unitIntervalLinearizedStrongSmoothingConstant_pos
+      p hgap hsigma
+  have hK : 0 < K := by
+    simpa [K] using intervalDomainX2SigmaUniformNemytskiiConstant_pos
+      p sigma uStar vStar heq
+  have hd : 0 < gap / 2 - gap / 4 := by linarith
+  have hM : 0 < M := by
+    dsimp [M, reservedSingularKernelMass]
+    exact mul_pos (Real.rpow_pos_of_pos hd _)
+      (Real.Gamma_pos_of_pos (by linarith))
+  have hA : 0 < A := mul_pos (mul_pos hC hK) hM
+  have hr : 0 < r := by
+    simpa [r] using intervalDomainStrongBootstrapRadius_pos
+      p heq hgap hsigma hsigma1
+  have hrDen : r ≤ 1 / (8 * A + 1) := by
+    dsimp [r, intervalDomainStrongBootstrapRadius]
+    exact min_le_right _ _
+  have hden : 0 < 8 * A + 1 := by positivity
+  have hmul : (8 * A + 1) * r ≤ 1 := by
+    have hraw : r * (8 * A + 1) ≤ 1 :=
+      (le_div_iff₀ hden).mp hrDen
+    nlinarith
+  have hAr : 8 * A * r ≤ 1 := by nlinarith [hr.le]
+  have hquad := mul_le_mul_of_nonneg_right hAr hr.le
+  change C * K * r ^ 2 * M ≤ r / 4
+  dsimp [A] at hquad
+  nlinarith
+
+/-- Public restarted Stage-A estimate with the radius chosen internally. -/
+theorem intervalDomainX2SigmaDistance_restart_exponential_bound
+    {p : CM2Params} {sigma uStar vStar gap a : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hm : p.m = 1) (ha : 0 < a)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (hsigmaStrong : 3 / 4 < sigma) (hsigma1 : sigma < 1)
+    (hrestart : intervalDomainX2SigmaDistance sigma uStar (u a) ≤
+      intervalDomainStrongBootstrapRadius
+        p sigma uStar vStar gap heq / 2) :
+    ∀ tau, 0 ≤ tau →
+      intervalDomainX2SigmaDistance sigma uStar (u (a + tau)) ≤
+        intervalDomainStrongBootstrapRadius
+            p sigma uStar vStar gap heq *
+          Real.exp (-(gap / 4) * tau) := by
+  apply intervalDomainX2SigmaDistance_restart_exponential_bound_of_small
+    hglobal hm ha heq hgap hsigmaStrong hsigma1
+    (intervalDomainStrongBootstrapRadius_pos p heq hgap.1
+      (by linarith) hsigma1)
+    (intervalDomainStrongBootstrapRadius_le_positivity
+      p sigma uStar vStar gap heq)
+    (intervalDomainStrongBootstrapRadius_quadratic_small
+      p heq hgap.1 (by linarith) hsigma1)
+    hrestart
+
 #print axioms intervalDomainX2SigmaDistance_continuousOn_global_positive
 #print axioms intervalDomainX2SigmaDistance_shift_continuousOn_Ici
 #print axioms singularQuadraticSource_intervalIntegrable_of_continuous
 #print axioms intervalDomainX2SigmaDistance_restart_exponential_bound_of_small
+#print axioms intervalDomainStrongBootstrapRadius_pos
+#print axioms intervalDomainStrongBootstrapRadius_le_positivity
+#print axioms intervalDomainStrongBootstrapRadius_quadratic_small
+#print axioms intervalDomainX2SigmaDistance_restart_exponential_bound
 
 end
 
