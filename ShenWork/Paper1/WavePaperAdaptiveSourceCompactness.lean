@@ -294,7 +294,8 @@ def PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) W →
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) W →
         (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
-          Differentiable ℝ W ∧ Differentiable ℝ (deriv W)
+          Differentiable ℝ W ∧ Differentiable ℝ (deriv W) ∧
+          ContDiff ℝ 2 W
 
 /-- Off-diagonal adaptive closed graph restricted to an arbitrary construction
 domain embedded in the bare monotone trap. -/
@@ -311,7 +312,8 @@ def PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) W →
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) W →
         (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
-          Differentiable ℝ W ∧ Differentiable ℝ (deriv W)
+          Differentiable ℝ W ∧ Differentiable ℝ (deriv W) ∧
+          ContDiff ℝ 2 W
 
 /-- The analytic-preserving whole-line Green orbit has the off-diagonal
 adaptive closed graph.  The proof extracts a derivative cluster, passes the
@@ -453,8 +455,11 @@ theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn_of_stepAnalytic
   obtain ⟨hWdiff, hWderivDiff⟩ :=
     stationaryC2Regularity_of_greenRepresentation
       hRcont hRhi hRlo hWgreen
+  have hW2 : ContDiff ℝ 2 W := by
+    rw [hWgreen]
+    exact greenConv_contDiff_two hRcont hRhi hRlo
   exact ⟨paperImplicitStepOp_of_greenConv_source hlam rfl hWgreen
-    hRcont hRhi hRlo, hWdiff, hWderivDiff⟩
+    hRcont hRhi hRlo, hWdiff, hWderivDiff, hW2⟩
 
 /-- Bare-trap wrapper for the domain-restricted off-diagonal closed graph. -/
 theorem paperGreenRotheAdaptiveOffDiagonalStepClosedGraph_of_stepAnalytic
