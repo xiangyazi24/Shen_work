@@ -28,6 +28,22 @@ def paper3ResolvedSourceGradient
   ∑' k : ℕ, a k * intervalNeumannResolverGradWeight p k *
     (-Real.sin ((k : ℝ) * Real.pi * x))
 
+@[simp] theorem paper3ResolvedSourceGradient_zero
+    (p : CM2Params) (a : ℕ → ℝ) :
+    paper3ResolvedSourceGradient p a 0 = 0 := by
+  simp [paper3ResolvedSourceGradient]
+
+@[simp] theorem paper3ResolvedSourceGradient_one
+    (p : CM2Params) (a : ℕ → ℝ) :
+    paper3ResolvedSourceGradient p a 1 = 0 := by
+  unfold paper3ResolvedSourceGradient
+  have hterm : (fun k : ℕ =>
+      a k * intervalNeumannResolverGradWeight p k *
+        (-Real.sin ((k : ℝ) * Real.pi * 1))) = fun _ => 0 := by
+    funext k
+    simp [Real.sin_nat_mul_pi]
+  rw [hterm, tsum_zero]
+
 lemma paper3ResolvedSourceValue_series_summable
     (p : CM2Params) {a : ℕ → ℝ}
     (ha : Summable fun k => (a k) ^ 2) (x : ℝ) :
@@ -224,6 +240,8 @@ theorem paper3ResolvedSourceGradient_abs_le
 
 #print axioms paper3ResolvedSourceValue_abs_le
 #print axioms paper3ResolvedSourceGradient_abs_le
+#print axioms paper3ResolvedSourceGradient_zero
+#print axioms paper3ResolvedSourceGradient_one
 #print axioms paper3ResolvedSourceValue_add
 #print axioms paper3ResolvedSourceGradient_add
 
