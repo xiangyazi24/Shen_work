@@ -173,6 +173,17 @@ def paper3IntervalEllipticRemainderProfile
     (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
   paper3EllipticSourceRemainder p uStar (intervalDomainLift u x)
 
+/-- Difference of two nonlinear elliptic source remainders. -/
+def paper3IntervalEllipticRemainderDifferenceProfile
+    (p : CM2Params) (uStar : ℝ)
+    (u₁ u₂ : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  paper3IntervalEllipticRemainderProfile p uStar u₁ x -
+    paper3IntervalEllipticRemainderProfile p uStar u₂ x
+
+def paper3IntervalPerturbationDifferenceProfile
+    (u₁ u₂ : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  intervalDomainLift u₁ x - intervalDomainLift u₂ x
+
 /-- Linear part of the elliptic source perturbation. -/
 def paper3IntervalEllipticLinearProfile
     (p : CM2Params) (uStar : ℝ)
@@ -358,11 +369,75 @@ theorem paper3IntervalEllipticRemainder_coeff_l2
     (cosineCoeffs_l2_norm_le_of_pointwise_mul
       (B := K * M) (mul_nonneg hK.le hM) hphi hrem_meas hpoint)
 
+/-- Polarized coefficient estimate for the elliptic source remainder. -/
+theorem paper3IntervalEllipticRemainder_difference_coeff_l2
+    (p : CM2Params) {uStar M₁ M₂ : ℝ} (huStar : 0 < uStar)
+    (hM₁ : 0 ≤ M₁) (hM₂ : 0 ≤ M₂)
+    (u₁ u₂ : intervalDomainPoint → ℝ)
+    (hu₁_near : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₁ x ∈ Set.Icc (uStar / 2) (3 * uStar / 2))
+    (hu₂_near : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₂ x ∈ Set.Icc (uStar / 2) (3 * uStar / 2))
+    (hdiff : MemLp (paper3IntervalPerturbationDifferenceProfile u₁ u₂) 2
+      (intervalMeasure 1))
+    (hrem_meas : AEStronglyMeasurable
+      (paper3IntervalEllipticRemainderDifferenceProfile p uStar u₁ u₂)
+      (intervalMeasure 1))
+    (hphi₁_sup : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3IntervalPerturbationProfile uStar u₁ x| ≤ M₁)
+    (hphi₂_sup : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3IntervalPerturbationProfile uStar u₂ x| ≤ M₂) :
+    ∃ K > 0,
+      Summable (fun n =>
+        (cosineCoeffs
+          (paper3IntervalEllipticRemainderDifferenceProfile
+            p uStar u₁ u₂) n) ^ 2) ∧
+      Real.sqrt (∑' n,
+        (cosineCoeffs
+          (paper3IntervalEllipticRemainderDifferenceProfile
+            p uStar u₁ u₂) n) ^ 2) ≤
+        2 * K * (M₁ + M₂) *
+          Real.sqrt (∫ x in (0 : ℝ)..1,
+            (paper3IntervalPerturbationDifferenceProfile u₁ u₂ x) ^ 2) := by
+  rcases paper3EllipticSource_quadratic_remainder_sub p huStar with
+    ⟨K, hK, hpolar⟩
+  refine ⟨K, hK, ?_⟩
+  have hpoint : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3IntervalEllipticRemainderDifferenceProfile
+          p uStar u₁ u₂ x| ≤
+        (K * (M₁ + M₂)) *
+          |paper3IntervalPerturbationDifferenceProfile u₁ u₂ x| := by
+    intro x hx
+    have hp := hpolar (intervalDomainLift u₁ x) (hu₁_near x hx)
+      (intervalDomainLift u₂ x) (hu₂_near x hx)
+    have h1 := hphi₁_sup x hx
+    have h2 := hphi₂_sup x hx
+    dsimp [paper3IntervalEllipticRemainderDifferenceProfile,
+      paper3IntervalEllipticRemainderProfile,
+      paper3IntervalPerturbationDifferenceProfile,
+      paper3IntervalPerturbationProfile] at hp h1 h2 ⊢
+    calc
+      _ ≤ K * (|intervalDomainLift u₁ x - uStar| +
+          |intervalDomainLift u₂ x - uStar|) *
+            |intervalDomainLift u₁ x - intervalDomainLift u₂ x| := hp
+      _ ≤ K * (M₁ + M₂) *
+          |intervalDomainLift u₁ x - intervalDomainLift u₂ x| := by
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left (add_le_add h1 h2) hK.le)
+          (abs_nonneg _)
+      _ = _ := by ring
+  simpa [mul_assoc] using
+    (cosineCoeffs_l2_norm_le_of_pointwise_mul
+      (B := K * (M₁ + M₂))
+      (mul_nonneg hK.le (add_nonneg hM₁ hM₂))
+      hdiff hrem_meas hpoint)
+
 #print axioms cosineCoeffs_l2_norm_le_of_pointwise_mul
 #print axioms cosineCoeffs_const_mul_of_intervalIntegrable
 #print axioms intervalNeumannResolverSourceCoeff_split
 #print axioms intervalNeumannResolverCoeff_split
 #print axioms paper3IntervalEllipticRemainder_coeff_l2
+#print axioms paper3IntervalEllipticRemainder_difference_coeff_l2
 
 end
 
