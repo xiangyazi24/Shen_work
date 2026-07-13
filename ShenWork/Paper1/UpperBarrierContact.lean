@@ -188,6 +188,36 @@ theorem no_const_left_plateau_of_profile_chi_pos
     hprofile.lim_neg_inf.1
     (MChi_ne_one_of_chi_pos_lt_one p hχ_pos hχ_lt)
 
+/-- The constant contact branch is impossible throughout the closed regime
+`0 ≤ χ < 1`.  For `χ > 0`, the left limit differs from `MChi`; at the
+endpoint `χ = 0`, the scalar Grönwall theorem for `1-U` gives `U(x) < 1`
+at every finite point. -/
+theorem no_const_left_plateau_of_profile_chi_nonneg
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False := by
+  by_cases hχzero : p.χ = 0
+  · have hM : MChi p = 1 :=
+      MChi_eq_one_of_chi_nonpos p (by linarith)
+    have htrap_one : InMonotoneWaveTrapSet (kappa c) 1 U := by
+      simpa [hM] using htrap
+    have hstrict : ∀ x, U x < 1 :=
+      stationaryProfile_strictlyBelow_one_of_chi_zero_trap_regularity
+        hχzero htrap_one hprofile.stationary_eq hUdiff hUd_diff
+        hprofile.lim_pos_inf.1
+    intro x _hx hplateau
+    have hUx : U x = MChi p := hplateau x le_rfl
+    rw [hM] at hUx
+    exact (ne_of_lt (hstrict x)) hUx
+  · have hχpos : 0 < p.χ := lt_of_le_of_ne hχ_nonneg (Ne.symm hχzero)
+    exact no_const_left_plateau_of_profile_chi_pos
+      hprofile hχpos hχ_lt
+
 /-- Pointwise second-derivative comparison against the exponential branch from
 a local maximum of `U - expDecay κ`.
 
@@ -381,6 +411,114 @@ structure PositiveUpperBarrierExpStrictContactResidual
         frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x < 0
 
+/-- At a diagonal exponential contact, the paper-expanded upper-barrier
+estimate is strict for every `0 ≤ χ < 1`; no `m·κ ≤ 1` side condition is
+needed.  The favorable derivative and elliptic-value terms are nonpositive,
+while `α = m+γ-1` leaves the strict factor `χ-1`.  At the contact the
+paper/frozen off-diagonal correction vanishes exactly. -/
+theorem positiveUpperBarrier_expStrictSuperAtContact_of_diagonal
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt_one : p.χ < 1)
+    (hc : 2 < c)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    PositiveUpperBarrierExpStrictContactResidual p c U := by
+  refine ⟨?_⟩
+  intro x hx hUx
+  let κ : ℝ := kappa c
+  let E : ℝ := expDecay κ x
+  let V : ℝ := frozenElliptic p U x
+  let Vx : ℝ := deriv (frozenElliptic p U) x
+  have hκ : 0 < κ := by
+    simpa [κ] using kappa_pos_of_two_lt hc
+  have hM : 0 < MChi p := by
+    exact MChi_pos_of_chi_lt_one p hχ_lt_one
+  have hE : 0 < E := expDecay_pos κ x
+  have hxE : E < MChi p := by
+    simpa [E, κ, expDecay] using hx
+  have hVx : Vx ≤ 0 := by
+    dsimp [Vx]
+    exact frozenElliptic_deriv_nonpos_of_monotone_trap
+      p (kappa c) (MChi p) U htrap x
+  have hV : 0 ≤ V := by
+    dsimp [V]
+    exact frozenElliptic_nonneg p htrap.nonneg x
+  have hpow : 0 ≤ E ^ (p.m - 1) := Real.rpow_nonneg hE.le _
+  have hcoef : 0 ≤ p.χ * p.m * E ^ (p.m - 1) := by
+    exact mul_nonneg
+      (mul_nonneg hχ_nonneg (le_trans zero_le_one p.hm)) hpow
+  have hderivTerm :
+      -p.χ * p.m * E ^ (p.m - 1) * Vx * (-κ * E) ≤ 0 := by
+    have hleft :
+        0 ≤ (-(p.χ * p.m * E ^ (p.m - 1))) * Vx :=
+      mul_nonneg_of_nonpos_of_nonpos (neg_nonpos.mpr hcoef) hVx
+    have hright : -κ * E ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr hκ.le) hE.le
+    have hprod := mul_nonpos_of_nonneg_of_nonpos hleft hright
+    ring_nf at hprod ⊢
+    exact hprod
+  have hvalueTerm :
+      E * (-p.χ * E ^ (p.m - 1) * V) ≤ 0 := by
+    have hinner : -p.χ * E ^ (p.m - 1) * V ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg
+        (mul_nonpos_of_nonpos_of_nonneg
+          (neg_nonpos.mpr hχ_nonneg) hpow) hV
+    exact mul_nonpos_of_nonneg_of_nonpos hE.le hinner
+  have hEα : 0 < E ^ p.α := Real.rpow_pos_of_pos hE _
+  have hP : 0 < E * E ^ p.α := mul_pos hE hEα
+  have htail :
+      -E * E ^ p.α + E * (p.χ * E ^ (p.m + p.γ - 1)) < 0 := by
+    rw [← hα]
+    have hlt : p.χ * (E * E ^ p.α) < 1 * (E * E ^ p.α) :=
+      mul_lt_mul_of_pos_right hχ_lt_one hP
+    nlinarith
+  have hpaper :
+      paperWaveOperator p c U (upperBarrier κ (MChi p)) x < 0 := by
+    rw [paperWaveOperator_upperBarrier_exp_region_eq_of_kappa_speed
+      p (ne_of_gt hκ) (by
+        simpa [κ] using (kappa_add_inv_eq_of_two_lt hc).symm) (by
+        simpa [κ, E, expDecay] using hx)]
+    dsimp only [E, V, Vx] at hderivTerm hvalueTerm htail
+    have hsplit :
+        expDecay κ x *
+            (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+                frozenElliptic p U x +
+              p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) =
+          expDecay κ x *
+              (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+                frozenElliptic p U x) +
+            expDecay κ x *
+              (p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) := by ring
+    rw [hsplit]
+    linarith
+  have hWdiff : DifferentiableAt ℝ (upperBarrier κ (MChi p)) x := by
+    have heq : Filter.EventuallyEq (nhds x)
+        (upperBarrier κ (MChi p)) (expDecay κ) :=
+      upperBarrier_eventuallyEq_exp_of_lt (by
+        simpa [κ, expDecay] using hx)
+    exact (expDecay_hasDerivAt κ x).differentiableAt.congr_of_eventuallyEq
+      heq
+  have hoff := paperWaveOperator_eq_frozenWaveOperator_add_offdiag
+    p (c := c) (u := U) (W := upperBarrier κ (MChi p)) x
+    htrap.trap.cunif_bdd htrap.nonneg
+    (fun y => upperBarrier_nonneg hM.le y)
+    hWdiff
+    (frozenElliptic_deriv_differentiableAt
+      p htrap.trap.cunif_bdd htrap.nonneg x)
+    (hWdiff.rpow_const (Or.inr p.hm))
+  have hbarx : upperBarrier κ (MChi p) x = E := by
+    have hx' : Real.exp (-κ * x) < MChi p := by
+      simpa [κ] using hx
+    rw [upperBarrier_eq_exp_of_exp_le hx'.le]
+    simp [E, expDecay]
+  have heqOp :
+      paperWaveOperator p c U (upperBarrier κ (MChi p)) x =
+        frozenWaveOperator p c U (upperBarrier κ (MChi p)) x := by
+    have hUxE : U x = E := by simpa [E, κ, expDecay] using hUx
+    simpa [hbarx, hUxE] using hoff
+  rw [← heqOp]
+  exact hpaper
+
 /-- Positive branch data in the exponential region produces the strict
 upper-barrier residual at contact.  The equality `U x = exp (-κ x)` is unused:
 strictness comes from the scalar budget `p.χ < 1` and the standard positive
@@ -391,23 +529,16 @@ theorem positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
     (hχ_nonneg : 0 ≤ p.χ)
     (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
     (hc : 2 < c)
-    (hmκ : p.m * kappa c ≤ 1)
+    (_hmκ : p.m * kappa c ≤ 1)
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
     PositiveUpperBarrierExpStrictContactResidual p c U := by
-  refine ⟨?_⟩
-  intro x hx _hUx
   have hχ_half : p.χ < (1 / 2 : ℝ) :=
     lt_of_lt_of_le hχ_small (min_le_left _ _)
   have hχ_lt_one : p.χ < 1 := by
     linarith
-  have hx_exp : expDecay (kappa c) x < MChi p := by
-    simpa [expDecay] using hx
   exact
-    frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
-      p (le_of_lt hc) rfl hχ_nonneg hχ_lt_one hα
-      (kappa_pos_of_two_lt hc).le hmκ hx_exp htrap.trap
-      (frozenElliptic_deriv_differentiableAt p
-        htrap.trap.cunif_bdd htrap.nonneg x)
+    positiveUpperBarrier_expStrictSuperAtContact_of_diagonal
+      hα hχ_nonneg hχ_lt_one hc htrap
 
 /-- A profile with `χ > 0` supplies the constant-branch residual. -/
 theorem PositiveUpperBarrierConstLeftPlateauResidual.of_profile_chi_pos
@@ -459,6 +590,32 @@ theorem PositiveUpperBarrierRemainingContactResidual.of_positive_region_profile_
       hα hχ_pos.le hχ_small hc hmκ htrap
       (PositiveUpperBarrierConstLeftPlateauResidual.of_profile_chi_pos
         hprofile hχ_pos hχ_lt_one)
+
+/-- The full remaining contact residual is automatic in the headline closed
+positive-sensitivity range.  The exponential contact uses the diagonal
+paper-operator identity (without `m·κ ≤ 1`), and the constant contact uses
+the profile limit for `χ>0` or the `1-U` Grönwall argument at `χ=0`. -/
+theorem PositiveUpperBarrierRemainingContactResidual.of_profile_chi_nonneg
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    PositiveUpperBarrierRemainingContactResidual p c U := by
+  have hχ_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by linarith
+  exact
+    { no_const_left_plateau :=
+        no_const_left_plateau_of_profile_chi_nonneg
+          hprofile hχ_nonneg hχ_lt_one htrap hUdiff hUd_diff
+      exp_strict_super_at_contact :=
+        (positiveUpperBarrier_expStrictSuperAtContact_of_diagonal
+          hα hχ_nonneg hχ_lt_one hc htrap).exp_strict_super_at_contact }
 
 /-- Profile plus strict positive sensitivity narrows the smooth-contact residual
 to the strict exponential-contact field alone. -/
@@ -527,6 +684,32 @@ theorem positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
           (upperBarrier (kappa c) (MChi p)) x := by
       simpa [hstat x] using hcmp
     exact (not_lt_of_ge hnonneg) hstrict
+
+/-- Full positive upper-barrier no-contact from the selected stationary
+profile itself.  No contact residual and no `m·κ ≤ 1` subregime remain. -/
+theorem PositiveUpperBarrierContactContradictions.of_profile_chi_nonneg
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    PositiveUpperBarrierContactContradictions p c U := by
+  have hχ_star : p.χ < chiStar p :=
+    lt_of_lt_of_le hχ_small (min_le_right _ _)
+  have hM : 0 < MChi p := MChi_pos_of_chi_lt_chiStar p hχ_star
+  have hres : PositiveUpperBarrierRemainingContactResidual p c U :=
+    PositiveUpperBarrierRemainingContactResidual.of_profile_chi_nonneg
+      hα hχ_nonneg hχ_small hc htrap hprofile hUdiff hUd_diff
+  have hsmooth : PositiveUpperBarrierSmoothBranchNoContact p c U :=
+    positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
+      hM.le htrap hprofile.stationary_eq hUdiff hUd_diff hres
+  exact
+    PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_profile
+      hsmooth (kappa_pos_of_two_lt hc) hM htrap hUdiff
 
 @[deprecated positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
   (since := "2026-06-29")]
@@ -863,6 +1046,9 @@ section AxiomAudit
 #print axioms positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
 #print axioms positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
 #print axioms upperBarrier_interfaceNoContact_of_profile_differentiable
+#print axioms positiveUpperBarrier_expStrictSuperAtContact_of_diagonal
+#print axioms no_const_left_plateau_of_profile_chi_nonneg
+#print axioms PositiveUpperBarrierContactContradictions.of_profile_chi_nonneg
 end AxiomAudit
 
 end

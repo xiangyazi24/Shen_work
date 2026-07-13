@@ -673,6 +673,35 @@ private theorem reflected_second_deriv_abs_le
   rw [hUrev_deriv2_eq, hUrev_deriv_eq]
   simpa [Urev, abs_neg] using hsecond (-x)
 
+/-- A global linear bound for the second derivative supplies the profile-wise
+Grönwall zero-Cauchy data.  This is the reusable scalar ODE core behind both
+strict positivity of `U` and, below, strict positivity of `1 - U`. -/
+theorem stationaryLinearGronwallProfileData_of_second_deriv_abs_le
+    {U : ℝ → ℝ} {A B : ℝ}
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hsecond : ∀ x,
+      |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x|) :
+    StationaryLinearGronwallProfileData U := by
+  obtain ⟨K, hK⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := U) hA hB hsecond
+  have hsecond_rev :
+      ∀ x,
+        |deriv (deriv (fun t => U (-t))) x| ≤
+          A * |deriv (fun t => U (-t)) x| +
+            B * |(fun t => U (-t)) x| :=
+    reflected_second_deriv_abs_le hUd_diff hsecond
+  obtain ⟨Krev, hKrev⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := fun t => U (-t)) hA hB hsecond_rev
+  intro x₀ _hx₀ _hDx₀
+  constructor
+  · intro y _hy
+    exact ⟨K, fun x _hx => hK x⟩
+  · intro y _hy
+    exact ⟨Krev, fun x _hx => hKrev x⟩
+
 /-- The regularity frontier needed before the trap/stationary equation can
 construct the direct linear Grönwall data.  The pointwise frozen equation alone
 mentions `deriv`/`iteratedDeriv`, but does not by itself provide
@@ -840,6 +869,124 @@ theorem stationaryProfile_strictlyPositive_of_trap_regularity
       (stationaryLinearGronwallProfileData_of_trap
         hM hU hstat hU_diff hUd_diff)
     hnontriv
+
+/-- In the zero-sensitivity scalar equation, a nonconstant stationary profile
+trapped below `1` is strictly below `1` at every finite point.
+
+Apply the same zero-Cauchy Grönwall argument to `Q = 1 - U`.  The stationary
+equation gives
+`Q'' = -c Q' + U (1 - U^α)`; Lipschitz continuity of `s ↦ s^α` on
+`[0,1]` makes the last term linear in `Q`.  The right limit `U → 0`
+excludes the constant solution `U ≡ 1`. -/
+theorem stationaryProfile_strictlyBelow_one_of_chi_zero_trap_regularity
+    {p : CMParams} {c κ : ℝ} {U : ℝ → ℝ}
+    (hchi : p.χ = 0)
+    (hU : InMonotoneWaveTrapSet κ 1 U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hlim : Tendsto U atTop (nhds 0)) :
+    ∀ x, U x < 1 := by
+  let Q : ℝ → ℝ := fun x => 1 - U x
+  have hQ_nonneg : ∀ x, 0 ≤ Q x := by
+    intro x
+    dsimp [Q]
+    exact sub_nonneg.mpr (hU.le_M x)
+  have hQ_diff : Differentiable ℝ Q := by
+    intro x
+    exact (differentiableAt_const (c := (1 : ℝ))).sub (hU_diff x)
+  have hQ_deriv : deriv Q = fun x => -deriv U x := by
+    funext x
+    simpa [Q] using ((hasDerivAt_const (x := x) (c := (1 : ℝ))).sub
+      (hU_diff x).hasDerivAt).deriv
+  have hQd_diff : Differentiable ℝ (deriv Q) := by
+    rw [hQ_deriv]
+    exact hUd_diff.neg
+  let A : ℝ := |c|
+  let B : ℝ := rpowLip p.α 1
+  have hA : 0 ≤ A := abs_nonneg c
+  have hB : 0 ≤ B := rpowLip_nonneg p.hα zero_le_one
+  have hsecond : ∀ x,
+      |deriv (deriv Q) x| ≤ A * |deriv Q x| + B * |Q x| := by
+    intro x
+    have hUdd := stationary_second_deriv_eq_of_trap
+      (p := p) (c := c) (U := U) hU hstat hU_diff x
+    rw [hchi] at hUdd
+    simp only [zero_mul] at hUdd
+    have hQdd : deriv (deriv Q) x = -deriv (deriv U) x := by
+      rw [hQ_deriv]
+      exact ((hUd_diff x).hasDerivAt.neg).deriv
+    have hQformula :
+        deriv (deriv Q) x =
+          -c * deriv Q x + U x * (1 - (U x) ^ p.α) := by
+      rw [hQdd, hUdd, congrFun hQ_deriv x]
+      ring
+    have hUx : U x ∈ Set.Icc (0 : ℝ) 1 :=
+      ⟨hU.nonneg x, hU.le_M x⟩
+    have hOne : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by norm_num
+    have hLip := rpow_m_lipschitz_on_Icc
+      (m := p.α) (M := (1 : ℝ)) p.hα zero_le_one
+    have hdistE := hLip hUx hOne
+    rw [edist_dist, edist_dist] at hdistE
+    have hdist :
+        dist ((U x) ^ p.α) ((1 : ℝ) ^ p.α) ≤
+          (Real.toNNReal (rpowLip p.α 1) : ℝ) * dist (U x) 1 := by
+      have hraw := hdistE
+      rw [← ENNReal.ofReal_coe_nnreal,
+        ← ENNReal.ofReal_mul (by positivity),
+        ENNReal.ofReal_le_ofReal_iff (by positivity)] at hraw
+      exact hraw
+    rw [Real.coe_toNNReal _ hB] at hdist
+    have hpow :
+        |1 - (U x) ^ p.α| ≤ B * |Q x| := by
+      simpa [B, Q, Real.dist_eq, abs_sub_comm] using hdist
+    have hUabs : |U x| ≤ 1 := by
+      rw [abs_of_nonneg (hU.nonneg x)]
+      exact hU.le_M x
+    have hreact :
+        |U x * (1 - (U x) ^ p.α)| ≤ B * |Q x| := by
+      rw [abs_mul]
+      calc
+        |U x| * |1 - (U x) ^ p.α|
+            ≤ 1 * (B * |Q x|) :=
+          mul_le_mul hUabs hpow (abs_nonneg _)
+            (by positivity)
+        _ = B * |Q x| := one_mul _
+    rw [hQformula]
+    calc
+      |-c * deriv Q x + U x * (1 - (U x) ^ p.α)|
+          ≤ |-c * deriv Q x| + |U x * (1 - (U x) ^ p.α)| :=
+        abs_add_le _ _
+      _ ≤ |c| * |deriv Q x| + B * |Q x| := by
+        rw [abs_mul, abs_neg]
+        exact add_le_add le_rfl hreact
+      _ = A * |deriv Q x| + B * |Q x| := rfl
+  have hlin : StationaryLinearGronwallProfileData Q :=
+    stationaryLinearGronwallProfileData_of_second_deriv_abs_le
+      hQd_diff hA hB hsecond
+  have hQ_nontriv : ProfileNontrivial Q := by
+    by_contra hnot
+    simp only [ProfileNontrivial, not_exists, not_lt] at hnot
+    have hQzero : ∀ x, Q x = 0 := by
+      intro x
+      exact le_antisymm (hnot x) (hQ_nonneg x)
+    have hUone : U = fun _ : ℝ => (1 : ℝ) := by
+      funext x
+      have hx := hQzero x
+      dsimp [Q] at hx
+      linarith
+    have hlim_one : Tendsto U atTop (nhds (1 : ℝ)) := by
+      rw [hUone]
+      exact tendsto_const_nhds
+    have hbad : (1 : ℝ) = 0 := tendsto_nhds_unique hlim_one hlim
+    norm_num at hbad
+  have hQpos : ∀ x, 0 < Q x :=
+    stationaryProfile_strictlyPositive_of_linearGronwall
+      hQ_nonneg hQ_diff hQd_diff hlin hQ_nontriv
+  intro x
+  have := hQpos x
+  dsimp [Q] at this
+  linarith
 
 /-- Once the missing C² regularity frontier is supplied, the real-exponent
 trap-band estimates construct the `StationaryLinearGronwallData` needed by the
@@ -1529,8 +1676,10 @@ section AxiomAudit
 #print axioms frozenWaveOperator_zero_eq_zero
 #print axioms stationaryJet_zero_of_gronwall_right
 #print axioms stationaryProfile_strictlyPositive_of_linearGronwall
+#print axioms stationaryLinearGronwallProfileData_of_second_deriv_abs_le
 #print axioms stationaryLinearGronwallProfileData_of_trap
 #print axioms stationaryProfile_strictlyPositive_of_trap_regularity
+#print axioms stationaryProfile_strictlyBelow_one_of_chi_zero_trap_regularity
 #print axioms stationaryStrongMaxPrinciple_of_linearGronwall
 #print axioms stationaryC2Regularity_of_greenRepresentation
 #print axioms stationaryC2Regularity_of_crossImplicitMap_fixed
