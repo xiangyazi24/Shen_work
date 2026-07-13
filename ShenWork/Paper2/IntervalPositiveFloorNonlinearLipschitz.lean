@@ -35,7 +35,7 @@ theorem powerLip_nonneg {q c M : ℝ} (hq : 0 < q) (hc : 0 < c) (hcM : c ≤ M) 
   unfold powerLip
   exact mul_nonneg hq.le (add_nonneg (Real.rpow_nonneg hc.le _) (Real.rpow_nonneg (hc.le.trans hcM) _))
 
-private theorem resolverR_nonneg_of_continuous_nonneg
+theorem resolverR_nonneg_of_continuous_nonneg
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hu_cont : Continuous u) (hu_nn : ∀ x, 0 ≤ u x)
     (y : intervalDomainPoint) :
