@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalPositiveFloorNonlinearLipschitz
 import ShenWork.Paper2.IntervalDuhamelIntegrability
+import ShenWork.Paper2.ChemMildHolderBootstrap
 
 /-!
 # General-power conjugate mild map on the interval
