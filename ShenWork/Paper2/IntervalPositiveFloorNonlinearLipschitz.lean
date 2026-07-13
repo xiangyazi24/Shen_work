@@ -35,6 +35,50 @@ theorem powerLip_nonneg {q c M : ℝ} (hq : 0 < q) (hc : 0 < c) (hcM : c ≤ M) 
   unfold powerLip
   exact mul_nonneg hq.le (add_nonneg (Real.rpow_nonneg hc.le _) (Real.rpow_nonneg (hc.le.trans hcM) _))
 
+/-- A derivative bound for an arbitrary real power on a strictly positive
+compact interval. -/
+def signedPowerLip (q c M : ℝ) : ℝ :=
+  |q| * (c ^ (q - 1) + M ^ (q - 1))
+
+theorem signedPowerLip_nonneg {q c M : ℝ} (hc : 0 < c) (hcM : c ≤ M) :
+    0 ≤ signedPowerLip q c M := by
+  unfold signedPowerLip
+  exact mul_nonneg (abs_nonneg _)
+    (add_nonneg (Real.rpow_nonneg hc.le _)
+      (Real.rpow_nonneg (hc.le.trans hcM) _))
+
+/-- Every real power is Lipschitz on a compact interval bounded away from
+zero. -/
+theorem rpow_lipschitz_on_pos_Icc_real
+    {q c M a b : ℝ} (hc : 0 < c)
+    (ha : a ∈ Set.Icc c M) (hb : b ∈ Set.Icc c M) :
+    |a ^ q - b ^ q| ≤ signedPowerLip q c M * |a - b| := by
+  have hbound : ∀ x ∈ Set.Icc c M,
+      ‖q * x ^ (q - 1)‖ ≤ signedPowerLip q c M := by
+    intro x hx
+    have hxpos : 0 < x := hc.trans_le hx.1
+    have hMpos : 0 < M := hxpos.trans_le hx.2
+    have hxpow : x ^ (q - 1) ≤ c ^ (q - 1) + M ^ (q - 1) := by
+      rcases le_or_gt 1 q with hq1 | hq1
+      · have hmono : x ^ (q - 1) ≤ M ^ (q - 1) :=
+          Real.rpow_le_rpow hxpos.le hx.2 (by linarith)
+        linarith [Real.rpow_nonneg hc.le (q - 1)]
+      · have hmono : x ^ (q - 1) ≤ c ^ (q - 1) :=
+          Real.rpow_le_rpow_of_nonpos hc hx.1 (by linarith)
+        linarith [Real.rpow_nonneg hMpos.le (q - 1)]
+    rw [Real.norm_eq_abs, abs_mul,
+      abs_of_nonneg (Real.rpow_nonneg hxpos.le _)]
+    exact mul_le_mul_of_nonneg_left hxpow (abs_nonneg q)
+  have hderiv : ∀ x ∈ Set.Icc c M,
+      HasDerivWithinAt (fun y : ℝ => y ^ q) (q * x ^ (q - 1))
+        (Set.Icc c M) x := by
+    intro x hx
+    exact (Real.hasDerivAt_rpow_const
+      (Or.inl (ne_of_gt (hc.trans_le hx.1)))).hasDerivWithinAt
+  have hmvt := (convex_Icc c M).norm_image_sub_le_of_norm_hasDerivWithin_le
+    hderiv hbound hb ha
+  simpa [Real.norm_eq_abs] using hmvt
+
 theorem resolverR_nonneg_of_continuous_nonneg
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hu_cont : Continuous u) (hu_nn : ∀ x, 0 ≤ u x)
@@ -353,6 +397,7 @@ theorem logisticReaction_lipschitz_on_pos_Icc
 #print axioms resolverGrad_diff_sup_le_of_pos_bounded
 #print axioms chemFluxLifted_diff_bound_of_pos_slice
 #print axioms logisticReaction_lipschitz_on_pos_Icc
+#print axioms rpow_lipschitz_on_pos_Icc_real
 
 end ShenWork.IntervalPositiveFloorNonlinearLipschitz
 
