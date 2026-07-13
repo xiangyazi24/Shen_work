@@ -1,5 +1,5 @@
 import ShenWork.Paper3.IntervalDomainMinimalPowerDifference
-import ShenWork.Paper3.IntervalDomainEntropyStrong2
+import ShenWork.Paper3.IntervalDomainEntropyStrong2Dynamics
 
 /-!
 # Minimal-model entropy dissipation on the unit interval
@@ -256,9 +256,87 @@ theorem intervalDomain_entropySlope_le_minimal1Coefficient
       dsimp [S]
       ring
 
+/-- Every bounded physical-mass orbit satisfying the concrete eventual box
+has arbitrarily late slices with small squared `L²` distance to its mean. -/
+theorem intervalDomain_minimal1_exists_late_l2_lt
+    (p : CM2Params) (hm : p.m = 1) (hb0 : p.b = 0)
+    {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1Formula p 1 uStar uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomain u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomain.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T q : ℝ} (hq : 0 < q) :
+    ∃ t, T ≤ t ∧
+      (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y - uStar) ^ 2) < q := by
+  let c := minimal1EntropyCoefficient p uStar uBar vLower
+  have hc : 0 < c := by
+    simpa [c] using minimal1EntropyCoefficient_pos_of_chi_lt
+      p heq.u_pos huBar hvLower hχpos hχ
+  rcases eventually_atTop.1 hupper with ⟨Tu, hTu⟩
+  rcases eventually_atTop.1 hfloor with ⟨Tv, hTv⟩
+  let Tbase : ℝ := max (max Tu Tv) (max T 1)
+  have hTbase : 0 < Tbase :=
+    lt_of_lt_of_le zero_lt_one
+      ((le_max_right T 1).trans (le_max_right (max Tu Tv) (max T 1)))
+  have hTle : T ≤ Tbase :=
+    (le_max_left T 1).trans (le_max_right (max Tu Tv) (max T 1))
+  have hTuLe : Tu ≤ Tbase :=
+    (le_max_left Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  have hTvLe : Tv ≤ Tbase :=
+    (le_max_right Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  obtain ⟨t, htbase, htSmall⟩ :=
+    exists_late_dissipation_lt_of_nonnegative_energy_on_Ici
+      (E := fun s => chemotaxisEntropyFunctional intervalDomain 1 uStar u s)
+      (D := fun s => ∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u s) y - uStar) ^ 2)
+      (slope := fun s => intervalDomain.integral (fun x =>
+        (1 - uStar / u s x) * intervalDomain.timeDeriv u s x))
+      hc hTbase hq
+      (fun s hs =>
+        intervalDomain_chemotaxisEntropyFunctional_nonneg_of_positiveGlobalBoundedSolution
+          (by norm_num) heq.u_pos huv hs)
+      (intervalDomain_strong1Entropy_hasDerivAt p heq huv)
+      (fun s hs => by
+        have hs0 : 0 < s := lt_of_lt_of_le hTbase hs
+        have hH : 0 < s + 1 := by linarith
+        have hsH : s < s + 1 := by linarith
+        let hsol := huv.classical (s + 1) hH
+        have hsup : intervalDomain.supNorm (u s) ≤ uBar :=
+          hTu s (hTuLe.trans hs)
+        have hVfloor : ∀ x : intervalDomainPoint, vLower ≤ v s x :=
+          hTv s (hTvLe.trans hs)
+        have hmassS : intervalDomain.integral (u s) = uStar := by
+          simpa [intervalDomain] using hmass s hs0
+        have huStarBar : uStar ≤ uBar := by
+          have hmassSup := intervalDomain_classicalSolution_mass_le_supNorm
+            hsol (⟨hs0, hsH⟩ : s ∈ Ioo (0 : ℝ) (s + 1))
+          rw [hmassS] at hmassSup
+          exact hmassSup.trans hsup
+        have hpointUpper : ∀ x : intervalDomainPoint, u s x ≤ uBar := by
+          intro x
+          have hx :=
+            IntervalChiNegH1PhysicalResolverSupProducer.intervalDomainLift_le_supNorm_of_classical
+              hsol (⟨hs0, hsH⟩ : s ∈ Ioo (0 : ℝ) (s + 1)) x.property
+          have hx' : u s x ≤ intervalDomain.supNorm (u s) := by
+            simpa [intervalDomainLift, x.property] using hx
+          exact hx'.trans hsup
+        exact intervalDomain_entropySlope_le_minimal1Coefficient
+          hm hb0 hsol hs0 hsH heq huBar huStarBar hmassS
+            hpointUpper hvLower hVfloor)
+  exact ⟨t, hTle.trans htbase, htSmall⟩
+
 #print axioms intervalDomain_minimal_weightedGradient_ge_l2
 #print axioms minimal1EntropyCoefficient_pos_of_chi_lt
 #print axioms intervalDomain_entropySlope_le_minimal1Coefficient
+#print axioms intervalDomain_minimal1_exists_late_l2_lt
 
 end
 
