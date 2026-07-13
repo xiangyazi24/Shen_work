@@ -1156,6 +1156,153 @@ theorem intervalDomain_minimal_signal_energy_hasDerivAt_pde
   ring_nf at hdiff ⊢
   linarith
 
+/-! ## Eventual-box absorption -/
+
+/-- The strict gradient coefficient left after absorbing the chemotaxis term
+in the second minimal formula branch. -/
+def minimal2SignalCoefficient
+    (p : CM2Params) (uBar vLower : ℝ) : ℝ :=
+  p.μ - p.ν * p.χ₀ * uBar / (1 + vLower) ^ p.β
+
+/-- The literal second threshold in Theorem 2.5 leaves a positive signal
+gradient coefficient. -/
+theorem minimal2SignalCoefficient_pos
+    (p : CM2Params) {uBar vLower : ℝ}
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : p.χ₀ < chiMinimal2Formula p uBar vLower) :
+    0 < minimal2SignalCoefficient p uBar vLower := by
+  let B : ℝ := (1 + vLower) ^ p.β
+  have hB : 0 < B := by
+    exact Real.rpow_pos_of_pos (by linarith) _
+  have hden : 0 < p.ν * uBar := mul_pos p.hν huBar
+  have hthird : p.χ₀ < p.μ * B / (p.ν * uBar) := by
+    exact hchi.trans_le (by
+      unfold chiMinimal2Formula
+      exact min_le_right _ _)
+  have hmul : p.χ₀ * (p.ν * uBar) < p.μ * B :=
+    (lt_div_iff₀ hden).1 hthird
+  have hnum : p.ν * p.χ₀ * uBar < p.μ * B := by
+    nlinarith
+  have hquot : p.ν * p.χ₀ * uBar / B < p.μ :=
+    (div_lt_iff₀ hB).2 (by simpa [mul_comm] using hnum)
+  simpa [minimal2SignalCoefficient, B] using sub_pos.mpr hquot
+
+/-- On one classical slice in the eventual box, the chemotaxis integral is
+bounded by the constant box ratio times the signal-gradient energy. -/
+theorem intervalDomain_minimal_signal_chemotaxis_integral_le
+    {p : CM2Params} {T t uBar vLower : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hbeta : 1 ≤ p.β) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar)
+    (hfloor : ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    (∫ y in (0 : ℝ)..1,
+        intervalDomainLift (u t) y *
+          (deriv (intervalDomainLift (v t)) y) ^ 2 /
+            (1 + intervalDomainLift (v t) y) ^ p.β) ≤
+      (uBar / (1 + vLower) ^ p.β) *
+        (∫ y in (0 : ℝ)..1,
+          (deriv (intervalDomainLift (v t)) y) ^ 2) := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  let V : ℝ → ℝ := intervalDomainLift (v t)
+  let Vx : ℝ → ℝ := deriv V
+  let B : ℝ := (1 + vLower) ^ p.β
+  have hUCont : ContinuousOn U (Icc (0 : ℝ) 1) := by
+    simpa [U] using (hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn
+  have hVCont : ContinuousOn V (Icc (0 : ℝ) 1) := by
+    simpa [V] using (hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn
+  have hVxCont : ContinuousOn Vx (Icc (0 : ℝ) 1) := by
+    simpa [V, Vx] using
+      intervalDomain_solution_v_deriv_lift_continuousOn_Icc hsol ht
+  have hbasePos : ∀ y ∈ Icc (0 : ℝ) 1, 0 < 1 + V y := by
+    intro y hy
+    have hv : 0 ≤ V y := by
+      simpa [V, intervalDomainLift, hy] using
+        hsol.v_nonneg (x := (⟨y, hy⟩ : intervalDomainPoint)) ht.1 ht.2
+    linarith
+  have hdenCont : ContinuousOn (fun y => (1 + V y) ^ p.β)
+      (Icc (0 : ℝ) 1) :=
+    (continuousOn_const.add hVCont).rpow_const
+      (fun y hy => Or.inl (ne_of_gt (hbasePos y hy)))
+  have hleftCont : ContinuousOn
+      (fun y => U y * (Vx y) ^ 2 / (1 + V y) ^ p.β)
+      (Icc (0 : ℝ) 1) :=
+    (hUCont.mul (hVxCont.pow 2)).div hdenCont
+      (fun y hy => ne_of_gt (Real.rpow_pos_of_pos (hbasePos y hy) _))
+  have hrightCont : ContinuousOn
+      (fun y => (uBar / B) * (Vx y) ^ 2) (Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul (hVxCont.pow 2)
+  have hleftInt : IntervalIntegrable
+      (fun y => U y * (Vx y) ^ 2 / (1 + V y) ^ p.β)
+      volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hleftCont
+  have hrightInt : IntervalIntegrable
+      (fun y => (uBar / B) * (Vx y) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hrightCont
+  have hBPos : 0 < B := Real.rpow_pos_of_pos (by linarith) _
+  have hpoint : ∀ y ∈ Icc (0 : ℝ) 1,
+      U y * (Vx y) ^ 2 / (1 + V y) ^ p.β ≤
+        (uBar / B) * (Vx y) ^ 2 := by
+    intro y hy
+    have hUPos : 0 < U y := by
+      simpa [U, intervalDomainLift, hy] using
+        hsol.u_pos' (x := (⟨y, hy⟩ : intervalDomainPoint)) ht.1 ht.2
+    have hUUpper : U y ≤ uBar := by
+      simpa [U, intervalDomainLift, hy] using
+        hupper (⟨y, hy⟩ : intervalDomainPoint)
+    have hVFloor : vLower ≤ V y := by
+      simpa [V, intervalDomainLift, hy] using
+        hfloor (⟨y, hy⟩ : intervalDomainPoint)
+    have hbaseLe : 1 + vLower ≤ 1 + V y := by linarith
+    have hdenLe : B ≤ (1 + V y) ^ p.β := by
+      exact Real.rpow_le_rpow (by linarith) hbaseLe (by linarith)
+    have hratio : U y / (1 + V y) ^ p.β ≤ uBar / B :=
+      div_le_div₀ huBar.le hUUpper hBPos hdenLe
+    calc
+      U y * (Vx y) ^ 2 / (1 + V y) ^ p.β =
+          (U y / (1 + V y) ^ p.β) * (Vx y) ^ 2 := by ring
+      _ ≤ (uBar / B) * (Vx y) ^ 2 :=
+        mul_le_mul_of_nonneg_right hratio (sq_nonneg _)
+  have hmono := intervalIntegral.integral_mono_on
+    (by norm_num : (0 : ℝ) ≤ 1) hleftInt hrightInt hpoint
+  dsimp [U, V, Vx, B] at hmono ⊢
+  rw [intervalIntegral.integral_const_mul] at hmono
+  exact hmono
+
+/-- Eventual-box absorption turns the exact PDE identity into a coercive
+signal-energy slope estimate. -/
+theorem intervalDomain_minimal_signal_energy_slope_le
+    {p : CM2Params} {T t uStar vStar uBar vLower : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hbeta : 1 ≤ p.β) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hchi : 0 < p.χ₀)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar)
+    (hfloor : ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    deriv (fun s => chemotaxisSignalEnergy intervalDomain p.μ vStar v s) t ≤
+      -2 * (∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2) -
+        2 * minimal2SignalCoefficient p uBar vLower *
+          (∫ y in (0 : ℝ)..1,
+            (deriv (intervalDomainLift (v t)) y) ^ 2) := by
+  have hder := intervalDomain_minimal_signal_energy_hasDerivAt_pde
+    ha0 hb0 hgamma heq hsol ht
+  have hchem := intervalDomain_minimal_signal_chemotaxis_integral_le
+    hsol ht hbeta huBar hvLower hupper hfloor
+  have hscale : 0 ≤ 2 * p.ν * p.χ₀ := by
+    exact mul_nonneg (mul_nonneg (by norm_num) p.hν.le) hchi.le
+  have hscaled := mul_le_mul_of_nonneg_left hchem hscale
+  rw [hder.deriv]
+  unfold minimal2SignalCoefficient
+  ring_nf at hscaled ⊢
+  linarith
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
@@ -1163,6 +1310,9 @@ theorem intervalDomain_minimal_signal_energy_hasDerivAt_pde
 #print axioms intervalDomain_minimal_signal_ut_pairing_pde
 #print axioms intervalDomain_minimal_signal_diffusion_pairing
 #print axioms intervalDomain_minimal_signal_energy_hasDerivAt_pde
+#print axioms minimal2SignalCoefficient_pos
+#print axioms intervalDomain_minimal_signal_chemotaxis_integral_le
+#print axioms intervalDomain_minimal_signal_energy_slope_le
 
 end
 
