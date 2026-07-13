@@ -139,6 +139,135 @@ theorem frozenEllipticDerivDependence_inWaveTrap
     _ < ε / 2 + ε / 2 := by linarith
     _ = ε := by ring
 
+/-! Translation clusters no longer satisfy the exponentially weighted wave
+trap, but they retain exactly the source-box data used by the two kernel
+proofs above.  These box-level variants expose that actual dependency. -/
+
+theorem frozenEllipticDependence_of_nonneg_le
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ}
+    (hsn_cunif : ∀ n, IsCUnifBdd (seq n))
+    (hsn_nn : ∀ n x, 0 ≤ seq n x) (hsn_le : ∀ n x, seq n x ≤ M)
+    (hu_cunif : IsCUnifBdd u) (hu_nn : ∀ x, 0 ≤ u x)
+    (hu_le : ∀ x, u x ≤ M)
+    (hconv : LocallyUniformConverges seq u) :
+    LocallyUniformConverges (fun n => frozenElliptic p (seq n))
+      (frozenElliptic p u) := by
+  set L := rpowLip p.γ M
+  have hL0 : 0 ≤ L := rpowLip_nonneg p.hγ hM
+  intro R hR ε hε
+  set K : ℝ := 2 * M ^ p.γ * Real.exp R
+  have hexp0 : Tendsto (fun R' : ℝ => Real.exp (-R')) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp tendsto_neg_atTop_atBot
+  have htail_small : ∀ᶠ R' : ℝ in atTop,
+      K * Real.exp (-R') < ε / 2 := by
+    have hKtail : Tendsto (fun R' : ℝ => K * Real.exp (-R')) atTop (𝓝 0) := by
+      simpa using hexp0.const_mul K
+    exact hKtail.eventually (eventually_lt_nhds (by linarith))
+  obtain ⟨R', htailR', hRR'⟩ :=
+    (htail_small.and (eventually_ge_atTop R)).exists
+  have hR'0 : 0 < R' := lt_of_lt_of_le hR hRR'
+  have hLp1 : 0 < L + 1 := by linarith
+  let s0 : ℝ := ε / (2 * (L + 1))
+  have hs0 : 0 < s0 := by dsimp [s0]; positivity
+  filter_upwards [hconv R' hR'0 s0 hs0] with n hn
+  intro x hx
+  have hs_bd : ∀ y ∈ Set.Icc (-R') R', |seq n y - u y| ≤ s0 :=
+    fun y hy => (hn y hy).le
+  have habs := frozenElliptic_diff_abs_le p
+    (hsn_cunif n) (hsn_nn n) hu_cunif hu_nn x
+  have hsplit := deriv_diff_integral_split_le p
+    (M := M) (R := R) (R' := R') (s := s0)
+    hM (hsn_nn n) (hsn_le n) hu_nn hu_le hs_bd hR hRR' hx
+    (hsn_cunif n) hu_cunif
+  have hchain :
+      |frozenElliptic p (seq n) x - frozenElliptic p u x| ≤
+        L * s0 + K * Real.exp (-R') := by
+    refine le_trans habs ?_
+    have h2 := mul_le_mul_of_nonneg_left hsplit
+      (by norm_num : (0 : ℝ) ≤ 1 / 2)
+    calc
+      1 / 2 * ∫ y, Real.exp (-|x - y|) *
+            |(seq n y) ^ p.γ - (u y) ^ p.γ| ≤
+          1 / 2 * (2 * (rpowLip p.γ M * s0) +
+            4 * (M ^ p.γ * (Real.exp R * Real.exp (-R')))) := h2
+      _ = L * s0 + K * Real.exp (-R') := by dsimp [L, K]; ring
+  have hinner_le : L * s0 ≤ ε / 2 := by
+    have hstep : L * s0 ≤ (L + 1) * s0 :=
+      mul_le_mul_of_nonneg_right (by linarith) hs0.le
+    have heq : (L + 1) * s0 = ε / 2 := by
+      dsimp [s0]
+      field_simp [ne_of_gt hLp1]
+    linarith
+  calc
+    |frozenElliptic p (seq n) x - frozenElliptic p u x| ≤
+        L * s0 + K * Real.exp (-R') := hchain
+    _ < ε / 2 + ε / 2 := by linarith
+    _ = ε := by ring
+
+theorem frozenEllipticDerivDependence_of_nonneg_le
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ}
+    (hsn_cunif : ∀ n, IsCUnifBdd (seq n))
+    (hsn_nn : ∀ n x, 0 ≤ seq n x) (hsn_le : ∀ n x, seq n x ≤ M)
+    (hu_cunif : IsCUnifBdd u) (hu_nn : ∀ x, 0 ≤ u x)
+    (hu_le : ∀ x, u x ≤ M)
+    (hconv : LocallyUniformConverges seq u) :
+    LocallyUniformConverges
+      (fun n x => deriv (frozenElliptic p (seq n)) x)
+      (fun x => deriv (frozenElliptic p u) x) := by
+  set L := rpowLip p.γ M
+  have hL0 : 0 ≤ L := rpowLip_nonneg p.hγ hM
+  intro R hR ε hε
+  set K : ℝ := 2 * M ^ p.γ * Real.exp R
+  have hexp0 : Tendsto (fun R' : ℝ => Real.exp (-R')) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp tendsto_neg_atTop_atBot
+  have htail_small : ∀ᶠ R' : ℝ in atTop,
+      K * Real.exp (-R') < ε / 2 := by
+    have hKtail : Tendsto (fun R' : ℝ => K * Real.exp (-R')) atTop (𝓝 0) := by
+      simpa using hexp0.const_mul K
+    exact hKtail.eventually (eventually_lt_nhds (by linarith))
+  obtain ⟨R', htailR', hRR'⟩ :=
+    (htail_small.and (eventually_ge_atTop R)).exists
+  have hR'0 : 0 < R' := lt_of_lt_of_le hR hRR'
+  have hLp1 : 0 < L + 1 := by linarith
+  let s0 : ℝ := ε / (2 * (L + 1))
+  have hs0 : 0 < s0 := by dsimp [s0]; positivity
+  filter_upwards [hconv R' hR'0 s0 hs0] with n hn
+  intro x hx
+  have hs_bd : ∀ y ∈ Set.Icc (-R') R', |seq n y - u y| ≤ s0 :=
+    fun y hy => (hn y hy).le
+  have habs := frozenElliptic_deriv_diff_abs_le p
+    (hsn_cunif n) (hsn_nn n) hu_cunif hu_nn x
+  have hsplit := deriv_diff_integral_split_le p
+    (M := M) (R := R) (R' := R') (s := s0)
+    hM (hsn_nn n) (hsn_le n) hu_nn hu_le hs_bd hR hRR' hx
+    (hsn_cunif n) hu_cunif
+  have hchain :
+      |deriv (frozenElliptic p (seq n)) x - deriv (frozenElliptic p u) x| ≤
+        L * s0 + K * Real.exp (-R') := by
+    refine le_trans habs ?_
+    have h2 : (1 : ℝ) / 2 * (∫ y, Real.exp (-|x - y|) *
+        |(seq n y) ^ p.γ - (u y) ^ p.γ|) ≤
+      1 / 2 * (2 * (L * s0) +
+        4 * (M ^ p.γ * (Real.exp R * Real.exp (-R')))) :=
+      mul_le_mul_of_nonneg_left hsplit (by norm_num)
+    refine le_trans h2 (le_of_eq ?_)
+    dsimp [K]
+    ring
+  have hinner_le : L * s0 ≤ ε / 2 := by
+    have hstep : L * s0 ≤ (L + 1) * s0 :=
+      mul_le_mul_of_nonneg_right (by linarith) hs0.le
+    have heq : (L + 1) * s0 = ε / 2 := by
+      dsimp [s0]
+      field_simp [ne_of_gt hLp1]
+    linarith
+  calc
+    |deriv (frozenElliptic p (seq n)) x - deriv (frozenElliptic p u) x| ≤
+        L * s0 + K * Real.exp (-R') := hchain
+    _ < ε / 2 + ε / 2 := by linarith
+    _ = ε := by ring
+
 /-- Non-diagonal continuity of the genuine paper source on the nonmonotone
 positive trap. -/
 theorem paperStepSource_locallyUniform_nonDiagonal_inWaveTrap
