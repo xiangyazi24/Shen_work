@@ -45,7 +45,7 @@ open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs)
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
+namespace ShenWork.Paper2.IntervalMildPositiveTimeRegularity
 
 /-- The restart cosine representation of `S.u` near each interior time, in the
 form consumed below.  This is facet `(C2b)` — the Duhamel representation leaf. -/
@@ -310,4 +310,4 @@ theorem mildSlice_contDiffOn_two_neumann
 
 #print axioms mildSlice_contDiffOn_two_neumann
 
-end ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
+end ShenWork.Paper2.IntervalMildPositiveTimeRegularity

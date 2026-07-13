@@ -8,9 +8,9 @@
   solution.
 -/
 
-import ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
+import ShenWork.Paper2.IntervalTruncatedEnergyProducer
 import ShenWork.Paper2.IntervalBFormSquareHeatT0RestartDerivativeData
-import ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6
+import ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms
 import ShenWork.Paper2.IntervalResolverWeakODEBridge
 import ShenWork.Paper2.IntervalChiNegCloseBaseSeed
 import ShenWork.Paper2.IntervalTruncatedFluxC2Bounds
@@ -21,7 +21,7 @@ open scoped BigOperators Topology ENNReal
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
+namespace ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison
 
 open ShenWork.IntervalDomain
   (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
@@ -88,7 +88,7 @@ theorem truncatedLimit_timeSlice_continuousWithinAt_Iio
       (fun s => truncatedConjugatePicardLimit p u₀ DT.T s x)
       (Set.Iio t) t := by
   have hbase :=
-    (ShenWork.Paper2.IntervalTruncatedEnergyProducerV6.truncatedLimit_timeSlice_continuousOn_Ioc
+    (ShenWork.Paper2.IntervalTruncatedEnergyProducer.truncatedLimit_timeSlice_continuousOn_Ioc
       DT x).continuousWithinAt
       (show t ∈ Set.Ioc (0 : ℝ) DT.T from ⟨ht, htT⟩)
   have hpos : Set.Ioi (t / 2) ∈ nhds t := Ioi_mem_nhds (by linarith)
@@ -792,10 +792,10 @@ theorem squareHeatBarrier_remainder_pairing_tendsto
         ∂intervalMeasure 1)
       (nhdsWithin 0 (Set.Ioi 0))
       (nhds ((∫ x,
-          ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.barrierTimeDerivRep
+          ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.barrierTimeDerivRep
             M f t x * φ x ∂intervalMeasure 1) +
         ∫ x,
-          ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.barrierSpaceDerivRep
+          ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.barrierSpaceDerivRep
             M f t x * deriv φ x ∂intervalMeasure 1)) := by
   let W : ℝ → ℝ → ℝ := fun r x => squareHeatBarrier M f r x
   let TI : ℝ → ℝ := fun q => q⁻¹ * ∫ x,
@@ -804,21 +804,21 @@ theorem squareHeatBarrier_remainder_pairing_tendsto
     deriv (fun z => intervalFullSemigroupOperator r (W (t - q)) z) x *
       deriv φ x ∂intervalMeasure 1
   let Lt : ℝ := ∫ x,
-    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.barrierTimeDerivRep
+    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.barrierTimeDerivRep
       M f t x * φ x ∂intervalMeasure 1
   let Lx : ℝ := ∫ x,
-    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.barrierSpaceDerivRep
+    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.barrierSpaceDerivRep
       M f t x * deriv φ x ∂intervalMeasure 1
   have hφmeas : AEStronglyMeasurable φ (intervalMeasure 1) :=
     ShenWork.IntervalDuhamelIntegrability.continuousOn_aestronglyMeasurable_intervalMeasure
       hφcont
   have htime : Tendsto TI (nhdsWithin 0 (Set.Ioi 0)) (nhds Lt) := by
     simpa [TI, Lt, W] using
-      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.squareHeatBarrier_timeIncrement_pairing_tendsto
+      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.squareHeatBarrier_timeIncrement_pairing_tendsto
         (M := M) ht hf hCf hf_bound hK hφmeas hCφ hφbound)
   have hspace : Tendsto DI (nhdsWithin 0 (Set.Ioi 0)) (nhds Lx) := by
     simpa [DI, Lx, W] using
-      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.squareHeatBarrier_moving_dirichletAverage_tendsto
+      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.squareHeatBarrier_moving_dirichletAverage_tendsto
         (M := M) ht hf hCf hf_bound hK hl2 hGφ hφ_deriv_bound)
   have hsum : Tendsto (fun q => TI q + DI q)
       (nhdsWithin 0 (Set.Ioi 0)) (nhds (Lt + Lx)) := htime.add hspace
@@ -841,7 +841,7 @@ theorem squareHeatBarrier_remainder_pairing_tendsto
     dsimp [Gq]
     positivity
   have hregq :=
-    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.squareHeatBarrierSliceRegularData_of_semigroup
+    ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.squareHeatBarrierSliceRegularData_of_semigroup
       (M := M) htq hf hCf hf_bound hK hl2
   have hSq : ∀ x, |intervalFullSemigroupOperator (t - q) f x| ≤ Cf :=
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
@@ -855,7 +855,7 @@ theorem squareHeatBarrier_remainder_pairing_tendsto
   have hWqderiv : ∀ᵐ x ∂volume, |deriv (W (t - q)) x| ≤ Gq := by
     filter_upwards [] with x
     simpa [W, Gq] using
-      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.squareHeatBarrier_deriv_abs_le_global
+      (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.squareHeatBarrier_deriv_abs_le_global
         (M := M) htq hCf hf.aestronglyMeasurable hf_bound (x := x))
   have hinc := intervalFullSemigroup_pairing_increment_eq_neg_dirichletTail
     (f := W (t - q)) (φ := φ) (h := q) (Cf := Cq) (Cφ := Cφ)
@@ -863,7 +863,7 @@ theorem squareHeatBarrier_remainder_pairing_tendsto
     hregq.absolutelyContinuous hGq hWqderiv hφcont hCφ hφbound hφac
     hGφ hφ_deriv_bound
   have hWtcont :=
-    (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6.squareHeatBarrierSliceRegularData_of_semigroup
+    (ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms.squareHeatBarrierSliceRegularData_of_semigroup
       (M := M) ht hf hCf hf_bound hK hl2).continuous
   have hSq_t : ∀ x, |intervalFullSemigroupOperator t f x| ≤ Cf :=
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
@@ -2582,4 +2582,4 @@ theorem pointwise_le_of_positivePartComparisonEnergyCoreData
     exact le_antisymm hEt_nonpos hEt_nonneg
   exact H.zero_energy_to_pointwise_le t ht hEt x
 
-end ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
+end ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison

@@ -1,7 +1,7 @@
 import ShenWork.Paper3.IntervalDomainUniformHeatKernelFloor
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.PDE.IntervalSemigroupComposition
-import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
+import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison
 
 /-!
 # Quantitative mass-to-resolver positivity on the unit interval
@@ -29,7 +29,7 @@ open ShenWork.IntervalResolverPositivity
 open ShenWork.IntervalSemigroupComposition
 open ShenWork.IntervalDomainResolverStrictPos
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
+open ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison
 open ShenWork.PDE (intervalNeumannResolverWeight)
 
 /-- The quantitative resolver coefficient multiplying the source mass. -/

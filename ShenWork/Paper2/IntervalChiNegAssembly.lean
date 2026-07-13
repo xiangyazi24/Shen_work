@@ -49,7 +49,7 @@ open ShenWork.Paper2.ChiNegResidual
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChiNegV6Assembly
+namespace ShenWork.Paper2.IntervalChiNegAssembly
 
 /-- Positive-time Jensen data for the faithful truncated limit. -/
 structure TruncatedJensenStrictPosDataFor
@@ -91,7 +91,7 @@ theorem strictPos_of_truncatedJensenStrictPosDataFor
   exact lt_of_lt_of_le
     (mul_pos (Real.exp_pos _) (sq_pos_of_pos hSpos)) hdiscount
 
-abbrev UniformTruncatedEnergyDataV6 (p : CM2Params) : Type :=
+abbrev UniformTruncatedEnergyData (p : CM2Params) : Type :=
   ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
     PositiveInitialDatum intervalDomain u₀ → (∀ x, |u₀ x| ≤ M) →
     ∀ C : UniformConjugateMildExistenceCore p u₀,
@@ -100,9 +100,9 @@ abbrev UniformTruncatedEnergyDataV6 (p : CM2Params) : Type :=
         (uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A).toData
 
 /-- The only non-spectral V6 inputs: energy and Jensen strict positivity. -/
-structure UniformTruncatedV6AssemblyInputs (p : CM2Params) where
+structure UniformTruncatedAssemblyInputs (p : CM2Params) where
   mapCertificate : UniformTruncatedConjugateMapCertificateData p
-  energy : UniformTruncatedEnergyDataV6 p
+  energy : UniformTruncatedEnergyData p
   jensenStrictPos :
     ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
       PositiveInitialDatum intervalDomain u₀ → (∀ x, |u₀ x| ≤ M) →
@@ -112,7 +112,7 @@ structure UniformTruncatedV6AssemblyInputs (p : CM2Params) where
 
 /-- Once energy proves nonnegativity, the truncated mild equation is the
 interval conjugate mild equation for the same truncated limit. -/
-theorem intervalConjugateMildSolution_of_truncatedEnergy_v6
+theorem intervalConjugateMildSolution_of_truncatedEnergy
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {C : UniformConjugateMildExistenceCore p u₀}
     (HT : UniformTruncatedConjugateMildExistenceCore p C)
@@ -153,7 +153,7 @@ theorem intervalConjugateMildSolution_of_truncatedEnergy_v6
       truncatedConjugateDuhamelMap_eq_intervalConjugateDuhamelMap_of_nonneg
         p u₀ hnonneg_global t x
 
-def conjugateMildSolutionData_of_truncatedEnergyJensen_v6
+def conjugateMildSolutionData_of_truncatedEnergyJensen
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {C : UniformConjugateMildExistenceCore p u₀}
     (HT : UniformTruncatedConjugateMildExistenceCore p C)
@@ -168,7 +168,7 @@ def conjugateMildSolutionData_of_truncatedEnergyJensen_v6
   M := C.R
   hM := C.hR
   u := truncatedConjugatePicardLimit p u₀ C.T
-  hmild := intervalConjugateMildSolution_of_truncatedEnergy_v6 HT Henergy
+  hmild := intervalConjugateMildSolution_of_truncatedEnergy HT Henergy
   hbound := by
     intro t ht htT x
     simpa [UniformTruncatedConjugateMildExistenceCore.toData]
@@ -190,7 +190,7 @@ def conjugateMildSolutionData_of_truncatedEnergyJensen_v6
     simpa [UniformTruncatedConjugateMildExistenceCore.toData]
       using (HT.solutionData).hmeas
 
-theorem initialTrace_of_truncatedEnergyJensen_v6
+theorem initialTrace_of_truncatedEnergyJensen
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     {C : UniformConjugateMildExistenceCore p u₀}
@@ -201,15 +201,15 @@ theorem initialTrace_of_truncatedEnergyJensen_v6
       TruncatedJensenStrictPosDataFor C.T
         (truncatedConjugatePicardLimit p u₀ C.T)) :
     InitialTrace intervalDomain u₀
-      (conjugateMildSolutionData_of_truncatedEnergyJensen_v6
+      (conjugateMildSolutionData_of_truncatedEnergyJensen
         HT Henergy HJensen).u := by
-  dsimp [conjugateMildSolutionData_of_truncatedEnergyJensen_v6]
+  dsimp [conjugateMildSolutionData_of_truncatedEnergyJensen]
   exact truncatedConjugatePicardLimit_initialTrace_of_truncated_data
     p hu₀.admissible.2 HT.toData
 
-theorem coupledFluxClassicalLocalExistenceResidual_v6
+theorem coupledFluxClassicalLocalExistenceResidual
     (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (H : UniformTruncatedV6AssemblyInputs p)
+    (H : UniformTruncatedAssemblyInputs p)
     (HSpectral : ∀ {u₀} (S : ConjugateMildSolutionData p u₀),
       BFormMildSpectralBootstrapData p S) :
     CoupledFluxClassicalLocalExistenceResidual p := by
@@ -231,35 +231,35 @@ theorem coupledFluxClassicalLocalExistenceResidual_v6
   let Henergy := H.energy hM hu₀I hboundI C A
   let HJensen := H.jensenStrictPos hM hu₀I hboundI C
   let S : ConjugateMildSolutionData p u₀I :=
-    conjugateMildSolutionData_of_truncatedEnergyJensen_v6
+    conjugateMildSolutionData_of_truncatedEnergyJensen
       HT Henergy HJensen
   have hTrace : InitialTrace intervalDomain u₀I S.u := by
     simpa [S] using
-      initialTrace_of_truncatedEnergyJensen_v6
+      initialTrace_of_truncatedEnergyJensen
         hu₀I HT Henergy HJensen
   obtain ⟨u, v, hclass, htrace⟩ :=
     localClassicalSolution_of_conjugateMild_spectral
       S (HSpectral S) hTrace
   refine ⟨u, v, ?_, htrace⟩
   have hST : S.T = T := by
-    dsimp [S, conjugateMildSolutionData_of_truncatedEnergyJensen_v6]
+    dsimp [S, conjugateMildSolutionData_of_truncatedEnergyJensen]
     exact hCT
   simpa [hST] using hclass
 
-theorem paper2_chiNeg_v6_spectral
+theorem paper2_chiNeg_spectral
     (p : CM2Params) (hχ : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (H : UniformTruncatedV6AssemblyInputs p)
+    (H : UniformTruncatedAssemblyInputs p)
     (HSpectral : ∀ {u₀} (S : ConjugateMildSolutionData p u₀),
       BFormMildSpectralBootstrapData p S) :
     Theorem_1_1 intervalDomain p :=
   theorem_1_1_intervalDomain_chiNeg_of_coupledFluxClassicalLocalExistenceResidual
     p hχ ha hb hα hγ
-    (coupledFluxClassicalLocalExistenceResidual_v6 p hα hγ H HSpectral)
+    (coupledFluxClassicalLocalExistenceResidual p hα hγ H HSpectral)
 
-#print axioms intervalConjugateMildSolution_of_truncatedEnergy_v6
-#print axioms conjugateMildSolutionData_of_truncatedEnergyJensen_v6
-#print axioms coupledFluxClassicalLocalExistenceResidual_v6
-#print axioms paper2_chiNeg_v6_spectral
+#print axioms intervalConjugateMildSolution_of_truncatedEnergy
+#print axioms conjugateMildSolutionData_of_truncatedEnergyJensen
+#print axioms coupledFluxClassicalLocalExistenceResidual
+#print axioms paper2_chiNeg_spectral
 
-end ShenWork.Paper2.IntervalChiNegV6Assembly
+end ShenWork.Paper2.IntervalChiNegAssembly

@@ -1,7 +1,7 @@
 import ShenWork.Paper2.IntervalChiNegFinalAssemblyV3
 import ShenWork.Paper2.IntervalResolverBootstrapFromMild
 import ShenWork.Paper2.IntervalBFormSpectralProviderDischarge
-import ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
+import ShenWork.Paper2.IntervalMildPositiveTimeRegularity
 
 /-!
 # HSpectral producer for the χ₀<0 V6 assembly — generic-`S` assembler
@@ -54,13 +54,13 @@ open ShenWork.Paper2.IntervalResolverBootstrapFromMild
    hResolverPos_of_conjugateMild)
 open ShenWork.Paper2.IntervalChiNegFinalAssemblyV3
   (PositiveTimeSpectralBootstrapFrontier bootstrapData_of_positiveTime_frontier)
-open ShenWork.Paper2.IntervalMildPositiveTimeRegularityV6
+open ShenWork.Paper2.IntervalMildPositiveTimeRegularity
   (RestartRepresentation restartSliceCoeff restartSliceCoeff_eigenvalueSummable
    restartSliceCoeff_realization)
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalTruncatedSpectralProducerV6
+namespace ShenWork.Paper2.IntervalTruncatedSpectralProducer
 
 /-- Interior midpoint of `[0,1]`, used to read the restart representation off
 the PDE-agreement data. -/
@@ -255,4 +255,4 @@ def bFormMildSpectralBootstrapData_of_leaves
 
 #print axioms bFormMildSpectralBootstrapData_of_leaves
 
-end ShenWork.Paper2.IntervalTruncatedSpectralProducerV6
+end ShenWork.Paper2.IntervalTruncatedSpectralProducer

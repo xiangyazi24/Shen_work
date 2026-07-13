@@ -1,6 +1,6 @@
 import ShenWork.Paper2.IntervalConjugatePicardFloorCoreInhabit
 import ShenWork.Paper2.IntervalBFormInitialTrace
-import ShenWork.Paper2.IntervalChiNegV6DirectClassical
+import ShenWork.Paper2.IntervalChiNegDirectClassical
 import ShenWork.Paper2.IntervalDomainQuantFromThreshold
 
 /-!
@@ -16,7 +16,7 @@ noncomputable section
 namespace ShenWork.Paper2.IntervalDomainM
 
 open ShenWork.IntervalConjugatePicard
-open ShenWork.Paper2.IntervalChiNegV6Assembly
+open ShenWork.Paper2.IntervalChiNegAssembly
 
 /-- Upgrade any inhabited positive-floor Picard datum to a classical solution
 at its explicit horizon. -/

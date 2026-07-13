@@ -25,7 +25,7 @@ open Set Filter Topology MeasureTheory
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChemDivSourceWeakH2AssemblyV6
+namespace ShenWork.Paper2.IntervalChemDivSourceWeakH2Assembly
 
 open ShenWork.IntervalDomain
   (intervalDomainLift intervalDomainPoint)
@@ -209,4 +209,4 @@ noncomputable def coupledChemDivSourceLift_weakH2Neumann_of_cosineRepresentative
 #print axioms intervalResolverLiftR_eq_coupledChemicalLift_on_Icc
 #print axioms coupledChemDivSourceLift_weakH2Neumann_of_cosineRepresentatives
 
-end ShenWork.Paper2.IntervalChemDivSourceWeakH2AssemblyV6
+end ShenWork.Paper2.IntervalChemDivSourceWeakH2Assembly

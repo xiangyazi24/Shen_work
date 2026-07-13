@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalChiNegV6Headline
+import ShenWork.Paper2.IntervalChiNegHeadline
 import ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
 import ShenWork.Paper2.IntervalDomainUniformContinuation
 import ShenWork.Paper2.IntervalDomainPiecewiseClassical
@@ -26,7 +26,7 @@ noncomputable section
 namespace ShenWork.Paper2.IntervalDomainM
 
 open ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
-open ShenWork.Paper2.IntervalChiNegV6Assembly
+open ShenWork.Paper2.IntervalChiNegAssembly
 open ShenWork.Paper2.StrongPath
 open ShenWork.IntervalDomainExistence
 
@@ -37,8 +37,8 @@ def positiveCriticalQuantitativeLocalPPID_geOne
     (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
     ChiNegDatumUniformConstructionPPID p :=
   ShenWork.ppid_of_uniformCore
-    (chiNegDatumUniformCore_v6 p hα hγ
-      (uniformTruncatedV6AssemblyInputs_producer p hα hγ))
+    (chiNegDatumUniformCore p hα hγ
+      (uniformTruncatedAssemblyInputs_producer p hα hγ))
 
 /-- Per-datum local existence from the quantitative PPID factory. -/
 theorem positiveCriticalLocalExistence_geOne
