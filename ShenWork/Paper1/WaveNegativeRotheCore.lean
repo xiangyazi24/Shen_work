@@ -73,6 +73,20 @@ def Paper1NegativePinnedStationaryNoDropCore : Prop :=
       PaperNegativePinnedStationaryNoDrop hcond
         (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c) s
 
+/-- The weakest live residual: sequential lower no-drop of the selected Rothe
+limit along one locally-uniformly convergent parameter family.  The reverse
+inequality is already proved by adaptive Green closure and stationary
+maximality, so neither global stationary uniqueness nor a family-uniform Rothe
+tail is assumed. -/
+def Paper1NegativePinnedRotheClusterNoDropCore : Prop :=
+  ∀ p : CMParams, ∀ hα : p.α ≤ p.m + p.γ - 1,
+    ∀ hχ : p.χ ≤ 0, ∀ c : ℝ, ∀ hc : cStarLower p < c,
+      let hcond := negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
+      let D := paper1NegativeRotheD p c
+      let s := paper1NegativeLocalStepScalars p hα hχ hc
+      PaperNegativePinnedRotheClusterNoDrop hcond
+        (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c) s
+
 /-- The adaptive moving-index closed graph and compact range turn the exact
 stationary-identification core into L10. -/
 theorem paper1NegativePinnedRotheL10Core_of_stationaryIdentification
@@ -92,6 +106,18 @@ theorem paper1NegativePinnedRotheL10Core_of_stationaryNoDrop
     Paper1NegativePinnedRotheL10Core := by
   intro p hα hχ c hc
   exact paperNegativePinnedRotheL10_of_stationaryNoDrop
+    (negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc)
+    (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c)
+    (paper1NegativeLocalStepScalars p hα hχ hc)
+    (hnoDrop p hα hχ c hc)
+
+/-- Compact range and the proved upper-semicontinuity direction turn the exact
+cluster no-drop core into full L10 continuity. -/
+theorem paper1NegativePinnedRotheL10Core_of_clusterNoDrop
+    (hnoDrop : Paper1NegativePinnedRotheClusterNoDropCore) :
+    Paper1NegativePinnedRotheL10Core := by
+  intro p hα hχ c hc
+  exact paperNegativePinnedRotheL10_of_clusterNoDrop
     (negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc)
     (paper1NegativeRotheD_gt p c) (paper1NegativeRotheD_one_le p c)
     (paper1NegativeLocalStepScalars p hα hχ hc)
@@ -203,6 +229,22 @@ theorem paper1_negativeConstruction_of_stationaryNoDrop
   paper1_negativeConstruction_of_pinnedRotheL10
     (paper1NegativePinnedRotheL10Core_of_stationaryNoDrop hnoDrop)
 
+/-- Live negative construction reduced to one family-level no-drop theorem. -/
+theorem paper1_negativeConstruction_of_clusterNoDrop
+    (hnoDrop : Paper1NegativePinnedRotheClusterNoDropCore) :
+    ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+      ∀ c : ℝ, cStarLower p < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+          (∀ x, deriv U x ≤ 0) ∧
+          (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+          ShenUpperBoundNegative c U ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < negativeBranchTailCap p c →
+              HasWaveRightTailAsymptotic c κ₁ U :=
+  paper1_negativeConstruction_of_pinnedRotheL10
+    (paper1NegativePinnedRotheL10Core_of_clusterNoDrop hnoDrop)
+
 /-- Headline adapter after the genuine negative Rothe construction.  The
 positive-attraction construction remains a separate input; in particular this
 theorem does not mention the inconsistent Route-A positive ParamData package. -/
@@ -263,6 +305,25 @@ theorem Theorem_1_1.of_negativeStationaryNoDrop
     Theorem_1_1 :=
   Theorem_1_1.of_negativePinnedRotheL10
     (paper1NegativePinnedRotheL10Core_of_stationaryNoDrop hnoDrop) hpos
+
+/-- Live headline adapter with the exact negative cluster no-drop residual and
+the genuinely separate positive-attraction construction. -/
+theorem Theorem_1_1.of_negativeClusterNoDrop
+    (hnoDrop : Paper1NegativePinnedRotheClusterNoDropCore)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+            ShenUpperBoundPositive p c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ < min ((1 + p.α) * kappa c)
+                (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_negativePinnedRotheL10
+    (paper1NegativePinnedRotheL10Core_of_clusterNoDrop hnoDrop) hpos
 
 /-- The single remaining negative-branch analytic theorem.
 
@@ -373,12 +434,15 @@ section AxiomAudit
 #print axioms paper1NegativeRotheD_gt
 #print axioms paper1NegativePinnedRotheL10Core_of_stationaryIdentification
 #print axioms paper1NegativePinnedRotheL10Core_of_stationaryNoDrop
+#print axioms paper1NegativePinnedRotheL10Core_of_clusterNoDrop
 #print axioms paper1_negativeConstruction_of_pinnedRotheL10
 #print axioms paper1_negativeConstruction_of_stationaryIdentification
 #print axioms paper1_negativeConstruction_of_stationaryNoDrop
+#print axioms paper1_negativeConstruction_of_clusterNoDrop
 #print axioms Theorem_1_1.of_negativePinnedRotheL10
 #print axioms Theorem_1_1.of_negativeStationaryIdentification
 #print axioms Theorem_1_1.of_negativeStationaryNoDrop
+#print axioms Theorem_1_1.of_negativeClusterNoDrop
 #print axioms paper1NegativeParamProducer
 #print axioms paper1NegativeRotheAnalyticCore_of_rest_l10
 #print axioms paper1NegativeLowerRawCapRouteAParamData_of_analyticCore
