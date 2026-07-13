@@ -137,13 +137,13 @@ theorem upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
 bound.  This is the weighted estimate needed to control the `m < 2` contact
 cusp in comparisons with the next iterate. -/
 theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
-    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {u Z : ℝ → ℝ}
+    {p : CMParams} {c lam M κ κtilde D Λ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
-    (hD : 0 < D) (hM : 0 ≤ M)
-    (d : PaperLocalFixedStepData p c lam M κ Λ u Z)
+    (hD : 0 < D) (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
     (hW : InLowerPinnedMonotoneTrap κ M
       (lowerBarrierRaw κ κtilde D) d.fixed.W) :
     ∀ x, |deriv d.fixed.W x| ≤
@@ -151,12 +151,12 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
         lowerPinnedBarrierRatio κ κtilde D M) * d.fixed.W x := by
   intro x
   have hderiv := d.deriv_abs_le_weighted_barrier
-    hlam hrpκ hrmκ hκ.le hM x
+    hlam hrpκ hrmκ hκ.le hM hB x
   have hratio :=
     upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
       hκ hgap hD hM x
   have hplateau := plateau_le_of_lowerPinnedRaw hW x
-  have hcoeff0 := d.weightedDerivCoeff_nonneg hlam hrpκ hrmκ
+  have hcoeff0 := d.weightedDerivCoeff_nonneg hlam hrpκ hrmκ hB
   have hratio0 := lowerPinnedBarrierRatio_nonneg hκ hgap hD hM
   calc
     |deriv d.fixed.W x| ≤

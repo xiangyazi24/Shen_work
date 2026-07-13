@@ -12,9 +12,9 @@ namespace ShenWork.Paper1
 old iterate is.  This is the pointwise strong-minimum argument needed before
 bootstrapping through noninteger powers. -/
 theorem PaperLocalFixedStepData.strict_pos_of_old_pos
-    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {p : CMParams} {c lam M κ Λ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
-    (d : PaperLocalFixedStepData p c lam M κ Λ u Z)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
     (hZpos : ∀ x, 0 < Z x) :
     ∀ x, 0 < d.fixed.W x := by
   intro x
@@ -50,10 +50,10 @@ theorem PaperLocalFixedStepData.strict_pos_of_old_pos
 /-- Positive `C²` Green steps bootstrap to `C³` once the old iterate is `C¹`.
 The frozen elliptic `C²` input is automatic from trap membership. -/
 theorem PaperLocalFixedStepData.contDiff_three_of_old_pos
-    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {p : CMParams} {c lam M κ Λ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (d : PaperLocalFixedStepData p c lam M κ Λ u Z)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
     (hZ1 : ContDiff ℝ 1 Z)
     (hZpos : ∀ x, 0 < Z x) :
     ContDiff ℝ 3 d.fixed.W := by
@@ -98,7 +98,7 @@ theorem paperWaveOperator_differentiable_of_pos
 is positive and `C¹`.  In particular, every successor after the kinked initial
 upper barrier is internal; only the initial kink case remains separate. -/
 theorem PaperLocalFixedStepData.antitone_of_old_pos_contDiff_one
-    {p : CMParams} {c lam M κ Λ Cmono : ℝ} {u Z : ℝ → ℝ}
+    {p : CMParams} {c lam M κ Λ B Cmono : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hbox : PaperFrozenEllipticSourceBox p κ M)
@@ -106,7 +106,7 @@ theorem PaperLocalFixedStepData.antitone_of_old_pos_contDiff_one
     (hsmall : (1 / lam) * Cmono < 1)
     (hCmono :
       paperCmono p (-p.χ) M (M ^ p.γ) (2 * M ^ p.γ) ≤ Cmono)
-    (d : PaperLocalFixedStepData p c lam M κ Λ u Z)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
     (hZ1 : ContDiff ℝ 1 Z)
     (hZpos : ∀ x, 0 < Z x)
     (hZanti : Antitone Z) :

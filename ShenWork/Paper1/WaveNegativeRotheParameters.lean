@@ -147,7 +147,7 @@ def toLocalRouteAStepParameters
     {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet (kappa c) 1 u)
     (hrest : PaperLocalFixedStepRestProvider
-      p c h.lam 1 (kappa c) h.Λ u) :
+      p c h.lam 1 (kappa c) h.Λ h.B u) :
     PaperLocalRouteAStepParameters p c h.lam 1 (kappa c) h.Λ u :=
   { B := h.B
     hlam := h.hlam
@@ -172,7 +172,7 @@ def toLowerRawStepProducer
     {D : ℝ} {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet (kappa c) 1 u)
     (hrest : PaperLocalFixedStepRestProvider
-      p c h.lam 1 (kappa c) h.Λ u) :
+      p c h.lam 1 (kappa c) h.Λ h.B u) :
     PaperLowerRawStepProducerRouteAParamCore
       p c h.lam 1 (kappa c) (negativeBranchTailCap p c) D h.Λ
       h.hκ.le zero_le_one u := by
