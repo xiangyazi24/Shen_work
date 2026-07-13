@@ -172,5 +172,7 @@ maximal-continuation branch, with a finite `Tmax` alternative only when the
 reachable horizons are bounded above, and a genuine global/glued branch when
 they are unbounded.
 
-Theorem 1.3 is not affected by the parameter counterexample: its original
-statement explicitly assumes `a, b > 0`.
+Theorem 1.3 is not affected by this particular `a > 0, b = 0`
+counterexample, because it explicitly assumes `a, b > 0`.  A separate
+exponent-domain defect in the proof of Theorem 1.3(iv) is documented in
+`paper2_theorem13_case_iv_amendment.md`.
