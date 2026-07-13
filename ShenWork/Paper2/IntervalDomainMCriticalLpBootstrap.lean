@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalDomainMCriticalLpSeed
 import ShenWork.PDE.P3MoserAgmonDirectRoute
+import ShenWork.PDE.P3MoserIntegratedClosure
 
 /-!
 # Finite-power bootstrap in the faithful critical interval equation
@@ -19,6 +20,7 @@ open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 open ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
 noncomputable section
 
@@ -269,6 +271,26 @@ theorem critical_lp_power_bounded_before_positive_of_seed
   exact lp_power_bounded_before_of_linear_damping
     hu₀ hsol htrace hp hB hdamp
 
+/-- The fixed critical seed gives the one-rung first-crossing interface used by
+the abstract Moser closure.  In fact the finite-power bootstrap above is
+stronger: it bounds every exponent above `p0` directly, so the supplied bound
+at the current rung is not needed. -/
+theorem critical_integratedMoserFirstCrossingStep_positive_of_seed
+    {p : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomainM u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (htrace : InitialTrace intervalDomainM u₀ u)
+    (hm : p.m = 1) (hbeta : 1 ≤ p.β)
+    (hp0 : max 1 (p.γ * (p.N : ℝ) / 2) < p0)
+    (hseed : LpPowerBoundedBefore intervalDomainM p0 T u) :
+    IntegratedMoserFirstCrossingStep intervalDomainM u T p.γ p0 := by
+  intro q hq _hqBound
+  apply critical_lp_power_bounded_before_positive_of_seed
+    hu₀ hsol htrace hm hbeta hp0 hseed
+  exact hq.trans (le_add_of_nonneg_right p.hγ.le)
+
 /-- Under the critical small-sensitivity condition there is a uniformly
 bounded power strictly above both one and the signal exponent `gamma`. -/
 theorem exists_critical_lp_above_gamma
@@ -304,6 +326,7 @@ theorem exists_critical_lp_above_gamma
 #print axioms lp_power_bounded_before_of_linear_damping
 #print axioms critical_bootstrap_linear_damping
 #print axioms critical_lp_power_bounded_before_positive_of_seed
+#print axioms critical_integratedMoserFirstCrossingStep_positive_of_seed
 #print axioms exists_critical_lp_above_gamma
 
 end ShenWork.Paper2.IntervalDomainM
