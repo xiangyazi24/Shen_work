@@ -208,11 +208,11 @@ asymptotic for every `κ₁ < κtilde`.
 
 No stationary equation is used; the coefficient-one normalization comes from
 `lowerBarrierRaw_eq_exp_mul` on the far-right raw branch. -/
-theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+theorem HasWaveRightTailAsymptotic_of_lowerPinnedWaveTrap
     {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
     (hD : 0 ≤ D)
-    (hU : InLowerPinnedMonotoneTrap (kappa c) M
-      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (hU : InWaveTrapSet (kappa c) M U)
+    (hpin : ∀ x, lowerBarrierPlateau (kappa c) κtilde D x ≤ U x)
     (_hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
     HasWaveRightTailAsymptotic c κ₁ U := by
   unfold HasWaveRightTailAsymptotic
@@ -236,9 +236,9 @@ theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
   have hxlt : lowerBarrierXPlus (kappa c) κtilde D < x := by linarith
   have he_pos : 0 < Real.exp (-(kappa c) * x) := Real.exp_pos _
   have hupper : U x ≤ Real.exp (-(kappa c) * x) :=
-    hU.bare.le_exp x
+    hU.le_exp x
   have hlower : lowerBarrierRaw (kappa c) κtilde D x ≤ U x := by
-    have hplateau := hU.lower x
+    have hplateau := hpin x
     rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt] at hplateau
     exact hplateau
   set e : ℝ := Real.exp (-(kappa c) * x)
@@ -286,6 +286,35 @@ theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
         congr 1
         ring
   simpa [e] using hF_abs
+
+/-- Monotone compatibility wrapper for the lower-pinned tail squeeze. -/
+theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+    {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
+    HasWaveRightTailAsymptotic c κ₁ U :=
+  HasWaveRightTailAsymptotic_of_lowerPinnedWaveTrap hD hU.bare.trap
+    hU.lower hκ₁lo hκ₁hi
+
+/-- The lower-pinned tail squeeze for the nonmonotone positive Schauder trap. -/
+theorem lowerPinnedWaveTrap_tail_family_for_branch
+    {p : CMParams} {c κtilde D M : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hcover :
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde)
+    (hU : InWaveTrapSet (kappa c) M U)
+    (hlower : ∀ x, lowerBarrierPlateau (kappa c) κtilde D x ≤ U x) :
+    ∀ κ₁, kappa c < κ₁ →
+      κ₁ < min ((1 + p.α) * kappa c)
+        (min (p.m * kappa c + 1 / 2) 1) →
+      HasWaveRightTailAsymptotic c κ₁ U := by
+  intro κ₁ hκ₁lo hκ₁hi
+  exact HasWaveRightTailAsymptotic_of_lowerPinnedWaveTrap
+    (c := c) (κtilde := κtilde) (D := D) (M := M)
+    (κ₁ := κ₁) (U := U) hD hU hlower hκ₁lo
+    (lt_of_lt_of_le hκ₁hi hcover)
 
 /-- Lower-pinned squeeze discharges the whole current branch tail interval once
 the lower-barrier exponent covers that interval. -/
@@ -542,6 +571,8 @@ section AxiomAudit
 #print axioms max_one_exp_at_zero
 #print axioms ShenUpperBoundNegative_of_strictAtZero
 #print axioms ShenUpperBoundNegative_of_stationary_strongMaxPrinciple
+#print axioms HasWaveRightTailAsymptotic_of_lowerPinnedWaveTrap
+#print axioms lowerPinnedWaveTrap_tail_family_for_branch
 #print axioms HasWaveRightTailAsymptotic_of_stationary
 #print axioms constructionNeg_of_lowerPinnedSchauderData_smp
 #print axioms constructionNeg_of_provider_smp
