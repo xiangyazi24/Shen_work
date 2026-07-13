@@ -858,6 +858,40 @@ theorem classicalSolution_intervalDomainM_of_m_eq_one
   simpa [IsPaper2ClassicalSolution, intervalDomainM, intervalDomain,
     intervalDomainChemotaxisDivM, intervalDomainChemotaxisDiv, hm] using hsol
 
+/-- Positive-sensitivity realization of the exact finite-horizon
+`hcriticalBootstrap` frontier in the legacy Theorem 1.2 assembly.
+
+The two elliptic mechanisms remain separate upstream: Proposition 2.2 gives
+the all-exponent cross-diffusion estimate with `rho = gamma`, while the
+`(1 + v) ^ (-(2 * beta - 1))` test gives the admissible finite seed. -/
+theorem criticalBootstrapFrontier_positive_intervalDomain
+    (p : CM2Params) (hguard : p.a = 0 ∨ 0 < p.b) (hchiPos : 0 < p.χ₀) :
+    0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+    p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u := by
+  intro _ha _hb hbeta hm hthreshold u₀ hu₀ T _hT u v hsol htrace
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  obtain ⟨p0, hp0, hLpM⟩ :=
+    exists_high_critical_lp_power_bounded_before hguard hu₀M
+      (classicalSolution_intervalDomainM_of_m_eq_one hm hsol) htraceM
+      hbeta hm hchiPos hthreshold
+  have hLp : LpPowerBoundedBefore intervalDomain p0 T u := by
+    simpa [intervalDomainM, intervalDomain] using hLpM
+  exact ⟨p.γ, p.hγ,
+    intervalDomain_crossDiffusionBootstrapEstimate_sharp hsol hbeta,
+    p0, hp0, hLp⟩
+
 /-- Legacy-domain form of the finite-horizon positive critical bound.  Its
 proof uses the signal-weighted critical seed and stops after one finite
 exponent above `max 1 gamma`. -/
@@ -889,6 +923,7 @@ theorem critical_bounded_before_positive_intervalDomain
 #print axioms restartChemDuhamelM_two_scale_abs_le
 #print axioms critical_two_scale_terms_le
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard
+#print axioms criticalBootstrapFrontier_positive_intervalDomain
 #print axioms critical_bounded_before_positive
 #print axioms critical_bounded_before_positive_intervalDomain
 

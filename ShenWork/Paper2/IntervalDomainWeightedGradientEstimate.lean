@@ -776,6 +776,35 @@ theorem intervalDomain_weightedGradientEstimate_of_classical_beta
     intervalDomain_weightedGradientEstimate_of_classical_beta_explicit
       hsol hq hbeta⟩
 
+/-- Explicit-constant form of Paper 2, Proposition 2.2 with the signal-weight
+parameter named `eta`.  The hypotheses deliberately impose no relation
+between `q` and `eta`: the estimate holds for every `q > 1` and every
+`eta ≥ 0`. -/
+theorem intervalDomain_signalWeightedGradientEstimate_of_classical_explicit
+    {p : CM2Params} {T q eta : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hq : 1 < q) (heta : 0 ≤ eta) :
+    WeightedGradientEstimate intervalDomain q eta p.γ
+      (intervalDomainWeightedGradientConstant p q) T u v := by
+  exact intervalDomain_weightedGradientEstimate_of_classical_beta_explicit
+    hsol hq heta
+
+/-- Existential-constant form of the general signal-weight estimate.  The
+later critical specialization `eta = 2 * beta - 1` is a separate use of this
+theorem, not an admissibility condition here. -/
+theorem intervalDomain_signalWeightedGradientEstimate_of_classical
+    {p : CM2Params} {T q eta : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hq : 1 < q) (heta : 0 ≤ eta) :
+    ∃ Mstar > 0,
+      WeightedGradientEstimate intervalDomain q eta p.γ Mstar T u v := by
+  exact ⟨intervalDomainWeightedGradientConstant p q,
+    intervalDomainWeightedGradientConstant_pos p hq,
+    intervalDomain_signalWeightedGradientEstimate_of_classical_explicit
+      hsol hq heta⟩
+
 theorem intervalDomain_weightedGradientEstimate_of_classical
     {p : CM2Params} {T q : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -792,6 +821,8 @@ theorem intervalDomain_Proposition_2_2 (p : CM2Params) :
 
 #print axioms intervalDomain_elliptic_log_gradient_bound
 #print axioms intervalDomain_elliptic_power_preestimate
+#print axioms intervalDomain_signalWeightedGradientEstimate_of_classical_explicit
+#print axioms intervalDomain_signalWeightedGradientEstimate_of_classical
 #print axioms intervalDomain_weightedGradientEstimate_of_classical
 #print axioms intervalDomain_Proposition_2_2
 
