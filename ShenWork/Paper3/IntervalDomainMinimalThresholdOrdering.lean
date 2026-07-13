@@ -125,7 +125,130 @@ theorem two_beta_sub_one_mul_le_one_add_rpow
     _ = (beta / (beta - 1)) ^ (beta - 1) * (beta * v) := by ring
     _ ≤ (1 + v) ^ beta := hyoung
 
+/-- On the one-dimensional minimal branch, the half-threshold appearing in
+Lemma A.8 lies below the actual discrete critical sensitivity.  The factor
+`1 / 2` is essential: the corresponding statement with `chiBeta p` in place
+of `chiBeta p / 2` is not the paper's comparison. -/
+theorem chiBeta_half_le_paperCriticalSensitivity_minimal_unitInterval
+    (p : CM2Params) {uStar : ℝ}
+    (hN : p.N = 1) (hm : p.m = 1)
+    (hbeta : 1 ≤ p.β) (huStar : 0 < uStar) :
+    chiBeta p / 2 ≤
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 := by
+  let vStar := (minimalEquilibrium p uStar).2
+  have hvStar : 0 < vStar := by
+    simpa [vStar] using minimalEquilibrium_snd_pos p huStar
+  have hnum : 0 ≤ 2 * p.β - 1 := by linarith
+  have hdenEq :
+      max (2 : ℝ) (p.γ * (p.N : ℝ)) = max 2 p.γ := by
+    rw [hN]
+    norm_num
+  have hmaxPos : 0 < max (2 : ℝ) p.γ :=
+    lt_of_lt_of_le (by norm_num) (le_max_left _ _)
+  have hhalf : chiBeta p / 2 ≤ (2 * p.β - 1) / p.γ := by
+    have hdiv :
+        (2 * p.β - 1) / max 2 p.γ ≤
+          (2 * p.β - 1) / p.γ :=
+      div_le_div_of_nonneg_left hnum p.hγ (le_max_right _ _)
+    rw [chiBeta, hdenEq]
+    calc
+      (2 * (2 * p.β - 1) / max 2 p.γ) / 2 =
+          (2 * p.β - 1) / max 2 p.γ := by
+            field_simp [ne_of_gt hmaxPos]
+      _ ≤ (2 * p.β - 1) / p.γ := hdiv
+  have hyoung :
+      (2 * p.β - 1) * vStar ≤ (1 + vStar) ^ p.β :=
+    two_beta_sub_one_mul_le_one_add_rpow hbeta hvStar.le
+  have hratio :
+      (2 * p.β - 1) / p.γ ≤
+        (1 + vStar) ^ p.β / (p.γ * vStar) := by
+    have hden : 0 < p.γ * vStar := mul_pos p.hγ hvStar
+    calc
+      (2 * p.β - 1) / p.γ =
+          ((2 * p.β - 1) * vStar) / (p.γ * vStar) := by
+            field_simp [ne_of_gt p.hγ, ne_of_gt hvStar]
+      _ ≤ (1 + vStar) ^ p.β / (p.γ * vStar) :=
+        (div_le_div_iff_of_pos_right hden).2 hyoung
+  let A : ℝ :=
+    (1 + vStar) ^ p.β /
+      (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))
+  have hA : 0 ≤ A := by
+    dsimp [A]
+    exact div_nonneg
+      (Real.rpow_nonneg (by linarith [hvStar]) _)
+      (mul_pos (mul_pos p.hν p.hγ)
+        (Real.rpow_pos_of_pos huStar _)).le
+  have hratioEq :
+      (1 + vStar) ^ p.β / (p.γ * vStar) = A * p.μ := by
+    have hpow : uStar ^ (p.m + p.γ - 1) = uStar ^ p.γ := by
+      rw [hm]
+      ring_nf
+    have hvrel : p.μ * vStar = p.ν * uStar ^ p.γ := by
+      simpa [vStar, minimalEquilibrium_fst_eq] using
+        minimalEquilibrium_elliptic_relation p uStar
+    have hvEq : vStar = p.ν * uStar ^ p.γ / p.μ := by
+      apply (eq_div_iff (ne_of_gt p.hμ)).2
+      nlinarith [hvrel]
+    dsimp [A]
+    rw [hpow, hvEq]
+    field_simp [ne_of_gt p.hμ, ne_of_gt p.hν, ne_of_gt p.hγ,
+      ne_of_gt (Real.rpow_pos_of_pos huStar p.γ)]
+  have hcritical :=
+    paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
+      unitIntervalNeumannSpectrum p
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar
+  have hAstep :
+      A * p.μ ≤ A * (p.μ + unitIntervalNeumannSpectrum.firstNonzero) := by
+    exact mul_le_mul_of_nonneg_left
+      (by linarith [unitIntervalNeumannSpectrum_hasNeumannSpectrum.firstNonzero_pos]) hA
+  calc
+    chiBeta p / 2 ≤ (2 * p.β - 1) / p.γ := hhalf
+    _ ≤ (1 + vStar) ^ p.β / (p.γ * vStar) := hratio
+    _ = A * p.μ := hratioEq
+    _ ≤ A * (p.μ + unitIntervalNeumannSpectrum.firstNonzero) := hAstep
+    _ ≤ paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+      simpa [A, vStar, minimalEquilibrium_fst_eq] using hcritical
+
+/-- Both explicit minimal thresholds are bounded by `chiBeta / 2`, exactly as
+they are defined in `(2.22)` and `(2.23)`. -/
+theorem MinimalGlobalStabilityFormulaCondition.chi_lt_chiBeta_half
+    {p : CM2Params} {uStar uBar vLower : ℝ}
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    p.χ₀ < chiBeta p / 2 := by
+  rcases h with h | h
+  · exact h.2.trans_le
+      ((chiMinimal1Formula_le_min_half_sqrt
+        p 1 uStar uBar vLower).trans (min_le_left _ _))
+  · exact h.2.2.trans_le
+      ((chiMinimal2Formula_le_min_half_sqrt
+        p uBar vLower).trans (min_le_left _ _))
+
+/-- The paper's two minimal formula branches imply the actual discrete
+linear-stability condition on the one-dimensional Neumann interval. -/
+theorem MinimalGlobalStabilityFormulaCondition.linearlyStable_unitInterval
+    (p : CM2Params) {uStar uBar vLower : ℝ}
+    (hN : p.N = 1) (hm : p.m = 1)
+    (hbeta : 1 ≤ p.β) (huStar : 0 < uStar)
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact
+    minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+      unitIntervalNeumannSpectrum p
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar
+      (h.chi_lt_chiBeta_half.trans_le
+        (chiBeta_half_le_paperCriticalSensitivity_minimal_unitInterval
+          p hN hm hbeta huStar))
+
 #print axioms two_beta_sub_one_mul_le_one_add_rpow
+#print axioms
+  chiBeta_half_le_paperCriticalSensitivity_minimal_unitInterval
+#print axioms MinimalGlobalStabilityFormulaCondition.chi_lt_chiBeta_half
+#print axioms MinimalGlobalStabilityFormulaCondition.linearlyStable_unitInterval
 
 end
 
