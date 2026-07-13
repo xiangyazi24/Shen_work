@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WaveGreenParameterAsymptotics
+import ShenWork.Paper1.WavePinnedStepParameterAsymptotics
 import ShenWork.Paper1.WaveLemma42Paper
 import ShenWork.Paper1.WaveNegativeSuperBarrier
 import ShenWork.Paper1.WaveLemma42ParamCore
@@ -14,7 +15,7 @@ namespace ShenWork.Paper1
 branch.  The constants are independent of the frozen profile and the old
 iterate; only the comparison/Route-A analytic theorem remains profile-indexed. -/
 structure Paper1NegativeLocalStepScalarData
-    (p : CMParams) (c : ℝ) : Type where
+    (p : CMParams) (c D : ℝ) : Type where
   lam : ℝ
   B : ℝ
   Λ : ℝ
@@ -31,6 +32,10 @@ structure Paper1NegativeLocalStepScalarData
   lowerRaw_small :
     (1 / lam) *
       paperLowerRawApproxCmono p 1 (negativeBranchTailCap p c) < 1
+  pinnedStep_small :
+    (1 / lam) *
+      paperPinnedStepCmono p c lam 1 (kappa c)
+        (negativeBranchTailCap p c) D B < 1
   sourceScalar :
     |(-p.χ * p.m)| * (1 : ℝ) ^ (p.m - 1) * (1 : ℝ) ^ p.γ *
           greenWeightedMass1 c lam (kappa c) * B
@@ -44,9 +49,10 @@ conditions, the weighted Green derivative budget, and the Route-A strict
 maximum-principle gap. -/
 theorem paper1NegativeLocalStepScalarData_exists
     (p : CMParams) {c : ℝ}
+    (D : ℝ)
     (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
     (hc : cStarLower p < c) :
-    Nonempty (Paper1NegativeLocalStepScalarData p c) := by
+    Nonempty (Paper1NegativeLocalStepScalarData p c D) := by
   let κ : ℝ := kappa c
   let A : ℝ := |(-p.χ * p.m)|
   let C : ℝ := 2 + 2 * |p.χ|
@@ -66,8 +72,15 @@ theorem paper1NegativeLocalStepScalarData_exists
   have hlamLarge : ∀ᶠ lam : ℝ in atTop,
       max (max Cmono Cfloor) 0 < lam :=
     eventually_gt_atTop (max (max Cmono Cfloor) 0)
-  obtain ⟨lam, hmassLam, hrpLam, hrmLam, hlamLarge⟩ :=
-    (hmass.and (hrp.and (hrm.and hlamLarge))).exists
+  have hpinned : ∀ᶠ lam : ℝ in atTop,
+      (1 / lam) *
+        paperPinnedStepCmono p c lam 1 (kappa c)
+          (negativeBranchTailCap p c) D (2 * (C + lam)) < 1 :=
+    (paperPinnedStepCmono_large_source_tendsto_zero
+      p c 1 (kappa c) (negativeBranchTailCap p c) D C).eventually
+        (eventually_lt_nhds (by norm_num : (0 : ℝ) < 1))
+  obtain ⟨lam, hmassLam, hrpLam, hrmLam, hlamLarge, hpinnedLam⟩ :=
+    (hmass.and (hrp.and (hrm.and (hlamLarge.and hpinned)))).exists
   have hlam : 0 < lam :=
     lt_of_le_of_lt (le_max_right (max Cmono Cfloor) 0) hlamLarge
   have hCmonoLam : Cmono < lam :=
@@ -124,6 +137,7 @@ theorem paper1NegativeLocalStepScalarData_exists
        Cmono_eq := rfl
        Cmono_small := hsmall
        lowerRaw_small := by simpa [Cfloor] using hfloorSmall
+       pinnedStep_small := by simpa [B] using hpinnedLam
        sourceScalar := ?_
        barrier :=
          paperUpperBarrierSuperScalarConditions_one_of_cStarLower_lt
@@ -142,8 +156,8 @@ namespace Paper1NegativeLocalStepScalarData
 theorem to the global scalar choices.  Every source-box and barrier field is
 then already discharged. -/
 def toLocalRouteAStepParameters
-    {p : CMParams} {c : ℝ}
-    (h : Paper1NegativeLocalStepScalarData p c)
+    {p : CMParams} {c D : ℝ}
+    (h : Paper1NegativeLocalStepScalarData p c D)
     {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet (kappa c) 1 u)
     (hrest : PaperLocalFixedStepRestProvider
@@ -167,9 +181,9 @@ def toLocalRouteAStepParameters
 tail-free approximate-contact theorem.  Thus a trapped frozen profile needs
 only the two genuine local step order facts. -/
 def toLowerRawStepProducer
-    {p : CMParams} {c : ℝ}
-    (h : Paper1NegativeLocalStepScalarData p c)
-    {D : ℝ} {u : ℝ → ℝ}
+    {p : CMParams} {c D : ℝ}
+    (h : Paper1NegativeLocalStepScalarData p c D)
+    {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet (kappa c) 1 u)
     (hrest : PaperLocalFixedStepRestProvider
       p c h.lam 1 (kappa c) h.Λ h.B u) :
