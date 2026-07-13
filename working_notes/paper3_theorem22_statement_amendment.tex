@@ -1,0 +1,197 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Om}{\Omega}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\DeclareMathOperator{\dist}{dist}
+
+\title{Paper 3, Theorem 2.2: Statement Amendment}
+\author{Internal research note for the \texttt{ShenWork} formalization}
+\date{12 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The nonlinear stability clause printed in Theorem~2.2 of Chen--Ruau--Shen,
+Part~II, asserts a $C^{1}$ exponential estimate valid for \emph{all} $t\ge 0$
+from initial data small only in $L^{\infty}$.  Under the theorem's own
+initial-data hypothesis this clause is not well posed at $t=0$: the $C^{1}$
+norm need not be finite, and an $L^{\infty}$ ball contains functions of
+arbitrarily large $C^{1}$ norm.  The argument in fact proves two correct
+statements---an all-time estimate in the fractional-power (strong) norm and an
+\emph{eventual} $C^{1}$ estimate for $L^{\infty}$-small data.  This note records
+the explicit counterexample to the printed clause, locates the gap, gives the
+corrected two-stage formulation, and states the corresponding Lean obstructions.
+This is the second statement-level issue found while formalizing the series; the
+first is the parameter error in Theorem~1.2 of Part~I (companion note).
+\end{abstract}
+
+\section{Source checked}
+
+The source examined is the original submission, not a repository paraphrase:
+\begin{quote}
+Le Chen, Ian Ruau, and Wenxian Shen, \emph{Chemotaxis models with
+signal-dependent sensitivity and a logistic-type source, II: Persistence and
+stabilization}, arXiv:2604.02599v1, 3~April 2026.
+\end{quote}
+Theorem~2.2 there is titled ``Linear stability and instability.''  For the
+positive constant equilibrium $(u_{*},v_{*})$ with $u_{*}=(a/b)^{1/\alpha}$ and
+$a,b>0$, part~(1) states:
+\begin{enumerate}[label=(\roman*)]
+\item if $\chi_{0}<\chi^{*}_{a,b,\beta}(u_{*})$ the equilibrium is linearly
+  stable;
+\item if $\chi_{0}>\chi^{*}$ it is linearly unstable;
+\item moreover, in the stable regime there exist $C,\delta,\lambda>0$ such that
+  every $u_{0}$ satisfying the initial-data condition (1.8) \emph{and} a
+  smallness condition obeys the exponential estimate (2.12) \emph{for all
+  $t\ge 0$} in the $C^{1}$ norm.
+\end{enumerate}
+The initial-data hypothesis (1.8) requires only $u_{0}\in C(\overline{\Om})$,
+positive.  Proposition~1.1 provides convergence to $u_{0}$ in $L^{\infty}$ as
+$t\to 0^{+}$ and classical spatial regularity only for \emph{positive} time.
+There is no $C^{1}$, Sobolev, or fractional-power smallness hypothesis on
+$u_{0}$ in the statement of Theorem~2.2.
+
+\section{The over-statement in the printed (2.12)}
+
+The printed nonlinear clause asserts, for data small only in $L^{\infty}$, a
+$C^{1}$ exponential estimate holding at \emph{every} $t\ge 0$, including $t=0$:
+\[
+  \norm{u(t)-u_{*}}_{C^{1}(\overline{\Om})}
+    \le C\,e^{-\delta t}\,\norm{u_{0}-u_{*}}_{\ast},
+  \qquad t\ge 0 .
+\]
+This is not well posed under the theorem's own hypothesis:
+\begin{itemize}[nosep]
+\item $u_{0}$ need only lie in $C(\overline{\Om})$, so $\norm{u_{0}-u_{*}}_{C^{1}}$
+  may be infinite and the $t=0$ instance meaningless;
+\item even for $C^{1}$ data, an $L^{\infty}$ ball contains functions of
+  arbitrarily large $C^{1}$ norm, so no single $C$ controls the $t=0$
+  (or $t\to 0^{+}$) $C^{1}$ size uniformly over the admitted class.
+\end{itemize}
+
+\paragraph{Explicit counterexample.}
+On the unit interval $\Om=(0,1)$ with Neumann conditions, take
+\[
+  u_{0,N}(x) = u_{*} + N^{-1/2}\cos(N\pi x), \qquad N\in\N .
+\]
+For large $N$ this is positive and satisfies (1.8), with
+\[
+  \norm{u_{0,N}-u_{*}}_{L^{\infty}} = N^{-1/2}\to 0,
+  \qquad
+  \norm{u_{0,N}-u_{*}}_{C^{1}} = N^{1/2}\pi\to\infty
+\]
+(and, in the minimal model, exact mass $u_{*}$).  Hence no uniform-in-data
+$t=0$ estimate of the form (2.12) can hold: the smallness is measured in
+$L^{\infty}$, the conclusion in $C^{1}$, and the two are unrelated at $t=0$.
+
+\section{What the published proof actually establishes}
+
+Section~5.1 proves the result in two distinct stages, both correct.
+\begin{description}
+\item[Stage A (strong norm, all time).]  For data small in the fractional-power
+  space $X^{\alpha}=D\big((I-L)^{\alpha}\big)$, which in one dimension embeds
+  into $C^{1}$ for $\alpha>3/4$, the standard sectorial nonlinear-stability
+  theorem (Henry, \emph{Geometric Theory of Semilinear Parabolic Equations},
+  Ch.~5--6) gives exponential decay in $X^{\alpha}$ for all $t\ge 0$.  This is
+  instantaneous and correct.
+\item[Stage B ($L^{\infty}$-small, eventual).]  For data small only in
+  $L^{\infty}$, the proof first evolves to a \emph{positive} time $t_{0}$, at
+  which analytic-semigroup smoothing places the solution in a small
+  $X^{\alpha}$ neighborhood, and then applies Stage~A.  This yields exponential
+  decay for $t\ge t_{0}$---an \emph{eventual} estimate, not a $t=0$ estimate.
+\end{description}
+The mechanism proves an all-time estimate in the strong norm and an eventual
+estimate in $C^{1}$ for $L^{\infty}$-small data.  It does not prove the printed
+(2.12) at $t=0$ from $L^{\infty}$ data; that conjunction is the over-statement.
+
+\section{Corrected statement}
+
+Split the printed clause into the two statements the proof supports.
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Strong norm, all time.}  There exist $\alpha\in(3/4,1)$ and
+  $\rho,C,\delta>0$ such that
+  \[
+    \norm{u_{0}-u_{*}}_{X^{\alpha}}\le\rho
+    \ \Longrightarrow\
+    \norm{u(t)-u_{*}}_{X^{\alpha}}\le C\,e^{-\delta t}\norm{u_{0}-u_{*}}_{X^{\alpha}}
+    \quad\text{for all }t\ge 0 .
+  \]
+\item \textbf{$L^{\infty}$-small, eventual.}  There exist $\varepsilon,C',\delta'>0$
+  and, for each admissible datum, a time $t_{0}=t_{0}(u_{0})>0$ such that
+  \[
+    \norm{u_{0}-u_{*}}_{L^{\infty}}\le\varepsilon
+    \ \Longrightarrow\
+    \norm{u(t)-u_{*}}_{C^{1}}\le C'\,e^{-\delta'(t-t_{0})}
+    \quad\text{for all }t\ge t_{0} .
+  \]
+\end{enumerate}
+The linear stability/instability dichotomy of Theorem~2.2 is unaffected and
+correct; only the nonlinear clause (2.12) needs the $t=0$-versus-eventual and
+$L^{\infty}$-versus-$X^{\alpha}$ distinctions made explicit.
+
+\section{A companion parameter-fidelity point}
+
+The sufficient stability bound $\kappa<(\sqrt{\mu}+\sqrt{a\alpha})^{2}$, with
+$\kappa=\chi_{0}\gamma\nu\,u_{*}^{\gamma}(1+v_{*})^{-\beta}$, is the
+\emph{continuous} minimum of $(\lambda+\mu)(\lambda+a\alpha)/\lambda$ over
+$\lambda>0$.  On a bounded domain the Neumann spectrum is discrete
+($\lambda_{n}=n^{2}\pi^{2}$ on $(0,1)$), so the exact stable half of
+Theorem~2.2 is governed by the discrete infimum
+$\min_{n\ge 1}\sigma_{n}<0$, which the continuous bound only implies and can be
+strictly stronger than needed.  A faithful formalization should clear the
+discrete mode condition, not stop at the continuous sufficient bound.
+
+\section{Lean amendment}
+
+The repository records two formal obstructions to the literal clause, both
+\texttt{sorry}-free.
+\begin{itemize}
+\item \texttt{Paper3.not\_SectorialLocalExponentialRaw\_constant\_c1Distance}
+  (\path{ShenWork/Paper3/Statements.lean}) proves the raw sectorial
+  local-exponential branch false when the $C^{1}$ distance is unrelated to the
+  dynamics: a constantly-$1$ $C^{1}$ distance would force $2\le C e^{-\text{rate}\,t}$
+  for all $t$, impossible as the right side tends to $0$.
+\item \path{ShenWork/Paper3/IntervalDomainSectorialCorrectedObstruction.lean}
+  records a \emph{zero-time} obstruction: \texttt{InitialTrace} controls only the
+  $t\to 0^{+}$ deleted limit, not the stored slice $u(0)$, so a global solution
+  may be re-anchored to an arbitrarily large constant slice at $t=0$ without
+  changing global classical solvability or the initial trace---hence no all-time
+  $t=0$ $C^{1}$ bound can hold.
+\end{itemize}
+The corrected target used in the repository is the eventual, equilibrium-specific,
+full-mode orbit bound
+\texttt{IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass}
+(linearized multiplier $e^{-d_{k}t}$ with
+$d_{k}=a\alpha+\lambda_{k}-\kappa\lambda_{k}/(\lambda_{k}+\mu)$ for every mode
+$k$ including $k=0$, and a uniform positive delay $t_{0}$), together with
+\texttt{LocallyExponentiallyStableFromSup} for the positive equilibrium (the mass
+constraint is needed only in the minimal $a=b=0$ model).  The over-stated
+\texttt{...Raw} frontier---the pure Neumann heat multiplier quantified over all
+$t\ge 0$---is not the correct analytic object and is refuted for a genuine
+$C^{1}$ distance from $L^{\infty}$ data.
+
+\section{Relation to Part~I (arXiv:2512.14858) Theorem 1.2}
+
+This is the second statement-level issue found while formalizing the
+Chen--Ruau--Shen series.  The first (companion note) is a genuine
+\emph{parameter} error: Theorem~1.2 of Part~I omits the guard excluding
+$a>0,\ b=0$, a branch in which the solution is provably unbounded
+($M'(t)=aM(t)$).  The present issue is a \emph{statement over-statement}: the
+intended stability result of Part~II holds in the corrected two-stage form
+above, but the printed (2.12)---a $t=0$ $C^{1}$ estimate from $L^{\infty}$-small
+data---is not well posed as written.
+
+\end{document}
