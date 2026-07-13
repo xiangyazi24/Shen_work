@@ -158,8 +158,107 @@ theorem minimal1EntropyCoefficient_pos_of_chi_lt
   dsimp [S, B] at hquot ⊢
   exact mul_pos (div_pos huStar (by norm_num)) (sub_pos.mpr hquot)
 
+/-- Concrete Section 8.1 entropy slope on every classical slice belonging to
+the eventual upper/lower box and carrying the conserved physical mass. -/
+theorem intervalDomain_entropySlope_le_minimal1Coefficient
+    {p : CM2Params} {T t uStar vStar uBar vLower : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : p.m = 1) (hb0 : p.b = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (huStarBar : uStar ≤ uBar)
+    (hmass : intervalDomain.integral (u t) = uStar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar)
+    (hvLower : 0 ≤ vLower)
+    (hVfloor : ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    intervalDomain.integral (fun x =>
+        (1 - uStar / u t x) * intervalDomain.timeDeriv u t x) ≤
+      -minimal1EntropyCoefficient p uStar uBar vLower *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) := by
+  let hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one p hm hsol
+  let L2 : ℝ := ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u t) y - uStar) ^ 2
+  let G : ℝ := intervalDomainLpWeightedGradientDissipation 0 u t
+  let W : ℝ := ∫ y in (0 : ℝ)..1,
+    (deriv (intervalDomainLift (v t)) y) ^ 2 *
+      (1 + intervalDomainLift (v t) y) ^ (-2 * p.β)
+  let P : ℝ := ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u t) y ^ p.γ - uStar ^ p.γ) ^ 2
+  let S : ℝ := minimalPowerSlope p uStar uBar
+  have hid := intervalDomain_entropySlope_identity
+    hm hsol ht0 htT heq
+  have hyoung := intervalDomain_entropyDiffusionChemotaxis_half_young
+    hm hsolM ht0 htT heq.u_pos
+  have hgradient := intervalDomain_minimal_weightedGradient_ge_l2
+    hsolM ht0 htT huBar hmass hupper
+  have hell := intervalDomain_persistentWeightedElliptic_gradient_estimate
+    hsolM ht0 htT heq hvLower hVfloor
+  have hpower := intervalDomain_minimal_powerDifference_integral_le
+    hsol ht0 htT heq.u_pos huStarBar hupper
+  change uBar ^ (-2 : ℝ) * L2 ≤ G at hgradient
+  change W ≤
+    p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) * P at hell
+  change P ≤ S ^ 2 * L2 at hpower
+  have hneg := mul_le_mul_of_nonpos_left hgradient
+    (show -(uStar / 2) ≤ 0 by linarith [heq.u_pos])
+  have hchemScale : 0 ≤ p.χ₀ ^ 2 * uStar / 2 :=
+    div_nonneg (mul_nonneg (sq_nonneg _) heq.u_pos.le) (by norm_num)
+  have hellScaled := mul_le_mul_of_nonneg_left hell hchemScale
+  have hellCoeff : 0 ≤
+      p.χ₀ ^ 2 * uStar / 2 *
+        (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β))) := by
+    have hden : 0 < 4 * p.μ * (1 + vLower) ^ (2 * p.β) :=
+      mul_pos (mul_pos (by norm_num) p.hμ)
+        (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vLower) _)
+    exact mul_nonneg hchemScale (div_nonneg (sq_nonneg _) hden.le)
+  have hpowerScaled := mul_le_mul_of_nonneg_left hpower hellCoeff
+  have hbase : 0 ≤ 1 + vLower := by linarith
+  have hB2 :
+      (1 + vLower) ^ (2 * p.β) = ((1 + vLower) ^ p.β) ^ 2 := by
+    rw [← Real.rpow_mul_natCast hbase p.β 2]
+    congr 1
+    ring
+  calc
+    intervalDomain.integral (fun x =>
+        (1 - uStar / u t x) * intervalDomain.timeDeriv u t x) =
+        -uStar * G + p.χ₀ * uStar *
+            ShenWork.Paper2.IntervalDomainM.lpSignedCrossIntegralM p 0 u v t -
+          p.b * chemotaxisThetaDissipation intervalDomain uStar p.α (u t) := by
+      simpa [G] using hid
+    _ ≤ -(uStar / 2) * G + p.χ₀ ^ 2 * uStar / 2 * W := by
+      rw [hb0]
+      simpa [G, W] using hyoung
+    _ ≤ -(uStar / 2) * (uBar ^ (-2 : ℝ) * L2) +
+          p.χ₀ ^ 2 * uStar / 2 * W := by
+      have h := add_le_add_right hneg (p.χ₀ ^ 2 * uStar / 2 * W)
+      simpa [add_comm] using h
+    _ ≤ -(uStar / 2) * (uBar ^ (-2 : ℝ) * L2) +
+          p.χ₀ ^ 2 * uStar / 2 *
+            (p.ν ^ 2 /
+              (4 * p.μ * (1 + vLower) ^ (2 * p.β)) * P) :=
+      by
+        have h := add_le_add_left hellScaled
+          (-(uStar / 2) * (uBar ^ (-2 : ℝ) * L2))
+        simpa [mul_assoc, add_comm] using h
+    _ ≤ -(uStar / 2) * (uBar ^ (-2 : ℝ) * L2) +
+          p.χ₀ ^ 2 * uStar / 2 *
+            (p.ν ^ 2 /
+              (4 * p.μ * (1 + vLower) ^ (2 * p.β)) *
+                (S ^ 2 * L2)) := by
+      have h := add_le_add_left hpowerScaled
+        (-(uStar / 2) * (uBar ^ (-2 : ℝ) * L2))
+      simpa [mul_assoc, add_comm] using h
+    _ = -minimal1EntropyCoefficient p uStar uBar vLower * L2 := by
+      rw [hB2]
+      unfold minimal1EntropyCoefficient
+      dsimp [S]
+      ring
+
 #print axioms intervalDomain_minimal_weightedGradient_ge_l2
 #print axioms minimal1EntropyCoefficient_pos_of_chi_lt
+#print axioms intervalDomain_entropySlope_le_minimal1Coefficient
 
 end
 
