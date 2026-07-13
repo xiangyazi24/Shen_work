@@ -194,7 +194,7 @@ theorem exists_isMaxOn_sub_mul_sq_center_of_bounded
 interface and differentiable at the interface.  If the first penalized maximum
 lands on the interface, shifting the quadratic center by one makes a second
 landing there impossible. -/
-theorem exists_approx_positive_max_deriv_data_away
+theorem exists_approx_positive_max_deriv_data_away_C1splice
     {f : ℝ → ℝ} {A eta x₁ X : ℝ}
     (hf : Continuous f) (hA : ∀ x, |f x| ≤ A)
     (hpos : 0 < f x₁) (heta : 0 < eta)
@@ -546,7 +546,7 @@ section AxiomAudit
 #print axioms MChi_rpow_gamma_le_one_div_one_sub_chi
 #print axioms paperWaveOperator_const_subsolution_nonneg_pos_MChi
 #print axioms exists_positivePlateau_D
-#print axioms exists_approx_positive_max_deriv_data_away
+#print axioms exists_approx_positive_max_deriv_data_away_C1splice
 #print axioms lowerBarrierPlateau_hasDerivAt_xplus
 #print axioms paperWaveOperator_lowerBarrierPlateau_nonneg_pos_away
 
