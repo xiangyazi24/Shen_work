@@ -5,6 +5,45 @@ namespace ShenWork.Paper1
 
 noncomputable section
 
+namespace InLowerPinnedMonotoneTrap
+
+variable {κ M : ℝ} {φ : ℝ → ℝ}
+
+/-- The ordinary lower-pinned monotone trap is a bounded convex profile set.
+Compactness is required only of a self-map's range, so the domain itself need
+not carry a uniform modulus. -/
+theorem boundedConvexProfileTrapData
+    (hne : ∃ u, InLowerPinnedMonotoneTrap κ M φ u) :
+    BoundedConvexProfileTrapData (InLowerPinnedMonotoneTrap κ M φ) M := by
+  refine
+    { nonempty := hne
+      convex := ?_
+      continuous := ?_
+      abs_le := ?_ }
+  · rw [convex_iff_add_mem]
+    intro u hu v hv a b ha hb hab
+    refine
+      ⟨(InMonotoneWaveTrapSet.set_convex κ M)
+        hu.bare hv.bare ha hb hab, ?_⟩
+    intro x
+    change φ x ≤ a * u x + b * v x
+    calc
+      φ x = (a + b) * φ x := by rw [hab, one_mul]
+      _ = a * φ x + b * φ x := by ring
+      _ ≤ a * u x + b * v x :=
+        add_le_add
+          (mul_le_mul_of_nonneg_left
+            (InLowerPinnedMonotoneTrap.lower hu x) ha)
+          (mul_le_mul_of_nonneg_left
+            (InLowerPinnedMonotoneTrap.lower hv x) hb)
+  · intro u hu
+    exact hu.bare.trap.cunif_bdd.1
+  · intro u hu x
+    rw [abs_of_nonneg (hu.bare.nonneg x)]
+    exact hu.bare.le_M x
+
+end InLowerPinnedMonotoneTrap
+
 namespace InControlledLowerPinnedMonotoneTrap
 
 variable {κ M L sigma aL C : ℝ} {φ : ℝ → ℝ}
@@ -123,6 +162,7 @@ end InLowerPinnedUniformModulusMonotoneTrap
 section AxiomAudit
 
 #print axioms InControlledLowerPinnedMonotoneTrap.boundedConvexProfileTrapData
+#print axioms InLowerPinnedMonotoneTrap.boundedConvexProfileTrapData
 #print axioms InControlledLowerPinnedMonotoneTrap.schauderPrinciple
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.boundedConvexProfileTrapData
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.compactRange_of_mapsTo

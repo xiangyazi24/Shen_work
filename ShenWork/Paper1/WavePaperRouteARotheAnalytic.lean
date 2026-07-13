@@ -237,6 +237,28 @@ theorem rotheSeqOfPaperRouteA_equiLip
         (rotheSeqOfPaperRouteA_succ_lipschitz hin hκ hM hΛ0 k x y)
         (mul_le_mul_of_nonneg_right hΛM (abs_nonneg _))
 
+/-- Uniform orbit modulus with the spatial constant independent of the
+amplitude bound. -/
+theorem rotheSeqOfPaperRouteA_equiLip_modulus
+    {L : ℝ} (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|)
+    (k : ℕ) :
+    ∀ x y,
+      |rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k x -
+        rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k y| ≤
+          L * |x - y| := by
+  cases k with
+  | zero =>
+      intro x y
+      rw [rotheSeqOfPaperRouteA_zero]
+      exact hbarLip x y
+  | succ k =>
+      intro x y
+      exact le_trans
+        (rotheSeqOfPaperRouteA_succ_lipschitz hin hκ hM hΛ0 k x y)
+        (mul_le_mul_of_nonneg_right hΛL (abs_nonneg _))
+
 theorem rotheSeqOfPaperRouteA_limitLip
     (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
     (hbarLip : ∀ x y,
@@ -258,6 +280,30 @@ theorem rotheSeqOfPaperRouteA_limitLip
   refine le_of_tendsto htend ?_
   filter_upwards with k
   exact rotheSeqOfPaperRouteA_equiLip hin hκ hM hΛ0 hΛM hbarLip k x y
+
+/-- The long-time limit inherits an independent uniform spatial modulus. -/
+theorem rotheSeqOfPaperRouteA_limitLip_modulus
+    {L : ℝ} (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|)
+    (x y : ℝ) :
+    |rotheLimit (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM) x -
+      rotheLimit (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM) y| ≤
+        L * |x - y| := by
+  set z := rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM with hz
+  have hax : Tendsto (fun k => z k x) atTop (nhds (rotheLimit z x)) :=
+    rotheLimit_tendsto (rotheSeqOfPaperRouteA_anti_k hin hκ hM)
+      (rotheSeqOfPaperRouteA_bddBelow hin hκ hM) x
+  have hay : Tendsto (fun k => z k y) atTop (nhds (rotheLimit z y)) :=
+    rotheLimit_tendsto (rotheSeqOfPaperRouteA_anti_k hin hκ hM)
+      (rotheSeqOfPaperRouteA_bddBelow hin hκ hM) y
+  have htend : Tendsto (fun k => |z k x - z k y|) atTop
+      (nhds (|rotheLimit z x - rotheLimit z y|)) :=
+    (hax.sub hay).abs
+  refine le_of_tendsto htend ?_
+  exact Eventually.of_forall fun k =>
+    rotheSeqOfPaperRouteA_equiLip_modulus
+      hin hκ hM hΛ0 hΛL hbarLip k x y
 
 end RouteAOrbit
 
@@ -302,12 +348,58 @@ theorem paperRouteARotheOrbitData_fromTrap
     simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
       rotheSeqOfPaperRouteA_limitLip hin hκ hM hΛ0 hΛM hbarLip x y
 
+/-- Orbit compactness for Route A with a spatial modulus independent of the
+amplitude. -/
+theorem paperRouteARotheOrbitDataWithModulus_fromTrap
+    {L : ℝ}
+    (hinput : ∀ v, InMonotoneWaveTrapSet κ M v →
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|)
+    (hu : InMonotoneWaveTrapSet κ M u) :
+    PaperRotheOrbitDataWithModulus p c lam M κ L
+      (rotheSeqOfPaperRouteAFromTrap p c lam M κ Λ hinput hκ hM u) := by
+  let hin := hinput u hu
+  refine
+    { iterate_cont := ?_
+      anti_k := ?_
+      anti_x := ?_
+      nonneg := ?_
+      le_M := ?_
+      le_upperBarrier := ?_
+      bddBelow := ?_
+      equiLip := ?_
+      limitLip := ?_ }
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_cont hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_anti_k hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_anti_x hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_nonneg hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_le_M hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_le_barrier hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_bddBelow hin hκ hM
+  · simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_equiLip_modulus
+        hin hκ hM hΛ0 hΛL hbarLip
+  · intro x y
+    simpa only [rotheSeqOfPaperRouteAFromTrap_eq hinput hκ hM hu] using
+      rotheSeqOfPaperRouteA_limitLip_modulus
+        hin hκ hM hΛ0 hΛL hbarLip x y
+
 section AxiomAudit
 
 #print axioms paperRotheStepFacts_of_routeA_output
 #print axioms rotheSeqOfPaperRouteA_stepFacts
 #print axioms rotheSeqOfPaperRouteA_stepAnalytic
 #print axioms paperRouteARotheOrbitData_fromTrap
+#print axioms paperRouteARotheOrbitDataWithModulus_fromTrap
 
 end AxiomAudit
 

@@ -68,7 +68,7 @@ structure Paper1NegativeLowerRawCapRouteAParamData : Prop where
             1 ≤ D ∧
             paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
               p.m p.γ c < D ∧
-            0 ≤ Λ ∧ Λ ≤ 1
+            0 ≤ Λ
 
 /-- Full negative branch from the orbit-faithful Route-A parameter data. -/
 theorem paper1_negativeConstruction_of_routeAParamData
@@ -88,11 +88,11 @@ theorem paper1_negativeConstruction_of_routeAParamData
       (negativeBranchTailCap p c) 1 :=
     negativePaperLemma42ExactConditions_of_branchCap p hα hχ hc
   rcases hData.produce p hα hχ c hc with
-    ⟨lam, D, Λ, hpar, hD1, hD, hΛ0, hΛ1⟩
+    ⟨lam, D, Λ, hpar, hD1, hD, hΛ0⟩
   obtain ⟨U, hU, hprofile, hUdiff, _hUderivDiff⟩ :=
     b1_chiNeg_existence_paper_routeA_paramCore_noBar
       p c lam 1 (kappa c) (negativeBranchTailCap p c) D Λ
-      hcond hD hD1 hΛ0 hΛ1 hpar
+      hcond hD hD1 hΛ0 hpar
   have hstrict0 : U 0 < 1 := by
     refine lt_of_le_of_ne (hU.bare.le_M 0) ?_
     intro hU0
