@@ -396,3 +396,11 @@ and the single log-producing build retained.  Final result:
 `Build completed successfully (9333 jobs)`.  Future long remote builds should
 retain/poll the returned exec session id rather than interpreting an empty
 yield as completion.
+
+2026-07-12 [Codex] Q4595 AUTHORITATIVE GATE.  Detached clean commit
+`b99823e7` was rsynced to uisai2 and the root build completed successfully
+with 9333 jobs and exit code 0.  The standalone seed, assembled
+`hcriticalBootstrap` frontier, and positive-critical Theorem 1.2 headline each
+print exactly `[propext, Classical.choice, Quot.sound]`; the local and remote
+SHA-256 of `IntervalDomainMCriticalLinfBound.lean` both equal
+`19710f18480c4212083c88a703586195783d9fb92fc8ae4b2870aeaba71b2090`.
