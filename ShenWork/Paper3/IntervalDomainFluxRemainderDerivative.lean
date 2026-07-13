@@ -17,6 +17,61 @@ def paper3EliminatedFluxRemainderDerivativeValue
       wx * qDiff * zx + (uStar + w) * qx * zx +
         (uStar + w) * qDiff * zxx
 
+/-- Three-term physical flux remainder written as functions of space. -/
+def paper3EliminatedFluxRemainderThreeTermProfile
+    (uStar qStar : ℝ)
+    (w z1x z2x q zx : ℝ → ℝ) (x : ℝ) : ℝ :=
+  w x * qStar * z1x x +
+    (uStar + w x) * qStar * z2x x +
+      (uStar + w x) * (q x - qStar) * zx x
+
+/-- Exact product-rule derivative of the three-term eliminated remainder. -/
+theorem paper3EliminatedFluxRemainderThreeTermProfile_hasDerivAt
+    {uStar qStar x w0 wx0 z1x0 z1xx0 z2x0 z2xx0 q0 qx0 zx0 zxx0 : ℝ}
+    {w z1x z2x q zx : ℝ → ℝ}
+    (hw : HasDerivAt w wx0 x)
+    (hz1 : HasDerivAt z1x z1xx0 x)
+    (hz2 : HasDerivAt z2x z2xx0 x)
+    (hq : HasDerivAt q qx0 x)
+    (hz : HasDerivAt zx zxx0 x)
+    (hw0 : w x = w0) (hz1x0 : z1x x = z1x0)
+    (hz2x0 : z2x x = z2x0) (hq0 : q x = q0) (hzx0 : zx x = zx0) :
+    HasDerivAt
+      (paper3EliminatedFluxRemainderThreeTermProfile
+        uStar qStar w z1x z2x q zx)
+      (paper3EliminatedFluxRemainderDerivativeValue
+        uStar qStar w0 wx0 z1x0 z1xx0 z2x0 z2xx0
+          (q0 - qStar) qx0 zx0 zxx0) x := by
+  unfold paper3EliminatedFluxRemainderThreeTermProfile
+    paper3EliminatedFluxRemainderDerivativeValue
+  convert
+    ((hw.mul_const qStar).mul hz1).add
+      ((((hasDerivAt_const x uStar).add hw).mul_const qStar).mul hz2) |>.add
+        ((((hasDerivAt_const x uStar).add hw).mul
+          (hq.sub_const qStar)).mul hz) using 1 <;>
+    simp only [Pi.add_apply, Pi.mul_apply] <;>
+    rw [hw0, hz1x0, hz2x0, hq0, hzx0] <;> ring
+
+/-- Pointwise `deriv` form of the exact product-rule identity. -/
+theorem paper3EliminatedFluxRemainderThreeTermProfile_deriv_eq
+    {uStar qStar x w0 wx0 z1x0 z1xx0 z2x0 z2xx0 q0 qx0 zx0 zxx0 : ℝ}
+    {w z1x z2x q zx : ℝ → ℝ}
+    (hw : HasDerivAt w wx0 x)
+    (hz1 : HasDerivAt z1x z1xx0 x)
+    (hz2 : HasDerivAt z2x z2xx0 x)
+    (hq : HasDerivAt q qx0 x)
+    (hz : HasDerivAt zx zxx0 x)
+    (hw0 : w x = w0) (hz1x0 : z1x x = z1x0)
+    (hz2x0 : z2x x = z2x0) (hq0 : q x = q0) (hzx0 : zx x = zx0) :
+    deriv
+      (paper3EliminatedFluxRemainderThreeTermProfile
+        uStar qStar w z1x z2x q zx) x =
+      paper3EliminatedFluxRemainderDerivativeValue
+        uStar qStar w0 wx0 z1x0 z1xx0 z2x0 z2xx0
+          (q0 - qStar) qx0 zx0 zxx0 :=
+  (paper3EliminatedFluxRemainderThreeTermProfile_hasDerivAt
+    hw hz1 hz2 hq hz hw0 hz1x0 hz2x0 hq0 hzx0).deriv
+
 /-- Constants in the strong-times-weak derivative estimate. -/
 structure EliminatedFluxDerivativeQuadraticBounds where
   M : ℝ
@@ -245,6 +300,7 @@ theorem paper3EliminatedFluxRemainderDerivativeValue_quadratic
       ring
 
 #print axioms paper3EliminatedFluxRemainderDerivativeValue_quadratic
+#print axioms paper3EliminatedFluxRemainderThreeTermProfile_deriv_eq
 
 end
 
