@@ -19,6 +19,7 @@ structure WeightedQuadraticDuhamelData (size : ℝ → ℝ) where
   nonlinearConst : ℝ
   datum : ℝ
   radius : ℝ
+  positivityRadius : ℝ
   theta_pos : 0 < theta
   theta_lt_one : theta < 1
   rate_pos : 0 < rate
@@ -28,6 +29,8 @@ structure WeightedQuadraticDuhamelData (size : ℝ → ℝ) where
   nonlinearConst_nonneg : 0 ≤ nonlinearConst
   datum_nonneg : 0 ≤ datum
   radius_pos : 0 < radius
+  positivityRadius_pos : 0 < positivityRadius
+  radius_le_positivityRadius : radius ≤ positivityRadius
   size_nonneg : ∀ t, 0 ≤ t → 0 ≤ size t
   size_continuous : ContinuousOn size (Set.Ici (0 : ℝ))
   source_integrable : ∀ t, 0 ≤ t →
@@ -35,7 +38,12 @@ structure WeightedQuadraticDuhamelData (size : ℝ → ℝ) where
       (fun s : ℝ =>
         (t - s) ^ (-theta) * Real.exp (-smoothingRate * (t - s)) *
           size s ^ 2) volume 0 t
+  size_zero_le : size 0 ≤ linearConst * datum
+  /-- The Nemytskii estimate is valid only while the trajectory remains in
+  the positive strong ball.  The bootstrap below supplies this premise; it is
+  not an unconditional global quadratic hypothesis. -/
   duhamel_bound : ∀ t, 0 ≤ t →
+    (∀ s ∈ Set.Icc (0 : ℝ) t, size s ≤ positivityRadius) →
     size t ≤
       linearConst * Real.exp (-delta * t) * datum +
         nonlinearConst * (∫ s in (0 : ℝ)..t,
@@ -60,16 +68,44 @@ theorem WeightedQuadraticDuhamelData.exponential_bound
     (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn.mul
       H.size_continuous
   have hz0 : z 0 < H.radius := by
-    have hduh0 := H.duhamel_bound 0 le_rfl
-    simp only [mul_zero, Real.exp_zero,
-      intervalIntegral.integral_same, mul_zero, add_zero] at hduh0
     have hsmall0 : size 0 < H.radius :=
-      lt_of_le_of_lt (hduh0.trans (by simpa using H.datum_small)) (by
+      lt_of_le_of_lt (H.size_zero_le.trans H.datum_small) (by
         linarith [H.radius_pos])
     simpa [z] using hsmall0
   have hstep : ∀ t, 0 ≤ t →
       (∀ s ∈ Set.Icc (0 : ℝ) t, z s ≤ H.radius) → z t ≤ B := by
     intro t ht hpast
+    have hlocal : ∀ s ∈ Set.Icc (0 : ℝ) t,
+        size s ≤ H.positivityRadius := by
+      intro s hs
+      have hs0 : 0 ≤ s := hs.1
+      have hweighted := hpast s hs
+      have hsize : size s ≤ H.radius * Real.exp (-H.rate * s) := by
+        have hexppos : 0 < Real.exp (H.rate * s) := Real.exp_pos _
+        apply (mul_le_mul_iff_of_pos_left hexppos).mp
+        rw [show Real.exp (H.rate * s) *
+            (H.radius * Real.exp (-H.rate * s)) = H.radius by
+          calc
+            Real.exp (H.rate * s) *
+                (H.radius * Real.exp (-H.rate * s)) =
+              H.radius * (Real.exp (H.rate * s) *
+                Real.exp (-H.rate * s)) := by ring
+            _ = H.radius * Real.exp 0 := by
+              rw [← Real.exp_add]
+              congr 2
+              ring
+            _ = H.radius := by simp]
+        exact hweighted
+      have hexple : Real.exp (-H.rate * s) ≤ 1 := by
+        rw [← Real.exp_zero]
+        exact Real.exp_le_exp.mpr (mul_nonpos_of_nonpos_of_nonneg
+          (neg_nonpos.mpr H.rate_pos.le) hs0)
+      calc
+        size s ≤ H.radius * Real.exp (-H.rate * s) := hsize
+        _ ≤ H.radius * 1 :=
+          mul_le_mul_of_nonneg_left hexple H.radius_pos.le
+        _ = H.radius := mul_one _
+        _ ≤ H.positivityRadius := H.radius_le_positivityRadius
     let source : ℝ → ℝ := fun s =>
       (t - s) ^ (-H.theta) *
         Real.exp (-H.smoothingRate * (t - s)) *
@@ -163,7 +199,7 @@ theorem WeightedQuadraticDuhamelData.exponential_bound
       have hmul : (H.rate - H.delta) * t ≤ 0 :=
         mul_nonpos_of_nonpos_of_nonneg hcoef ht
       nlinarith
-    have hduh := H.duhamel_bound t ht
+    have hduh := H.duhamel_bound t ht hlocal
     have hexp0 := Real.exp_nonneg (H.rate * t)
     have hweightedDuh := mul_le_mul_of_nonneg_left hduh hexp0
     dsimp [z, B]
