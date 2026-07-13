@@ -103,19 +103,23 @@ def PaperLowerRawParamRotheLimitClosedGraph
     (producer : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperLowerRawStepProducerRouteAParamCore
         p c lam M κ κtilde D Λ hκ hM u) : Prop :=
-  LocalUniformSequentialClosedGraphOn (InMonotoneWaveTrapSet κ M)
+  LocalUniformSequentialClosedGraphOn
+    (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
     (fun u => rotheLimit (paperLowerRawParamRotheSeq producer u))
 
 /-- The irreducible L10 identification statement after the off-diagonal Green
-closed graph: a trapped stationary cluster for the frozen profile `u` is the
-particular upper-start Rothe limit selected at `u`. -/
+closed graph: a lower-pinned stationary cluster for the frozen profile `u` is
+the particular upper-start Rothe limit selected at `u`.  The lower pin is
+essential: on the bare trap the zero profile is always a self step. -/
 def PaperLowerRawParamRotheStationaryIdentification
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (producer : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperLowerRawStepProducerRouteAParamCore
         p c lam M κ κtilde D Λ hκ hM u) : Prop :=
-  ∀ u W, InMonotoneWaveTrapSet κ M u → InMonotoneWaveTrapSet κ M W →
+  ∀ u W,
+    InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+    InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) W →
     (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) →
       W = rotheLimit (paperLowerRawParamRotheSeq producer u)
 
@@ -244,10 +248,11 @@ theorem paperLowerRawParamRotheLimitClosedGraph
   let L : ℕ → ℝ → ℝ := fun n => rotheLimit (zseq (seq n))
   have horbit : ∀ n, LocallyUniformConverges (Z n) (L n) := by
     intro n
-    simpa [Z, L] using (hdata (seq n) (hseq n)).locallyUniform hM
+    simpa [Z, L] using (hdata (seq n) (hseq n).bare).locallyUniform hM
   obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
     exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hlimits)
-  obtain ⟨hstep, _hWdiff⟩ := hoff seq u W ks hseq hu hW houter hks
+  obtain ⟨hstep, _hWdiff⟩ := hoff seq u W ks
+    (fun n => (hseq n).bare) hu.bare hW.bare houter hks
     (by simpa [Z] using hold) (by simpa [Z] using hnew)
   exact h.stationaryIdentification u W hu hW hstep
 
@@ -259,10 +264,13 @@ theorem paperLowerRawParamRotheContinuousDependence
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM)
+    (hlower : RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D)
+      (paperLowerRawParamRotheSeq h.producer))
     (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
     (hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
-    RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+    RotheContinuousDependence p c lam
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
       (paperLowerRawParamRotheSeq h.producer) := by
   let zseq := paperLowerRawParamRotheSeq h.producer
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
@@ -275,13 +283,29 @@ theorem paperLowerRawParamRotheContinuousDependence
       paperRouteARotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hinput
         hκ hM hΛ0 hΛM hbarLip hu
-  have hcompact : LocalUniformSequentiallyCompactRange
+  have hcompactBare : LocalUniformSequentiallyCompactRange
       (InMonotoneWaveTrapSet κ M)
       (fun u => rotheLimit (zseq u)) :=
     paperTmap_compactRange_of_uniformModulus
       p c lam M κ hM zseq hdata
+  have hlimitLower : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+      ∀ x, lowerBarrierRaw κ κtilde D x ≤ rotheLimit (zseq u) x :=
+    Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower
+  have hcompact : LocalUniformSequentiallyCompactRange
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (zseq u)) := by
+    intro seq hseq
+    obtain ⟨subseq, hsubseq, U, hUbare, hconv⟩ :=
+      hcompactBare seq (fun n => (hseq n).bare)
+    refine ⟨subseq, hsubseq, U, ⟨hUbare, ?_⟩, hconv⟩
+    intro x
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds (hconv.tendsto_at x)
+      (Filter.Eventually.of_forall fun n =>
+        hlimitLower (seq (subseq n)) (hseq (subseq n)) x)
   have hclosed : LocalUniformSequentialClosedGraphOn
-      (InMonotoneWaveTrapSet κ M) (fun u => rotheLimit (zseq u)) := by
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (zseq u)) := by
     simpa [zseq] using paperLowerRawParamRotheLimitClosedGraph
       h hMpos hΛ0 hΛM hbarLip
   have hcont := hcompact.continuousOn_of_closedGraph hclosed
@@ -376,7 +400,8 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       (upperBarrier_isBddFun hM0)
       (by
         simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-          paperLowerRawParamRotheContinuousDependence hpar hMpos hΛ0 hΛM
+          paperLowerRawParamRotheContinuousDependence hpar hlower
+            hMpos hΛ0 hΛM
             hcond.upperBarrier_barLip)
       hdata hlower
   have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
@@ -488,7 +513,8 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       (upperBarrier_isBddFun hM0)
       (by
         simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-          paperLowerRawParamRotheContinuousDependence hpar hMpos hΛ0 hΛM
+          paperLowerRawParamRotheContinuousDependence hpar hlower
+            hMpos hΛ0 hΛM
             hcond.upperBarrier_barLip)
       hdata hlower
   have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
