@@ -357,7 +357,8 @@ theorem paperNegativePinned_fixed_stationary_of_L10
         (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) U ∧
       rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s U) = U ∧
       (∀ x, frozenWaveOperator p c U U x = 0) ∧
-      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+      PaperGreenSourceTailData c s.lam U := by
   exact paperUniformModulusLowerPinned_fixed_stationary
     p c s.lam 1 (kappa c) s.Λ (paperNegativePinnedOrbitModulus s)
     (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D)

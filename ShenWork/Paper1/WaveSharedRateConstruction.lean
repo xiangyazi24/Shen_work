@@ -256,7 +256,7 @@ theorem paperSharedRateControlled_fixed_stationary
     exact hdata.locallyUniform hL
   have hLU_succ : LocallyUniformConverges (fun n => z (n + 1)) U :=
     hLU.comp_strictMono (strictMono_id.add_const 1)
-  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨hstep, hUdiff, hUderivDiff, _hsourceTail⟩ :=
     paperGreenSingleOrbitClosedGraph_of_stepAnalytic
       p c lam M κ Λ hM hΛ0 prod.core.hlam U hU.bare z
       (by
@@ -268,7 +268,7 @@ theorem paperSharedRateControlled_fixed_stationary
       (by
         intro k x
         simpa [z] using rotheSeqOfPaperSharedRate_le_M prod.core (k + 1) x)
-      U hU.bare id tendsto_id hLU hLU_succ
+      U hU.bare id tendsto_id hLU hLU_succ rfl
   have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
     frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
       p c lam U prod.core.hlam hU.bare.trap.cunif_bdd hU.bare.nonneg

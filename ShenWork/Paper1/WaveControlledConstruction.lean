@@ -36,7 +36,8 @@ theorem paperUniformModulusLowerPinned_fixed_stationary
       InLowerPinnedUniformModulusMonotoneTrap κ M L φ U ∧
       rotheLimit (rotheSeq U) = U ∧
       (∀ x, frozenWaveOperator p c U U x = 0) ∧
-      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+      PaperGreenSourceTailData c lam U := by
   obtain ⟨U, hU, hfix⟩ :=
     InLowerPinnedUniformModulusMonotoneTrap.exists_fixed
       hne hMpos.le hL (fun u => rotheLimit (rotheSeq u)) hmap hcont
@@ -45,13 +46,13 @@ theorem paperUniformModulusLowerPinned_fixed_stationary
   have hLU_succ :
       LocallyUniformConverges (fun n => rotheSeq U (n + 1)) U :=
     hLU.comp_strictMono (strictMono_id.add_const 1)
-  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨hstep, hUdiff, hUderivDiff, hsourceTail⟩ :=
     paperGreenSingleOrbitClosedGraph_of_stepAnalytic
       p c lam M κ Λ hMpos hΛ hlam U hU.uniformTrap.bare
       (rotheSeq U) (hanalytic U hU)
       (fun k x => (hdata U hU).nonneg (k + 1) x)
       (fun k x => (hdata U hU).le_M (k + 1) x)
-      U hU.uniformTrap.bare id tendsto_id hLU hLU_succ
+      U hU.uniformTrap.bare id tendsto_id hLU hLU_succ rfl
   have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
     frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
       p c lam U hlam hU.uniformTrap.bare.trap.cunif_bdd
@@ -59,7 +60,7 @@ theorem paperUniformModulusLowerPinned_fixed_stationary
       (fun x => frozenElliptic_deriv_differentiableAt p
         hU.uniformTrap.bare.trap.cunif_bdd hU.uniformTrap.bare.nonneg x)
       (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
-  exact ⟨U, hU, hfix, hstat, hUdiff, hUderivDiff⟩
+  exact ⟨U, hU, hfix, hstat, hUdiff, hUderivDiff, hsourceTail⟩
 
 /-- Schauder fixed point of the corrected controlled Rothe map.  Source-box
 existence, compactness, invariance, and the finite-dimensional
@@ -128,7 +129,7 @@ theorem paperControlledLowerRaw_fixed_stationary
     simpa [z] using hdata.locallyUniform hM
   have hLU_succ : LocallyUniformConverges (fun n => z (n + 1)) U :=
     hLU.comp_strictMono (strictMono_id.add_const 1)
-  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨hstep, hUdiff, hUderivDiff, _hsourceTail⟩ :=
     paperGreenSingleOrbitClosedGraph_of_stepAnalytic
       p c lam M κ Λ hMpos hΛ0 prod.core.hlam U hU.bare z
       (by
@@ -143,7 +144,7 @@ theorem paperControlledLowerRaw_fixed_stationary
         intro k x
         simpa [z] using rotheSeqOfPaperRouteA_le_M
           prod.core.toOrbitCore hκ hM (k + 1) x)
-      U hU.bare id tendsto_id hLU hLU_succ
+      U hU.bare id tendsto_id hLU hLU_succ rfl
   have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
     frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
       p c lam U prod.core.hlam hU.bare.trap.cunif_bdd hU.bare.nonneg

@@ -21,9 +21,11 @@ theorem paperGreenSingleOrbitClosedGraph_of_stepAnalytic
     (W : ℝ → ℝ) (hW : InMonotoneWaveTrapSet κ M W)
     (ks : ℕ → ℕ) (_hks : Tendsto ks atTop atTop)
     (hold : LocallyUniformConverges (fun n => z (ks n)) W)
-    (hnew : LocallyUniformConverges (fun n => z (ks n + 1)) W) :
+    (hnew : LocallyUniformConverges (fun n => z (ks n + 1)) W)
+    (hdiag : u = W) :
     (∀ x, paperImplicitStepOp p c (1 / lam) u W x = W x) ∧
-      Differentiable ℝ W ∧ Differentiable ℝ (deriv W) := by
+      Differentiable ℝ W ∧ Differentiable ℝ (deriv W) ∧
+      PaperGreenSourceTailData c lam W := by
   let Zs : ℕ → ℝ → ℝ := fun n => z (ks n)
   let Ws : ℕ → ℝ → ℝ := fun n => z (ks n + 1)
   let A : ∀ n, PaperStepAnalytic p c lam M κ Λ u (Zs n) (Ws n) :=
@@ -141,10 +143,56 @@ theorem paperGreenSingleOrbitClosedGraph_of_stepAnalytic
   obtain ⟨hWdiff, hWderivDiff⟩ :=
     stationaryC2Regularity_of_greenRepresentation
       hRcont hRhi hRlo hWgreen
+  have hWabs : ∀ x, |W x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (hW.nonneg x)]
+    exact hW.le_M x
+  have hWgreenDiag : W = fun x =>
+      greenConv c lam (paperStepSource p c lam W W W) x := by
+    simpa only [hdiag] using hWgreen
+  have hRcontDiag : Continuous (paperStepSource p c lam W W W) := by
+    simpa only [hdiag] using hRcont
+  have hRboundDiag : ∀ x, |paperStepSource p c lam W W W x| ≤ B := by
+    simpa only [hdiag] using hRbound
+  obtain ⟨hWhas, hWhas2, C1, C2, hC10, hC20, hC1, hC2⟩ :=
+    greenLimit_derivative_data hlam hM.le hWgreenDiag hRcontDiag
+      hRboundDiag hWabs
+  have hbddAbove : BddAbove (Set.range W) := by
+    refine ⟨M, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    exact hW.le_M x
+  have hbddBelow : BddBelow (Set.range W) := by
+    refine ⟨0, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    exact hW.nonneg x
+  obtain ⟨⟨LW, hWlim⟩, _⟩ :=
+    antitone_tendsto_atBot_atTop_of_bdd hW.antitone hbddAbove hbddBelow
+  have hsecondBound : ∀ x, |deriv (deriv W) x| ≤ C2 := by
+    intro x
+    rw [(hWhas2 x).deriv]
+    exact hC2 x
+  have hD1 : Tendsto (fun x => deriv W x) atBot (nhds 0) :=
+    antitone_deriv_tendsto_atBot_zero_of_tail_of_second_bound
+      hW.antitone hWlim (fun x => (hWhas x).differentiableAt)
+      (fun x => (hWhas2 x).differentiableAt) hC20 hsecondBound
+  obtain ⟨LR, hcrossTail⟩ :=
+    crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
+      (p := p) (lam := lam) (M := M) hM hW
+      (fun x => (hWhas x).differentiableAt) hWlim hD1
+  have hdiagSource :
+      paperStepSource p c lam W W W = crossSource p lam W W W :=
+    paperStepSource_self_eq_crossSource
+      hW.trap.cunif_bdd hW.nonneg hWhas
+  have hRtail : Tendsto (paperStepSource p c lam W W W) atBot (nhds LR) := by
+    rw [hdiagSource]
+    exact hcrossTail
+  have hsourceTail : PaperGreenSourceTailData c lam W :=
+    ⟨paperStepSource p c lam W W W, B, LR, hRcontDiag, hRboundDiag,
+      hRtail, hWgreenDiag⟩
   exact
     ⟨paperImplicitStepOp_of_greenConv_source hlam rfl hWgreen
       hRcont hRhi hRlo,
-      hWdiff, hWderivDiff⟩
+      hWdiff, hWderivDiff, hsourceTail⟩
 
 section AxiomAudit
 

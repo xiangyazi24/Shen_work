@@ -52,9 +52,10 @@ def PaperGreenRotheAdaptiveSourceCompactnessOnTrap
           (fun n => rotheSeq (seq n) (ks n))
           (fun n => rotheSeq (seq n) (ks n + 1)))
 
-/-- A bounded continuous whole-line Green representation gives first and
-second derivative data and global bounds for its profile. -/
-private theorem greenLimit_derivative_data
+/-- Derivative data and global first/second derivative bounds inherited by a
+bounded whole-line Green limit.  This is shared by the parameterized and the
+single-orbit closed-graph specializations. -/
+theorem greenLimit_derivative_data
     {c lam M : ℝ} (hlam : 0 < lam) (hM : 0 ≤ M)
     {U R : ℝ → ℝ} {B : ℝ}
     (hUgreen : U = fun x => greenConv c lam R x)
