@@ -460,6 +460,12 @@ def PaperLemma42EllipticVxEstimate
       |deriv (frozenElliptic p u) x| ≤
         paperEllipticVxBound M κ p.γ x
 
+def PaperLemma42EllipticVEstimate
+    (p : CMParams) (κ M : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x, 0 ≤ x →
+      frozenElliptic p u x ≤ paperEllipticVxBound M κ p.γ x
+
 /-- The frozen elliptic source box used in the paper's lower-barrier
 construction.  All coefficient bounds are uniform over the monotone wave trap;
 the right-tail field is the paper's genuine three-case estimate (subcritical,
@@ -477,6 +483,7 @@ structure PaperFrozenEllipticSourceBox
     ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ 2 * M ^ p.γ
   antitone : ∀ u : ℝ → ℝ, InMonotoneWaveTrapSet κ M u →
     Antitone (frozenElliptic p u)
+  right_tail_value : PaperLemma42EllipticVEstimate p κ M
   right_tail_deriv : PaperLemma42EllipticVxEstimate p κ M
 
 private lemma integral_exp_neg_mul_interval_eq
@@ -1059,10 +1066,26 @@ theorem PaperLemma42EllipticVxEstimate_of_conditions
       rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
       exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
 
+theorem PaperLemma42EllipticVEstimate_of_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+    PaperLemma42EllipticVEstimate p κ M := by
+  intro u hu x hx
+  by_cases hcrit : p.γ * κ = 1
+  · rw [paperEllipticVxBound, if_pos hcrit]
+    exact frozenElliptic_le_paperVxBound_critical hcrit hcond.hM hu hx
+  · by_cases hsub : p.γ * κ < 1
+    · rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub]
+      exact frozenElliptic_le_paperVxBound_subcritical hcond.hκ0 hsub hu x
+    · have hsuper : 1 < p.γ * κ :=
+        lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
+      rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
+      exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
+
 /-- The paper's frozen elliptic source box is automatic on the monotone wave
 trap.  The value, first-derivative, second-derivative, and monotonicity fields
-come directly from the whole-line kernel/ODE identities; the final field is the
-three-case right-tail estimate proved above. -/
+come directly from the whole-line kernel/ODE identities; the final two fields
+are the three-case right-tail estimates for the value and derivative. -/
 theorem paperFrozenEllipticSourceBox_of_conditions
     {p : CMParams} {c κ κtilde M : ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
@@ -1074,6 +1097,7 @@ theorem paperFrozenEllipticSourceBox_of_conditions
       deriv_abs_le := ?_
       second_deriv_abs_le := ?_
       antitone := ?_
+      right_tail_value := PaperLemma42EllipticVEstimate_of_conditions hcond
       right_tail_deriv := PaperLemma42EllipticVxEstimate_of_conditions hcond }
   · intro u hu x
     exact frozenElliptic_nonneg p hu.nonneg x
@@ -2672,12 +2696,6 @@ theorem lowerBarrierRaw_deriv_abs_le_on_positive_paper_region
           simpa [add_comm, add_left_comm, add_assoc] using hle
     _ = (κ + κtilde) * Real.exp (-κ * x) := by ring
 
-def PaperLemma42EllipticVEstimate
-    (p : CMParams) (κ M : ℝ) : Prop :=
-  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-    ∀ x, 0 ≤ x →
-      frozenElliptic p u x ≤ paperEllipticVxBound M κ p.γ x
-
 theorem PaperLemma42EllipticVEstimate_of_positive_conditions
     {p : CMParams} {c κ κtilde M : ℝ}
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M) :
@@ -3557,6 +3575,7 @@ section AxiomAudit
 #print axioms paperDMin_margin_nonneg_exp
 #print axioms paperWaveOperator_lowerBarrierRaw_eq_of_kappa_speed
 #print axioms PaperLemma42EllipticVxEstimate_of_conditions
+#print axioms PaperLemma42EllipticVEstimate_of_conditions
 #print axioms paperFrozenEllipticSourceBox_of_conditions
 #print axioms PaperLemma42LogisticEstimate_of_conditions
 #print axioms PaperLemma42KTermEstimate_of_conditions
