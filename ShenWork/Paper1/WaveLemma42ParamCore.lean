@@ -150,6 +150,14 @@ def paperLowerRawParamRotheSeqFromTrap
     (ℝ → ℝ) → ℕ → ℝ → ℝ :=
   paperLowerRawParamRotheSeq h.producer
 
+/-- Only the left-flatness half of the legacy stationary/flat floor.  The
+adaptive Green closed graph now supplies stationarity itself. -/
+def PaperLowerPinnedFlatFloor
+    (p : CMParams) (c κ M : ℝ) (φ : ℝ → ℝ) : Prop :=
+  ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+    (∀ x, frozenWaveOperator p c U U x = 0) →
+      FrozenStationaryFlatAtLeft p U
+
 /-- B1 χ≤0 Route-A wrapper after replacing the monolithic Route-A per-step
 producer residual by the explicit source-box parameter layer. -/
 theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
@@ -162,10 +170,8 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
-    (hflat : ∀ U,
-      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
-      (∀ x, frozenWaveOperator p c U U x = 0) →
-        FrozenStationaryFlatAtLeft p U)
+    (hflat : PaperLowerPinnedFlatFloor p c κ M
+      (lowerBarrierRaw κ κtilde D))
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
@@ -257,10 +263,8 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
-    (hflat : ∀ U,
-      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
-      (∀ x, frozenWaveOperator p c U U x = 0) →
-        FrozenStationaryFlatAtLeft p U)
+    (hflat : PaperLowerPinnedFlatFloor p c κ M
+      (lowerBarrierRaw κ κtilde D))
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
@@ -347,6 +351,7 @@ section AxiomAudit
 #print axioms paperLowerRawStepProducerTrap_of_paramCoreNoBar
 #print axioms paperLowerRawParamRotheSeq
 #print axioms paperLowerRawParamRotheSeqFromTrap
+#print axioms PaperLowerPinnedFlatFloor
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 
