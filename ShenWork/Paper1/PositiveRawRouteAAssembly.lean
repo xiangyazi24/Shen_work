@@ -7,6 +7,7 @@
 -/
 import ShenWork.Paper1.UpperBarrierContact
 import ShenWork.Paper1.WaveLemma42ParamCore
+import ShenWork.Paper1.NegativeRawRouteAAssembly
 
 namespace ShenWork.Paper1
 
@@ -428,11 +429,22 @@ theorem paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData
   paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
     (paper1_routeARemainingParamData_of_routeAHmkConstParamData hData)
 
+/-- The Paper 1 existence headline from the orbit-faithful negative and
+positive Route-A parameter packages. -/
+theorem Theorem_1_1.of_routeAParamData
+    (hneg : Paper1NegativeLowerRawCapRouteAParamData)
+    (hpos : Paper1PositiveLowerRawCapRouteARemainingParamData) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_negativeRouteAParamData hneg
+    (paper1_positiveCriticalBranch_of_strictBarrier
+      (paper1_positiveStrictBarrierBranch_of_routeARemainingParamData hpos))
+
 section AxiomAudit
 #print axioms paper1_positiveRawContactData_of_routeAParamData
 #print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
 #print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
 #print axioms paper1_routeASmoothParamData_of_routeARemainingParamData
+#print axioms Theorem_1_1.of_routeAParamData
 end AxiomAudit
 
 end
