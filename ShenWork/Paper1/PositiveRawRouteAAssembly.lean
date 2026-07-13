@@ -426,9 +426,12 @@ theorem paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData
   paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
     (paper1_routeARemainingParamData_of_routeAHmkConstParamData hData)
 
-/-- The Paper 1 existence headline from the orbit-faithful negative and
-positive Route-A parameter packages. -/
-theorem Theorem_1_1.of_routeAParamData
+/-- Diagnostic adapter from the inconsistent legacy positive Route-A package.
+This declaration is intentionally not named as a usable headline closure:
+`not_Paper1PositiveLowerRawCapRouteAParamData` proves that its positive input
+cannot be instantiated.  The attraction branch requires a positive-sign
+construction. -/
+theorem Theorem_1_1.of_inconsistent_positiveRouteAParamData
     (hneg : Paper1NegativeLowerRawCapRouteAParamData)
     (hpos : Paper1PositiveLowerRawCapRouteAParamData) :
     Theorem_1_1 :=
@@ -441,7 +444,7 @@ section AxiomAudit
 #print axioms paper1_positiveRawContactData_of_routeAParamData
 #print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
 #print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
-#print axioms Theorem_1_1.of_routeAParamData
+#print axioms Theorem_1_1.of_inconsistent_positiveRouteAParamData
 end AxiomAudit
 
 end
