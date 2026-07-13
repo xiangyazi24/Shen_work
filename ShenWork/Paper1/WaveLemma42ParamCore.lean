@@ -6,6 +6,7 @@ import ShenWork.Paper1.WaveLocalUniformClosedGraph
 import ShenWork.Paper1.WaveUniformModulusTrap
 import ShenWork.Paper1.WaveLocalStepConstruction
 import ShenWork.Paper1.WaveControlledSchauder
+import ShenWork.Paper1.WaveLowerRawTailfree
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Filter Topology
@@ -85,11 +86,9 @@ structure PaperLowerRawStepProducerRouteAParamCore
       ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
         rotheSeqOfPaperRouteA p c lam M κ Λ u
           stepParams.toOrbitCore hκ hM k x) →
-        ∃ C_chem La Lb,
-          PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
-            (rotheSeqOfPaperRouteA p c lam M κ Λ u
-              stepParams.toOrbitCore
-              hκ hM (k + 1))
+        PaperLowerRawStepApproxOperatorData p c lam κ κtilde D u
+          (rotheSeqOfPaperRouteA p c lam M κ Λ u
+            stepParams.toOrbitCore hκ hM (k + 1))
 
 /-- The Route-A Green core produced by the parameterized lower-raw core. -/
 def paperLowerRawRouteAParamGreenCore
@@ -581,10 +580,6 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hstep : RotheStepLowerInvariant κ M
       (lowerBarrierRaw κ κtilde D) zseq := by
-    refine rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
-      (κtilde := κtilde) (D := D) (Λ := Λ)
-      hcond hD hD_ge_one ?_
     intro u hu k hprev
     let hp := hpar.producer u hu.bare
     have hzu : zseq u = rotheSeqOfPaperRouteA p c lam M κ Λ u
@@ -592,11 +587,13 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hinputTrap, hp] using
         rotheSeqOfPaperRouteAFromTrap_eq hinputTrap hcond.hκ0.le hM0 hu.bare
     rw [hzu] at hprev ⊢
-    obtain ⟨C_chem, La, Lb, haux⟩ := hp.lowerRawAux hu k hprev
+    have haux := hp.lowerRawAux hu k hprev
     have hfacts := rotheSeqOfPaperRouteA_stepFacts
       (paperLowerRawRouteAParamGreenCore hp) hcond.hκ0.le hM0 k
-    exact ⟨C_chem, La, Lb,
-      (paperLowerRawRouteAParamGreenCore hp).hlam, hfacts.step_op, haux⟩
+    exact paperImplicitStep_ge_lowerBarrierRaw_tailfree
+      hcond hD hD_ge_one hu hprev
+      (paperLowerRawRouteAParamGreenCore hp).hlam hfacts.step_op
+      hfacts.contDiff2 hfacts.nonneg haux
   have hlower : RotheOrbitLowerBound κ M
       (lowerBarrierRaw κ κtilde D) zseq :=
     rotheOrbitLowerBound_of_stepLowerInvariant
@@ -708,10 +705,6 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hstep : RotheStepLowerInvariant κ M
       (lowerBarrierRaw κ κtilde D) zseq := by
-    refine rotheStepLowerInvariant_lowerBarrierRaw_of_positivePaperStepData
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
-      (κtilde := κtilde) (D := D) (Λ := Λ)
-      hcond hD hD_ge_one ?_
     intro u hu k hprev
     let hp := hpar.producer u hu.bare
     have hzu : zseq u = rotheSeqOfPaperRouteA p c lam M κ Λ u
@@ -719,11 +712,13 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hinputTrap, hp] using
         rotheSeqOfPaperRouteAFromTrap_eq hinputTrap hcond.hκ0.le hM0 hu.bare
     rw [hzu] at hprev ⊢
-    obtain ⟨C_chem, La, Lb, haux⟩ := hp.lowerRawAux hu k hprev
+    have haux := hp.lowerRawAux hu k hprev
     have hfacts := rotheSeqOfPaperRouteA_stepFacts
       (paperLowerRawRouteAParamGreenCore hp) hcond.hκ0.le hM0 k
-    exact ⟨C_chem, La, Lb,
-      (paperLowerRawRouteAParamGreenCore hp).hlam, hfacts.step_op, haux⟩
+    exact paperImplicitStep_ge_lowerBarrierRaw_positive_tailfree
+      hcond hD hD_ge_one hu hprev
+      (paperLowerRawRouteAParamGreenCore hp).hlam hfacts.step_op
+      hfacts.contDiff2 hfacts.nonneg haux
   have hlower : RotheOrbitLowerBound κ M
       (lowerBarrierRaw κ κtilde D) zseq :=
     rotheOrbitLowerBound_of_stepLowerInvariant

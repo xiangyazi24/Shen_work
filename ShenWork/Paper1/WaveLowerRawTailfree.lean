@@ -113,10 +113,72 @@ theorem paperImplicitStep_ge_lowerBarrierRaw_tailfree
     hlam haux.small haux.E_nonneg hstep hprev hf2 hfbound hsub
     haux.op_approx
 
+/-- Positive-branch Lemma 4.2 specialization of the same tail-free comparison.
+The comparison engine is sign-agnostic; only the stationary raw-barrier lemma
+used at a positive contact changes. -/
+theorem paperImplicitStep_ge_lowerBarrierRaw_positive_tailfree
+    {p : CMParams} {c lam M κ κtilde D : ℝ} {u Z W : ℝ → ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hu : InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierRaw κ κtilde D) u)
+    (hprev : ∀ x, lowerBarrierRaw κ κtilde D x ≤ Z x)
+    (hlam : 0 < lam)
+    (hstep : ∀ x,
+      paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hW2 : ContDiff ℝ 2 W)
+    (hWnonneg : ∀ x, 0 ≤ W x)
+    (haux : PaperLowerRawStepApproxOperatorData
+      p c lam κ κtilde D u W) :
+    ∀ x, lowerBarrierRaw κ κtilde D x ≤ W x := by
+  have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
+  have hgap : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hf2 : ContDiff ℝ 2
+      (fun x => lowerBarrierRaw κ κtilde D x - W x) := by
+    have hraw : ContDiff ℝ 2 (lowerBarrierRaw κ κtilde D) := by
+      unfold lowerBarrierRaw
+      fun_prop
+    exact hraw.sub hW2
+  have hExpM :
+      Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M :=
+    lowerBarrierExpXPlus_le_one_of_one_le_D hcond.hκ0 hgap
+      hD_ge_one hcond.hM
+  have hfbound : ∀ x,
+      lowerBarrierRaw κ κtilde D x - W x ≤ M := by
+    intro x
+    have hraw_plateau :
+        lowerBarrierRaw κ κtilde D x ≤
+          lowerBarrierPlateau κ κtilde D x :=
+      lowerBarrierRaw_le_plateau hcond.hκ0 hgap hDpos x
+    have hplat_exp :
+        lowerBarrierPlateau κ κtilde D x ≤
+          Real.exp (-κ * lowerBarrierXPlus κ κtilde D) :=
+      lowerBarrierPlateau_le_exp_xplus hcond.hκ0.le hDpos.le x
+    linarith [hWnonneg x]
+  have hsub : ∀ x,
+      0 < lowerBarrierRaw κ κtilde D x - W x →
+      0 ≤ paperWaveOperator p c u (lowerBarrierRaw κ κtilde D) x := by
+    intro x hx
+    have hrawpos : 0 < lowerBarrierRaw κ κtilde D x := by
+      linarith [hWnonneg x]
+    have hregion : x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D) :=
+      lowerBarrierXMinus_lt_of_lowerBarrierRaw_pos hgap hDpos hrawpos
+    exact PaperLemma_4_2_positive_paperWaveOperator_of_conditions
+      hcond hD hD_ge_one u hu.bare.1 x hregion
+  exact paperImplicitStep_ge_barrier_of_quasiMonotone_tailfree
+    (p := p) (c := c) (lam := lam)
+    (Cmono := haux.Cmono) (E := haux.E) (Q := M)
+    (u := u) (Z := Z) (W := W)
+    (A := lowerBarrierRaw κ κtilde D)
+    hlam haux.small haux.E_nonneg hstep hprev hf2 hfbound hsub
+    haux.op_approx
+
 section AxiomAudit
 
 #print axioms lowerBarrierXMinus_lt_of_lowerBarrierRaw_pos
 #print axioms paperImplicitStep_ge_lowerBarrierRaw_tailfree
+#print axioms paperImplicitStep_ge_lowerBarrierRaw_positive_tailfree
 
 end AxiomAudit
 
