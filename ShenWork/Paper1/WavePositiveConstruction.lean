@@ -19,6 +19,8 @@ theorem paper1_positiveConstruction_selfStep :
       ∀ c : ℝ, 2 < c →
         ∃ U : ℝ → ℝ,
           FrozenStationaryWaveProfile p c U ∧
+          ContDiff ℝ 2 U ∧
+          ContDiff ℝ 2 (frozenElliptic p U) ∧
           ShenUpperBoundPositive p c U ∧
           ∀ κ₁, kappa c < κ₁ →
             κ₁ < min ((1 + p.α) * kappa c)
@@ -75,7 +77,9 @@ theorem paper1_positiveConstruction_selfStep :
       (p := p) (c := c) (κtilde := positiveBranchTailCap p c)
       (D := D) hDpos.le (by simp [positiveBranchTailCap])
       hU.bare hU.lower
-  exact ⟨U, hprofile, hupper, htail⟩
+  have hV2 : ContDiff ℝ 2 (frozenElliptic p U) :=
+    frozenElliptic_contDiff_two_of_inWaveTrapSet p hU.bare
+  exact ⟨U, hprofile, hU2, hV2, hupper, htail⟩
 
 /-- Concrete attraction-regime witness proving that the positive producer is
 not an implication over an empty parameter class. -/
@@ -86,6 +90,8 @@ theorem paper1_positiveConstruction_selfStep_nonvacuous :
       2 < c ∧
       ∃ U : ℝ → ℝ,
         FrozenStationaryWaveProfile p c U ∧
+        ContDiff ℝ 2 U ∧
+        ContDiff ℝ 2 (frozenElliptic p U) ∧
         ShenUpperBoundPositive p c U ∧
         ∀ κ₁, kappa c < κ₁ →
           κ₁ < min ((1 + p.α) * kappa c)
