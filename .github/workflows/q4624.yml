@@ -3,12 +3,12 @@ on:
   push:
     branches: [q4624-check]
     paths:
-      - '.github/q4624_cover.sage'
+      - '.github/q4624_factor.sing'
       - '.github/workflows/q4624.yml'
   pull_request:
     branches: [chatgpt-scratch]
     paths:
-      - '.github/q4624_cover.sage'
+      - '.github/q4624_factor.sing'
       - '.github/workflows/q4624.yml'
   workflow_dispatch:
 
@@ -17,25 +17,25 @@ permissions:
 
 jobs:
   compute:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
           ref: q4624-check
-      - name: Run Sage cover computation
-        shell: bash
+      - name: Install Singular
         run: |
-          set -euo pipefail
-          docker pull -q sagemath/sagemath:latest >/dev/null
-          docker run --rm -v "$PWD/.github:/home/sage/work" -w /home/sage/work sagemath/sagemath:latest sage q4624_cover.sage > .github/q4624-cover-output.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq singular
+      - name: Factor quotient polynomials
+        run: Singular .github/q4624_factor.sing > .github/q4624-factor-output.txt
       - name: Commit computation output
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .github/q4624-cover-output.txt
+          git add .github/q4624-factor-output.txt
           if ! git diff --cached --quiet; then
-            git commit -m 'Record Q4624 cover output'
+            git commit -m 'Record Q4624 factor output'
             git push origin HEAD:q4624-check
           fi
