@@ -1,11 +1,11 @@
 import ShenWork.Paper2.IntervalTruncatedJensenLocalProducer
-import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6
+import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosure
 
 /-!
 # Strict-positivity producer for the V6 Jensen field (χ₀ < 0 branch)
 
 This file reduces the `jensenStrictPos` field of
-`UniformTruncatedV6AssemblyInputs` to pointwise strict positivity of the
+`UniformTruncatedAssemblyInputs` to pointwise strict positivity of the
 truncated Picard limit, and then produces that strict positivity.
 
 Reduction step (this section): the witness tuple `(D, s, σ, f)` in
@@ -41,7 +41,7 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChiNegV6Assembly
+namespace ShenWork.Paper2.IntervalChiNegAssembly
 
 /-- The per-point discount: `exp (-(max 0 (log (P / U)) / σ) * σ) * P ≤ U`
 for `σ > 0` and `U > 0`.  This is the elementary fact that lets a pointwise
@@ -149,7 +149,7 @@ theorem truncatedJensenStrictPosDataFor_of_strictPos
 
 /-- The nonnegative truncated Picard limit dominates a strictly positive
 squared Neumann heat barrier at every positive time. -/
-theorem truncatedConjugatePicardLimit_strictPos_v6
+theorem truncatedConjugatePicardLimit_strictPos
     {p : CM2Params} {M : ℝ} (hM : 0 < M)
     {u₀ : intervalDomainPoint → ℝ}
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
@@ -178,11 +178,11 @@ theorem truncatedConjugatePicardLimit_strictPos_v6
     exact Real.sqrt_le_sqrt huM
   have hK : ∀ n, |cosineCoeffs f n| ≤ K := by
     simpa [K, Cf] using
-      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6.cosineCoeffs_abs_le_of_continuous_bounded
+      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison.cosineCoeffs_abs_le_of_continuous_bounded
         hf.continuousOn (Real.sqrt_nonneg M)
         (fun y _hy => by simpa [Cf] using hf_bound y))
   have hl2 : Summable fun n : ℕ => (cosineCoeffs f n) ^ 2 :=
-    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6.cosineCoeffs_sq_summable_of_continuousOn
+    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison.cosineCoeffs_sq_summable_of_continuousOn
       hf.continuousOn
   have hfsq : ∀ y ∈ Set.Icc (0 : ℝ) 1,
       f y ^ 2 = intervalDomainLift u₀ y := by
@@ -200,10 +200,10 @@ theorem truncatedConjugatePicardLimit_strictPos_v6
       ∀ X : intervalDomainPoint, 0 ≤ U r X := by
     intro r hr hrT X
     simpa [U] using
-      ShenWork.Paper2.IntervalTruncatedEnergyProducerV6.truncatedConjugatePicardLimit_nonneg_v6
+      ShenWork.Paper2.IntervalTruncatedEnergyProducer.truncatedConjugatePicardLimit_nonneg
         hu₀ DT r hr hrT X
   have hcompare :=
-    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6.truncatedSquareHeatBarrier_le_truncatedLimit
+    ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosure.truncatedSquareHeatBarrier_le_truncatedLimit
       hu₀ DT htrace hnonneg hf hCf hf_bound hK hl2 hfsq
   have hseed : SquareHeatSeed (intervalDomainLift u₀) f := by
     have hpos : ∃ X : intervalDomainPoint, 0 < u₀ X := by
@@ -219,13 +219,13 @@ theorem truncatedConjugatePicardLimit_strictPos_v6
   have hS : 0 < intervalFullSemigroupOperator t f X.1 :=
     heat_seed_strict_pos_of_squareHeatSeed ht hseed
   have hbar : 0 < squareHeatBarrier
-      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosureV6.truncatedBarrierDiscount
+      (ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosure.truncatedBarrierDiscount
         p DT.M) f t X.1 := by
     exact mul_pos (Real.exp_pos _) (sq_pos_of_pos hS)
   exact hbar.trans_le (by simpa [U] using hcompare t ht htT X)
 
 /-- Exact type of the V6 `jensenStrictPos` field. -/
-abbrev UniformTruncatedJensenStrictPosDataV6 (p : CM2Params) : Prop :=
+abbrev UniformTruncatedJensenStrictPosData (p : CM2Params) : Prop :=
   ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
     PositiveInitialDatum intervalDomain u₀ → (∀ X, |u₀ X| ≤ M) →
     ∀ C : UniformConjugateMildExistenceCore p u₀,
@@ -234,9 +234,9 @@ abbrev UniformTruncatedJensenStrictPosDataV6 (p : CM2Params) : Prop :=
 
 /-- Uniform Jensen strict-positivity producer, using the same truncated-map
 certificate that supplies the mild existence datum in the V6 assembly. -/
-def uniformTruncatedJensenStrictPosDataV6_producer
+def uniformTruncatedJensenStrictPosData_producer
     (p : CM2Params) (Hmap : UniformTruncatedConjugateMapCertificateData p) :
-    UniformTruncatedJensenStrictPosDataV6 p := by
+    UniformTruncatedJensenStrictPosData p := by
   intro M hM u₀ hu₀ hbound₀ C
   let A := Hmap hM hu₀ hbound₀ C
   let HT := uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A
@@ -252,7 +252,7 @@ def uniformTruncatedJensenStrictPosDataV6_producer
       ∀ X : intervalDomainPoint, 0 ≤ U r X := by
     intro r hr hrT X
     simpa [U, DT, HT] using
-      ShenWork.Paper2.IntervalTruncatedEnergyProducerV6.truncatedConjugatePicardLimit_nonneg_v6
+      ShenWork.Paper2.IntervalTruncatedEnergyProducer.truncatedConjugatePicardLimit_nonneg
         hu₀ DT r hr hrT X
   have hbound : ∀ r, 0 < r → r ≤ C.T →
       ∀ X : intervalDomainPoint, |U r X| ≤ C.R := by
@@ -262,9 +262,9 @@ def uniformTruncatedJensenStrictPosDataV6_producer
       ∀ X : intervalDomainPoint, 0 < U r X := by
     intro r hr hrT X
     simpa [U, DT, HT] using
-      truncatedConjugatePicardLimit_strictPos_v6 hM hu₀ hbound₀ DT
+      truncatedConjugatePicardLimit_strictPos hM hu₀ hbound₀ DT
         r hr hrT X
   exact truncatedJensenStrictPosDataFor_of_strictPos
     hu₀ htrace hcont hnonneg hbound hpos
 
-end ShenWork.Paper2.IntervalChiNegV6Assembly
+end ShenWork.Paper2.IntervalChiNegAssembly

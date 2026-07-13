@@ -24,7 +24,7 @@ open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalBFormSourceWeakH2EnvelopeV6
+namespace ShenWork.Paper2.IntervalBFormSourceWeakH2Envelope
 
 open ShenWork.IntervalDomain (intervalDomainPoint)
 open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs)
@@ -118,4 +118,4 @@ noncomputable def clampedBFormSource_windowSourceEnvelope_two_of_weakH2
         dsimp [C]
         ring
 
-end ShenWork.Paper2.IntervalBFormSourceWeakH2EnvelopeV6
+end ShenWork.Paper2.IntervalBFormSourceWeakH2Envelope

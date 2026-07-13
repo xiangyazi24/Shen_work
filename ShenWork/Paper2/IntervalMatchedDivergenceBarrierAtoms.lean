@@ -9,7 +9,7 @@ open scoped BigOperators Topology
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6
+namespace ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms
 
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 
@@ -1291,4 +1291,4 @@ theorem squareHeatBarrier_timeIncrement_pairing_tendsto
   rw [heq]
   simpa [V, v, W, μ] using hlim
 
-end ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtomsV6
+end ShenWork.Paper2.IntervalMatchedDivergenceBarrierAtoms

@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalChiNegV6Assembly
+import ShenWork.Paper2.IntervalChiNegAssembly
 import ShenWork.Paper2.IntervalConjugateMildJointTimeDerivativeInterior
 import ShenWork.Paper2.IntervalConjugateMildClassicalRegularityFromJointUT
 import ShenWork.Paper2.IntervalDomainTheorem11CorePath
@@ -26,7 +26,7 @@ open ShenWork.IntervalCoupledRegularityBootstrap
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChiNegV6Assembly
+namespace ShenWork.Paper2.IntervalChiNegAssembly
 
 /-- The direct Duhamel time derivative, together with the already-proved joint
 value and positivity fields, supplies the exact resolver-time input package. -/
@@ -71,9 +71,9 @@ theorem conjugateMild_reducedClassicalCore_direct
 
 /-- Energy, Jensen, and the faithful truncated map produce a uniform reduced
 classical core for every paper-positive datum. -/
-theorem chiNegDatumUniformCore_v6
+theorem chiNegDatumUniformCore
     (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (H : UniformTruncatedV6AssemblyInputs p) :
+    (H : UniformTruncatedAssemblyInputs p) :
     ShenWork.ChiNegDatumUniformCore p := by
   intro M hM
   obtain ⟨T, hT, Huniform⟩ :=
@@ -89,11 +89,11 @@ theorem chiNegDatumUniformCore_v6
   let Henergy := H.energy hM hu₀pos hbound C A
   let HJensen := H.jensenStrictPos hM hu₀pos hbound C
   let S : ConjugateMildSolutionData p u₀ :=
-    conjugateMildSolutionData_of_truncatedEnergyJensen_v6
+    conjugateMildSolutionData_of_truncatedEnergyJensen
       HT Henergy HJensen
   have htrace : InitialTrace intervalDomain u₀ S.u := by
     simpa [S] using
-      initialTrace_of_truncatedEnergyJensen_v6
+      initialTrace_of_truncatedEnergyJensen
         hu₀pos HT Henergy HJensen
   have hu₀_bound_lift : ∀ y, |intervalDomainLift u₀ y| ≤ S.M := by
     intro y
@@ -102,9 +102,9 @@ theorem chiNegDatumUniformCore_v6
       have hM0R : C.M0 ≤ C.R := by
         rw [C.hR_eq]
         linarith [C.hM0]
-      simpa [S, conjugateMildSolutionData_of_truncatedEnergyJensen_v6,
+      simpa [S, conjugateMildSolutionData_of_truncatedEnergyJensen,
         intervalDomainLift, hy] using hbase.trans hM0R
-    · simp [S, conjugateMildSolutionData_of_truncatedEnergyJensen_v6,
+    · simp [S, conjugateMildSolutionData_of_truncatedEnergyJensen,
         intervalDomainLift, hy, C.hR.le]
   have hu₀_meas : AEStronglyMeasurable
       (intervalDomainLift u₀) (intervalMeasure 1) :=
@@ -113,22 +113,22 @@ theorem chiNegDatumUniformCore_v6
   refine ⟨S.u, ?_⟩
   have hcore := conjugateMild_reducedClassicalCore_direct
     S hu₀.admissible.2 hu₀_bound_lift hu₀_meas htrace
-  simpa [S, conjugateMildSolutionData_of_truncatedEnergyJensen_v6, hCT] using hcore
+  simpa [S, conjugateMildSolutionData_of_truncatedEnergyJensen, hCT] using hcore
 
 /-- Unconditional chi-negative V6 assembly from its three proved producers.
 The former global-source spectral route is retained as
-`paper2_chiNeg_v6_spectral`; this theorem is the endpoint-faithful closure. -/
-theorem paper2_chiNeg_v6
+`paper2_chiNeg_spectral`; this theorem is the endpoint-faithful closure. -/
+theorem paper2_chiNeg
     (p : CM2Params) (hχ : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (H : UniformTruncatedV6AssemblyInputs p) :
+    (H : UniformTruncatedAssemblyInputs p) :
     Theorem_1_1 intervalDomain p :=
   ShenWork.chiNeg_theorem_1_1_of_uniformCore
-    p hχ ha hb hα hγ (chiNegDatumUniformCore_v6 p hα hγ H)
+    p hχ ha hb hα hγ (chiNegDatumUniformCore p hα hγ H)
 
 #print axioms conjugateMild_resolverTimeFromJointUTData_direct
 #print axioms conjugateMild_reducedClassicalCore_direct
-#print axioms chiNegDatumUniformCore_v6
-#print axioms paper2_chiNeg_v6
+#print axioms chiNegDatumUniformCore
+#print axioms paper2_chiNeg
 
-end ShenWork.Paper2.IntervalChiNegV6Assembly
+end ShenWork.Paper2.IntervalChiNegAssembly

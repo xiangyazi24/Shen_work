@@ -21,7 +21,7 @@ open ShenWork.IntervalResolverPositivity
 open ShenWork.IntervalResolverGradientBridge
 open ShenWork.PDE
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonV6
+open ShenWork.Paper2.IntervalTruncatedWeakBarrierComparison
 open ShenWork.IntervalPicardLimitCoeffConv
 open ShenWork.IntervalDomainLogisticWeakH2Adapter
 

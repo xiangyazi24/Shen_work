@@ -31,7 +31,7 @@ open scoped BigOperators Topology ENNReal
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
+namespace ShenWork.Paper2.IntervalTruncatedEnergyProducer
 
 open ShenWork.IntervalDomain
   (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
@@ -45,9 +45,9 @@ open ShenWork.IntervalConjugateChemFluxIntegrable
 open ShenWork.Paper2.BFormPositiveDatumNegPart
 
 /-- The exact expansion of
-`IntervalChiNegV6Assembly.UniformTruncatedEnergyDataV6`.  Keeping the producer
+`IntervalChiNegAssembly.UniformTruncatedEnergyData`.  Keeping the producer
 on this expansion avoids importing the unrelated Jensen assembly chain. -/
-abbrev UniformTruncatedEnergyDataV6Direct (p : CM2Params) : Type :=
+abbrev UniformTruncatedEnergyDataDirect (p : CM2Params) : Type :=
   ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
     PositiveInitialDatum intervalDomain u₀ → (∀ x, |u₀ x| ≤ M) →
     ∀ C : UniformConjugateMildExistenceCore p u₀,
@@ -3281,7 +3281,7 @@ private theorem truncatedLimit_negativePartEnergy_eq_zero_closed
 
 /-- Pointwise nonnegativity on the whole closed active window, obtained only
 after the open-time energy argument and endpoint continuity. -/
-theorem truncatedConjugatePicardLimit_nonneg_v6
+theorem truncatedConjugatePicardLimit_nonneg
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (DT : TruncatedConjugateMildExistenceData p u₀) :
@@ -3521,14 +3521,14 @@ def truncatedNegativePartEnergyCoreRegularData_of_nonneg
     exact hnonneg t ht htT
 
 /-- Uniform V6 energy producer.  This has the exact expansion of
-`IntervalChiNegV6Assembly.UniformTruncatedEnergyDataV6`; the local abbreviation
+`IntervalChiNegAssembly.UniformTruncatedEnergyData`; the local abbreviation
 keeps this file independent of the later Jensen assembly. -/
-def uniformTruncatedEnergyDataV6_producer (p : CM2Params) :
-    UniformTruncatedEnergyDataV6Direct p := by
+def uniformTruncatedEnergyData_producer (p : CM2Params) :
+    UniformTruncatedEnergyDataDirect p := by
   intro M hM u₀ hu₀ hbound C A
   let DT : TruncatedConjugateMildExistenceData p u₀ :=
     (uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A).toData
   exact truncatedNegativePartEnergyCoreRegularData_of_nonneg DT
-    (truncatedConjugatePicardLimit_nonneg_v6 hu₀ DT)
+    (truncatedConjugatePicardLimit_nonneg hu₀ DT)
 
-end ShenWork.Paper2.IntervalTruncatedEnergyProducerV6
+end ShenWork.Paper2.IntervalTruncatedEnergyProducer

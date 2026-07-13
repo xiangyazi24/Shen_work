@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalChiNegV6Assembly
+import ShenWork.Paper2.IntervalChiNegAssembly
 import ShenWork.Paper2.Batch1FoundationalLemmas
 
 open Set MeasureTheory
@@ -19,7 +19,7 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChiNegV6Assembly
+namespace ShenWork.Paper2.IntervalChiNegAssembly
 
 /-- Reaction-discounted semigroup lower bound restricted to the active
 positive-time window.  Unlike the older global interface, this statement does
@@ -106,4 +106,4 @@ theorem truncatedJensenStrictPosDataFor_of_localizedDiscountedLower
   exact ⟨D, s, σ, f, hσ, htime, hjensen, hseed_after_heat,
     hdiscount, hS_pos⟩
 
-end ShenWork.Paper2.IntervalChiNegV6Assembly
+end ShenWork.Paper2.IntervalChiNegAssembly
