@@ -12,7 +12,7 @@ nonnegative, the same bound holds for the full Neumann kernel.
 No compactness or stability package is used here.
 -/
 
-open Set
+open MeasureTheory Set
 
 noncomputable section
 
@@ -90,7 +90,56 @@ theorem unitWindowHeatKernelFloor_le_intervalNeumannFullKernel
     exact heatKernel_nonneg ht0 _
   exact hfloor.trans (hdirect.trans hterm)
 
+/-- Quantitative positivity improvement of the full Neumann semigroup on the
+unit positive-time window.  A nonnegative source is bounded below after heat
+propagation by the kernel floor times its total mass. -/
+theorem unitWindowHeatKernelFloor_mul_integral_le_semigroup
+    {t x : ℝ} (ht : t ∈ Icc (1 : ℝ) 2) (hx : x ∈ Icc (0 : ℝ) 1)
+    {f : ℝ → ℝ} {B : ℝ}
+    (hf_int : Integrable f (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hf_meas : AEStronglyMeasurable f
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hf_nonneg : ∀ y, y ∈ Icc (0 : ℝ) 1 → 0 ≤ f y)
+    (hf_bound : ∀ y, |f y| ≤ B) :
+    unitWindowHeatKernelFloor *
+        (∫ y, f y ∂(ShenWork.IntervalDomain.intervalMeasure 1)) ≤
+      intervalFullSemigroupOperator t f x := by
+  have ht0 : 0 < t := lt_of_lt_of_le (by norm_num) ht.1
+  have hK_int := intervalNeumannFullKernel_integrable ht0 x
+  have hKf_int : Integrable
+      (fun y => intervalNeumannFullKernel t x y * f y)
+      (ShenWork.IntervalDomain.intervalMeasure 1) := by
+    have hmul : Integrable
+        (fun y => f y * intervalNeumannFullKernel t x y)
+        (ShenWork.IntervalDomain.intervalMeasure 1) :=
+      hK_int.bdd_mul hf_meas
+        (Filter.Eventually.of_forall fun y => by
+          rw [Real.norm_eq_abs]
+          exact (hf_bound y).trans (le_abs_self B))
+    exact hmul.congr (Filter.Eventually.of_forall fun y => mul_comm _ _)
+  have hfloor_f_int : Integrable (fun y => unitWindowHeatKernelFloor * f y)
+      (ShenWork.IntervalDomain.intervalMeasure 1) :=
+    hf_int.const_mul unitWindowHeatKernelFloor
+  calc
+    unitWindowHeatKernelFloor *
+          (∫ y, f y ∂(ShenWork.IntervalDomain.intervalMeasure 1)) =
+        ∫ y, unitWindowHeatKernelFloor * f y
+          ∂(ShenWork.IntervalDomain.intervalMeasure 1) := by
+            rw [integral_const_mul]
+    _ ≤ ∫ y, intervalNeumannFullKernel t x y * f y
+          ∂(ShenWork.IntervalDomain.intervalMeasure 1) := by
+      apply integral_mono_ae hfloor_f_int hKf_int
+      simp only [ShenWork.IntervalDomain.intervalMeasure,
+        ShenWork.IntervalDomain.intervalSet]
+      refine (ae_restrict_iff' measurableSet_Icc).mpr
+        (Filter.Eventually.of_forall fun y hy => ?_)
+      exact mul_le_mul_of_nonneg_right
+        (unitWindowHeatKernelFloor_le_intervalNeumannFullKernel ht hx hy)
+        (hf_nonneg y hy)
+    _ = intervalFullSemigroupOperator t f x := rfl
+
 #print axioms unitWindowHeatKernelFloor_le_heatKernel
 #print axioms unitWindowHeatKernelFloor_le_intervalNeumannFullKernel
+#print axioms unitWindowHeatKernelFloor_mul_integral_le_semigroup
 
 end ShenWork.Paper3
