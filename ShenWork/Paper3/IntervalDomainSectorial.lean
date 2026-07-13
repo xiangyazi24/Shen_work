@@ -225,9 +225,15 @@ smoothing has converted the rough initial neighborhood into uniform `C¹`
 control.  The small-data radius, prefactor, rate, and smoothing time remain
 uniform over the admitted initial data and global classical solutions.  Both
 older all-time frontiers are intentionally retained as compatibility and
-obstruction interfaces. -/
+obstruction interfaces.
+
+The explicit condition `p.m = 1` is the model-fidelity seam: the legacy
+`intervalDomain` flux contains `u`, whereas the paper growth rate `sigma`
+linearizes the faithful `u^m` flux.  General `m` belongs to `intervalDomainM`;
+silently using `sigma` on the legacy domain would give the wrong multiplier. -/
 def IntervalDomainSpectralSemigroupOrbitBoundCorrected
     (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  p.m = 1 ∧
   ∀ sigma pNorm uStar vStar,
     1 / 2 < sigma → sigma < 1 → 1 < pNorm →
     Paper3ConstantEquilibrium p uStar vStar →
@@ -299,6 +305,7 @@ intervalDomain_eventualSectorialLocalExponentialRaw_of_spectralSemigroupOrbitBou
     EventualSectorialLocalExponentialRaw
       intervalDomain p unitIntervalNeumannSpectrum
         N.c1Distance N.xpSigmaDistance := by
+  rcases horbit with ⟨_hm, horbit⟩
   intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm heq hstable
   rcases horbit sigma pNorm uStar vStar
       hsigma_low hsigma_high hpNorm heq hstable with
