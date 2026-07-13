@@ -44,6 +44,21 @@ theorem intervalL2Size_sq_integral_nonneg (f : ℝ → ℝ) :
     0 ≤ ∫ x in (0 : ℝ)..1, (f x) ^ 2 :=
   intervalIntegral.integral_nonneg (by norm_num) (fun x _ => sq_nonneg _)
 
+/-- An interior pointwise domination by an `L²` profile gives interval `L²`
+membership.  Endpoints are deliberately absent: they are null for interval
+Lebesgue measure and the physical route-(a) derivative identity is only an
+interior identity. -/
+theorem memLp_two_of_pointwise_mul_Ioo
+    {f g : ℝ → ℝ} {B : ℝ} (hB : 0 ≤ B)
+    (hf : AEStronglyMeasurable f (intervalMeasure 1))
+    (hg : MemLp g 2 (intervalMeasure 1))
+    (hfg : ∀ x ∈ Set.Ioo (0 : ℝ) 1, |f x| ≤ B * |g x|) :
+    MemLp f 2 (intervalMeasure 1) := by
+  have hdom : ∀ᵐ x ∂ intervalMeasure 1, ‖f x‖ ≤ ‖B * g x‖ := by
+    filter_upwards [ae_intervalMeasure_one_mem_Ioo] with x hx
+    simpa [Real.norm_eq_abs, abs_mul, abs_of_nonneg hB] using hfg x hx
+  exact (hg.const_mul B).mono hf hdom
+
 /-- Multiplication by a bounded physical factor is bounded on interval `L²`. -/
 theorem intervalL2Size_le_of_pointwise_mul
     {f g : ℝ → ℝ} {B : ℝ} (hB : 0 ≤ B)
@@ -84,6 +99,18 @@ theorem intervalL2Size_le_of_pointwise_mul
     _ = B * Real.sqrt (∫ x in (0 : ℝ)..1, (g x) ^ 2) := by
       rw [Real.sqrt_mul (sq_nonneg B), Real.sqrt_sq_eq_abs,
         abs_of_nonneg hB]
+
+theorem intervalL2Size_le_of_pointwise_abs_bound
+    {f : ℝ → ℝ} {B : ℝ} (hB : 0 ≤ B)
+    (hf : MemLp f 2 (intervalMeasure 1))
+    (hbound : ∀ x ∈ Set.Ioo (0 : ℝ) 1, |f x| ≤ B) :
+    intervalL2Size f ≤ B := by
+  have hone : MemLp (fun _x : ℝ => (1 : ℝ)) 2 (intervalMeasure 1) :=
+    memLp_const 1
+  have hmul := intervalL2Size_le_of_pointwise_mul hB hf hone (by
+    intro x hx
+    simpa using hbound x hx)
+  simpa [intervalL2Size_const (by norm_num : (0 : ℝ) ≤ 1)] using hmul
 
 /-- Coarse Minkowski bound sufficient for the finite seven-term flux
 expansion.  The harmless `sqrt 2` avoids importing a separate `Lp`-norm
@@ -158,7 +185,23 @@ theorem memLp_two_of_pointwise_abs_bound
     simpa [Real.norm_eq_abs, abs_of_nonneg hB] using hbound x hx
   exact (hone.const_mul B).mono hf hdom
 
+/-- Interior classical differentiability supplies measurability of the named
+derivative profile; a closed-interval pointwise bound then supplies `L²`. -/
+theorem memLp_two_of_hasDerivAt_Ioo_and_abs_bound_Icc
+    {g d : ℝ → ℝ} {B : ℝ} (hB : 0 ≤ B)
+    (hderiv : ∀ x ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt g (d x) x)
+    (hbound : ∀ x ∈ Set.Icc (0 : ℝ) 1, |d x| ≤ B) :
+    MemLp d 2 (intervalMeasure 1) := by
+  have hmeas : AEStronglyMeasurable d (intervalMeasure 1) := by
+    refine (measurable_deriv g).aestronglyMeasurable.congr ?_
+    filter_upwards [ae_intervalMeasure_one_mem_Ioo] with x hx
+    exact (hderiv x hx).deriv
+  exact memLp_two_of_pointwise_abs_bound hB hmeas hbound
+
 #print axioms intervalL2Size_le_of_pointwise_mul
+#print axioms memLp_two_of_pointwise_mul_Ioo
+#print axioms memLp_two_of_hasDerivAt_Ioo_and_abs_bound_Icc
+#print axioms intervalL2Size_le_of_pointwise_abs_bound
 #print axioms intervalL2Size_add_le
 #print axioms memLp_two_of_pointwise_abs_bound
 
