@@ -269,7 +269,7 @@ def paperRouteAQuantitativeCore_of_params
     let q := paperStepFixedSourceQuantitativeCore_of_params params (wit Z hZ)
     let out := hrest Z hZ q.fixed
     exact ⟨q.fixed.W,
-      { output := out.toOutputRouteACore.2
+      { output := (out.toOutputRouteACore params.hlam).2
         ell := q.ell
         rate := q.W_rate }⟩
 

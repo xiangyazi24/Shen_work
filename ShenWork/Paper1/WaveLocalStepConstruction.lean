@@ -114,6 +114,24 @@ theorem deriv_le
 
 end PaperLocalFixedStepData
 
+/-- The two genuine order facts not supplied by the local source Schauder
+construction itself.  They are the output of the parabolic comparison and
+Route-A derivative maximum principles. -/
+structure PaperLocalFixedStepRestData
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ)
+    (d : PaperLocalFixedStepData p c lam M κ Λ u Z) where
+  le_old : ∀ x, d.fixed.W x ≤ Z x
+  anti : Antitone d.fixed.W
+
+/-- Per-orbit provider for the comparison and Route-A order facts left after
+the local source construction has already proved the exact Green equation and
+the pointwise range `0 ≤ W ≤ upperBarrier`. -/
+def PaperLocalFixedStepRestProvider
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
+  ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+    ∀ d : PaperLocalFixedStepData p c lam M κ Λ u Z,
+      PaperLocalFixedStepRestData p c lam M κ Λ u Z d
+
 /-- Build the actual Route-A orbit core from the no-tail local source Schauder
 construction.  The Holder radius is selected separately for each genuine
 regular iterate from the explicit kernel estimate; no shared exponential
@@ -134,9 +152,7 @@ noncomputable def paperGreenStepInputRouteAOrbitCore_of_localFixedStep
         + lam ≤ B)
     (hbarrier : PaperUpperBarrierSuperScalarConditions p c κ M)
     (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M))
-    (hrest : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
-      ∀ fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z,
-        PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
+    (hrest : PaperLocalFixedStepRestProvider p c lam M κ Λ u) :
     PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u where
   hlam := hlam
   basePaperSuper :=
@@ -156,7 +172,14 @@ noncomputable def paperGreenStepInputRouteAOrbitCore_of_localFixedStep
         hlam hrpκ hrmκ hκ hM hB hu hZ hsourceScalar le_rfl
         hbarrier hΛ
     let d := Classical.choose hex
-    exact ⟨d.fixed.W, (hrest Z hZ d.fixed).toOutputRouteACore.2⟩
+    let rest := hrest Z hZ d
+    exact
+      ⟨d.fixed.W,
+        { analytic := d.fixed.analyticCore
+          nonneg := fun x => (d.range x).1
+          le_barrier := fun x => (d.range x).2
+          le_old := rest.le_old
+          anti := rest.anti }⟩
 
 section AxiomAudit
 

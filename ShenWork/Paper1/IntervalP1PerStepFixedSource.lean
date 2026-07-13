@@ -177,7 +177,7 @@ def paperGreenStepInputRouteAOrbitCore_of_regularFixedSource
     intro Z hZ
     let fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
       PaperStepFixedSourceCore.of_existsForRegularSuperTrap hfixed hu hZ
-    exact (hrest Z hZ fixed).toOutputRouteACore
+    exact (hrest Z hZ fixed).toOutputRouteACore hlam
 
 /-- Regular-iterate fixed-source existence from the same validated truncated
 weighted-Hölder source box.  The proof is the genuine source-box Schauder fixed

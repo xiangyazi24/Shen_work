@@ -47,6 +47,7 @@ structure PaperLocalRouteAStepParameters
   hκ : 0 < κ
   hM : 0 < M
   hB : 0 ≤ B
+  chi_nonpos : p.χ ≤ 0
   hu : InMonotoneWaveTrapSet κ M u
   sourceScalar :
     |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
@@ -56,7 +57,7 @@ structure PaperLocalRouteAStepParameters
       + lam ≤ B
   barrier : PaperUpperBarrierSuperScalarConditions p c κ M
   derivBound : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M)
-  rest : PaperGreenStepInputRouteARegularRestProvider p c lam M κ Λ u
+  rest : PaperLocalFixedStepRestProvider p c lam M κ Λ u
 
 namespace PaperLocalRouteAStepParameters
 
@@ -118,14 +119,8 @@ theorem PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
     {hκ : 0 ≤ κ} {hM : 0 ≤ M} {u : ℝ → ℝ}
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
-    p.χ ≤ 0 := by
-  let core : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
-    paperLowerRawRouteAParamGreenCore h
-  have hbase :
-      PaperIterateBase p c κ M u (upperBarrier κ M) :=
-    upperBarrier_paperIterateBase hκ hM core.basePaperSuper
-  let first := core.produce_regular (upperBarrier κ M) hbase
-  exact first.2.routeA.hχ
+    p.χ ≤ 0 :=
+  h.stepParams.chi_nonpos
 
 /-! ## Counterexample to the retired shared-left-rate parameterization -/
 
