@@ -8,6 +8,59 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
+/-- Direct Schauder--Green closure on the lower-pinned uniform-modulus trap.
+The finite-cube approximation package and a family-uniform Rothe tail are both
+absent: compactness is furnished by the common modulus, Schauder produces an
+actual fixed point of the long-time map, and the single-orbit whole-line Green
+closed graph identifies that fixed point with a frozen stationary profile. -/
+theorem paperUniformModulusLowerPinned_fixed_stationary
+    (p : CMParams) (c lam M κ Λ L : ℝ) (φ : ℝ → ℝ)
+    (hMpos : 0 < M) (hΛ : 0 ≤ Λ) (hL : 0 ≤ L) (hlam : 0 < lam)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hne : ∃ u, InLowerPinnedUniformModulusMonotoneTrap κ M L φ u)
+    (hdata : ∀ u,
+      InLowerPinnedUniformModulusMonotoneTrap κ M L φ u →
+      PaperRotheOrbitData p c lam M κ rotheSeq u)
+    (hmap : ∀ u,
+      InLowerPinnedUniformModulusMonotoneTrap κ M L φ u →
+      InLowerPinnedUniformModulusMonotoneTrap κ M L φ
+        (rotheLimit (rotheSeq u)))
+    (hcont : LocalUniformContinuousOn
+      (InLowerPinnedUniformModulusMonotoneTrap κ M L φ)
+      (fun u => rotheLimit (rotheSeq u)))
+    (hanalytic : ∀ u,
+      InLowerPinnedUniformModulusMonotoneTrap κ M L φ u →
+      ∀ k, PaperStepAnalytic p c lam M κ Λ u
+        (rotheSeq u k) (rotheSeq u (k + 1))) :
+    ∃ U,
+      InLowerPinnedUniformModulusMonotoneTrap κ M L φ U ∧
+      rotheLimit (rotheSeq U) = U ∧
+      (∀ x, frozenWaveOperator p c U U x = 0) ∧
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+  obtain ⟨U, hU, hfix⟩ :=
+    InLowerPinnedUniformModulusMonotoneTrap.exists_fixed
+      hne hMpos.le hL (fun u => rotheLimit (rotheSeq u)) hmap hcont
+  have hLU : LocallyUniformConverges (rotheSeq U) U := by
+    simpa only [hfix] using (hdata U hU).locallyUniform hMpos.le
+  have hLU_succ :
+      LocallyUniformConverges (fun n => rotheSeq U (n + 1)) U :=
+    hLU.comp_strictMono (strictMono_id.add_const 1)
+  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+    paperGreenSingleOrbitClosedGraph_of_stepAnalytic
+      p c lam M κ Λ hMpos hΛ hlam U hU.uniformTrap.bare
+      (rotheSeq U) (hanalytic U hU)
+      (fun k x => (hdata U hU).nonneg (k + 1) x)
+      (fun k x => (hdata U hU).le_M (k + 1) x)
+      U hU.uniformTrap.bare id tendsto_id hLU hLU_succ
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+      p c lam U hlam hU.uniformTrap.bare.trap.cunif_bdd
+      hU.uniformTrap.bare.nonneg hUdiff
+      (fun x => frozenElliptic_deriv_differentiableAt p
+        hU.uniformTrap.bare.trap.cunif_bdd hU.uniformTrap.bare.nonneg x)
+      (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
+  exact ⟨U, hU, hfix, hstat, hUdiff, hUderivDiff⟩
+
 /-- Schauder fixed point of the corrected controlled Rothe map.  Source-box
 existence, compactness, invariance, and the finite-dimensional
 Schauder--Tychonoff construction are internal; the only map-level analytic
@@ -102,6 +155,7 @@ theorem paperControlledLowerRaw_fixed_stationary
 
 section AxiomAudit
 
+#print axioms paperUniformModulusLowerPinned_fixed_stationary
 #print axioms paperControlledLowerRaw_exists_fixed
 #print axioms paperControlledLowerRaw_fixed_stationary
 
