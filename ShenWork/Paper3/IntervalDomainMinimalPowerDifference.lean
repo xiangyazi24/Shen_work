@@ -5,10 +5,12 @@ import Mathlib.Analysis.Convex.SpecificFunctions.Pow
 
 /-! # Power-difference coefficient in the minimal stability argument -/
 
-open Set
+open MeasureTheory Set
+open scoped Interval
 
 namespace ShenWork.Paper3
 
+open ShenWork.IntervalDomain
 open ShenWork.Paper2
 
 noncomputable section
@@ -155,11 +157,68 @@ theorem powerDifference_sq_le_minimalPowerSlope_sq
   have hsq := pow_le_pow_left₀ (abs_nonneg _) h 2
   simpa [sq_abs, mul_pow] using hsq
 
+/-- Integrated power-difference estimate on one eventual minimal-model box.
+The positive reference mass must lie below the box height; this fact is
+supplied dynamically from mass conservation and the same upper bound. -/
+theorem intervalDomain_minimal_powerDifference_integral_le
+    {p : CM2Params} {T t uStar uBar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (huStar : 0 < uStar) (huStarBar : uStar ≤ uBar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y ^ p.γ - uStar ^ p.γ) ^ 2) ≤
+      minimalPowerSlope p uStar uBar ^ 2 *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hUcont : ContinuousOn U (Set.Icc (0 : ℝ) 1) := by
+    simpa [U] using ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
+  have hUpos : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < U y := by
+    intro y hy
+    simp only [U, intervalDomainLift, hy, dif_pos]
+    exact hsol.u_pos' ht0 htT
+  have hUupper : ∀ y ∈ Set.Icc (0 : ℝ) 1, U y ≤ uBar := by
+    intro y hy
+    simpa [U, intervalDomainLift, hy] using
+      hupper (⟨y, hy⟩ : intervalDomainPoint)
+  have hleftCont : ContinuousOn
+      (fun y => (U y ^ p.γ - uStar ^ p.γ) ^ 2)
+      (Set.Icc (0 : ℝ) 1) :=
+    ((hUcont.rpow_const
+      (fun y hy => Or.inl (ne_of_gt (hUpos y hy)))).sub continuousOn_const).pow 2
+  have hrightCont : ContinuousOn
+      (fun y => minimalPowerSlope p uStar uBar ^ 2 *
+        (U y - uStar) ^ 2) (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul ((hUcont.sub continuousOn_const).pow 2)
+  have hleftInt : IntervalIntegrable
+      (fun y => (U y ^ p.γ - uStar ^ p.γ) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hleftCont
+  have hrightInt : IntervalIntegrable
+      (fun y => minimalPowerSlope p uStar uBar ^ 2 *
+        (U y - uStar) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hrightCont
+  calc
+    (∫ y in (0 : ℝ)..1, (U y ^ p.γ - uStar ^ p.γ) ^ 2) ≤
+        ∫ y in (0 : ℝ)..1,
+          minimalPowerSlope p uStar uBar ^ 2 * (U y - uStar) ^ 2 := by
+      exact intervalIntegral.integral_mono_on (by norm_num) hleftInt hrightInt
+        (fun y hy => powerDifference_sq_le_minimalPowerSlope_sq p
+          (hUpos y hy).le (hUupper y hy) huStar huStarBar)
+    _ = minimalPowerSlope p uStar uBar ^ 2 *
+          (∫ y in (0 : ℝ)..1, (U y - uStar) ^ 2) := by
+      rw [intervalIntegral.integral_const_mul]
+
 #print axioms minimalPowerSlope_pos
 #print axioms GammaMinimalFormula_eq_slope_mul
 #print axioms abs_rpow_sub_fixed_le
 #print axioms abs_powerDifference_le_minimalPowerSlope
 #print axioms powerDifference_sq_le_minimalPowerSlope_sq
+#print axioms intervalDomain_minimal_powerDifference_integral_le
 
 end
 
