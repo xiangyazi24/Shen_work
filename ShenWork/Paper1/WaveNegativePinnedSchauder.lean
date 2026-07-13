@@ -475,6 +475,35 @@ def PaperNegativePinnedStationaryNoDrop
       ∀ x, rotheLimit
         (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u) x ≤ W x
 
+/-- The exact family-level residual needed for L10: along a convergent frozen
+parameter family, a locally-uniform cluster of the selected long-time limits
+cannot lie strictly below the selection at the limiting parameter.  This is
+strictly weaker than uniqueness of every stationary profile. -/
+def PaperNegativePinnedRotheClusterNoDrop
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u W : ℝ → ℝ),
+    (∀ n, InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) (seq n)) →
+    InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u →
+    InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) W →
+    LocallyUniformConverges seq u →
+    LocallyUniformConverges
+      (fun n => rotheLimit
+        (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s (seq n))) W →
+      ∀ x, rotheLimit
+        (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u) x ≤ W x
+
 /-- Stationary no-drop plus the proved maximality inequality gives exact
 identification with the upper-start Rothe limit. -/
 theorem paperNegativePinnedStationaryIdentification_of_noDrop
@@ -627,6 +656,53 @@ theorem paperNegativePinned_limitClosedGraph_of_stationaryNoDrop
       (paperNegativePinnedStationaryIdentification_of_noDrop
         hcond hD hD1 s hnoDrop)
 
+/-- Adaptive Green closure proves the opposite (upper-semicontinuity)
+inequality, so the exact cluster no-drop property closes the graph without any
+global stationary-uniqueness assumption. -/
+theorem paperNegativePinned_limitClosedGraph_of_clusterNoDrop
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (hnoDrop : PaperNegativePinnedRotheClusterNoDrop hcond hD hD1 s) :
+    LocalUniformSequentialClosedGraphOn
+      (InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+        (paperNegativePinnedOrbitModulus s)
+        (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D))
+      (fun u => rotheLimit
+        (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)) := by
+  intro seq u W hseq hu hW houter hlimits
+  let Z : ℕ → ℕ → ℝ → ℝ := fun n =>
+    paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s (seq n)
+  let L : ℕ → ℝ → ℝ := fun n =>
+    rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s (seq n))
+  have horbit : ∀ n, LocallyUniformConverges (Z n) (L n) := by
+    intro n
+    simpa [Z, L] using
+      (paperNegativePinnedRotheSeqFromTrap_orbitData
+        hcond hD hD1 s (hseq n)).locallyUniform
+          (paperNegativePinnedOrbitModulus_nonneg s)
+  obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
+    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hlimits)
+  obtain ⟨hstep, _hWdiff, _hWderivDiff, hW2⟩ :=
+    paperNegativePinned_offDiagonalStepClosedGraph hcond hD hD1 s
+      seq u W ks hseq hu.uniformTrap.bare hW.uniformTrap.bare
+      houter hks (by simpa [Z] using hold) (by simpa [Z] using hnew)
+  have hmax : ∀ x, W x ≤ rotheLimit
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u) x := by
+    let hu' := hu.toLowerPinned
+    let hW' := hW.toLowerPinned
+    rw [paperNegativePinnedRotheSeqFromTrap_eq hcond hD hD1 s hu']
+    exact paperNegativePinned_stationary_le_rotheLimit
+      hcond hD hD1 s hu' hW' hW2 hstep
+  have hmin : ∀ x, rotheLimit
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u) x ≤ W x :=
+    hnoDrop seq u W hseq hu hW houter hlimits
+  exact funext fun x => le_antisymm (hmax x) (hmin x)
+
 /-- Compactness plus the preceding closed graph proves L10 once stationary
 identification is available. -/
 theorem paperNegativePinnedRotheL10_of_stationaryIdentification
@@ -664,6 +740,26 @@ theorem paperNegativePinnedRotheL10_of_stationaryNoDrop
     hcond hD hD1 s
       (paperNegativePinnedStationaryIdentification_of_noDrop
         hcond hD hD1 s hnoDrop)
+
+/-- The exact family-level no-drop residual is sufficient for L10; all other
+compactness and graph directions are internal theorems. -/
+theorem paperNegativePinnedRotheL10_of_clusterNoDrop
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (hnoDrop : PaperNegativePinnedRotheClusterNoDrop hcond hD hD1 s) :
+    PaperNegativePinnedRotheL10 hcond hD hD1 s := by
+  apply LocalUniformSequentiallyCompactRange.continuousOn_of_closedGraph
+    (InLowerPinnedUniformModulusMonotoneTrap.compactRange_of_mapsTo
+      zero_le_one (paperNegativePinnedOrbitModulus_nonneg s)
+      (fun _ hu => paperNegativePinnedRotheSeqFromTrap_mapsTo
+        hcond hD hD1 s hu))
+  exact paperNegativePinned_limitClosedGraph_of_clusterNoDrop
+    hcond hD hD1 s hnoDrop
 
 /-- Direct Schauder--Tychonoff closure of the genuine negative orbit.  The
 uniform modulus makes the domain compact in `C⁰_loc`; the whole-line Green
@@ -714,8 +810,10 @@ section AxiomAudit
 #print axioms paperNegativePinned_rotheLimit_stationaryStep
 #print axioms paperNegativePinned_limitClosedGraph_of_stationaryIdentification
 #print axioms paperNegativePinned_limitClosedGraph_of_stationaryNoDrop
+#print axioms paperNegativePinned_limitClosedGraph_of_clusterNoDrop
 #print axioms paperNegativePinnedRotheL10_of_stationaryIdentification
 #print axioms paperNegativePinnedRotheL10_of_stationaryNoDrop
+#print axioms paperNegativePinnedRotheL10_of_clusterNoDrop
 #print axioms paperNegativePinned_fixed_stationary_of_L10
 
 end AxiomAudit
