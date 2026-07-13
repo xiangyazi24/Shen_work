@@ -239,6 +239,104 @@ theorem paperImplicitStep_le_of_pinned_smooth_old
     (E := E) (Q := M) (u := u) (Z := Z) (W := W) (B := Z)
     hlam hsmall hE0 hstep (fun _ => le_rfl) hf2 hfbound hZsuper hop
 
+/-- Tail-free lower comparison with a smooth stationary subsolution.  Here the
+logarithmic-slope input is carried by the newly produced (lower) profile.  This
+is the dual comparison needed to show that the upper-start Rothe orbit stays
+above every lower-pinned stationary profile for the same frozen parameter. -/
+theorem paperImplicitStep_ge_of_pinned_smooth_new
+    {p : CMParams} {c lam M κ Cmono K : ℝ} {u Z W A : ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hbox : PaperFrozenEllipticSourceBox p κ M)
+    (hχ : p.χ ≤ 0)
+    (hsmall : (1 / lam) * Cmono < 1)
+    (hCmono :
+      reactionLip p.α M
+          + (-p.χ) * (M ^ p.γ) * rpowLip p.m M
+          + ((-p.χ) * p.m * (M ^ p.γ) * K *
+              (p.m - 1) * M ^ (p.m - 1)) ≤ Cmono)
+    (hK : 0 ≤ K)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hA2 : ContDiff ℝ 2 A) (hW2 : ContDiff ℝ 2 W)
+    (hArange : ∀ x, A x ∈ Set.Icc (0 : ℝ) M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
+    (hAsub : ∀ x, 0 ≤ paperWaveOperator p c u A x)
+    (hWlog : ∀ x, |deriv W x| ≤ K * W x)
+    (hAZ : ∀ x, A x ≤ Z x) :
+    ∀ x, A x ≤ W x := by
+  let Ccross : ℝ :=
+    (-p.χ) * p.m * (M ^ p.γ) * K *
+      (p.m - 1) * M ^ (p.m - 1)
+  let Ecross : ℝ :=
+    (-p.χ) * p.m * (M ^ p.γ) * M ^ (p.m - 1)
+  let E : ℝ := 1 + |c| + Ecross
+  have hnegχ : 0 ≤ -p.χ := by linarith
+  have hE0 : 0 ≤ E := by
+    dsimp [E, Ecross]
+    have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+    have hpγ : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM.le _
+    have hpm : 0 ≤ M ^ (p.m - 1) := Real.rpow_nonneg hM.le _
+    have ht : 0 ≤ (-p.χ) * p.m * M ^ p.γ * M ^ (p.m - 1) := by
+      positivity
+    linarith [abs_nonneg c]
+  have hf2 : ContDiff ℝ 2 (fun x => A x - W x) := hA2.sub hW2
+  have hfbound : ∀ x, A x - W x ≤ M := by
+    intro x
+    linarith [(hArange x).2, (hWrange x).1]
+  have hop : ∀ eta, 0 < eta → ∀ x₀,
+      0 < A x₀ - W x₀ →
+      |deriv (fun x => A x - W x) x₀| < eta →
+      deriv (deriv (fun x => A x - W x)) x₀ < eta →
+      paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀ ≤
+        Cmono * (A x₀ - W x₀) + E * eta := by
+    intro eta heta x₀ hcontact hfSlope hfSecond
+    have hWA : W x₀ ≤ A x₀ := by linarith
+    have hslope : |deriv A x₀ - deriv W x₀| ≤ eta := by
+      have heq : deriv (fun x => A x - W x) x₀ =
+          deriv A x₀ - deriv W x₀ :=
+        deriv_sub (hA2.differentiable (by norm_num) x₀)
+          (hW2.differentiable (by norm_num) x₀)
+      rw [heq] at hfSlope
+      exact hfSlope.le
+    have hsecond : iteratedDeriv 2 A x₀ - iteratedDeriv 2 W x₀ ≤ eta := by
+      have heq : deriv (deriv (fun x => A x - W x)) x₀ =
+          iteratedDeriv 2 A x₀ - iteratedDeriv 2 W x₀ := by
+        calc
+          deriv (deriv (fun x => A x - W x)) x₀ =
+              iteratedDeriv 2 (fun x => A x - W x) x₀ := by
+            simp [iteratedDeriv_succ, iteratedDeriv_zero]
+          _ = iteratedDeriv 2 A x₀ - iteratedDeriv 2 W x₀ :=
+            iteratedDeriv_fun_sub hA2.contDiffAt hW2.contDiffAt
+      rw [heq] at hfSecond
+      exact hfSecond.le
+    have hcross :
+        (-p.χ) * p.m * (A x₀) ^ (p.m - 1) *
+              deriv (frozenElliptic p u) x₀ * deriv A x₀
+          - (-p.χ) * p.m * (W x₀) ^ (p.m - 1) *
+              deriv (frozenElliptic p u) x₀ * deriv W x₀ ≤
+        Ccross * (A x₀ - W x₀) + Ecross * eta := by
+      simpa [Ccross, Ecross] using
+        paperCrossGradient_diff_le_of_lower_log_slope
+          (p := p) (a := -p.χ) (M := M) (BVd := M ^ p.γ)
+          (K := K) (eta := eta) (u := u) (A := A) (B := W) (x₀ := x₀)
+          rfl hχ hM (Real.rpow_nonneg hM.le _) hK
+          (hWrange x₀).1 hWA (hArange x₀).2
+          (hbox.deriv_abs_le u hu x₀) (hWlog x₀) hslope
+    have hop0 := paperWaveOperator_diff_le_of_approx_contact
+      (p := p) (c := c) (a := -p.χ) (M := M) (BV := M ^ p.γ)
+      (Ccross := Ccross) (Ecross := Ecross) (eta := eta)
+      (u := u) (A := A) (W := W) (x₀ := x₀)
+      rfl hχ hM.le (hArange x₀) (hWrange x₀) hWA
+      (hbox.value_nonneg u hu x₀) (hbox.value_le u hu x₀)
+      hsecond hslope hcross
+    dsimp [Ccross, Ecross, E] at hop0 ⊢
+    nlinarith [hop0, hCmono]
+  exact paperImplicitStep_ge_barrier_of_quasiMonotone_tailfree
+    (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+    (E := E) (Q := M) (u := u) (Z := Z) (W := W) (A := A)
+    hlam hsmall hE0 hstep hAZ hf2 hfbound
+    (fun x _ => hAsub x) hop
+
 /-- Successor comparison in the genuine local Green construction.  Once the
 old step is lower-pinned, all smoothness, range and logarithmic-slope inputs
 are internal; only the single explicit scalar gap remains. -/
@@ -319,6 +417,7 @@ section AxiomAudit
 #print axioms lower_weighted_rpow_increment_le
 #print axioms paperCrossGradient_diff_le_of_lower_log_slope
 #print axioms paperImplicitStep_le_of_pinned_smooth_old
+#print axioms paperImplicitStep_ge_of_pinned_smooth_new
 #print axioms PaperLocalFixedStepData.le_old_of_lowerPinned_old
 #print axioms PaperLocalFixedStepData.lowerRaw_of_old_lowerRaw
 
