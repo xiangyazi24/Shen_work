@@ -11141,7 +11141,7 @@ The continuity and weighted bound fields are discharged here.  The genuinely
 Hölder/tail modulus obligations remain explicit inputs, and compactness is then
 derived from the resulting self-map of the weighted source box. -/
 def paperFixedSourceMapBoxBounds_of_trap
-    (p : CMParams) {c lam M κ β B H sigma aL C_u L_u : ℝ}
+    (p : CMParams) {c lam M κ β B H : ℝ}
     {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
@@ -11149,7 +11149,6 @@ def paperFixedSourceMapBoxBounds_of_trap
     (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hHnn : 0 ≤ H) (hβpos : 0 < β)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hZ : PaperIterateBase p c κ M u Z)
     (hscalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
@@ -11166,7 +11165,6 @@ def paperFixedSourceMapBoxBounds_of_trap
         |paperFixedSourceMap p c lam M κ u Z R x -
             paperFixedSourceMap p c lam M κ u Z R y| ≤ ω A) :
     PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z := by
-  have _hu_rate : ExpLeftRate sigma aL C_u u L_u := hu_rate
   let map_cont :
       ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
         Continuous (paperFixedSourceMap p c lam M κ u Z R) := by
@@ -11292,9 +11290,8 @@ def paperFixedSourceMapBoxBounds_of_trap_expLeftRate
       (expLeftOmega sigma aL K_R) u Z :=
     paperFixedSourceMapBoxBounds_of_trap
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
-      (β := β) (B := B) (H := H) (sigma := sigma) (aL := aL)
-      (C_u := C_u) (L_u := L_u)
-      hlam hrpκ hrmκ hκ hM hBnn hHnn hβpos hu hu_rate hZ
+      (β := β) (B := B) (H := H)
+      hlam hrpκ hrmκ hκ hM hBnn hHnn hβpos hu hZ
       hscalar hmap_holder hmap_leftTailCauchy
   exact
     { hbase with
