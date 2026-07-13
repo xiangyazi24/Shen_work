@@ -15,6 +15,13 @@ def intervalL2Size (f : ℝ → ℝ) : ℝ :=
 theorem intervalL2Size_nonneg (f : ℝ → ℝ) :
     0 ≤ intervalL2Size f := Real.sqrt_nonneg _
 
+theorem intervalL2Size_const {c : ℝ} (hc : 0 ≤ c) :
+    intervalL2Size (fun _x : ℝ => c) = c := by
+  unfold intervalL2Size
+  have hint : (∫ _x in (0 : ℝ)..1, c ^ 2) = c ^ 2 := by
+    simp
+  rw [hint, Real.sqrt_sq hc]
+
 private theorem memLp_sq_intervalIntegrable
     {f : ℝ → ℝ} (hf : MemLp f 2 (intervalMeasure 1)) :
     IntervalIntegrable (fun x => (f x) ^ 2) volume 0 1 := by
