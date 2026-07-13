@@ -386,8 +386,43 @@ theorem paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq_of_mem
   exact paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
     hsol ht hm heq Hreal hsmall
 
+/-- Uniform-constant version of the actual L12 estimate with the physical
+realization record produced from strong membership and classical continuity. -/
+theorem paper3FullModeNonlinearRemainderCoeffM_uniform_self_bound_of_mem
+    {p : CM2Params} {sigma uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar) :
+    ∀ {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      t ∈ Set.Ioo (0 : ℝ) T →
+      3 / 4 < sigma →
+      p.m = 1 →
+      IntervalDomainX2SigmaPerturbation sigma uStar (u t) →
+      intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+        intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar →
+      Summable (fun n : ℕ =>
+        ‖((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t n : ℝ) : ℂ)‖ ^ 2) ∧
+      ShenWork.PDE.SectorialOperator.coeffL2Norm
+          (fun n => ((paper3FullModeNonlinearRemainderCoeffM
+            p uStar vStar u v t n : ℝ) : ℂ)) ≤
+        intervalDomainX2SigmaUniformNemytskiiConstant
+          p sigma uStar vStar heq *
+            intervalDomainX2SigmaDistance sigma uStar (u t) ^ 2 := by
+  intro T t u v hsol ht hsigma hm hmem hsmall
+  have hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    p hm hsol
+  have hcont : Continuous (u t) :=
+    ShenWork.Paper2.IntervalDomainM.solutionSlice_continuous hsolM ht
+  have Hreal : IntervalDomainX2SigmaRealizationBounds sigma uStar (u t) :=
+    intervalDomainX2SigmaRealizationBounds_of_continuous
+      hsigma hcont hmem
+  exact paper3FullModeNonlinearRemainderCoeffM_uniform_self_bound
+    heq hsol ht hm Hreal hsmall
+
 #print axioms
   paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq_of_mem
+#print axioms
+  paper3FullModeNonlinearRemainderCoeffM_uniform_self_bound_of_mem
 
 end
 
