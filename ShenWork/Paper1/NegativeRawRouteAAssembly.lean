@@ -70,6 +70,33 @@ structure Paper1NegativeLowerRawCapRouteAParamData : Prop where
               p.m p.γ c < D ∧
             0 ≤ Λ ∧ Λ ≤ 1
 
+/-- The current negative headline package is also empty: it asks the
+per-profile source box to work on every member of the bare monotone trap, which
+contains `slowLeftTrapProfile`, while the source box requires a positive
+exponential left-rate witness. -/
+theorem not_Paper1NegativeLowerRawCapRouteAParamData :
+    ¬ Paper1NegativeLowerRawCapRouteAParamData := by
+  intro hData
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α ≤ p.m + p.γ - 1 := by norm_num [p]
+  have hχ : p.χ ≤ 0 := by norm_num [p]
+  have hc : cStarLower p < 3 := by
+    norm_num [p, cStarLower]
+  rcases hData.produce p hα hχ 3 hc with
+    ⟨lam, D, Λ, hpar, _hD_ge_one, _hD_gt, _hΛ0, _hΛM⟩
+  exact
+    not_PaperLowerRawParabolicFloorRouteAParamCoreNoBar_of_one_le_M
+      (p := p) (c := 3) (lam := lam) (M := 1)
+      (κ := kappa 3) (κtilde := negativeBranchTailCap p 3)
+      (D := D) (Λ := Λ) le_rfl hpar
+
 /-- Full negative branch from the orbit-faithful Route-A parameter data. -/
 theorem paper1_negativeConstruction_of_routeAParamData
     (hData : Paper1NegativeLowerRawCapRouteAParamData) :
@@ -133,6 +160,7 @@ theorem Theorem_1_1.of_negativeRouteAParamData
 
 section AxiomAudit
 #print axioms negativePaperLemma42ExactConditions_of_branchCap
+#print axioms not_Paper1NegativeLowerRawCapRouteAParamData
 #print axioms paper1_negativeConstruction_of_routeAParamData
 #print axioms Theorem_1_1.of_negativeRouteAParamData
 end AxiomAudit

@@ -4,6 +4,7 @@ import ShenWork.Paper1.WavePaperAdaptiveSourceCompactness
 import ShenWork.Paper1.WavePaperRouteARotheAnalytic
 import ShenWork.Paper1.WaveLocalUniformClosedGraph
 import ShenWork.Paper1.WaveUniformModulusTrap
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Filter Topology
 
@@ -99,6 +100,182 @@ theorem PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
   let first := core.produce_regular (upperBarrier κ M) hbase
   exact first.2.routeA.hχ
 
+/-! ## Non-vacuity obstruction for the bare parameter trap -/
+
+/-- A continuous antitone profile with a polynomially slow left tail and a
+zero right half-line.  It belongs to every wave trap with `κ ≥ 0` and `M ≥ 1`,
+but it has no positive exponential left-rate witness. -/
+def slowLeftTrapProfile (x : ℝ) : ℝ :=
+  let t := max (-x) 0
+  t / (1 + t)
+
+theorem slowLeftTrapProfile_continuous : Continuous slowLeftTrapProfile := by
+  let t : ℝ → ℝ := fun x => max (-x) 0
+  have ht : Continuous t := continuous_id.neg.max continuous_const
+  have hden : ∀ x, 1 + t x ≠ 0 := by
+    intro x
+    have htx : 0 ≤ t x := le_max_right _ _
+    linarith
+  simpa [slowLeftTrapProfile, t] using ht.div (continuous_const.add ht) hden
+
+theorem slowLeftTrapProfile_nonneg (x : ℝ) :
+    0 ≤ slowLeftTrapProfile x := by
+  let t : ℝ := max (-x) 0
+  have ht : 0 ≤ t := le_max_right _ _
+  have hden : 0 < 1 + t := by linarith
+  exact div_nonneg ht hden.le
+
+theorem slowLeftTrapProfile_le_one (x : ℝ) :
+    slowLeftTrapProfile x ≤ 1 := by
+  let t : ℝ := max (-x) 0
+  have ht : 0 ≤ t := le_max_right _ _
+  have hden : 0 < 1 + t := by linarith
+  rw [slowLeftTrapProfile, div_le_iff₀ hden]
+  linarith
+
+theorem slowLeftTrapProfile_eq_zero_of_nonneg {x : ℝ} (hx : 0 ≤ x) :
+    slowLeftTrapProfile x = 0 := by
+  simp [slowLeftTrapProfile, max_eq_right (neg_nonpos.mpr hx)]
+
+theorem slowLeftTrapProfile_eq_neg_div_of_nonpos {x : ℝ} (hx : x ≤ 0) :
+    slowLeftTrapProfile x = (-x) / (1 - x) := by
+  have hneg : 0 ≤ -x := neg_nonneg.mpr hx
+  simp [slowLeftTrapProfile, max_eq_left hneg]
+  ring
+
+theorem slowLeftTrapProfile_antitone : Antitone slowLeftTrapProfile := by
+  intro x y hxy
+  let tx : ℝ := max (-x) 0
+  let ty : ℝ := max (-y) 0
+  have htyx : ty ≤ tx := by
+    dsimp [tx, ty]
+    exact max_le_max_right 0 (neg_le_neg hxy)
+  have htx0 : 0 ≤ tx := le_max_right _ _
+  have hty0 : 0 ≤ ty := le_max_right _ _
+  have hdx : 0 < 1 + tx := by linarith
+  have hdy : 0 < 1 + ty := by linarith
+  rw [slowLeftTrapProfile, slowLeftTrapProfile]
+  rw [div_le_div_iff₀ hdy hdx]
+  nlinarith
+
+theorem slowLeftTrapProfile_mem_monotoneTrap
+    {κ M : ℝ} (hκ : 0 ≤ κ) (hM : 1 ≤ M) :
+    InMonotoneWaveTrapSet κ M slowLeftTrapProfile := by
+  refine ⟨⟨⟨slowLeftTrapProfile_continuous, ⟨1, ?_⟩⟩, ?_⟩,
+    slowLeftTrapProfile_antitone⟩
+  · intro x
+    rw [abs_of_nonneg (slowLeftTrapProfile_nonneg x)]
+    exact slowLeftTrapProfile_le_one x
+  · intro x
+    refine ⟨slowLeftTrapProfile_nonneg x, ?_⟩
+    rw [upperBarrier]
+    apply le_min
+    · exact le_trans (slowLeftTrapProfile_le_one x) hM
+    · by_cases hx : x ≤ 0
+      · have hexp : 1 ≤ Real.exp (-κ * x) := by
+          apply Real.one_le_exp
+          have hmul : κ * x ≤ 0 :=
+            mul_nonpos_of_nonneg_of_nonpos hκ hx
+          nlinarith
+        exact le_trans (slowLeftTrapProfile_le_one x) hexp
+      · rw [slowLeftTrapProfile_eq_zero_of_nonneg (le_of_not_ge hx)]
+        exact (Real.exp_pos _).le
+
+theorem slowLeftTrapProfile_tendsto_atBot_one :
+    Tendsto slowLeftTrapProfile atBot (𝓝 1) := by
+  have hden : Tendsto (fun x : ℝ => 1 - x) atBot atTop := by
+    have hneg : Tendsto (fun x : ℝ => -x) atBot atTop :=
+      tendsto_neg_atBot_atTop
+    have hone : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (𝓝 1) :=
+      tendsto_const_nhds
+    simpa [sub_eq_add_neg, add_comm] using hneg.atTop_add hone
+  have hinv : Tendsto (fun x : ℝ => (1 - x)⁻¹) atBot (𝓝 0) :=
+    hden.inv_tendsto_atTop
+  have hformula :
+      (fun x : ℝ => slowLeftTrapProfile x) =ᶠ[atBot]
+        (fun x => 1 - (1 - x)⁻¹) := by
+    filter_upwards [eventually_le_atBot 0] with x hx
+    rw [slowLeftTrapProfile_eq_neg_div_of_nonpos hx]
+    have hden_ne : 1 - x ≠ 0 := by linarith
+    field_simp
+    ring
+  have hone : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (𝓝 1) :=
+    tendsto_const_nhds
+  have htend : Tendsto (fun x : ℝ => 1 - (1 - x)⁻¹) atBot (𝓝 1) := by
+    simpa using hone.sub hinv
+  exact htend.congr' hformula.symm
+
+/-- Polynomial decay at the left cannot obey any positive exponential rate. -/
+theorem slowLeftTrapProfile_not_expLeftRateData :
+    ¬ ExpLeftRateData slowLeftTrapProfile := by
+  rintro ⟨sigma, aL, C, ell, hsigma, hrate⟩
+  have hell : ell = 1 :=
+    tendsto_nhds_unique (ExpLeftRate.tendsto_atBot hsigma hrate)
+      slowLeftTrapProfile_tendsto_atBot_one
+  subst ell
+  let A : ℝ := C * Real.exp (-sigma * aL)
+  have hexp0 :
+      Tendsto (fun t : ℝ => Real.exp (-sigma * t)) atTop (𝓝 0) := by
+    exact Real.tendsto_exp_atBot.comp
+      (tendsto_id.const_mul_atTop_of_neg (neg_lt_zero.mpr hsigma))
+  have htexp0 :
+      Tendsto (fun t : ℝ => t * Real.exp (-sigma * t)) atTop (𝓝 0) := by
+    simpa [Real.rpow_one] using
+      (tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero 1 sigma hsigma)
+  have hdecay :
+      Tendsto
+        (fun t : ℝ => A * ((1 + t) * Real.exp (-sigma * t)))
+        atTop (𝓝 0) := by
+    have hsum : Tendsto
+        (fun t : ℝ => Real.exp (-sigma * t) +
+          t * Real.exp (-sigma * t)) atTop (𝓝 0) := by
+      simpa using hexp0.add htexp0
+    simpa [mul_add, add_mul, mul_assoc, mul_comm, mul_left_comm] using
+      hsum.const_mul A
+  have hevent :
+      ∀ᶠ t : ℝ in atTop,
+        A * ((1 + t) * Real.exp (-sigma * t)) < 1 / 2 := by
+    have hball := Metric.tendsto_atTop.mp hdecay (1 / 2) (by norm_num)
+    rcases hball with ⟨T, hT⟩
+    exact eventually_atTop.2 ⟨T, fun t ht => by
+      have hd := hT t ht
+      rw [Real.dist_eq, sub_zero] at hd
+      exact lt_of_le_of_lt (le_abs_self _) hd⟩
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have htT : T ≤ t := le_max_left _ _
+  have ht : 0 ≤ t := le_max_right _ _
+  have htiny : A * ((1 + t) * Real.exp (-sigma * t)) < 1 / 2 :=
+    hT t htT
+  have hrate_t := hrate (-t)
+  have hslow : slowLeftTrapProfile (-t) = t / (1 + t) := by
+    rw [slowLeftTrapProfile_eq_neg_div_of_nonpos (by linarith)]
+    congr 1 <;> ring
+  have hleft : |slowLeftTrapProfile (-t) - 1| = 1 / (1 + t) := by
+    rw [hslow]
+    have hden : 0 < 1 + t := by linarith
+    have hsub : t / (1 + t) - 1 = -(1 / (1 + t)) := by
+      field_simp
+      ring
+    rw [hsub, abs_neg, abs_of_nonneg]
+    exact one_div_nonneg.mpr hden.le
+  rw [hleft] at hrate_t
+  have hden : 0 < 1 + t := by linarith
+  have hmul := mul_le_mul_of_nonneg_left hrate_t hden.le
+  have hone : (1 + t) * (1 / (1 + t)) = 1 := by
+    field_simp
+  have hexp_split :
+      Real.exp (sigma * (-t - aL)) =
+        Real.exp (-sigma * t) * Real.exp (-sigma * aL) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  have hge : 1 ≤ A * ((1 + t) * Real.exp (-sigma * t)) := by
+    rw [hone, hexp_split] at hmul
+    dsimp [A]
+    nlinarith [hmul]
+  linarith
+
 /-- The total analytic-preserving Rothe sequence induced by a trap-indexed
 parameterized Route-A Green core. -/
 def paperLowerRawParamRotheSeq
@@ -166,6 +343,35 @@ theorem PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
       InMonotoneWaveTrapSet κ M (upperBarrier κ M) :=
     upperBarrier_mem_InMonotoneWaveTrapSet hκ hM
   exact (h.producer (upperBarrier κ M) htrap).chi_nonpos
+
+/-- The per-profile parameter package cannot be supplied on the whole bare
+wave trap: the slow-left profile has no exponential-rate witness, while that
+witness is a field of every `PerStepBoxParams`. -/
+theorem not_stepProducerRouteAParamCore_slowLeft
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M} :
+    PaperLowerRawStepProducerRouteAParamCore
+      p c lam M κ κtilde D Λ hκ hM slowLeftTrapProfile → False := by
+  intro h
+  apply slowLeftTrapProfile_not_expLeftRateData
+  exact
+    ⟨h.sigma, h.aL, h.C_u, h.L_u, h.params.hsigma,
+      h.params.hu_rate⟩
+
+/-- Consequently the present Route-A floor is empty whenever `M ≥ 1`.
+This applies to both headline specializations (`M = 1` in the negative branch
+and `M = MChi p ≥ 1` in the positive branch).  A sound replacement must index
+the outer trap by a shared left-tail modulus instead of quantifying over the
+bare monotone trap. -/
+theorem not_PaperLowerRawParabolicFloorRouteAParamCoreNoBar_of_one_le_M
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M} (hM1 : 1 ≤ M) :
+    PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM → False := by
+  intro h
+  exact not_stepProducerRouteAParamCore_slowLeft
+    (h.producer slowLeftTrapProfile
+      (slowLeftTrapProfile_mem_monotoneTrap hκ hM1))
 
 /-- The total map used by Schauder, with the producer invoked only on its trap
 domain and the upper barrier used outside it. -/
@@ -629,6 +835,10 @@ section AxiomAudit
 #print axioms paperRouteAParamGreenCore
 #print axioms PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
 #print axioms PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
+#print axioms slowLeftTrapProfile_mem_monotoneTrap
+#print axioms slowLeftTrapProfile_not_expLeftRateData
+#print axioms not_stepProducerRouteAParamCore_slowLeft
+#print axioms not_PaperLowerRawParabolicFloorRouteAParamCoreNoBar_of_one_le_M
 #print axioms paperLowerRawParamRotheSeq
 #print axioms paperLowerRawParamRotheSeqFromTrap
 #print axioms paperLowerRawParamGreenSourceCompactness
