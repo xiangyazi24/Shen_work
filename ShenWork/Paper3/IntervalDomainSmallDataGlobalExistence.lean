@@ -532,6 +532,92 @@ def intervalDomainPaperPositiveOverlapUniqueAt
       (le_abs_self _).trans
         ((hM₂ τ hτ hτT' y hy).trans (le_max_right _ _))⟩
 
+/-- Genuine small-data global-existence producer near a linearly stable
+positive equilibrium.  No global solution is assumed: local solutions are
+glued up to the maximal reachable horizon, and the finite stable bootstrap
+contradicts finiteness of that horizon. -/
+theorem intervalDomain_smallDataGlobalExistence_of_linearlyStable
+    (p : CM2Params) {uStar vStar : ℝ}
+    (hm : p.m = 1) (ha : 0 < p.a)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hstable : LinearlyStable unitIntervalNeumannSpectrum p uStar vStar) :
+    ∃ delta > 0,
+      SmallDataGlobalExistence intervalDomain p uStar delta := by
+  obtain ⟨gap, hgap0, hgap⟩ :=
+    unitIntervalLinearSpectralGap_of_linearlyStable_of_a_pos
+      p heq hstable ha
+  let sigma : ℝ := 7 / 8
+  have hsigmaStrong : 3 / 4 < sigma := by norm_num [sigma]
+  have hsigma1 : sigma < 1 := by norm_num [sigma]
+  let M : ℝ := 2 * uStar + 1
+  let c : ℝ := uStar / 4
+  have hM : 0 < M := by dsimp [M]; linarith [heq.u_pos]
+  have hc : 0 < c := by dsimp [c]; linarith [heq.u_pos]
+  obtain ⟨deltaLoc, hdeltaLoc, hfactoryRaw⟩ :=
+    paper3ThresholdLocalExistence_positiveStrip p M c hM hc
+  have hfactory : ∀ w : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain w →
+      (∀ x, |w x| ≤ 2 * uStar + 1) →
+      (∀ x, uStar / 4 ≤ w x) →
+      ∃ uw vw,
+        IsPaper2ClassicalSolution intervalDomain p deltaLoc uw vw ∧
+        InitialTrace intervalDomain w uw := by
+    simpa [M, c] using hfactoryRaw
+  obtain ⟨T, hT, hTquarter, CL, hCL, hCLlip, hcontract⟩ :=
+    exists_intervalDomainWeakSupContractionWindow_lt
+      p heq.u_pos (by positivity : 0 < deltaLoc / 4)
+  have hThalf : T < deltaLoc / 2 := by linarith
+  have hTsmall : 5 * T / 4 < deltaLoc := by linarith
+  let delta := paper3WeakSupBasinDelta
+    p sigma uStar vStar T gap heq
+  have hdelta : 0 < delta := by
+    simpa [delta] using paper3WeakSupBasinDelta_pos
+      p hsigmaStrong hsigma1 heq hgap hT
+  refine ⟨delta, hdelta, ?_⟩
+  intro u₀ hu₀ hclose
+  have hinitial := paper3SupClose_initial_positiveStrip
+    heq.u_pos
+    (paper3WeakSupBasinDelta_le_equilibrium
+      p sigma uStar vStar T gap heq)
+    hu₀ (by simpa [delta] using hclose)
+  obtain ⟨u₁, v₁, hsol₁, htrace₁⟩ :=
+    hfactory u₀ hu₀ hinitial.2.1 hinitial.2.2
+  have hreach₁ : ReachableClassicalHorizon p u₀ deltaLoc :=
+    ⟨hdeltaLoc, u₁, v₁, hsol₁, htrace₁⟩
+  have huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀ :=
+    intervalDomainPaperPositiveOverlapUniqueAt p hinitial.1
+  have hreach : ReachableArbitrarilyLong p u₀ := by
+    by_cases hbdd : BddAbove (reachableClassicalHorizonSet p u₀)
+    · have hne : (reachableClassicalHorizonSet p u₀).Nonempty :=
+        ⟨deltaLoc, hreach₁⟩
+      have hdeltaLocMax : deltaLoc ≤ finiteMaximalReachableHorizon p u₀ :=
+        reachable_le_finiteMaximalReachableHorizon hbdd hreach₁
+      have hTmax : 0 < finiteMaximalReachableHorizon p u₀ :=
+        hdeltaLoc.trans_le hdeltaLocMax
+      let u := boundedReachableGluedU hbdd hne
+      let v := boundedReachableGluedV hbdd hne
+      have hsol : IsPaper2ClassicalSolution intervalDomain p
+          (finiteMaximalReachableHorizon p u₀) u v :=
+        boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
+          huniq hu₀ hbdd hne hTmax
+      have htrace : InitialTrace intervalDomain u₀ u :=
+        boundedReachableGlued_initialTrace_of_overlapUnique
+          huniq hu₀ hbdd hne
+      have hpast : ReachablePast p u₀
+          (finiteMaximalReachableHorizon p u₀) :=
+        paper3_reachablePast_of_finite_stable_bootstrap
+          p hsigmaStrong hsigma1 hm heq hgap hdeltaLoc hfactory
+            (fun {_w} hw => intervalDomainPaperPositiveOverlapUniqueAt p hw)
+            hT hThalf hTsmall hCL hCLlip hcontract hu₀
+            (by simpa [delta] using hclose) hdeltaLocMax hsol htrace
+      exact False.elim
+        (not_reachablePast_finiteMaximalReachableHorizon hbdd hpast)
+    · exact reachableArbitrarilyLong_of_not_bddAbove hbdd
+  obtain ⟨u, v, hglobal, htrace⟩ :=
+    globalSolution_of_reachableArbitrarilyLong_of_overlapUniqueAt
+      huniq hu₀ hreach
+  exact ⟨u, v, hglobal, htrace⟩
+
 #print axioms paper3ConjugateMildResolverTimeData
 #print axioms paper3ConjugateMild_reducedClassicalCore
 #print axioms paper3ClassicalSolution_of_floorData
@@ -541,6 +627,7 @@ def intervalDomainPaperPositiveOverlapUniqueAt
 #print axioms paper3_reachablePast_of_finite_stable_bootstrap
 #print axioms intervalDomain_solution_lift_uniform_abs_on_halfHorizon
 #print axioms intervalDomainPaperPositiveOverlapUniqueAt
+#print axioms intervalDomain_smallDataGlobalExistence_of_linearlyStable
 
 end
 
