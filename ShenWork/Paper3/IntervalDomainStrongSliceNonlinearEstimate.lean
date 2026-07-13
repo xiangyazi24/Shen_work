@@ -3,7 +3,9 @@ import ShenWork.Paper3.IntervalDomainRouteANonlinearSnapshot
 import ShenWork.Paper3.IntervalDomainSignalRegularityProducer
 import ShenWork.Paper3.IntervalDomainFluxDerivativeIntegrability
 import ShenWork.Paper3.IntervalDomainStrongEmbedding
+import ShenWork.Paper3.IntervalDomainStrongRealizationProducer
 import ShenWork.Paper2.IntervalDomainMass
+import ShenWork.Paper2.IntervalDomainMPhysicalRestart
 
 namespace ShenWork.Paper3
 
@@ -216,7 +218,43 @@ theorem paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
         mul_nonneg hK0 (mul_nonneg hCenv.le hd)]
 
 #print axioms
-  paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
+      paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
+
+/-- The actual quadratic Nemytskii estimate with no externally carried
+physical-realization record.  In the strong range `sigma>3/4`, fractional
+membership and the classical slice continuity produce that record
+automatically. -/
+theorem paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq_of_mem
+    {p : CM2Params} {T t sigma uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hsigma : 3 / 4 < sigma)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hmem : IntervalDomainX2SigmaPerturbation sigma uStar (u t))
+    (hsmall : intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+      intervalDomainX2SigmaLocalNemytskiiRadius sigma uStar) :
+    ∃ K > 0,
+      Summable (fun n : ℕ =>
+        ‖((paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t n : ℝ) : ℂ)‖ ^ 2) ∧
+      ShenWork.PDE.SectorialOperator.coeffL2Norm
+          (fun n => ((paper3FullModeNonlinearRemainderCoeffM
+            p uStar vStar u v t n : ℝ) : ℂ)) ≤
+        K * intervalDomainX2SigmaDistance sigma uStar (u t) ^ 2 := by
+  have hsolM := isPaper2ClassicalSolution_intervalDomainM_of_m_eq_one
+    p hm hsol
+  have hcont : Continuous (u t) :=
+    ShenWork.Paper2.IntervalDomainM.solutionSlice_continuous hsolM ht
+  have Hreal : IntervalDomainX2SigmaRealizationBounds sigma uStar (u t) :=
+    intervalDomainX2SigmaRealizationBounds_of_continuous
+      hsigma hcont hmem
+  exact paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq
+    hsol ht hm heq Hreal hsmall
+
+#print axioms
+  paper3FullModeNonlinearRemainderCoeffM_coeffL2Norm_le_X2Sigma_sq_of_mem
 
 end
 
