@@ -62,6 +62,7 @@ def IntervalDomainStrongSpectralSemigroupOrbitBound
   p.m = 1 ∧
   ∀ sigma uStar vStar,
     3 / 4 < sigma → sigma < 1 →
+    0 < p.a →
     Paper3ConstantEquilibrium p uStar vStar →
     LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
@@ -69,20 +70,19 @@ def IntervalDomainStrongSpectralSemigroupOrbitBound
           PositiveInitialDatum intervalDomain u₀ →
           IntervalDomainX2SigmaPerturbation sigma uStar u₀ →
           intervalDomainX2SigmaDistance sigma uStar u₀ ≤ eps →
-          EquilibriumInitialMassCompatible intervalDomain p uStar u₀ →
-            ∀ u v : ℝ → intervalDomainPoint → ℝ,
-              IsPaper2GlobalClassicalSolution intervalDomain p u v →
-              InitialTrace intervalDomain u₀ u →
-              IntervalDomainStrongInitialState p u₀ u v →
-                ∀ t, 0 ≤ t →
-                  IntervalDomainX2SigmaPerturbation sigma uStar (u t) ∧
-                  intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+          ∀ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2GlobalClassicalSolution intervalDomain p u v →
+            InitialTrace intervalDomain u₀ u →
+            IntervalDomainStrongInitialState p u₀ u v →
+              ∀ t, 0 ≤ t →
+                IntervalDomainX2SigmaPerturbation sigma uStar (u t) ∧
+                intervalDomainX2SigmaDistance sigma uStar (u t) ≤
+                  C * Real.exp (-rate * t) *
+                    intervalDomainX2SigmaDistance sigma uStar u₀ ∧
+                intervalDomainSectorialC1Distance (u t) (fun _ => uStar) +
+                  intervalDomainSectorialC1Distance (v t) (fun _ => vStar) ≤
                     C * Real.exp (-rate * t) *
-                      intervalDomainX2SigmaDistance sigma uStar u₀ ∧
-                  intervalDomainSectorialC1Distance (u t) (fun _ => uStar) +
-                    intervalDomainSectorialC1Distance (v t) (fun _ => vStar) ≤
-                      C * Real.exp (-rate * t) *
-                        intervalDomainX2SigmaDistance sigma uStar u₀
+                      intervalDomainX2SigmaDistance sigma uStar u₀
 
 /-- Stage B is the already repaired weak-data interface: the input gauge is
 the concrete sup distance and the `C¹` estimate begins only after a uniform
