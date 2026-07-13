@@ -626,3 +626,5 @@ import ShenWork.Paper2.IntervalConjugatePicardFloorCoreInhabit
 import ShenWork.Paper2.IntervalDomainLocalExistenceAllExponents
 import ShenWork.Paper2.IntervalDomainPositiveCriticalOverlapAllExponents
 import ShenWork.Paper2.IntervalDomainTheorem12PositiveCriticalAllExponents
+import ShenWork.Paper2.IntervalFullKernelLpContraction
+import ShenWork.Paper2.IntervalDomainProposition21
