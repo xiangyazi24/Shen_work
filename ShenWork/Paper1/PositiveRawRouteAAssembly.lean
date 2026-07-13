@@ -13,6 +13,17 @@ namespace ShenWork.Paper1
 
 noncomputable section
 
+/-- Any Route-A parabolic floor is incompatible with strictly positive
+sensitivity.  This tiny obstruction is reused to audit every positive package
+below, not only the legacy headline-shaped one. -/
+theorem PaperLowerRawParabolicFloorRouteAParamCoreNoBar.false_of_chi_pos
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM)
+    (hχ : 0 < p.χ) : False := by
+  linarith [h.chi_nonpos]
+
 /-- Positive Lemma 4.2 exact conditions specialized to the branch tail cap. -/
 theorem positivePaperLemma42ExactConditions_of_branchCap
     (p : CMParams) {c : ℝ}
@@ -161,6 +172,27 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                     FrozenStationaryWaveProfile p c U →
                     PositiveUpperBarrierSmoothBranchNoContact p c U)
 
+/-- The smooth-contact Route-A package has the same sign contradiction as the
+legacy package and is likewise uninhabited. -/
+theorem not_Paper1PositiveLowerRawCapRouteASmoothParamData :
+    ¬ Paper1PositiveLowerRawCapRouteASmoothParamData := by
+  intro hData
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 1 / 4
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α = p.m + p.γ - 1 := by norm_num [p]
+  have hχ_nonneg : 0 ≤ p.χ := by norm_num [p]
+  have hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
+    norm_num [p, chiStar]
+  rcases hData.produce p hα hχ_nonneg hχ_small 3 (by norm_num) with
+    ⟨_lam, _D, _Λ, hpar, _⟩
+  exact hpar.false_of_chi_pos (by norm_num [p])
+
 /-- Route-A param-core data with smooth-branch residuals produces the raw
 smooth-contact package. -/
 theorem paper1_positiveRawSmoothContactData_of_routeAParamData
@@ -235,6 +267,27 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                     FrozenStationaryWaveProfile p c U →
                     PositiveUpperBarrierRemainingContactResidual p c U)
 
+/-- The remaining-contact Route-A package is also uninhabited: its analytic
+floor still contains `χ ≤ 0`. -/
+theorem not_Paper1PositiveLowerRawCapRouteARemainingParamData :
+    ¬ Paper1PositiveLowerRawCapRouteARemainingParamData := by
+  intro hData
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 1 / 4
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α = p.m + p.γ - 1 := by norm_num [p]
+  have hχ_nonneg : 0 ≤ p.χ := by norm_num [p]
+  have hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
+    norm_num [p, chiStar]
+  rcases hData.produce p hα hχ_nonneg hχ_small 3 (by norm_num) with
+    ⟨_lam, _D, _Λ, hpar, _⟩
+  exact hpar.false_of_chi_pos (by norm_num [p])
+
 /-- Route-A param-core data on the `hmκ` subregime carrying only the
 constant-branch upper-contact residual.  The strict exponential residual is
 produced from the positive-region operator estimate. -/
@@ -266,6 +319,27 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                         (positiveBranchTailCap p c) D) U →
                     FrozenStationaryWaveProfile p c U →
                     PositiveUpperBarrierConstLeftPlateauResidual p c U)
+
+/-- The hmk-aware Route-A refinement is uninhabited for the same reason; the
+extra scalar subregime does not repair the sensitivity sign. -/
+theorem not_Paper1PositiveLowerRawCapRouteAHmkConstParamData :
+    ¬ Paper1PositiveLowerRawCapRouteAHmkConstParamData := by
+  intro hData
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 1 / 4
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hα : p.α = p.m + p.γ - 1 := by norm_num [p]
+  have hχ_nonneg : 0 ≤ p.χ := by norm_num [p]
+  have hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p) := by
+    norm_num [p, chiStar]
+  rcases hData.produce p hα hχ_nonneg hχ_small 3 (by norm_num) with
+    ⟨_hmκ, _lam, _D, _Λ, hpar, _⟩
+  exact hpar.false_of_chi_pos (by norm_num [p])
 
 /-- The hmk-aware constant-branch package produces the existing remaining
 Route-A package. -/
@@ -441,6 +515,9 @@ theorem Theorem_1_1.of_inconsistent_positiveRouteAParamData
 
 section AxiomAudit
 #print axioms not_Paper1PositiveLowerRawCapRouteAParamData
+#print axioms not_Paper1PositiveLowerRawCapRouteASmoothParamData
+#print axioms not_Paper1PositiveLowerRawCapRouteARemainingParamData
+#print axioms not_Paper1PositiveLowerRawCapRouteAHmkConstParamData
 #print axioms paper1_positiveRawContactData_of_routeAParamData
 #print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
 #print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
