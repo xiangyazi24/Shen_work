@@ -7,6 +7,7 @@
   positive-time gradient bound and the one-sided logistic Lipschitz theorem.
 -/
 import ShenWork.Paper2.IntervalDomainMConjugateMildPositiveTimeC2
+import ShenWork.Paper2.IntervalConjugateMildInteriorC2
 import ShenWork.Paper2.IntervalFullDuhamelSpatialC2
 import ShenWork.PDE.IntervalLogisticLipschitz
 
@@ -26,77 +27,6 @@ open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.Paper2.IntervalDomainMConjugateDuhamelMap (chemFluxMLifted)
 open ShenWork.Paper2.IntervalDomainMConjugatePicardFloorInhabit
   (ConjugateMildSolutionDataM)
-
-/-- Endpoint extension for a derivative identified on `(0,1)`: continuity of
-the function and of the candidate derivative on `[0,1]` upgrades the interior
-`HasDerivAt` statements to `HasDerivWithinAt` everywhere on the closed
-interval. -/
-theorem hasDerivWithinAt_Icc_of_interior_hasDerivAt
-    {f f' : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
-    (hf'_cont : ContinuousOn f' (Set.Icc (0 : ℝ) 1))
-    (hder : ∀ x ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt f (f' x) x)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    HasDerivWithinAt f (f' x) (Set.Icc (0 : ℝ) 1) x := by
-  have hdiff : DifferentiableOn ℝ f (Set.Ioo (0 : ℝ) 1) :=
-    fun y hy ↦ (hder y hy).differentiableAt.differentiableWithinAt
-  have hderiv_eq : ∀ y ∈ Set.Ioo (0 : ℝ) 1, deriv f y = f' y :=
-    fun y hy ↦ (hder y hy).deriv
-  have hIoo_right : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) :=
-    Ioo_mem_nhdsGT (by norm_num)
-  have hIoo_left : Set.Ioo (0 : ℝ) 1 ∈ 𝓝[<] (1 : ℝ) :=
-    Ioo_mem_nhdsLT (by norm_num)
-  have h0Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
-  have h1Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
-  rcases eq_or_ne x 0 with hx0 | hx0
-  · subst hx0
-    have hIccR : Set.Icc (0 : ℝ) 1 ∈ 𝓝[>] (0 : ℝ) :=
-      Filter.mem_of_superset hIoo_right Set.Ioo_subset_Icc_self
-    have hle : 𝓝[>] (0 : ℝ) ≤ 𝓝[Set.Icc (0 : ℝ) 1] (0 : ℝ) :=
-      (nhdsWithin_le_iff).mpr hIccR
-    have hlim' : Tendsto f' (𝓝[>] (0 : ℝ)) (𝓝 (f' 0)) :=
-      (hf'_cont 0 h0Icc).tendsto.mono_left hle
-    have heq : (fun y ↦ deriv f y) =ᶠ[𝓝[>] (0 : ℝ)] f' := by
-      filter_upwards [hIoo_right] with y hy
-      exact hderiv_eq y hy
-    have hlim : Tendsto (fun y ↦ deriv f y) (𝓝[>] (0 : ℝ)) (𝓝 (f' 0)) :=
-      hlim'.congr' heq.symm
-    have hIci := hasDerivWithinAt_Ici_of_tendsto_deriv hdiff
-      ((hf_cont 0 h0Icc).mono Set.Ioo_subset_Icc_self) hIoo_right hlim
-    exact hIci.mono (fun _ hy ↦ hy.1)
-  · rcases eq_or_ne x 1 with hx1 | hx1
-    · subst hx1
-      have hIccL : Set.Icc (0 : ℝ) 1 ∈ 𝓝[<] (1 : ℝ) :=
-        Filter.mem_of_superset hIoo_left Set.Ioo_subset_Icc_self
-      have hle : 𝓝[<] (1 : ℝ) ≤ 𝓝[Set.Icc (0 : ℝ) 1] (1 : ℝ) :=
-        (nhdsWithin_le_iff).mpr hIccL
-      have hlim' : Tendsto f' (𝓝[<] (1 : ℝ)) (𝓝 (f' 1)) :=
-        (hf'_cont 1 h1Icc).tendsto.mono_left hle
-      have heq : (fun y ↦ deriv f y) =ᶠ[𝓝[<] (1 : ℝ)] f' := by
-        filter_upwards [hIoo_left] with y hy
-        exact hderiv_eq y hy
-      have hlim : Tendsto (fun y ↦ deriv f y) (𝓝[<] (1 : ℝ)) (𝓝 (f' 1)) :=
-        hlim'.congr' heq.symm
-      have hIic := hasDerivWithinAt_Iic_of_tendsto_deriv hdiff
-        ((hf_cont 1 h1Icc).mono Set.Ioo_subset_Icc_self) hIoo_left hlim
-      exact hIic.mono (fun _ hy ↦ hy.2)
-    · have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
-        ⟨lt_of_le_of_ne hx.1 (Ne.symm hx0), lt_of_le_of_ne hx.2 hx1⟩
-      exact (hder x hxIoo).hasDerivWithinAt
-
-/-- A continuous subtype slice has a continuous zero-extension when restricted
-back to the physical closed interval. -/
-theorem intervalDomainLift_continuousOn_Icc_of_continuous_slice
-    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
-    ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) := by
-  rw [continuousOn_iff_continuous_restrict]
-  have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift f) = f := by
-    funext ⟨y, hy⟩
-    simp only [Set.restrict_apply, intervalDomainLift]
-    rw [dif_pos hy]
-    exact congr_arg f (Subtype.ext rfl)
-  rw [heq]
-  exact hf
 
 /-- On every positive-time strip, the actual logistic source is spatially
 Holder on the physical interior.  No assumption `1 ≤ alpha` is needed: the
