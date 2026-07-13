@@ -38,8 +38,9 @@ theorem positivePaperLemma42ExactConditions_of_branchCap
       hχ_small := hχ_small
       hα_eq := hα }
 
-/-- Route-A param-core data at the positive branch cap, carrying the remaining
-full upper-barrier contact residual. -/
+/-- Route-A param-core data at the positive branch cap after all upper-barrier
+contact cases have become internal.  The remaining input is precisely the
+frozen parabolic/Rothe floor package. -/
 structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
   produce :
     ∀ p : CMParams, ∀ hα : p.α = p.m + p.γ - 1,
@@ -60,13 +61,7 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                   1 ≤ D ∧
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
-                  0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  (∀ U : ℝ → ℝ,
-                    InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-                      (lowerBarrierRaw (kappa c)
-                        (positiveBranchTailCap p c) D) U →
-                    FrozenStationaryWaveProfile p c U →
-                    PositiveUpperBarrierContactContradictions p c U)
+                  0 ≤ Λ ∧ Λ ≤ MChi p
 
 /-- Route-A param-core data produces the raw lower-pinned contact package. -/
 theorem paper1_positiveRawContactData_of_routeAParamData
@@ -80,7 +75,7 @@ theorem paper1_positiveRawContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hcontact⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM⟩
   obtain ⟨U, hpin, hprofile, hUdiff, hUderivDiff⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
@@ -91,7 +86,9 @@ theorem paper1_positiveRawContactData_of_routeAParamData
       le_rfl,
       hprofile,
       hpin,
-      hcontact U hpin hprofile⟩
+      PositiveUpperBarrierContactContradictions.of_profile_chi_nonneg
+        hα hχ_nonneg hχ_small hc hpin.bare hprofile
+        hUdiff hUderivDiff⟩
 
 /-- Positive contact branch from Route-A param-core cap data. -/
 theorem paper1_positiveContactBranch_of_routeAParamData
@@ -406,11 +403,11 @@ theorem paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData
 positive Route-A parameter packages. -/
 theorem Theorem_1_1.of_routeAParamData
     (hneg : Paper1NegativeLowerRawCapRouteAParamData)
-    (hpos : Paper1PositiveLowerRawCapRouteARemainingParamData) :
+    (hpos : Paper1PositiveLowerRawCapRouteAParamData) :
     Theorem_1_1 :=
   Theorem_1_1.of_negativeRouteAParamData hneg
     (paper1_positiveCriticalBranch_of_strictBarrier
-      (paper1_positiveStrictBarrierBranch_of_routeARemainingParamData hpos))
+      (paper1_positiveStrictBarrierBranch_of_routeAParamData hpos))
 
 section AxiomAudit
 #print axioms paper1_positiveRawContactData_of_routeAParamData
