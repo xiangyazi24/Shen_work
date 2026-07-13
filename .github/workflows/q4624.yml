@@ -1,0 +1,41 @@
+name: Q4624 N16 symbolic verification
+on:
+  push:
+    branches: [q4624-check]
+    paths:
+      - '.github/q4624.sage'
+      - '.github/workflows/q4624.yml'
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - '.github/q4624.sage'
+      - '.github/workflows/q4624.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4624-check
+      - name: Run Sage computation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull -q sagemath/sagemath:latest >/dev/null
+          docker run --rm -v "$PWD/.github:/home/sage/work" -w /home/sage/work sagemath/sagemath:latest sage q4624.sage > .github/q4624-output.txt
+      - name: Commit computation output
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/q4624-output.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Q4624 symbolic output'
+            git push origin HEAD:q4624-check
+          fi
