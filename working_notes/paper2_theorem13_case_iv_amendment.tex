@@ -1,0 +1,154 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\pos}[1]{\left(#1\right)_{+}}
+
+\title{Paper 2, Theorem 1.3(iv): Exponent-Domain Amendment}
+\author{Internal research note for the \texttt{ShenWork} formalization}
+\date{13 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The proof of Theorem 1.3(iv) in Chen--Ruau--Shen invokes the weighted elliptic
+estimate of Proposition 2.2 at an exponent which is not necessarily above
+one.  The missing admissibility condition is
+\(q_* > 2-2m\), where \(q_*=\max\{1,N\alpha/2\}\).  This note derives the
+condition, gives an explicit admitted parameter wedge where the printed
+argument fails, and records the corrected theorem proved in Lean.  The issue
+is a proof gap; no counterexample to the boundedness conclusion is claimed.
+\end{abstract}
+
+\section{Source and printed alternative}
+
+The source examined is Le Chen, Ian Ruau, and Wenxian Shen,
+\emph{Chemotaxis models with signal-dependent sensitivity and a logistic-type
+source, I: Boundedness and global existence}, arXiv:2512.14858v1, 16 December
+2025.  The local archival copy is \path{paper2.pdf}.
+
+Theorem 1.3(iv) assumes
+\begin{equation}
+  \beta\geq\frac12,
+  \qquad
+  \alpha=2m+\gamma-2,
+  \label{eq:critical}
+\end{equation}
+together with the smallness alternative (1.25).  It is stated for all
+positive \(m,\gamma,\alpha\).
+
+\section{The missing exponent-domain condition}
+
+Section 5.4 invokes Proposition 2.2 at
+\begin{equation}
+  s(P)=\frac{P+\alpha}{\gamma}.
+  \label{eq:sP}
+\end{equation}
+Proposition 2.2 requires \(s(P)>1\).  Substituting
+\eqref{eq:critical} gives
+\begin{align*}
+  \frac{P+\alpha}{\gamma}>1
+  &\iff P+2m+\gamma-2>\gamma\\
+  &\iff P>2-2m.
+\end{align*}
+The proof selects a seed exponent immediately to the right of
+\begin{equation}
+  q_*:=\max\left\{1,\frac{N\alpha}{2}\right\}.
+\end{equation}
+It therefore needs
+\begin{equation}
+  \boxed{q_*>2-2m,}
+  \label{eq:missing}
+\end{equation}
+or equivalently \((q_*+\alpha)/\gamma>1\).  Condition
+\eqref{eq:missing} is not implied by the printed hypotheses.  The claim in
+Section 5.4 that the exponent supplied to Proposition 2.2 is above one for
+all seed powers is false in the remaining wedge.
+
+\section{Concrete admitted parameter wedge}
+
+On the interval choose
+\begin{equation}
+  N=1,\qquad m=\frac14,\qquad \gamma=\frac72,\qquad
+  \alpha=2,\qquad \beta=1.
+\end{equation}
+Then \(\alpha=2m+\gamma-2\), while
+\begin{equation}
+  q_*=\max\{1,\alpha/2\}=1,
+  \qquad
+  s(q_*)=\frac{1+2}{7/2}=\frac67<1.
+\end{equation}
+Furthermore \(\pos{N\alpha-2}=0\).  The first disjunct in (1.25) is
+therefore automatic, so the printed theorem places no smallness condition on
+\(\chi_0\).  Proposition 2.2 becomes available only for \(P>3/2\).  At such
+powers the squared-chemotaxis coefficient is nonzero, and the automatic first
+disjunct of (1.25) provides no estimate producing the required low seed.
+
+This demonstrates a gap in the written proof, not a counterexample to the
+boundedness statement.  A new estimate may recover part or all of the
+uncovered parameters.
+
+\section{Proof-supported amendment}
+
+The Section 5.4 route is valid after adding \eqref{eq:missing}.  On the
+one-dimensional interval this reads
+\begin{equation}
+  \max\{1,\alpha/2\}>2-2m.
+\end{equation}
+The literal profile defining (1.19) is then continuous at \(q_*\).  The
+smallness condition (1.25) yields \(p_0>q_*\) with strict damping.  Since
+\(p_0>\alpha/2\), a one-dimensional fixed-target interpolation absorbs
+\(\int u^{P+\alpha}\) at one finite target \(P\) above both \(m\) and
+\(\gamma\).  A restarted Neumann-semigroup estimate then gives the supremum
+bound.  No infinite Moser iteration is needed.
+
+\medskip
+\noindent
+\fbox{%
+\begin{minipage}{0.92\textwidth}
+\textbf{Recommended amendment to alternative (iv).}
+In addition to the printed hypotheses, assume
+\(\max\{1,N\alpha/2\}>2-2m\).  Then the proof in Section 5.4 is valid.
+The original statement outside this range remains unproved by the written
+argument.
+\end{minipage}}
+
+\section{Lean realization}
+
+The formalization keeps the missing condition explicit.
+\begin{itemize}[leftmargin=2em]
+\item \path{IntervalDomainTheorem13CriticalConstants.lean} realizes the
+literal \(M^*\), \(q_*\), and right-sided lower limit \(K\).
+\item \path{IntervalDomainTheorem13CriticalSeed.lean} proves the case-(iv)
+energy estimate with \(2-2m<P\).
+\item \path{IntervalDomainTheorem13CriticalThreshold.lean} obtains the low
+seed from (1.25) under \(q_*>2-2m\).
+\item \path{IntervalDomainTheorem13CriticalBootstrap.lean} proves
+\texttt{boundedBefore\_critical\_case\_iv\_corrected} on the faithful
+general-\(m\) interval model by a single fixed-target interpolation and the
+proved restarted endpoint.
+\end{itemize}
+All exported capstones are \texttt{sorry}-free and depend only on
+\texttt{propext}, \texttt{Classical.choice}, and \texttt{Quot.sound}.
+
+Alternative (iii) does not share this defect: under
+\(\alpha=m+\gamma-1\), the inequality
+\((q_*+\alpha)/\gamma>1\) follows from \(q_*\geq1\) and \(m>0\).
+
+\section*{Reference}
+
+L. Chen, I. Ruau, and W. Shen, \emph{Chemotaxis models with signal-dependent
+sensitivity and a logistic-type source, I: Boundedness and global existence},
+arXiv:2512.14858v1 (2025),
+\url{https://arxiv.org/abs/2512.14858}.
+
+\end{document}
