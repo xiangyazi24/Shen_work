@@ -28,3 +28,8 @@ branch genuinely eliminated (Paper2MaximalContinuation real 2-constructor induct
 nonempty (α=γ=…=1,χ₀=1/2<chiBeta=1; u₀≡1 PPID; const pair explicit global bounded sol). NO empty-hypothesis/degenerate
 defect. Milestone TRIPLE-verified (local trace + own remote-build axioms + Q4617). Scope: (1) α,γ≥1 (→general, Codex#1
 in progress); (2) datum = PaperPositiveInitialDatum (inf u₀>0) = EXACTLY paper Prop 1.1 hypothesis (FAITHFUL, not a gap).
+
+### FULL-α,γ Thm 1.2 unconditional VERIFIED (2026-07-13, own build)
+Theorem_1_2_intervalDomain_positive_critical_branch_unconditional + correctedTheorem12_..._unconditional: NO
+hlocal/hglobalExtension/hα/hγ. Own remote build 62s: 6 capstones [propext,Classical.choice,Quot.sound]. FAITHFUL.
+Thm 1.2 headline DONE.
