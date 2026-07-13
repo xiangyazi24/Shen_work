@@ -12,9 +12,9 @@ automatic.  The Hölder radius is simply enlarged to absorb both the obstacle
 radius and the explicit kernel radius.  The source-box clamp argument itself
 needs no chemotactic comparison constant, so `C_chem = 0` is sufficient here.
 
-This deliberately takes the quantitative rate as an input: the bare
-`PaperIterateBase.left_rate` only records some exponential rate and cannot
-soundly be coerced to fixed `sigma`, `aL`, and radius shared by an orbit. -/
+This deliberately takes the quantitative rate as an input: it is an additional
+shared-orbit invariant and cannot be inferred from the qualitative iterate
+record. -/
 noncomputable def perStepBoxZWitness_of_quantitative_rate
     {p : CMParams}
     {c lam M κ Λ B sigma aL C_u L_u C_R m_sigma : ℝ}

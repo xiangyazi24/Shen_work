@@ -12127,7 +12127,6 @@ def paperRotheStepProducer_of_greenInput
           paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
-        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
@@ -12162,7 +12161,6 @@ def paperRotheStepProducer_of_greenInput
           paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
-        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old

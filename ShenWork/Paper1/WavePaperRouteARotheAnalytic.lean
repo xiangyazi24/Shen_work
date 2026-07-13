@@ -35,7 +35,6 @@ def paperRotheStepFacts_of_routeA_output
       diff := hbasic.2.1
       contDiff2 := paperStep_contDiff_two_of_core hin.hlam hout.analytic
       deriv_le := hbasic.2.2
-      left_rate := hout.left_rate
       nonneg := hnonneg
       le_barrier := hle_barrier
       le_old := hle_old

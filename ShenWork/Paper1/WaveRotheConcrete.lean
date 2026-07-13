@@ -632,7 +632,6 @@ structure PaperRotheStepFacts
   diff : Differentiable ℝ W
   contDiff2 : ContDiff ℝ 2 W
   deriv_le : ∀ x, |deriv W x| ≤ Λ
-  left_rate : ExpLeftRateData W
   nonneg : ∀ x, 0 ≤ W x
   le_barrier : ∀ x, W x ≤ upperBarrier κ M x
   le_old : ∀ x, W x ≤ Z x
@@ -649,7 +648,6 @@ structure PaperIterateBase (p : CMParams) (c κ M : ℝ)
   diff : Z = upperBarrier κ M ∨ Differentiable ℝ Z
   contDiff2 : Z = upperBarrier κ M ∨ ContDiff ℝ 2 Z
   deriv_le : ∃ L : ℝ, 0 ≤ L ∧ ∀ x, |deriv Z x| ≤ L
-  left_rate : ExpLeftRateData Z
   paperSuper : ∀ x, paperWaveOperator p c u Z x ≤ 0
 
 theorem upperBarrier_deriv_abs_le_mul {κ M : ℝ}
@@ -700,7 +698,7 @@ theorem upperBarrier_paperIterateBase {κ M : ℝ}
    fun x => upperBarrier_nonneg hM x, fun _ => le_rfl,
    Or.inl rfl, Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
     upperBarrier_deriv_abs_le_mul hκ hM⟩,
-   upperBarrier_expLeftRateData hκ hM, hUbarSuper⟩
+   hUbarSuper⟩
 
 theorem PaperRotheStepFacts.toBase
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
@@ -709,7 +707,7 @@ theorem PaperRotheStepFacts.toBase
   ⟨h.cont, h.anti, h.nonneg, h.le_barrier, Or.inr h.diff,
     Or.inr h.contDiff2,
     ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩,
-    h.left_rate, h.paperSuper⟩
+    h.paperSuper⟩
 
 /-- Producer for the paper implicit orbit.  This is intentionally separate from
 `RotheStepProducer`, whose step equation is frozen. -/
