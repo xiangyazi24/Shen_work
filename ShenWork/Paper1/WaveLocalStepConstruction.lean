@@ -114,12 +114,57 @@ theorem deriv_le
 
 end PaperLocalFixedStepData
 
+/-- Build the actual Route-A orbit core from the no-tail local source Schauder
+construction.  The Holder radius is selected separately for each genuine
+regular iterate from the explicit kernel estimate; no shared exponential
+left-rate of the parameter profile or of the orbit is assumed. -/
+noncomputable def paperGreenStepInputRouteAOrbitCore_of_localFixedStep
+    (p : CMParams)
+    {c lam M κ Λ B : ℝ} {u : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hM : 0 < M) (hB : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hsourceScalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hbarrier : PaperUpperBarrierSuperScalarConditions p c κ M)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M))
+    (hrest : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
+      ∀ fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z,
+        PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u where
+  hlam := hlam
+  basePaperSuper :=
+    paperUpperBarrier_super_of_scalar hκ hbarrier hu
+  produce_regular := by
+    intro Z hZ
+    let holderKernel :=
+      paperFixedSourceMap_holder_kernel
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
+        (u := u) (Z := Z)
+        hlam hrpκ hrmκ hκ.le hM hB hu.trap hZ
+    let H : ℝ := Classical.choose holderKernel
+    let hex :=
+      paperLocalFixedStepData_exists_of_trap
+        p (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+        (B := B) (H := H) (u := u) (Z := Z)
+        hlam hrpκ hrmκ hκ hM hB hu hZ hsourceScalar le_rfl
+        hbarrier hΛ
+    let d := Classical.choose hex
+    exact ⟨d.fixed.W, (hrest Z hZ d.fixed).toOutputRouteACore.2⟩
+
 section AxiomAudit
 
 #print axioms paperLocalFixedStepData_exists_of_trap
 #print axioms PaperLocalFixedStepData.step_op
 #print axioms PaperLocalFixedStepData.contDiff_two
 #print axioms PaperLocalFixedStepData.deriv_le
+#print axioms paperGreenStepInputRouteAOrbitCore_of_localFixedStep
 
 end AxiomAudit
 
