@@ -254,8 +254,6 @@ structure PerStepBoxZWitness
     Classical.choose
       (paperFixedSourceMap_holder_kernel
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
-        (Hbox := H)
-        (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
         (u := u) (Z := Z)
         hlam hrpκ hrmκ hκ.le hM hBnn hutrap base) ≤ H
   hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
