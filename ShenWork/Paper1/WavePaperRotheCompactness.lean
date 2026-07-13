@@ -1,11 +1,13 @@
 /-
-  Parameterized compact closed graph for the paper Rothe orbit.
+  Adaptive compactness for the whole-line paper Rothe orbit.
 
-  The analytic Green-kernel task is isolated as one joint graph property.  This
-  file proves that the property gives both fixed-index dependence and the only
-  family-uniform tail needed by the Schauder continuity argument.
+  The inner index is selected separately in each orbit, after the outer
+  approximate fixed profile has been chosen.  This avoids the false inference
+  from pointwise-in-profile orbit convergence to a family-uniform Rothe tail.
+  The only analytic input left below is the whole-line Green-step closed graph.
 -/
 import ShenWork.Paper1.WaveRotheConcrete
+import ShenWork.Paper1.WaveG1Bridge
 
 open Filter Topology Set
 
@@ -13,389 +15,317 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
-/-- Convergence of a varying outer Rothe index to either a finite index or the
-infinite-index limit. -/
-inductive PaperRotheIndexConverges (ks : ℕ → ℕ) : Option ℕ → Prop
-  | finite (k : ℕ) (eventually_eq : ∀ᶠ n in atTop, ks n = k) :
-      PaperRotheIndexConverges ks (some k)
-  | infinity (tendsto_atTop : Tendsto ks atTop atTop) :
-      PaperRotheIndexConverges ks none
+/-- The old/new successor gap vanishes locally uniformly along one selected
+family of Rothe indices.  This is deliberately an along-family statement, not
+a tail uniform over the whole wave trap. -/
+def PaperRotheSuccessorGapAlong
+    (Z : ℕ → ℕ → ℝ → ℝ) (ks : ℕ → ℕ) : Prop :=
+  ∀ R > 0, ∀ ε > 0,
+    ∀ᶠ n in atTop, ∀ x ∈ Set.Icc (-R) R,
+      |Z n (ks n + 1) x - Z n (ks n) x| < ε
 
-/-- Evaluation of a Rothe orbit at a finite index or at its outer limit. -/
-def paperRotheExtendedOrbitValue
-    (z : ℕ → ℝ → ℝ) : Option ℕ → ℝ → ℝ
-  | some k => z k
-  | none => rotheLimit z
+/-- Quantitative growing-window diagonal used to obtain the successor gap.
+Both adjacent iterates are close to their own orbit limit on `[-(n+1),n+1]`.
+-/
+def PaperRotheAdaptiveDiagonal
+    (Z : ℕ → ℕ → ℝ → ℝ) (L : ℕ → ℝ → ℝ)
+    (ks : ℕ → ℕ) : Prop :=
+  ∀ (n : ℕ) x, x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1) →
+    |Z n (ks n) x - L n x| < 1 / (4 * ((n : ℝ) + 1)) ∧
+      |Z n (ks n + 1) x - L n x| < 1 / (4 * ((n : ℝ) + 1))
 
-/-! ## Trap-indexed paper orbit interfaces -/
-
-/-- Fixed-index dependence when the per-profile producer is available exactly
-on the monotone trap. -/
-def PaperRotheSeqStepDependenceOnTrap
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
-      (hu : InMonotoneWaveTrapSet κ M u) →
-      LocallyUniformConverges seq u →
-        ∀ k : ℕ, LocallyUniformConverges (fun n => Z (seq n) k) (Z u k)
-
-/-- The eventual family-tail interface for a trap-indexed producer. -/
-def PaperRotheTailUniformAlongConvergentSeqOnTrap
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
-      (hu : InMonotoneWaveTrapSet κ M u) →
-      LocallyUniformConverges seq u →
-        ∀ R > 0, ∀ ε > 0,
-          ∃ K : ℕ,
-            (∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
-              |Z u k x - rotheLimit (Z u) x| < ε) ∧
-            ∀ᶠ n in atTop, ∀ k : ℕ, K ≤ k →
-              ∀ x ∈ Set.Icc (-R) R,
-                |Z (seq n) k x - rotheLimit (Z (seq n)) x| < ε
-
-/-- The sequence-local tail and fixed-index dependence give continuity of the
-trap-defaulted paper Rothe map. -/
-theorem paperRotheContinuousDependence_fromTrap_of_tailAlong
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
-    (hstep : PaperRotheSeqStepDependenceOnTrap
-      p c lam M κ Λ hprodTrap hκ hM)
-    (htail : PaperRotheTailUniformAlongConvergentSeqOnTrap
-      p c lam M κ Λ hprodTrap hκ hM) :
-    RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-      (rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM) := by
-  intro seq u hseq hu hconv
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  let L : (ℝ → ℝ) → ℝ → ℝ := fun v => rotheLimit (Z v)
-  intro R hR ε hε
-  obtain ⟨K, htailu, htailseq⟩ :=
-    htail seq u hseq hu hconv R hR (ε / 3) (by linarith)
-  have hstepK : LocallyUniformConverges (fun n => Z (seq n) K) (Z u K) :=
-    hstep seq u hseq hu hconv K
-  filter_upwards [htailseq,
-    hstepK R hR (ε / 3) (by linarith)] with n htailn hn
-  intro x hx
-  have h1 : |Z (seq n) K x - L (seq n) x| < ε / 3 :=
-    htailn K (le_refl K) x hx
-  have h2 : |Z u K x - L u x| < ε / 3 :=
-    htailu K (le_refl K) x hx
-  have h3 : |Z (seq n) K x - Z u K x| < ε / 3 := hn x hx
-  have hdecomp :
-      L (seq n) x - L u x =
-        -(Z (seq n) K x - L (seq n) x) +
-        (Z (seq n) K x - Z u K x) + (Z u K x - L u x) := by ring
-  rw [hdecomp]
-  calc
-    |-(Z (seq n) K x - L (seq n) x) +
-        (Z (seq n) K x - Z u K x) + (Z u K x - L u x)|
-        ≤ |-(Z (seq n) K x - L (seq n) x) +
-            (Z (seq n) K x - Z u K x)| + |Z u K x - L u x| :=
-          abs_add_le _ _
-    _ ≤ |Z (seq n) K x - L (seq n) x| +
-          |Z (seq n) K x - Z u K x| + |Z u K x - L u x| := by
-        calc
-          |-(Z (seq n) K x - L (seq n) x) +
-                (Z (seq n) K x - Z u K x)| + |Z u K x - L u x|
-              ≤ (|-(Z (seq n) K x - L (seq n) x)| +
-                  |Z (seq n) K x - Z u K x|) + |Z u K x - L u x| :=
-                add_le_add (abs_add_le _ _) le_rfl
-          _ = |Z (seq n) K x - L (seq n) x| +
-                |Z (seq n) K x - Z u K x| + |Z u K x - L u x| := by
-              rw [abs_neg]
-    _ < ε / 3 + ε / 3 + ε / 3 := by linarith
-    _ = ε := by ring
-
-/-- Joint finite/moving-index convergence for the trap-indexed paper orbit. -/
-def PaperGreenRotheCompactClosedGraphOnTrap
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
-      (hu : InMonotoneWaveTrapSet κ M u) →
-      LocallyUniformConverges seq u →
-        ∀ (ks : ℕ → ℕ) (K : Option ℕ),
-          PaperRotheIndexConverges ks K →
-            LocallyUniformConverges (fun n => Z (seq n) (ks n))
-              (paperRotheExtendedOrbitValue (Z u) K)
-
-/-- The one analytic residual for the trap-indexed construction: identify any
-already-convergent Helly subsequence in both the finite and moving-index cases. -/
-def PaperGreenRotheLimitIdentificationOnTrap
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
-      (hu : InMonotoneWaveTrapSet κ M u) →
-      LocallyUniformConverges seq u →
-        ∀ (ks : ℕ → ℕ) (K : Option ℕ),
-          PaperRotheIndexConverges ks K →
-            ∀ (subseq : ℕ → ℕ), StrictMono subseq →
-              ∀ W : ℝ → ℝ,
-                LocallyUniformConverges
-                  (fun n => Z (seq (subseq n)) (ks (subseq n))) W →
-                  W = paperRotheExtendedOrbitValue (Z u) K
-
-/-- The same irreducible Green-limit identification with frozen-drift
-convergence exposed as an input.  This is the lowest carried analytic form:
-the profile-to-drift convergence itself is already a theorem. -/
-def PaperGreenRotheLimitIdentificationFromDriftOnTrap
-    (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperRotheStepProducer p c lam M κ Λ v)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
-      (hu : InMonotoneWaveTrapSet κ M u) →
-      (hconv : LocallyUniformConverges seq u) →
-      LocallyUniformConverges
-        (fun n => deriv (frozenElliptic p (seq n)))
-        (deriv (frozenElliptic p u)) →
-        ∀ (ks : ℕ → ℕ) (K : Option ℕ),
-          PaperRotheIndexConverges ks K →
-            ∀ (subseq : ℕ → ℕ), StrictMono subseq →
-              ∀ W : ℝ → ℝ,
-                LocallyUniformConverges
-                  (fun n => Z (seq (subseq n)) (ks (subseq n))) W →
-                  W = paperRotheExtendedOrbitValue (Z u) K
-
-namespace PaperGreenRotheLimitIdentificationFromDriftOnTrap
-
-variable {p : CMParams} {c lam M κ Λ : ℝ}
-  {hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-    PaperRotheStepProducer p c lam M κ Λ v}
-  {hκ : 0 ≤ κ} {hM : 0 ≤ M}
-
-/-- Supply the frozen-drift convergence from the proved whole-line kernel
-theorem `frozenEllipticDerivDependence`. -/
-theorem toLimitIdentification
-    (hident : PaperGreenRotheLimitIdentificationFromDriftOnTrap
-      p c lam M κ Λ hprodTrap hκ hM) :
-    PaperGreenRotheLimitIdentificationOnTrap
-      p c lam M κ Λ hprodTrap hκ hM := by
-  intro seq u hseq hu hconv
-  exact hident seq u hseq hu hconv
-    (frozenEllipticDerivDependence p hM seq u hseq hu hconv)
-
-end PaperGreenRotheLimitIdentificationFromDriftOnTrap
-
-namespace PaperGreenRotheLimitIdentificationOnTrap
-
-variable {p : CMParams} {c lam M κ Λ : ℝ}
-  {hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-    PaperRotheStepProducer p c lam M κ Λ v}
-  {hκ : 0 ≤ κ} {hM : 0 ≤ M}
-
-/-- The already-proved Helly/equi-Lipschitz compactness upgrades subsequential
-Green-limit identification to the full joint closed graph. -/
-theorem compactClosedGraph
-    (hident : PaperGreenRotheLimitIdentificationOnTrap
-      p c lam M κ Λ hprodTrap hκ hM)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hbarLip : ∀ x y,
-      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
-    PaperGreenRotheCompactClosedGraphOnTrap
-      p c lam M κ Λ hprodTrap hκ hM := by
-  intro seq u hseq hu hconv ks K hks
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  let target := paperRotheExtendedOrbitValue (Z u) K
-  have horbit : ∀ v, (hv : InMonotoneWaveTrapSet κ M v) →
-      PaperRotheOrbitData p c lam M κ Z v := by
-    intro v hv
-    simpa [Z] using paperRotheOrbitData_fromTrap
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := v) hprodTrap hκ hM hΛ0 hΛM hbarLip hv
-  intro R hR ε hε
-  by_contra hnot
-  have hfreq : ∃ᶠ n in atTop,
-      ¬ ∀ x : ℝ, x ∈ Set.Icc (-R) R →
-        |Z (seq n) (ks n) x - target x| < ε := not_eventually.mp hnot
-  obtain ⟨bad, hbad_mono, hbad⟩ := extraction_of_frequently_atTop hfreq
-  let gs : ℕ → ℝ → ℝ := fun n => Z (seq (bad n)) (ks (bad n))
-  have hgsL : ∀ n, ∀ x y, |gs n x - gs n y| ≤ M * |x - y| := by
-    intro n x y
-    exact (horbit (seq (bad n)) (hseq (bad n))).equiLip (ks (bad n)) x y
-  have hgsB : ∀ n x, |gs n x| ≤ M := by
-    intro n x
-    rw [abs_le]
-    exact ⟨by linarith [
-        (horbit (seq (bad n)) (hseq (bad n))).nonneg (ks (bad n)) x],
-      (horbit (seq (bad n)) (hseq (bad n))).le_M (ks (bad n)) x⟩
-  obtain ⟨sub, hsub_mono, g, hpoint, hgL⟩ :=
-    helly_pointwise_selection M gs hgsL hgsB
-  have hLU : LocallyUniformConverges (fun n => gs (sub n)) g :=
-    locallyUniform_of_helly_pointwise hM hpoint hgsL hgL
-  let total : ℕ → ℕ := bad ∘ sub
-  have htotal_mono : StrictMono total := hbad_mono.comp hsub_mono
-  have hLUtotal : LocallyUniformConverges
-      (fun n => Z (seq (total n)) (ks (total n))) g := by
-    simpa [total, gs, Function.comp_apply] using hLU
-  have hg : g = target := by
-    exact hident seq u hseq hu hconv ks K hks total htotal_mono g hLUtotal
-  have htargetLU : LocallyUniformConverges
-      (fun n => Z (seq (total n)) (ks (total n))) target := by
-    simpa [hg] using hLUtotal
-  obtain ⟨n, hn⟩ := (htargetLU R hR ε hε).exists
-  have hbadn := hbad (sub n)
-  have htotal_eq : total n = bad (sub n) := rfl
-  rw [← htotal_eq] at hbadn
-  exact hbadn hn
-
-end PaperGreenRotheLimitIdentificationOnTrap
-
-namespace PaperGreenRotheCompactClosedGraphOnTrap
-
-variable {p : CMParams} {c lam M κ Λ : ℝ}
-  {hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
-    PaperRotheStepProducer p c lam M κ Λ v}
-  {hκ : 0 ≤ κ} {hM : 0 ≤ M}
-
-theorem stepDependence
-    (hgraph : PaperGreenRotheCompactClosedGraphOnTrap
-      p c lam M κ Λ hprodTrap hκ hM) :
-    PaperRotheSeqStepDependenceOnTrap
-      p c lam M κ Λ hprodTrap hκ hM := by
-  intro seq u hseq hu hconv k
-  exact hgraph seq u hseq hu hconv (fun _ => k) (some k)
-    (.finite k (Eventually.of_forall fun _ => rfl))
-
-theorem tailAlongConvergentSeq
-    (hgraph : PaperGreenRotheCompactClosedGraphOnTrap
-      p c lam M κ Λ hprodTrap hκ hM)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hbarLip : ∀ x y,
-      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
-    PaperRotheTailUniformAlongConvergentSeqOnTrap
-      p c lam M κ Λ hprodTrap hκ hM := by
-  intro seq u hseq hu hconv R hR ε hε
-  let Z := rotheSeqOfPaperFromTrap p c lam M κ Λ hprodTrap hκ hM
-  let L : (ℝ → ℝ) → ℝ → ℝ := fun v => rotheLimit (Z v)
-  have horbit : ∀ v, (hv : InMonotoneWaveTrapSet κ M v) →
-      PaperRotheOrbitData p c lam M κ Z v := by
-    intro v hv
-    simpa [Z] using paperRotheOrbitData_fromTrap
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := v) hprodTrap hκ hM hΛ0 hΛM hbarLip hv
-  let δ : ℝ := ε / 4
-  have hδ : 0 < δ := by dsimp [δ]; linarith
-  obtain ⟨K, hK⟩ :=
-    eventually_atTop.1 ((horbit u hu).locallyUniform hM R hR δ hδ)
-  have htarget : ∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
-      |Z u k x - L u x| < ε := by
-    intro k hk x hx
-    have hsmall := hK k hk x hx
-    dsimp [δ] at hsmall
-    linarith
-  have hexLate : ∀ n : ℕ, ∃ ell : ℕ, n ≤ ell ∧
-      ∀ x ∈ Set.Icc (-R) R, |Z (seq n) ell x - L (seq n) x| < δ := by
+/-- Per-orbit local-uniform convergence supplies an adaptive growing-window
+index.  The extra `max n` makes the selected indices tend to infinity. -/
+theorem exists_adaptiveMovingIndex
+    {Z : ℕ → ℕ → ℝ → ℝ} {L : ℕ → ℝ → ℝ}
+    (hLU : ∀ n, LocallyUniformConverges (Z n) (L n)) :
+    ∃ ks : ℕ → ℕ,
+      Tendsto ks atTop atTop ∧ PaperRotheAdaptiveDiagonal Z L ks := by
+  have hex : ∀ n : ℕ, ∃ K : ℕ,
+      ∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1),
+        |Z n k x - L n x| < 1 / (4 * ((n : ℝ) + 1)) := by
     intro n
-    obtain ⟨N, hN⟩ := eventually_atTop.1
-      ((horbit (seq n) (hseq n)).locallyUniform hM R hR δ hδ)
-    refine ⟨max n N, le_max_left _ _, hN (max n N) (le_max_right _ _)⟩
-  let ell : ℕ → ℕ := fun n => Classical.choose (hexLate n)
-  have hell_ge : ∀ n, n ≤ ell n := fun n => (Classical.choose_spec (hexLate n)).1
-  have hell_tail : ∀ n x, x ∈ Set.Icc (-R) R →
-      |Z (seq n) (ell n) x - L (seq n) x| < δ :=
-    fun n => (Classical.choose_spec (hexLate n)).2
-  have hell_top : Tendsto ell atTop atTop := by
+    have hR : 0 < (n : ℝ) + 1 := by positivity
+    have hε : 0 < 1 / (4 * ((n : ℝ) + 1)) := by positivity
+    exact eventually_atTop.1
+      (hLU n ((n : ℝ) + 1) hR (1 / (4 * ((n : ℝ) + 1))) hε)
+  let K : ℕ → ℕ := fun n => Classical.choose (hex n)
+  let ks : ℕ → ℕ := fun n => max n (K n)
+  have hK : ∀ (n k : ℕ), K n ≤ k →
+      ∀ x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1),
+        |Z n k x - L n x| < 1 / (4 * ((n : ℝ) + 1)) := by
+    intro n
+    exact Classical.choose_spec (hex n)
+  have hks_ge : ∀ n, n ≤ ks n := fun n => le_max_left _ _
+  have hks_top : Tendsto ks atTop atTop := by
     refine tendsto_atTop.2 fun N => ?_
     filter_upwards [eventually_ge_atTop N] with n hn
-    exact le_trans hn (hell_ge n)
-  have hfixed : LocallyUniformConverges (fun n => Z (seq n) K) (Z u K) :=
-    hgraph seq u hseq hu hconv (fun _ => K) (some K)
-      (.finite K (Eventually.of_forall fun _ => rfl))
-  have hmoving : LocallyUniformConverges (fun n => Z (seq n) (ell n)) (L u) := by
-    exact hgraph seq u hseq hu hconv ell none (.infinity hell_top)
-  refine ⟨K, htarget, ?_⟩
-  filter_upwards [hfixed R hR δ hδ, hmoving R hR δ hδ] with n hnK hnell
-  intro k hk x hx
-  have hLn_le_k : L (seq n) x ≤ Z (seq n) k x :=
-    ciInf_le ((horbit (seq n) (hseq n)).bddBelow x) k
-  have hLn_le_K : L (seq n) x ≤ Z (seq n) K x :=
-    ciInf_le ((horbit (seq n) (hseq n)).bddBelow x) K
-  have hk_le_K : Z (seq n) k x ≤ Z (seq n) K x :=
-    (horbit (seq n) (hseq n)).anti_k x hk
-  have hKsmall : |Z (seq n) K x - L (seq n) x| < ε := by
-    have h1 : |Z (seq n) K x - Z u K x| < δ := hnK x hx
-    have h2 : |Z u K x - L u x| < δ := hK K (le_refl K) x hx
-    have h3 : |L u x - Z (seq n) (ell n) x| < δ := by
-      rw [abs_sub_comm]
-      exact hnell x hx
-    have h4 : |Z (seq n) (ell n) x - L (seq n) x| < δ :=
-      hell_tail n x hx
-    have hdecomp :
-        Z (seq n) K x - L (seq n) x =
-          (Z (seq n) K x - Z u K x) + (Z u K x - L u x) +
-          (L u x - Z (seq n) (ell n) x) +
-          (Z (seq n) (ell n) x - L (seq n) x) := by ring
-    let a := Z (seq n) K x - Z u K x
-    let b := Z u K x - L u x
-    let c' := L u x - Z (seq n) (ell n) x
-    let d := Z (seq n) (ell n) x - L (seq n) x
-    have ht1 : |a + b + c' + d| ≤ |a + b + c'| + |d| := abs_add_le _ _
-    have ht2 : |a + b + c'| ≤ |a + b| + |c'| := abs_add_le _ _
-    have ht3 : |a + b| ≤ |a| + |b| := abs_add_le _ _
-    rw [hdecomp]
-    change |a + b + c' + d| < ε
+    exact le_trans hn (hks_ge n)
+  refine ⟨ks, hks_top, ?_⟩
+  intro n x hx
+  have hbase : K n ≤ ks n := le_max_right _ _
+  exact
+    ⟨hK n (ks n) hbase x hx,
+      hK n (ks n + 1) (le_trans hbase (Nat.le_succ _)) x hx⟩
+
+/-- The adaptive growing-window diagonal gives the exact successor-gap
+property needed by the moving-index stationary passage. -/
+theorem PaperRotheAdaptiveDiagonal.successorGapAlong
+    {Z : ℕ → ℕ → ℝ → ℝ} {L : ℕ → ℝ → ℝ} {ks : ℕ → ℕ}
+    (hdiag : PaperRotheAdaptiveDiagonal Z L ks) :
+    PaperRotheSuccessorGapAlong Z ks := by
+  intro R hR ε hε
+  have hwindow : ∀ᶠ n : ℕ in atTop, R ≤ (n : ℝ) + 1 := by
+    have htop : Tendsto (fun n : ℕ => (n : ℝ) + 1) atTop atTop := by
+      apply tendsto_atTop_add_const_right
+      exact tendsto_natCast_atTop_atTop
+    exact htop.eventually (eventually_ge_atTop R)
+  have hδ0 : Tendsto
+      (fun n : ℕ => 1 / (4 * ((n : ℝ) + 1))) atTop (𝓝 0) := by
+    have htop : Tendsto (fun n : ℕ => (n : ℝ) + 1) atTop atTop := by
+      apply tendsto_atTop_add_const_right
+      exact tendsto_natCast_atTop_atTop
+    have htop4 : Tendsto (fun n : ℕ => 4 * ((n : ℝ) + 1)) atTop atTop := by
+      exact (tendsto_const_mul_atTop_of_pos (by norm_num : (0 : ℝ) < 4)).2 htop
+    simpa [one_div] using htop4.inv_tendsto_atTop.const_mul (1 : ℝ)
+  have hsmall : ∀ᶠ n : ℕ in atTop,
+      1 / (4 * ((n : ℝ) + 1)) < ε / 2 := by
+    have hε2 : 0 < ε / 2 := by linarith
+    obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.1 hδ0) (ε / 2) hε2
+    filter_upwards [eventually_ge_atTop N] with n hn
+    have hδnn : 0 ≤ 1 / (4 * ((n : ℝ) + 1)) := by positivity
+    have h := hN n hn
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg hδnn] at h
+    exact h
+  filter_upwards [hwindow, hsmall] with n hnR hnsmall
+  intro x hx
+  have hxgrow : x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1) := by
+    constructor <;> nlinarith [hx.1, hx.2]
+  obtain ⟨hold, hnew⟩ := hdiag n x hxgrow
+  have htri :
+      |Z n (ks n + 1) x - Z n (ks n) x| ≤
+        |Z n (ks n + 1) x - L n x| + |Z n (ks n) x - L n x| := by
     calc
-      |a + b + c' + d| ≤ |a + b + c'| + |d| := ht1
-      _ ≤ (|a + b| + |c'|) + |d| := add_le_add ht2 le_rfl
-      _ ≤ ((|a| + |b|) + |c'|) + |d| :=
-        add_le_add (add_le_add ht3 le_rfl) le_rfl
-      _ < δ + δ + δ + δ := by linarith
-      _ = ε := by dsimp [δ]; ring
-  have hgap_nonneg : 0 ≤ Z (seq n) k x - L (seq n) x :=
-    sub_nonneg.mpr hLn_le_k
-  have hgapK_nonneg : 0 ≤ Z (seq n) K x - L (seq n) x :=
-    sub_nonneg.mpr hLn_le_K
-  rw [abs_of_nonneg hgap_nonneg]
-  calc
-    Z (seq n) k x - L (seq n) x ≤ Z (seq n) K x - L (seq n) x :=
-      sub_le_sub_right hk_le_K _
-    _ = |Z (seq n) K x - L (seq n) x| :=
-      (abs_of_nonneg hgapK_nonneg).symm
-    _ < ε := hKsmall
+      |Z n (ks n + 1) x - Z n (ks n) x|
+          ≤ |Z n (ks n + 1) x - L n x| +
+              |L n x - Z n (ks n) x| := abs_sub_le _ _ _
+      _ = |Z n (ks n + 1) x - L n x| +
+              |Z n (ks n) x - L n x| := by rw [abs_sub_comm (L n x)]
+  linarith
 
-theorem stepDependence_and_tailAlong
-    (hgraph : PaperGreenRotheCompactClosedGraphOnTrap
-      p c lam M κ Λ hprodTrap hκ hM)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hbarLip : ∀ x y,
-      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
-    PaperRotheSeqStepDependenceOnTrap
-        p c lam M κ Λ hprodTrap hκ hM ∧
-      PaperRotheTailUniformAlongConvergentSeqOnTrap
-        p c lam M κ Λ hprodTrap hκ hM :=
-  ⟨hgraph.stepDependence,
-    hgraph.tailAlongConvergentSeq hΛ0 hΛM hbarLip⟩
+/-- The growing-window diagonal tracks any locally-uniform limit of the named
+per-orbit limits with both its old and successor iterates. -/
+theorem PaperRotheAdaptiveDiagonal.commonLimit
+    {Z : ℕ → ℕ → ℝ → ℝ} {L : ℕ → ℝ → ℝ} {ks : ℕ → ℕ}
+    {U : ℝ → ℝ}
+    (hdiag : PaperRotheAdaptiveDiagonal Z L ks)
+    (hL : LocallyUniformConverges L U) :
+    LocallyUniformConverges (fun n => Z n (ks n)) U ∧
+      LocallyUniformConverges (fun n => Z n (ks n + 1)) U := by
+  have hδ0 : Tendsto
+      (fun n : ℕ => 1 / (4 * ((n : ℝ) + 1))) atTop (𝓝 0) := by
+    have htop : Tendsto (fun n : ℕ => (n : ℝ) + 1) atTop atTop := by
+      apply tendsto_atTop_add_const_right
+      exact tendsto_natCast_atTop_atTop
+    have htop4 : Tendsto (fun n : ℕ => 4 * ((n : ℝ) + 1)) atTop atTop := by
+      exact (tendsto_const_mul_atTop_of_pos (by norm_num : (0 : ℝ) < 4)).2 htop
+    simpa [one_div] using htop4.inv_tendsto_atTop.const_mul (1 : ℝ)
+  constructor
+  · intro R hR ε hε
+    have hwindow : ∀ᶠ n : ℕ in atTop, R ≤ (n : ℝ) + 1 := by
+      have htop : Tendsto (fun n : ℕ => (n : ℝ) + 1) atTop atTop := by
+        apply tendsto_atTop_add_const_right
+        exact tendsto_natCast_atTop_atTop
+      exact htop.eventually (eventually_ge_atTop R)
+    have hsmall : ∀ᶠ n : ℕ in atTop,
+        1 / (4 * ((n : ℝ) + 1)) < ε / 2 := by
+      have hε2 : 0 < ε / 2 := by linarith
+      obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.1 hδ0) (ε / 2) hε2
+      filter_upwards [eventually_ge_atTop N] with n hn
+      have hδnn : 0 ≤ 1 / (4 * ((n : ℝ) + 1)) := by positivity
+      have h := hN n hn
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg hδnn] at h
+      exact h
+    have hε2 : 0 < ε / 2 := by linarith
+    filter_upwards [hwindow, hsmall, hL R hR (ε / 2) hε2] with n hnR hnsmall hnL
+    intro x hx
+    have hxgrow : x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1) := by
+      constructor <;> nlinarith [hx.1, hx.2]
+    obtain ⟨hold, hnew⟩ := hdiag n x hxgrow
+    have hclose : |Z n (ks n) x - L n x| < ε / 2 :=
+      lt_trans hold hnsmall
+    calc
+      |Z n (ks n) x - U x|
+          ≤ |Z n (ks n) x - L n x| + |L n x - U x| := abs_sub_le _ _ _
+      _ < ε / 2 + ε / 2 := add_lt_add hclose (hnL x hx)
+      _ = ε := by ring
+  · intro R hR ε hε
+    have hwindow : ∀ᶠ n : ℕ in atTop, R ≤ (n : ℝ) + 1 := by
+      have htop : Tendsto (fun n : ℕ => (n : ℝ) + 1) atTop atTop := by
+        apply tendsto_atTop_add_const_right
+        exact tendsto_natCast_atTop_atTop
+      exact htop.eventually (eventually_ge_atTop R)
+    have hsmall : ∀ᶠ n : ℕ in atTop,
+        1 / (4 * ((n : ℝ) + 1)) < ε / 2 := by
+      have hε2 : 0 < ε / 2 := by linarith
+      obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.1 hδ0) (ε / 2) hε2
+      filter_upwards [eventually_ge_atTop N] with n hn
+      have hδnn : 0 ≤ 1 / (4 * ((n : ℝ) + 1)) := by positivity
+      have h := hN n hn
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg hδnn] at h
+      exact h
+    have hε2 : 0 < ε / 2 := by linarith
+    filter_upwards [hwindow, hsmall, hL R hR (ε / 2) hε2] with n hnR hnsmall hnL
+    intro x hx
+    have hxgrow : x ∈ Set.Icc (-((n : ℝ) + 1)) ((n : ℝ) + 1) := by
+      constructor <;> nlinarith [hx.1, hx.2]
+    obtain ⟨hold, hnew⟩ := hdiag n x hxgrow
+    have hclose : |Z n (ks n + 1) x - L n x| < ε / 2 :=
+      lt_trans hnew hnsmall
+    calc
+      |Z n (ks n + 1) x - U x|
+          ≤ |Z n (ks n + 1) x - L n x| + |L n x - U x| := abs_sub_le _ _ _
+      _ < ε / 2 + ε / 2 := add_lt_add hclose (hnL x hx)
+      _ = ε := by ring
 
-end PaperGreenRotheCompactClosedGraphOnTrap
+/-- Adaptive selection in the final form used by the outer compactness
+argument: the selected old and successor iterates share the compact-open limit
+of the named orbit limits. -/
+theorem exists_adaptiveMovingIndex_commonLimit
+    {Z : ℕ → ℕ → ℝ → ℝ} {L : ℕ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hLU : ∀ n, LocallyUniformConverges (Z n) (L n))
+    (hL : LocallyUniformConverges L U) :
+    ∃ ks : ℕ → ℕ,
+      Tendsto ks atTop atTop ∧
+        LocallyUniformConverges (fun n => Z n (ks n)) U ∧
+        LocallyUniformConverges (fun n => Z n (ks n + 1)) U ∧
+        PaperRotheSuccessorGapAlong Z ks := by
+  obtain ⟨ks, hks, hdiag⟩ := exists_adaptiveMovingIndex hLU
+  obtain ⟨hold, hnew⟩ := hdiag.commonLimit hL
+  exact ⟨ks, hks, hold, hnew, hdiag.successorGapAlong⟩
+
+/-- The one analytic Paper 1 frontier after adaptive selection.  It is the
+sequential closed graph for an actual whole-line Green step: if the frozen
+profiles, old iterates, and successor iterates have the same compact-open
+limit, then the limiting profile satisfies the self implicit step.  The
+differentiability conclusion is the `C¹_loc` part supplied by Green compactness
+and is exactly what converts paper stationarity to frozen stationarity. -/
+def PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+    (p : CMParams) (c lam M κ : ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (U : ℝ → ℝ) (ks : ℕ → ℕ),
+    (∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      InMonotoneWaveTrapSet κ M U →
+      LocallyUniformConverges seq U →
+      Tendsto ks atTop atTop →
+      LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) U →
+      LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) U →
+        (∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x) ∧
+          ∀ x, DifferentiableAt ℝ U x
+
+namespace PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+
+variable {p : CMParams} {c lam M κ : ℝ}
+  {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+
+/-- Convert the Green closed-graph self step to the frozen stationary
+equation.  Frozen-drift differentiability is already proved for every trapped
+profile, and the power differentiability follows from the `C¹_loc` output. -/
+theorem frozenStationary
+    (hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+      p c lam M κ rotheSeq)
+    (hlam : 0 < lam)
+    {seq : ℕ → ℝ → ℝ} {U : ℝ → ℝ} {ks : ℕ → ℕ}
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n))
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (houter : LocallyUniformConverges seq U)
+    (hks : Tendsto ks atTop atTop)
+    (hold : LocallyUniformConverges
+      (fun n => rotheSeq (seq n) (ks n)) U)
+    (hnew : LocallyUniformConverges
+      (fun n => rotheSeq (seq n) (ks n + 1)) U) :
+    ∀ x, frozenWaveOperator p c U U x = 0 := by
+  obtain ⟨hstep, hUdiff⟩ :=
+    hgraph seq U ks hseq hU houter hks hold hnew
+  exact frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+    p c lam U hlam hU.trap.cunif_bdd hU.nonneg hUdiff
+    (fun x => frozenElliptic_deriv_differentiableAt p
+      hU.trap.cunif_bdd hU.nonneg x)
+    (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
+
+end PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+
+/-- Outer finite-cube approximation plus range compactness and the adaptive
+inner diagonal produce a stationary lower-pinned profile.  No continuity of
+the single-valued map `u ↦ rotheLimit (rotheSeq u)` and no family-uniform Rothe
+tail are used. -/
+theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
+    (p : CMParams) (c lam M κ : ℝ) (φ : ℝ → ℝ)
+    (hM : 0 ≤ M) (hlam : 0 < lam)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitData p c lam M κ rotheSeq u)
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq)
+    (Happrox : ProjectedCubeApproxData
+      (InLowerPinnedMonotoneTrap κ M φ)
+      (fun u => rotheLimit (rotheSeq u)))
+    (hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+      p c lam M κ rotheSeq) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+      ∀ x, frozenWaveOperator p c U U x = 0 := by
+  let Tmap : (ℝ → ℝ) → ℝ → ℝ := fun u => rotheLimit (rotheSeq u)
+  obtain ⟨seq, hseq, happrox⟩ :=
+    localUniformApproxFixedPointSequence_of_cubeApproxData
+      Happrox.toLocalUniformCubeApproxData
+  have hcompact : LocalUniformSequentiallyCompactRange
+      (InMonotoneWaveTrapSet κ M) Tmap :=
+    paperTmap_compactRange p c lam M κ hM rotheSeq
+      (helly_pointwise_selection M) hdata
+  obtain ⟨sub, hsub, U, hUbare, hTconv⟩ :=
+    hcompact seq (fun n => (hseq n).bare)
+  have hTlower : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ Tmap u x :=
+    Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower
+  have hUlower : ∀ x, φ x ≤ U x := by
+    intro x
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds (hTconv.tendsto_at x)
+      (Eventually.of_forall fun n => hTlower (seq (sub n)) (hseq (sub n)) x)
+  have hU : InLowerPinnedMonotoneTrap κ M φ U := ⟨hUbare, hUlower⟩
+  have houter : LocallyUniformConverges (fun n => seq (sub n)) U := by
+    intro R hR ε hε
+    have hε2 : 0 < ε / 2 := by linarith
+    have happ : ∀ᶠ n in atTop, ∀ x ∈ Set.Icc (-R) R,
+        |Tmap (seq (sub n)) x - seq (sub n) x| < ε / 2 :=
+      hsub.tendsto_atTop.eventually (happrox R hR (ε / 2) hε2)
+    filter_upwards [happ, hTconv R hR (ε / 2) hε2] with n hn happT
+    intro x hx
+    have htri : |seq (sub n) x - U x| ≤
+        |seq (sub n) x - Tmap (seq (sub n)) x| +
+          |Tmap (seq (sub n)) x - U x| := abs_sub_le _ _ _
+    have hleft : |seq (sub n) x - Tmap (seq (sub n)) x| < ε / 2 := by
+      simpa [abs_sub_comm] using hn x hx
+    linarith [htri, hleft, happT x hx]
+  let Z : ℕ → ℕ → ℝ → ℝ := fun n => rotheSeq (seq (sub n))
+  let L : ℕ → ℝ → ℝ := fun n => Tmap (seq (sub n))
+  have horbit : ∀ n, LocallyUniformConverges (Z n) (L n) := by
+    intro n
+    simpa [Z, L, Tmap] using
+      (hdata (seq (sub n)) (hseq (sub n)).bare).locallyUniform hM
+  obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
+    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hTconv)
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hgraph.frozenStationary hlam (fun n => (hseq (sub n)).bare) hUbare
+      houter hks (by simpa [Z] using hold) (by simpa [Z] using hnew)
+  exact ⟨U, hU, hstat⟩
 
 section AxiomAudit
 
-#print axioms paperRotheContinuousDependence_fromTrap_of_tailAlong
-#print axioms PaperGreenRotheLimitIdentificationFromDriftOnTrap.toLimitIdentification
-#print axioms PaperGreenRotheLimitIdentificationOnTrap.compactClosedGraph
-#print axioms PaperGreenRotheCompactClosedGraphOnTrap.stepDependence
-#print axioms PaperGreenRotheCompactClosedGraphOnTrap.tailAlongConvergentSeq
-#print axioms PaperGreenRotheCompactClosedGraphOnTrap.stepDependence_and_tailAlong
+#print axioms exists_adaptiveMovingIndex
+#print axioms PaperRotheAdaptiveDiagonal.successorGapAlong
+#print axioms PaperRotheAdaptiveDiagonal.commonLimit
+#print axioms exists_adaptiveMovingIndex_commonLimit
+#print axioms PaperGreenRotheAdaptiveStepClosedGraphOnTrap.frozenStationary
+#print axioms paperLowerPinned_adaptiveStationary_of_cubeApproxData
 
 end AxiomAudit
 
