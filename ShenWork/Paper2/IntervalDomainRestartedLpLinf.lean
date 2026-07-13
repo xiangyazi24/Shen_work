@@ -640,9 +640,83 @@ theorem intervalConjugateKernelOperator_abs_le_Lp_short_half
       dsimp [a, A]
       ring
 
+noncomputable def conjugateLpLinftyTheta (p : ℝ) : ℝ :=
+  1 / 2 + 1 / (2 * p)
+
+noncomputable def conjugateLpLinftyConstant (p : ℝ) : ℝ :=
+  (fullHeatShortConstant * 2 ^ (1 / 2 : ℝ)) ^ (1 / p) *
+    (heatGradientLinftyLinftyConstant * 2 ^ (1 / 2 : ℝ))
+
+theorem half_rpow_neg_half
+    {t : ℝ} (ht : 0 < t) :
+    (t / 2) ^ (-(1 / 2 : ℝ)) =
+      2 ^ (1 / 2 : ℝ) * t ^ (-(1 / 2 : ℝ)) := by
+  rw [Real.div_rpow ht.le (by norm_num : (0 : ℝ) ≤ 2)]
+  rw [Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2)]
+  field_simp
+
+theorem conjugateLpLinfty_half_factor_eq
+    {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    (fullHeatShortConstant * (t / 2) ^ (-(1 / 2 : ℝ))) ^ (1 / p) *
+        (heatGradientLinftyLinftyConstant *
+          (t / 2) ^ (-(1 / 2 : ℝ))) =
+      conjugateLpLinftyConstant p *
+        t ^ (-conjugateLpLinftyTheta p) := by
+  rw [half_rpow_neg_half ht]
+  have hH : 0 ≤ fullHeatShortConstant * 2 ^ (1 / 2 : ℝ) :=
+    mul_nonneg fullHeatShortConstant_nonneg
+      (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 2) _)
+  have htneg : 0 ≤ t ^ (-(1 / 2 : ℝ)) := Real.rpow_nonneg ht.le _
+  rw [show fullHeatShortConstant *
+      (2 ^ (1 / 2 : ℝ) * t ^ (-(1 / 2 : ℝ))) =
+        (fullHeatShortConstant * 2 ^ (1 / 2 : ℝ)) *
+          t ^ (-(1 / 2 : ℝ)) by ring,
+    Real.mul_rpow hH htneg]
+  have htpow :
+      (t ^ (-(1 / 2 : ℝ))) ^ (1 / p) =
+        t ^ (-(1 / (2 * p) : ℝ)) := by
+    rw [← Real.rpow_mul ht.le]
+    congr 1
+    field_simp [ne_of_gt hp]
+  rw [htpow]
+  have hexp :
+      t ^ (-(1 / (2 * p) : ℝ)) * t ^ (-(1 / 2 : ℝ)) =
+        t ^ (-conjugateLpLinftyTheta p) := by
+    rw [← Real.rpow_add ht]
+    congr 1
+    simp only [conjugateLpLinftyTheta]
+    ring
+  rw [show
+    ((fullHeatShortConstant * 2 ^ (1 / 2 : ℝ)) ^ (1 / p) *
+        t ^ (-(1 / (2 * p) : ℝ))) *
+      (heatGradientLinftyLinftyConstant *
+        (2 ^ (1 / 2 : ℝ) * t ^ (-(1 / 2 : ℝ)))) =
+      ((fullHeatShortConstant * 2 ^ (1 / 2 : ℝ)) ^ (1 / p) *
+        (heatGradientLinftyLinftyConstant * 2 ^ (1 / 2 : ℝ))) *
+      (t ^ (-(1 / (2 * p) : ℝ)) * t ^ (-(1 / 2 : ℝ))) by ring,
+    hexp]
+  rfl
+
+theorem intervalConjugateKernelOperator_abs_le_Lp_short
+    {t r p : ℝ} (ht : 0 < t) (ht1 : t ≤ 1)
+    (hrp : r.HolderConjugate p)
+    {f : ℝ → ℝ} (hfcont : Continuous f)
+    (hfint : Integrable f (intervalMeasure 1))
+    {Cf : ℝ} (hCf : 0 ≤ Cf) (hfbound : ∀ y, |f y| ≤ Cf)
+    (hf : MemLp f (ENNReal.ofReal p) (intervalMeasure 1))
+    {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
+    |intervalConjugateKernelOperator t f x| ≤
+      conjugateLpLinftyConstant p *
+        t ^ (-conjugateLpLinftyTheta p) *
+        (∫ y, ‖f y‖ ^ p ∂ intervalMeasure 1) ^ (1 / p) := by
+  rw [← conjugateLpLinfty_half_factor_eq ht hrp.symm.pos]
+  exact intervalConjugateKernelOperator_abs_le_Lp_short_half
+    ht ht1 hrp hfcont hfint hCf hfbound hf hx
+
 #print axioms intervalNeumannFullKernel_abs_le_short
 #print axioms intervalFullSemigroupOperator_abs_le_Lp_short
 #print axioms intervalConjugateKernelOperator_Lp_integral_le
 #print axioms intervalConjugateKernelOperator_abs_le_Lp_short_half
+#print axioms intervalConjugateKernelOperator_abs_le_Lp_short
 
 end ShenWork.Paper2.IntervalDomainRestartedLpLinf
