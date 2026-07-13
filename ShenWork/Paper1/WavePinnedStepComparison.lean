@@ -256,8 +256,8 @@ theorem PaperLocalFixedStepData.le_old_of_lowerPinned_old
     (hsmall :
       (1 / lam) * paperPinnedStepCmono p c lam M κ κtilde D B < 1)
     (dOld : PaperLocalFixedStepData p c lam M κ Λ B u Z₀)
-    (hOldPinned : InLowerPinnedMonotoneTrap κ M
-      (lowerBarrierRaw κ κtilde D) dOld.fixed.W)
+    (hOldLower : ∀ x,
+      lowerBarrierPlateau κ κtilde D x ≤ dOld.fixed.W x)
     (hOldSuper : ∀ x, paperWaveOperator p c u dOld.fixed.W x ≤ 0)
     (dNew : PaperLocalFixedStepData p c lam M κ Λ B u dOld.fixed.W) :
     ∀ x, dNew.fixed.W x ≤ dOld.fixed.W x := by
@@ -286,8 +286,33 @@ theorem PaperLocalFixedStepData.le_old_of_lowerPinned_old
   · exact hWrange
   · exact hZrange
   · exact hOldSuper
-  · exact dOld.deriv_abs_le_mul_self_of_lowerPinned
-      hlam hrpκ hrmκ hκ hgap hD hM.le hB hOldPinned
+  · exact dOld.deriv_abs_le_mul_self_of_lowerBound
+      hlam hrpκ hrmκ hκ hgap hD hM.le hB hOldLower
+
+/-- The raw lower-barrier comparison is automatic for a genuine local Green
+step whenever the old iterate already carries the lower pin. -/
+theorem PaperLocalFixedStepData.lowerRaw_of_old_lowerRaw
+    {p : CMParams} {c lam M κ κtilde D Λ B : ℝ}
+    {u Z : ℝ → ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hu : InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierRaw κ κtilde D) u)
+    (hprev : ∀ x, lowerBarrierRaw κ κtilde D x ≤ Z x)
+    (hlam : 0 < lam)
+    (hsmall :
+      (1 / lam) * paperLowerRawApproxCmono p M κtilde < 1)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z) :
+    ∀ x, lowerBarrierRaw κ κtilde D x ≤ d.fixed.W x := by
+  have haux : PaperLowerRawStepApproxOperatorData
+      p c lam κ κtilde D u d.fixed.W :=
+    paperLowerRawStepApproxOperatorData_of_conditions
+      hcond hD hD_ge_one hu.bare (d.contDiff_two hlam)
+      (fun x => (d.range x).1) (fun x => (d.range x).2) hsmall
+  exact paperImplicitStep_ge_lowerBarrierRaw_tailfree
+    hcond hD hD_ge_one hu hprev hlam (d.step_op hlam)
+      (d.contDiff_two hlam) (fun x => (d.range x).1) haux
 
 section AxiomAudit
 
@@ -295,6 +320,7 @@ section AxiomAudit
 #print axioms paperCrossGradient_diff_le_of_lower_log_slope
 #print axioms paperImplicitStep_le_of_pinned_smooth_old
 #print axioms PaperLocalFixedStepData.le_old_of_lowerPinned_old
+#print axioms PaperLocalFixedStepData.lowerRaw_of_old_lowerRaw
 
 end AxiomAudit
 

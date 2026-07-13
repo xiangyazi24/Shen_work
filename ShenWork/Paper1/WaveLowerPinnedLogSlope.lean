@@ -140,10 +140,10 @@ theorem upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
           lowerBarrierRaw κ κtilde D x :=
         mul_le_mul_of_nonneg_right hratio hraw0
 
-/-- A lower-pinned antitone local Green step has a uniform logarithmic slope
-bound.  This is the weighted estimate needed to control the `m < 2` contact
-cusp in comparisons with the next iterate. -/
-theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
+/-- A locally constructed Green step above the pinned plateau has a uniform
+logarithmic slope bound.  Spatial antitonicity is not used: the weighted source
+box and the pointwise lower pin are sufficient. -/
+theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerBound
     {p : CMParams} {c lam M κ κtilde D Λ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
@@ -151,8 +151,7 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
     (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
     (hD : 0 < D) (hM : 0 ≤ M) (hB : 0 ≤ B)
     (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
-    (hW : InLowerPinnedMonotoneTrap κ M
-      (lowerBarrierRaw κ κtilde D) d.fixed.W) :
+    (hW : ∀ x, lowerBarrierPlateau κ κtilde D x ≤ d.fixed.W x) :
     ∀ x, |deriv d.fixed.W x| ≤
       paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B *
         d.fixed.W x := by
@@ -162,7 +161,7 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
   have hratio :=
     upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
       hκ hgap hD hM x
-  have hplateau := plateau_le_of_lowerPinnedRaw hW x
+  have hplateau := hW x
   have hcoeff0 := d.weightedDerivCoeff_nonneg hlam hrpκ hrmκ hB
   have hratio0 := lowerPinnedBarrierRatio_nonneg hκ hgap hD hM
   calc
@@ -181,6 +180,24 @@ theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
       unfold paperLowerPinnedStepLogSlopeCoeff
         PaperLocalFixedStepData.weightedDerivCoeff
       ring
+
+/-- Lower-pinned trap wrapper for the pointwise lower-bound theorem. -/
+theorem PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
+    {p : CMParams} {c lam M κ κtilde D Λ B : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (d : PaperLocalFixedStepData p c lam M κ Λ B u Z)
+    (hW : InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierRaw κ κtilde D) d.fixed.W) :
+    ∀ x, |deriv d.fixed.W x| ≤
+      paperLowerPinnedStepLogSlopeCoeff c lam κ κtilde D M B *
+        d.fixed.W x :=
+  d.deriv_abs_le_mul_self_of_lowerBound
+    hlam hrpκ hrmκ hκ hgap hD hM hB
+      (fun x => plateau_le_of_lowerPinnedRaw hW x)
 
 theorem paperLowerPinnedStepLogSlopeCoeff_nonneg
     {c lam κ κtilde D M B : ℝ}
@@ -210,6 +227,7 @@ theorem paperLowerPinnedStepLogSlopeCoeff_nonneg
 section AxiomAudit
 
 #print axioms upperBarrier_le_lowerPinnedBarrierRatio_mul_plateau
+#print axioms PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerBound
 #print axioms PaperLocalFixedStepData.deriv_abs_le_mul_self_of_lowerPinned
 #print axioms paperLowerPinnedStepLogSlopeCoeff_nonneg
 
