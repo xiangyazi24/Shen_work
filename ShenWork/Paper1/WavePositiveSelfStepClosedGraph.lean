@@ -176,11 +176,64 @@ theorem paperPositiveSelfStepMap_continuousOn
   (paperPositiveSelfStepMap_compactRange hcond hD hD1 hplateau s).continuousOn_of_closedGraph
     (paperPositiveSelfStepMap_closedGraph hcond hD hD1 hplateau s)
 
+/-- Schauder--Tychonoff produces a fixed point of the genuine positive
+self-step.  At the diagonal the exact paper step is the stationary frozen
+wave equation. -/
+theorem paperPositive_fixed_stationary_of_selfStep
+    {p : CMParams} {c D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c (kappa c)
+      (positiveBranchTailCap p c) (MChi p))
+    (hD : paperDMin p.χ (MChi p) (kappa c)
+      (positiveBranchTailCap p c) p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (hplateau : ∀ x, lowerBarrierPlateau (kappa c)
+      (positiveBranchTailCap p c) D x ≤ paper1PositivePlateauFloor p)
+    (s : Paper1PositiveLocalStepScalarData p c D) :
+    ∃ U,
+      InLowerPinnedC1UniformModulusWaveTrap (kappa c) (MChi p)
+        (paperPositiveSelfStepModulus s)
+        (lowerBarrierPlateau (kappa c) (positiveBranchTailCap p c) D) U ∧
+      paperPositiveSelfStepMap hcond s U = U ∧
+      ∃ _A : PaperStepAnalytic p c s.lam (MChi p) (kappa c) s.Λ U U U,
+        (∀ x, frozenWaveOperator p c U U x = 0) ∧ ContDiff ℝ 2 U := by
+  let trap := InLowerPinnedC1UniformModulusWaveTrap (kappa c) (MChi p)
+    (paperPositiveSelfStepModulus s)
+    (lowerBarrierPlateau (kappa c) (positiveBranchTailCap p c) D)
+  have hne : ∃ u, trap u :=
+    paperPositiveC1UniformTrap_nonempty hcond hD hD1 hplateau s
+  have hmap : ∀ u, trap u → trap (paperPositiveSelfStepMap hcond s u) :=
+    fun _ hu => paperPositiveSelfStepMap_mapsTo hcond hD hD1 hplateau s hu
+  obtain ⟨U, hU, hfix⟩ :=
+    (InLowerPinnedC1UniformModulusWaveTrap.boundedConvexProfileTrapData hne).exists_fixed
+      hmap (paperPositiveSelfStepMap_continuousOn hcond hD hD1 hplateau s)
+      (paperPositiveSelfStepMap_compactRange hcond hD hD1 hplateau s)
+  let d := paperPositiveSelfStepData hcond s hU
+  have hdU : d.fixed.W = U := by
+    calc
+      d.fixed.W = paperPositiveSelfStepMap hcond s U :=
+        (paperPositiveSelfStepMap_eq hcond s hU).symm
+      _ = U := hfix
+  have hA : PaperStepAnalytic p c s.lam (MChi p) (kappa c) s.Λ U U U := by
+    simpa only [hdU] using paperStepAnalytic_of_core s.hlam d.fixed.analyticCore
+  have hU2 : ContDiff ℝ 2 U := by simpa only [hdU] using d.contDiff_two s.hlam
+  have hstep : ∀ x, paperImplicitStepOp p c (1 / s.lam) U U x = U x := by
+    simpa only [hdU] using d.step_op s.hlam
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+      p c s.lam U s.hlam hU.bare.cunif_bdd hU.bare.nonneg
+      (hU2.differentiable (by norm_num))
+      (fun x => frozenElliptic_deriv_differentiableAt p
+        hU.bare.cunif_bdd hU.bare.nonneg x)
+      (fun x => (hU2.differentiable (by norm_num) x).rpow_const
+        (Or.inr p.hm)) hstep
+  exact ⟨U, hU, hfix, hA, hstat, hU2⟩
+
 section AxiomAudit
 
 #print axioms paperOneStep_closedGraph_of_stepAnalytic_inWaveTrap
 #print axioms paperPositiveSelfStepMap_closedGraph
 #print axioms paperPositiveSelfStepMap_continuousOn
+#print axioms paperPositive_fixed_stationary_of_selfStep
 
 end AxiomAudit
 
