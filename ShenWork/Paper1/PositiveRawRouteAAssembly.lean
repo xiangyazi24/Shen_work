@@ -60,9 +60,6 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  PaperLowerPinnedFlatFloor p c (kappa c) (MChi p)
-                    (lowerBarrierRaw (kappa c)
-                      (positiveBranchTailCap p c) D) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
                       (lowerBarrierRaw (kappa c)
@@ -82,11 +79,11 @@ theorem paper1_positiveRawContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat, hcontact⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hcontact⟩
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hflat
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -132,9 +129,6 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  PaperLowerPinnedFlatFloor p c (kappa c) (MChi p)
-                    (lowerBarrierRaw (kappa c)
-                      (positiveBranchTailCap p c) D) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
                   (∀ U : ℝ → ℝ,
@@ -157,12 +151,11 @@ theorem paper1_positiveRawSmoothContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat,
-      hreg, hsmooth⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hsmooth⟩
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hflat
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -212,9 +205,6 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  PaperLowerPinnedFlatFloor p c (kappa c) (MChi p)
-                    (lowerBarrierRaw (kappa c)
-                      (positiveBranchTailCap p c) D) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
                   (∀ U : ℝ → ℝ,
@@ -249,9 +239,6 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  PaperLowerPinnedFlatFloor p c (kappa c) (MChi p)
-                    (lowerBarrierRaw (kappa c)
-                      (positiveBranchTailCap p c) D) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
                   (∀ U : ℝ → ℝ,
@@ -269,10 +256,10 @@ theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat,
+    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM,
       hreg, hconst⟩
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat, hreg,
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg,
       fun U hpin hprofile =>
         PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
           (p := p) (c := c) (U := U)
@@ -292,12 +279,11 @@ theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat,
-      hreg, hres⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hres⟩
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hflat
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -315,14 +301,13 @@ theorem paper1_routeASmoothParamData_of_routeARemainingParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat,
-      hreg, hres⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg, hres⟩
   have hχ_star : p.χ < chiStar p :=
     lt_of_lt_of_le hχ_small (min_le_right _ _)
   have hM0 : 0 ≤ MChi p :=
     (MChi_pos_of_chi_lt_chiStar p hχ_star).le
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hflat, hreg,
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hreg,
       fun U hpin hprofile =>
         positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
           hM0 hpin.bare hprofile.stationary_eq hreg

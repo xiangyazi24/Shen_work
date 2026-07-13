@@ -205,6 +205,13 @@ theorem exists_adaptiveMovingIndex_commonLimit
   obtain ⟨hold, hnew⟩ := hdiag.commonLimit hL
   exact ⟨ks, hks, hold, hnew, hdiag.successorGapAlong⟩
 
+/-- Whole-line source-tail representation retained by the adaptive Green
+closed graph. -/
+def PaperGreenSourceTailData (c lam : ℝ) (U : ℝ → ℝ) : Prop :=
+  ∃ R : ℝ → ℝ, ∃ B L : ℝ,
+    Continuous R ∧ (∀ y, |R y| ≤ B) ∧ Tendsto R atBot (nhds L) ∧
+      U = fun x => greenConv c lam R x
+
 /-- The one analytic Paper 1 frontier after adaptive selection.  It is the
 sequential closed graph for an actual whole-line Green step: if the frozen
 profiles, old iterates, and successor iterates have the same compact-open
@@ -222,7 +229,8 @@ def PaperGreenRotheAdaptiveStepClosedGraphOnTrap
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n)) U →
       LocallyUniformConverges (fun n => rotheSeq (seq n) (ks n + 1)) U →
         (∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x) ∧
-          Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
+          Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+          PaperGreenSourceTailData c lam U
 
 namespace PaperGreenRotheAdaptiveStepClosedGraphOnTrap
 
@@ -246,7 +254,7 @@ theorem frozenStationary
     (hnew : LocallyUniformConverges
       (fun n => rotheSeq (seq n) (ks n + 1)) U) :
     ∀ x, frozenWaveOperator p c U U x = 0 := by
-  obtain ⟨hstep, hUdiff, _hUderivDiff⟩ :=
+  obtain ⟨hstep, hUdiff, _hUderivDiff, _hsourceTail⟩ :=
     hgraph seq U ks hseq hU houter hks hold hnew
   exact frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
     p c lam U hlam hU.trap.cunif_bdd hU.nonneg hUdiff
@@ -274,7 +282,8 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
       p c lam M κ rotheSeq) :
     ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
       (∀ x, frozenWaveOperator p c U U x = 0) ∧
-      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+      PaperGreenSourceTailData c lam U := by
   let Tmap : (ℝ → ℝ) → ℝ → ℝ := fun u => rotheLimit (rotheSeq u)
   obtain ⟨seq, hseq, happrox⟩ :=
     localUniformApproxFixedPointSequence_of_cubeApproxData
@@ -314,7 +323,7 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
       (hdata (seq (sub n)) (hseq (sub n)).bare).locallyUniform hM
   obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
     exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hTconv)
-  obtain ⟨hstep, hUdiff, hUderivDiff⟩ :=
+  obtain ⟨hstep, hUdiff, hUderivDiff, hsourceTail⟩ :=
     hgraph (fun n => seq (sub n)) U ks
       (fun n => (hseq (sub n)).bare) hUbare houter hks
       (by simpa [Z] using hold) (by simpa [Z] using hnew)
@@ -324,7 +333,7 @@ theorem paperLowerPinned_adaptiveStationary_of_cubeApproxData
       (fun x => frozenElliptic_deriv_differentiableAt p
         hUbare.trap.cunif_bdd hUbare.nonneg x)
       (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
-  exact ⟨U, hU, hstat, hUdiff, hUderivDiff⟩
+  exact ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩
 
 section AxiomAudit
 
