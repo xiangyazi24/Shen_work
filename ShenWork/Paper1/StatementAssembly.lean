@@ -5,6 +5,7 @@
   `Statements` and `Lemma25Helpers`.  It adds no new analytic frontier.
 -/
 import ShenWork.Paper1.Lemma25Helpers
+import ShenWork.Paper1.Lemma53Full
 import ShenWork.Paper1.StationaryUpperTail
 
 namespace ShenWork.Paper1
@@ -678,6 +679,16 @@ theorem paper1_Lemma_2_5_JensenStep : Lemma_2_5_JensenStep :=
 /-- Bundle wrapper for the closed Paper1 Lemma 2.5 targets. -/
 theorem paper1_lemma25Targets : Paper1Lemma25Targets :=
   ⟨paper1_Lemma_2_5, paper1_Lemma_2_5_JensenStep⟩
+
+/-! ## Lemma 5.3 target -/
+
+/-- Full arbitrary-profile Section 5 signal-difference estimate. -/
+theorem paper1_Lemma_5_3 : Lemma_5_3 :=
+  Lemma_5_3_proved
+
+section Lemma53AssemblyAxiomAudit
+#print axioms paper1_Lemma_5_3
+end Lemma53AssemblyAxiomAudit
 
 /-! ## Lemma 5.1 and 5.2 targets -/
 
