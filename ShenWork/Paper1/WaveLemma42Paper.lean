@@ -31,7 +31,17 @@ def paperDMin (χ M κ κtilde m gamma c : ℝ) : ℝ :=
     paperSpeedDenominator c κtilde
 
 /-- The exact hypotheses displayed in the paper for the negative-chemotaxis
-lower-barrier estimate. -/
+lower-barrier estimate.
+
+The entry `m * κ + 1 / 2` is a uniform conservative cap, not a claim that the
+sharp Green-flux exponent is always `m * κ + 1 / 2`.  For the normalized
+kernel `exp (-|x|) / 2`, the sharp nonresonant exponent is
+`m * κ + min (gamma * κ) 1`.  In the subcritical range `gamma * κ ≤ 1 / 2`,
+the simultaneous logistic cap and `alpha ≤ m + gamma - 1` already imply
+`κtilde ≤ (m + gamma) * κ`; above that range the displayed half-cap is no
+larger than the sharp flux rate.  At `gamma * κ = 1`, the half loss is the
+standard relaxation of `x * exp (-x)` to a multiple of `exp (-x / 2)`.
+-/
 structure PaperLemma42ExactConditions
     (p : CMParams) (c κ κtilde M : ℝ) : Prop where
   hκ0 : 0 < κ
