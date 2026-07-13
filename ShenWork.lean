@@ -72,6 +72,7 @@ import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.Paper3.IntervalDomainStatementAssembly
 import ShenWork.Paper3.IntervalDomainEnergyDissipation
 import ShenWork.Paper3.IntervalDomainTheorem23Eventual
+import ShenWork.Paper3.IntervalDomainTheorem25Eventual
 import ShenWork.PDE.IntervalNeumannFullKernel
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalFullKernelRegularity
