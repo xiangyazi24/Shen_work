@@ -26,6 +26,56 @@ nonnegative error budgets exposed as parameters. -/
 def paper531Quadratic (c A B η : ℝ) : ℝ :=
   η ^ 2 - (c - A) * η + (1 + B)
 
+def paper531Discriminant (c A B : ℝ) : ℝ :=
+  (c - A) ^ 2 - 4 * (1 + B)
+
+def paper531RootMinus (c A B : ℝ) : ℝ :=
+  ((c - A) - Real.sqrt (paper531Discriminant c A B)) / 2
+
+def paper531RootPlus (c A B : ℝ) : ℝ :=
+  ((c - A) + Real.sqrt (paper531Discriminant c A B)) / 2
+
+theorem paper531Quadratic_factor
+    {c A B : ℝ} (hdisc : 0 ≤ paper531Discriminant c A B) (η : ℝ) :
+    paper531Quadratic c A B η =
+      (η - paper531RootMinus c A B) *
+        (η - paper531RootPlus c A B) := by
+  have hsqrt :
+      Real.sqrt (paper531Discriminant c A B) ^ 2 =
+        paper531Discriminant c A B :=
+    Real.sq_sqrt hdisc
+  unfold paper531Quadratic paper531RootMinus paper531RootPlus
+    paper531Discriminant at *
+  nlinarith
+
+theorem paper531Discriminant_pos_of_speed
+    {c A B : ℝ} (hB : 0 ≤ B)
+    (hspeed : A + 2 * Real.sqrt (1 + B) < c) :
+    0 < paper531Discriminant c A B := by
+  have hbase : 0 ≤ 1 + B := by linarith
+  have hsqrt_nn : 0 ≤ Real.sqrt (1 + B) := Real.sqrt_nonneg _
+  have hsqrt_sq : Real.sqrt (1 + B) ^ 2 = 1 + B :=
+    Real.sq_sqrt hbase
+  unfold paper531Discriminant
+  nlinarith [sq_nonneg (c - A - 2 * Real.sqrt (1 + B))]
+
+theorem paper531RootMinus_lt_rootPlus
+    {c A B : ℝ} (hdisc : 0 < paper531Discriminant c A B) :
+    paper531RootMinus c A B < paper531RootPlus c A B := by
+  have hsqrt : 0 < Real.sqrt (paper531Discriminant c A B) :=
+    Real.sqrt_pos.2 hdisc
+  unfold paper531RootMinus paper531RootPlus
+  linarith
+
+theorem paper531Quadratic_neg_between_roots
+    {c A B η : ℝ}
+    (hdisc : 0 < paper531Discriminant c A B)
+    (hminus : paper531RootMinus c A B < η)
+    (hplus : η < paper531RootPlus c A B) :
+    paper531Quadratic c A B η < 0 := by
+  rw [paper531Quadratic_factor hdisc.le]
+  exact mul_neg_of_pos_of_neg (sub_pos.mpr hminus) (sub_neg.mpr hplus)
+
 theorem paper531Quadratic_at_unperturbed_root
     {c A B k : ℝ} (hk : k ^ 2 - c * k + 1 = 0) :
     paper531Quadratic c A B k = A * k + B := by
@@ -65,6 +115,47 @@ theorem paper531_kappa_not_between_perturbed_roots
     ¬(rootMinus ≤ kappa c ∧ kappa c ≤ rootPlus) :=
   paper531_not_between_perturbed_roots
     (kappa_quadratic_eq_zero hc) hcorrection hfactor
+
+/-- Under the paper's speed threshold and nonnegative budgets, the actual
+direction is `κ(c) < κ⁻`, not `κ⁻ ≤ κ`, whenever the correction at `κ` is
+strictly positive. -/
+theorem paper531_kappa_lt_rootMinus
+    {c A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hspeed : A + 2 * Real.sqrt (1 + B) < c)
+    (hcorrection : 0 < A * kappa c + B) :
+    kappa c < paper531RootMinus c A B := by
+  have hdisc : 0 < paper531Discriminant c A B :=
+    paper531Discriminant_pos_of_speed hB hspeed
+  have hbase : 1 ≤ 1 + B := by linarith
+  have hsqrt_one : 1 ≤ Real.sqrt (1 + B) := by
+    calc
+      (1 : ℝ) = Real.sqrt 1 := by norm_num
+      _ ≤ Real.sqrt (1 + B) := Real.sqrt_le_sqrt hbase
+  have hcA : 2 < c - A := by linarith
+  have hc : 2 < c := lt_of_lt_of_le (by linarith : 2 < c - A) (by linarith)
+  have hk_one : kappa c < 1 := kappa_lt_one_of_two_lt hc
+  have hrootPlus_mid : (c - A) / 2 < paper531RootPlus c A B := by
+    have hsqrt_disc : 0 < Real.sqrt (paper531Discriminant c A B) :=
+      Real.sqrt_pos.2 hdisc
+    unfold paper531RootPlus
+    linarith
+  have hk_plus : kappa c < paper531RootPlus c A B := by
+    have hmid : 1 < (c - A) / 2 := by linarith
+    linarith
+  have hfactor :
+      paper531Quadratic c A B (kappa c) =
+        (kappa c - paper531RootMinus c A B) *
+          (kappa c - paper531RootPlus c A B) :=
+    paper531Quadratic_factor hdisc.le _
+  have hnot_between :
+      ¬(paper531RootMinus c A B ≤ kappa c ∧
+        kappa c ≤ paper531RootPlus c A B) :=
+    paper531_kappa_not_between_perturbed_roots
+      hc.le hcorrection hfactor
+  by_contra hnot
+  apply hnot_between
+  exact ⟨le_of_not_gt hnot, hk_plus.le⟩
 
 /-- The obstruction is not confined to the excluded endpoint `η = κ`.
 Continuity gives weights strictly above `κ` (and below any prescribed upper
@@ -165,6 +256,10 @@ theorem paper531_numeric_sanity_root_window_impossible :
     (by norm_num) (by norm_num) hfactor ⟨hminus, hplus⟩
 
 section Theorem12RootObstructionAxiomAudit
+#print axioms paper531Quadratic_factor
+#print axioms paper531Discriminant_pos_of_speed
+#print axioms paper531Quadratic_neg_between_roots
+#print axioms paper531_kappa_lt_rootMinus
 #print axioms paper531Quadratic_at_kappa
 #print axioms paper531_kappa_not_between_perturbed_roots
 #print axioms paper531_positive_inside_stated_weight_window
