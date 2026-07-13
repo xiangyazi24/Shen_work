@@ -183,6 +183,217 @@ theorem rotheSeqOfPaperSharedRate_shared_rate
       (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k) ell :=
   (paperSharedRateRotheStep p c lam M κ Λ sigma aL C u core k).2.rate
 
+/-! ## Orbit compactness with an independent spatial modulus -/
+
+/-- Paper orbit data with amplitude bound `M` and spatial modulus `L` kept
+separate.  The older `PaperRotheOrbitData` used `M` for both, forcing the
+unrelated and generally false source-box restriction `Λ ≤ M`. -/
+structure PaperRotheOrbitDataWithModulus
+    (p : CMParams) (c lam M κ L : ℝ)
+    (z : ℕ → ℝ → ℝ) : Prop where
+  iterate_cont : ∀ k, Continuous (z k)
+  anti_k : ∀ x, Antitone (fun k => z k x)
+  anti_x : ∀ k, Antitone (z k)
+  nonneg : ∀ k x, 0 ≤ z k x
+  le_M : ∀ k x, z k x ≤ M
+  le_upperBarrier : ∀ k x, z k x ≤ upperBarrier κ M x
+  bddBelow : ∀ x, BddBelow (Set.range (fun k => z k x))
+  equiLip : ∀ k x y, |z k x - z k y| ≤ L * |x - y|
+  limitLip : ∀ x y,
+    |rotheLimit z x - rotheLimit z y| ≤ L * |x - y|
+
+namespace PaperRotheOrbitDataWithModulus
+
+theorem locallyUniform
+    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
+    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
+    LocallyUniformConverges z (rotheLimit z) :=
+  rotheLimit_locallyUniform hL h.anti_k h.bddBelow h.equiLip h.limitLip
+
+theorem limit_continuous
+    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
+    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
+    Continuous (rotheLimit z) :=
+  rotheLimit_continuous h.iterate_cont (h.locallyUniform hL)
+
+end PaperRotheOrbitDataWithModulus
+
+theorem rotheSeqOfPaperSharedRate_base
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) :
+    PaperSharedRateIterateBase p c κ M sigma aL C u
+      (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k) :=
+  (paperSharedRateRotheStep p c lam M κ Λ sigma aL C u core k).2
+
+theorem rotheSeqOfPaperSharedRate_cont
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) :
+    Continuous (rotheSeqOfPaperSharedRate
+      p c lam M κ Λ sigma aL C u core k) :=
+  (rotheSeqOfPaperSharedRate_base core k).base.cont
+
+theorem rotheSeqOfPaperSharedRate_anti_x
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) :
+    Antitone (rotheSeqOfPaperSharedRate
+      p c lam M κ Λ sigma aL C u core k) :=
+  (rotheSeqOfPaperSharedRate_base core k).base.anti
+
+theorem rotheSeqOfPaperSharedRate_nonneg
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) (x : ℝ) :
+    0 ≤ rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x :=
+  (rotheSeqOfPaperSharedRate_base core k).base.nonneg x
+
+theorem rotheSeqOfPaperSharedRate_le_barrier
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x ≤
+      upperBarrier κ M x :=
+  (rotheSeqOfPaperSharedRate_base core k).base.le_barrier x
+
+theorem rotheSeqOfPaperSharedRate_le_M
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x ≤ M :=
+  le_trans (rotheSeqOfPaperSharedRate_le_barrier core k x)
+    (upperBarrier_le_M κ M x)
+
+theorem rotheSeqOfPaperSharedRate_succ_le
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core (k + 1) x ≤
+      rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x :=
+  (rotheSeqOfPaperSharedRate_stepFacts core k).le_old x
+
+theorem rotheSeqOfPaperSharedRate_anti_k
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (x : ℝ) :
+    Antitone (fun k =>
+      rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x) :=
+  antitone_nat_of_succ_le (fun k => rotheSeqOfPaperSharedRate_succ_le core k x)
+
+theorem rotheSeqOfPaperSharedRate_bddBelow
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (x : ℝ) :
+    BddBelow (Set.range (fun k =>
+      rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x)) := by
+  refine ⟨0, ?_⟩
+  rintro _ ⟨k, rfl⟩
+  exact rotheSeqOfPaperSharedRate_nonneg core k x
+
+theorem rotheSeqOfPaperSharedRate_succ_lipschitz
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u)
+    (hΛ : 0 ≤ Λ) (k : ℕ) (x y : ℝ) :
+    |rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core (k + 1) x -
+        rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core (k + 1) y| ≤
+      Λ * |x - y| := by
+  have hfacts := rotheSeqOfPaperSharedRate_stepFacts core k
+  have hLip : LipschitzWith (Real.toNNReal Λ)
+      (rotheSeqOfPaperSharedRate
+        p c lam M κ Λ sigma aL C u core (k + 1)) :=
+    crossImplicitStep_lipschitz hΛ hfacts.diff hfacts.deriv_le
+  have h := hLip.dist_le_mul x y
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ hΛ] at h
+  exact h
+
+theorem rotheSeqOfPaperSharedRate_equiLip
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u)
+    (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|)
+    (k : ℕ) (x y : ℝ) :
+    |rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k x -
+        rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k y| ≤
+      L * |x - y| := by
+  cases k with
+  | zero => simpa using hbarLip x y
+  | succ k =>
+      exact le_trans (rotheSeqOfPaperSharedRate_succ_lipschitz
+        core hΛ0 k x y)
+        (mul_le_mul_of_nonneg_right hΛL (abs_nonneg _))
+
+theorem rotheSeqOfPaperSharedRate_limitLip
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u)
+    (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|)
+    (x y : ℝ) :
+    |rotheLimit (rotheSeqOfPaperSharedRate
+          p c lam M κ Λ sigma aL C u core) x -
+        rotheLimit (rotheSeqOfPaperSharedRate
+          p c lam M κ Λ sigma aL C u core) y| ≤ L * |x - y| := by
+  let z := rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core
+  have hx : Tendsto (fun k => z k x) atTop (𝓝 (rotheLimit z x)) :=
+    rotheLimit_tendsto (rotheSeqOfPaperSharedRate_anti_k core)
+      (rotheSeqOfPaperSharedRate_bddBelow core) x
+  have hy : Tendsto (fun k => z k y) atTop (𝓝 (rotheLimit z y)) :=
+    rotheLimit_tendsto (rotheSeqOfPaperSharedRate_anti_k core)
+      (rotheSeqOfPaperSharedRate_bddBelow core) y
+  have ht := (hx.sub hy).abs
+  refine le_of_tendsto ht ?_
+  exact Eventually.of_forall fun k =>
+    rotheSeqOfPaperSharedRate_equiLip core hΛ0 hΛL hbarLip k x y
+
+theorem paperSharedRate_orbitData
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u)
+    (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|) :
+    PaperRotheOrbitDataWithModulus p c lam M κ L
+      (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core) :=
+  { iterate_cont := rotheSeqOfPaperSharedRate_cont core
+    anti_k := rotheSeqOfPaperSharedRate_anti_k core
+    anti_x := rotheSeqOfPaperSharedRate_anti_x core
+    nonneg := rotheSeqOfPaperSharedRate_nonneg core
+    le_M := rotheSeqOfPaperSharedRate_le_M core
+    le_upperBarrier := rotheSeqOfPaperSharedRate_le_barrier core
+    bddBelow := rotheSeqOfPaperSharedRate_bddBelow core
+    equiLip := rotheSeqOfPaperSharedRate_equiLip core hΛ0 hΛL hbarLip
+    limitLip := rotheSeqOfPaperSharedRate_limitLip core hΛ0 hΛL hbarLip }
+
+/-- The common exponential left rate passes to the long-time limit without a
+family-uniform time tail.  Only the one-orbit local-uniform convergence and
+compactness of the scalar limit interval are used. -/
+theorem paperSharedRate_rotheLimit_rate
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u)
+    (hL : 0 ≤ L)
+    (hΛ0 : 0 ≤ Λ) (hΛL : Λ ≤ L)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ L * |x - y|) :
+    ∃ ell : ℝ, ell ∈ Icc (0 : ℝ) M ∧
+      ExpLeftRate sigma aL C
+        (rotheLimit (rotheSeqOfPaperSharedRate
+          p c lam M κ Λ sigma aL C u core)) ell := by
+  let z := rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core
+  let ellSeq : ℕ → ℝ := fun k =>
+    Classical.choose (rotheSeqOfPaperSharedRate_shared_rate core k)
+  have hellRate : ∀ k, ExpLeftRate sigma aL C (z k) (ellSeq k) :=
+    fun k => Classical.choose_spec (rotheSeqOfPaperSharedRate_shared_rate core k)
+  have hellMem : ∀ k, ellSeq k ∈ Icc (0 : ℝ) M := by
+    intro k
+    exact ExpLeftRate.limit_mem_Icc core.hsigma (hellRate k)
+      (rotheSeqOfPaperSharedRate_nonneg core k)
+      (rotheSeqOfPaperSharedRate_le_M core k)
+  obtain ⟨ell, hell, sub, hsub, hellConv⟩ :=
+    isCompact_Icc.tendsto_subseq hellMem
+  let hdata := paperSharedRate_orbitData core hΛ0 hΛL hbarLip
+  have hzConv : LocallyUniformConverges (fun n => z (sub n)) (rotheLimit z) := by
+    simpa [z] using (hdata.locallyUniform hL).comp_strictMono hsub
+  refine ⟨ell, hell, ?_⟩
+  intro x
+  have htend : Tendsto
+      (fun n => |z (sub n) x - ellSeq (sub n)|) atTop
+      (𝓝 (|rotheLimit z x - ell|)) :=
+    ((hzConv.tendsto_at x).sub hellConv).abs
+  refine le_of_tendsto htend ?_
+  exact Eventually.of_forall fun n => hellRate (sub n) x
+
 section AxiomAudit
 
 #print axioms paperSharedRateRouteACore_of_params
@@ -190,6 +401,9 @@ section AxiomAudit
 #print axioms paperSharedRateRotheStep
 #print axioms rotheSeqOfPaperSharedRate_stepFacts
 #print axioms rotheSeqOfPaperSharedRate_shared_rate
+#print axioms PaperRotheOrbitDataWithModulus.locallyUniform
+#print axioms paperSharedRate_orbitData
+#print axioms paperSharedRate_rotheLimit_rate
 
 end AxiomAudit
 
