@@ -952,7 +952,7 @@ lemma tendsto_smoothCubeWeight_abs_sum {β : Type*} {n : ℕ} {c : ℝ}
           tendsto_const_nhds).abs))
   simpa using hsum
 
-lemma coord_abs_sub_le_of_norm {n : ℕ}
+lemma projectedCube_coord_abs_sub_le_of_norm {n : ℕ}
     {a b : Fin n → ℝ} {δ : ℝ} (h : ‖a - b‖ ≤ δ) (i : Fin n) :
     |a i - b i| ≤ δ := by
   have hcoord := norm_le_pi_norm (a - b) i
@@ -1588,7 +1588,7 @@ theorem projectedCubeResidual_le
         sum_schauderBumpWeight_of_sum_pos hsum_pos
     have hcoord : ∀ i : Fin d, |a i - p i| ≤ c := by
       intro i
-      have hi := coord_abs_sub_le_of_norm hclose i
+      have hi := projectedCube_coord_abs_sub_le_of_norm hclose i
       simpa [p, c, d, Pi.sub_apply, abs_sub_comm] using hi
     have hq_p_sum :
         ∑ i : Fin d, |q i - p i| ≤
