@@ -732,7 +732,7 @@ theorem paperWaveOperator_deriv_at_approx_pos_max_le_of_structural
             |deriv (frozenElliptic p u) x₀| ≤
           a * p.m * M ^ (p.m - 1) * BVd :=
       mul_le_mul hcoef_le (hVderiv_bound x₀)
-        (abs_nonneg _) hcoef_nonneg
+        (abs_nonneg _) hcoefM_nonneg
     have hprod :
         |a * p.m * (W x₀) ^ (p.m - 1) *
             deriv (frozenElliptic p u) x₀ * deriv (deriv W) x₀| ≤
@@ -751,17 +751,25 @@ theorem paperWaveOperator_deriv_at_approx_pos_max_le_of_structural
       Real.rpow_nonneg hW_nonneg _
     have hcoef :
         0 ≤ a * (p.m + p.γ) * (W x₀) ^ (p.m + p.γ - 1) *
-          deriv W x₀ := by positivity
+          deriv W x₀ := by
+      have hmg : 0 ≤ p.m + p.γ := by linarith [p.hm, p.hγ]
+      exact mul_nonneg
+        (mul_nonneg (mul_nonneg ha_nonneg hmg) hpow) hqpos.le
     dsimp [diagonal]
     nlinarith
   have hreaction : reactionCoeff ≤ reactionLip p.α M := by
     have hWα : 0 ≤ (W x₀) ^ p.α := Real.rpow_nonneg hW_nonneg _
     have hWαm1 : 0 ≤ (W x₀) ^ (p.α - 1) := Real.rpow_nonneg hW_nonneg _
-    have hprod : 0 ≤ p.α * (W x₀ * (W x₀) ^ (p.α - 1)) := by positivity
+    have hα0 : 0 ≤ p.α := le_trans zero_le_one p.hα
+    have hprod : 0 ≤ p.α * (W x₀ * (W x₀) ^ (p.α - 1)) :=
+      mul_nonneg hα0 (mul_nonneg hW_nonneg hWαm1)
     have hMα : 0 ≤ M ^ p.α := Real.rpow_nonneg hM_nonneg _
+    have hαplus : 0 ≤ p.α + 1 := by linarith [p.hα]
+    have hMterm : 0 ≤ (p.α + 1) * M ^ p.α :=
+      mul_nonneg hαplus hMα
     dsimp [reactionCoeff]
     unfold reactionLip
-    nlinarith
+    nlinarith [hWα, hprod, hMterm]
   have hv2 : v2Coeff ≤ a * p.m * M ^ (p.m - 1) * BV2 := by
     have hDle : deriv (deriv (frozenElliptic p u)) x₀ ≤ BV2 :=
       le_trans (le_abs_self _) (hV2bound x₀)
@@ -830,7 +838,8 @@ theorem smooth_paperStep_deriv_nonpos_of_quasiMonotone_tailfree
   let eta : ℝ := (lam - Cmono) * deriv W x₁ / (4 * (E + 1))
   have heta : 0 < eta := by
     dsimp [eta]
-    positivity
+    exact div_pos (mul_pos (sub_pos.mpr hClam) hx₁)
+      (mul_pos (by norm_num) (by linarith))
   obtain ⟨x₀, hqvalue, hqSlope, hqSecond⟩ :=
     exists_approx_positive_max_deriv_data
       (f := fun x => deriv W x) (A := Q) (eta := eta) (x₁ := x₁)
@@ -856,9 +865,36 @@ theorem smooth_paperStep_deriv_nonpos_of_quasiMonotone_tailfree
     have hE1 : E < E + 1 := by linarith
     have hbase : 0 < (lam - Cmono) * deriv W x₁ :=
       mul_pos (sub_pos.mpr hClam) hx₁
-    apply (mul_div_lt_iff₀ (show 0 < 4 * (E + 1) by positivity)).2
-    nlinarith [mul_pos hbase hE1]
-  nlinarith [mul_pos (sub_pos.mpr hClam) hqpos]
+    have hden : 0 < 4 * (E + 1) :=
+      mul_pos (by norm_num) (by linarith)
+    have hscaled : E * ((lam - Cmono) * deriv W x₁) <
+        (E + 1) * ((lam - Cmono) * deriv W x₁) :=
+      mul_lt_mul_of_pos_right hE1 hbase
+    calc
+      E * ((lam - Cmono) * deriv W x₁ / (4 * (E + 1))) =
+          (E * ((lam - Cmono) * deriv W x₁)) / (4 * (E + 1)) := by ring
+      _ < ((E + 1) * ((lam - Cmono) * deriv W x₁)) /
+          (4 * (E + 1)) := (div_lt_div_iff_of_pos_right hden).2 hscaled
+      _ = (lam - Cmono) * deriv W x₁ / 4 := by
+        field_simp [ne_of_gt (show 0 < E + 1 by linarith)]
+  have hqscaled :
+      (lam - Cmono) * (deriv W x₁ / 2) <
+        (lam - Cmono) * deriv W x₀ :=
+    mul_lt_mul_of_pos_left hqvalue (sub_pos.mpr hClam)
+  have hgap_le :
+      (lam - Cmono) * deriv W x₀ ≤ E * eta := by
+    linarith [hA_lower, hA]
+  have hbase : 0 < (lam - Cmono) * deriv W x₁ :=
+    mul_pos (sub_pos.mpr hClam) hx₁
+  have hquarter :
+      (lam - Cmono) * deriv W x₁ / 4 <
+        (lam - Cmono) * (deriv W x₁ / 2) := by
+    calc
+      (lam - Cmono) * deriv W x₁ / 4 <
+          (lam - Cmono) * deriv W x₁ / 2 := by linarith
+      _ = (lam - Cmono) * (deriv W x₁ / 2) := by ring
+  exact (not_lt_of_ge hgap_le)
+    (lt_trans (lt_trans hEeta hquarter) hqscaled)
 
 /-- The Route-A bookkeeping discharges the local operator-derivative estimate:
 at a positive maximum of `q = W'`, the differentiated paper operator is bounded
@@ -1191,7 +1227,11 @@ theorem paperStep_antitone_by_routeA_of_structuralData_tailfree
     le_trans (abs_nonneg (frozenElliptic p u 0)) (hd.V_bound 0)
   have hE : 0 ≤ E := by
     dsimp [E]
-    positivity
+    have hm0 : 0 ≤ p.m := by linarith [p.hm]
+    have hpow0 : 0 ≤ hd.M ^ (p.m - 1) := Real.rpow_nonneg hM0 _
+    have hterm : 0 ≤ hd.a * p.m * hd.M ^ (p.m - 1) * hd.BV :=
+      mul_nonneg (mul_nonneg (mul_nonneg ha0 hm0) hpow0) hBV0
+    exact add_nonneg (add_nonneg zero_le_one (abs_nonneg c)) hterm
   have hq2 : ContDiff ℝ 2 (fun x => deriv W x) := by
     have hW3 : ContDiff ℝ ((2 : ℕ∞) + 1) W := by
       norm_num at hWreg ⊢
@@ -1305,7 +1345,6 @@ than the shifted sliding wrapper. -/
 structure PaperStepOutputRouteACore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
-  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -1322,7 +1361,6 @@ consumed by `paperRotheStepProducer_of_routeA_greenCore`. -/
 structure PaperStepOutputRouteAAssemblyData
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
   fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z
-  left_rate : ExpLeftRateData fixed.W
   C_chem : ℝ
   lowerZero :
     PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
@@ -1344,7 +1382,6 @@ def toOutputRouteACore
     Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
   ⟨h.fixed.W,
     { analytic := h.fixed.analyticCore
-      left_rate := h.left_rate
       C_chem := h.C_chem
       lowerZero := h.lowerZero
       upperOld := h.upperOld
@@ -1362,7 +1399,6 @@ Route-A payloads, so the fixed source can be supplied concretely by
 structure PaperStepOutputRouteAFixedRestData
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ)
     (fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z) where
-  left_rate : ExpLeftRateData fixed.W
   C_chem : ℝ
   lowerZero :
     PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
@@ -1383,7 +1419,6 @@ def toAssemblyData
     (h : PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
     PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z :=
   { fixed := fixed
-    left_rate := h.left_rate
     C_chem := h.C_chem
     lowerZero := h.lowerZero
     upperOld := h.upperOld
