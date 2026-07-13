@@ -390,12 +390,15 @@ structure SuperlinearClosedBallData
   Lambda : ℝ
   kernelMass : ℝ
   radius : ℝ
+  localRadius : ℝ
   order_pos : 0 < order
   M_nonneg : 0 ≤ M
   datum_nonneg : 0 ≤ datum
   Lambda_nonneg : 0 ≤ Lambda
   kernelMass_nonneg : 0 ≤ kernelMass
   radius_pos : 0 < radius
+  localRadius_pos : 0 < localRadius
+  radius_le_localRadius : radius ≤ localRadius
   radius_eq : radius = 2 * M * datum
   superlinear_small :
     Lambda * kernelMass * radius ^ order < 1 / 2
