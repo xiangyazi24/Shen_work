@@ -264,6 +264,7 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     ∃ p : CMParams, ∃ c η : ℝ, ∃ U V : ℝ → ℝ,
       0 < p.χ ∧ 2 < c ∧ StableWaveParameterRegime p ∧
       IsTravelingWave p c U V ∧
+      TravelingWaveRegularity p c U V ∧
       HasStrictWaveUpperTailBound p c U ∧
       NonnegativeInitialDatum U ∧
       StrictlyPositiveAtLeft U ∧
@@ -289,7 +290,7 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     lt_of_lt_of_le hχsmall (min_le_right _ _)
   have hχ1 : p.χ < 1 := by norm_num [p]
   have hc : (2 : ℝ) < 3 := by norm_num
-  obtain ⟨U, hprofile, hU2, hV2, hupper, _htail⟩ :=
+  obtain ⟨U, hprofile, hU2, hV2, hreg, hupper, _htail⟩ :=
     paper1_positiveConstruction_selfStep p hα hχ0 hχsmall 3 hc
   let V : ℝ → ℝ := frozenElliptic p U
   have hTW : IsTravelingWave p 3 U V := by
@@ -301,7 +302,7 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       (η := 0) hTW hstrict hU2 (by simpa [V] using hV2)
   exact ⟨p, 3, 0, U, V, hχpos, hc,
     StableWaveParameterRegime.of_positive hχ0 hχstar hα,
-    hTW, hstrict, hself⟩
+    hTW, by simpa [V] using hreg, hstrict, hself⟩
 
 section Theorem12CorrectedAxiomAudit
 #print axioms CoMovingWeightedL2Convergence.of_energy_dissipation
