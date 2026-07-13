@@ -38,6 +38,23 @@ theorem paperTmap_mem_uniformModulusTrap
         (upperBarrier_isBddFun hM) hdata u hu,
       (hdata u hu).limitLip⟩
 
+/-- A Rothe orbit carrying an independent spatial modulus maps into the
+corresponding compact-open uniform-modulus trap. -/
+theorem paperTmap_mem_uniformModulusTrap_of_orbitModulus
+    (p : CMParams) (c lam M κ L : ℝ) (hM : 0 ≤ M) (hL : 0 ≤ L)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitDataWithModulus p c lam M κ L (rotheSeq u)) :
+    ∀ u, InMonotoneWaveTrapSet κ M u →
+      InUniformModulusMonotoneWaveTrap κ M L
+        (rotheLimit (rotheSeq u)) := by
+  intro u hu
+  let h := hdata u hu
+  have hbare : InMonotoneWaveTrapSet κ M (rotheLimit (rotheSeq u)) :=
+    rotheLimit_mem_trap (h.limit_continuous hL) h.bddBelow h.anti_x
+      h.nonneg h.le_upperBarrier (upperBarrier_isBddFun hM)
+  exact ⟨hbare, h.limitLip⟩
+
 namespace InUniformModulusMonotoneWaveTrap
 
 variable {κ M L : ℝ} {u v : ℝ → ℝ}
@@ -140,6 +157,26 @@ theorem paperTmap_compactRange_of_uniformModulus
   refine ⟨sub, hsub, g, hg.bare, ?_⟩
   simpa [gs] using hconv
 
+/-- Compact range of the long-time map from orbit data with an independent
+spatial modulus. -/
+theorem paperTmap_compactRange_of_orbitModulus
+    (p : CMParams) (c lam M κ L : ℝ) (hM : 0 ≤ M) (hL : 0 ≤ L)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitDataWithModulus p c lam M κ L (rotheSeq u)) :
+    LocalUniformSequentiallyCompactRange
+      (InMonotoneWaveTrapSet κ M) (fun u => rotheLimit (rotheSeq u)) := by
+  intro seq hseq
+  let gs : ℕ → ℝ → ℝ := fun n => rotheLimit (rotheSeq (seq n))
+  have hgs : ∀ n, InUniformModulusMonotoneWaveTrap κ M L (gs n) :=
+    fun n => paperTmap_mem_uniformModulusTrap_of_orbitModulus
+      p c lam M κ L hM hL rotheSeq hdata (seq n) (hseq n)
+  obtain ⟨sub, hsub, g, hg, hconv⟩ :=
+    InUniformModulusMonotoneWaveTrap.locallyUniform_sequentiallyCompact
+      (κ := κ) hM hL gs hgs
+  refine ⟨sub, hsub, g, hg.bare, ?_⟩
+  simpa [gs] using hconv
+
 namespace InLowerPinnedUniformModulusMonotoneTrap
 
 variable {κ M L : ℝ} {φ : ℝ → ℝ}
@@ -236,7 +273,9 @@ section AxiomAudit
 #print axioms InUniformModulusMonotoneWaveTrap.set_convex
 #print axioms InUniformModulusMonotoneWaveTrap.locallyUniform_sequentiallyCompact
 #print axioms paperTmap_mem_uniformModulusTrap
+#print axioms paperTmap_mem_uniformModulusTrap_of_orbitModulus
 #print axioms paperTmap_compactRange_of_uniformModulus
+#print axioms paperTmap_compactRange_of_orbitModulus
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.set_convex
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.locallyUniform_sequentiallyCompact
 #print axioms movingPlateauFamily_each_locallyUniform

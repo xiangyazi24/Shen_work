@@ -840,6 +840,39 @@ theorem limit_le_M (h : PaperRotheOrbitData p c lam M κ rotheSeq u) :
 
 end PaperRotheOrbitData
 
+/-- Paper orbit data with the amplitude bound and spatial compactness modulus
+kept independent.  Green estimates naturally provide a uniform modulus that
+need not be bounded by the amplitude. -/
+structure PaperRotheOrbitDataWithModulus
+    (p : CMParams) (c lam M κ L : ℝ)
+    (z : ℕ → ℝ → ℝ) : Prop where
+  iterate_cont : ∀ k, Continuous (z k)
+  anti_k : ∀ x, Antitone (fun k => z k x)
+  anti_x : ∀ k, Antitone (z k)
+  nonneg : ∀ k x, 0 ≤ z k x
+  le_M : ∀ k x, z k x ≤ M
+  le_upperBarrier : ∀ k x, z k x ≤ upperBarrier κ M x
+  bddBelow : ∀ x, BddBelow (Set.range (fun k => z k x))
+  equiLip : ∀ k x y, |z k x - z k y| ≤ L * |x - y|
+  limitLip : ∀ x y,
+    |rotheLimit z x - rotheLimit z y| ≤ L * |x - y|
+
+namespace PaperRotheOrbitDataWithModulus
+
+theorem locallyUniform
+    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
+    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
+    LocallyUniformConverges z (rotheLimit z) :=
+  rotheLimit_locallyUniform hL h.anti_k h.bddBelow h.equiLip h.limitLip
+
+theorem limit_continuous
+    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
+    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
+    Continuous (rotheLimit z) :=
+  rotheLimit_continuous h.iterate_cont (h.locallyUniform hL)
+
+end PaperRotheOrbitDataWithModulus
+
 section PaperPerK
 variable (hprod : PaperRotheStepProducer p c lam M κ Λ u)
   (hκ : 0 ≤ κ) (hM : 0 ≤ M)
@@ -2041,6 +2074,7 @@ section AxiomAudit
 #print axioms rotheSeqOfPaper_lowerPinned_base
 #print axioms paperRotheOrbitData
 #print axioms paperRotheOrbitData_fromTrap
+#print axioms PaperRotheOrbitDataWithModulus.locallyUniform
 #print axioms paperTmap_maps_trap
 #print axioms paperTmap_compactRange
 #print axioms PaperRotheTailUniform.toAlongConvergentSeq

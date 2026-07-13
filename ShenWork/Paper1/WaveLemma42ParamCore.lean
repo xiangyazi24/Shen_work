@@ -5,6 +5,7 @@ import ShenWork.Paper1.WavePaperRouteARotheAnalytic
 import ShenWork.Paper1.WaveLocalUniformClosedGraph
 import ShenWork.Paper1.WaveUniformModulusTrap
 import ShenWork.Paper1.WaveLocalStepConstruction
+import ShenWork.Paper1.WaveControlledSchauder
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Filter Topology
@@ -458,7 +459,7 @@ theorem paperLowerRawParamRotheLimitClosedGraph
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (h : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hκ hM)
-    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ)
     (hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
     PaperLowerRawParamRotheLimitClosedGraph h.producer := by
@@ -466,25 +467,35 @@ theorem paperLowerRawParamRotheLimitClosedGraph
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
+  let Q : ℝ := max M Λ
+  have hQ0 : 0 ≤ Q := le_trans hMpos.le (le_max_left M Λ)
+  have hΛQ : Λ ≤ Q := le_max_right M Λ
+  have hMQ : M ≤ Q := le_max_left M Λ
+  have hbarLipQ : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
+    intro x y
+    exact (hbarLip x y).trans
+      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitData p c lam M κ zseq u := by
+      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
     intro u hu
     simpa [zseq, paperLowerRawParamRotheSeq, hinput] using
-      paperRouteARotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
+      paperRouteARotheOrbitDataWithModulus_fromTrap
+        (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hinput
-        hκ hM hΛ0 hΛM hbarLip hu
+        hκ hM hΛ0 hΛQ hbarLipQ hu
   have hoff : PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap
       p c lam M κ zseq := by
     simpa [zseq] using
       paperLowerRawParamOffDiagonalStepClosedGraph h hMpos hΛ0
   intro seq u W hseq hu hW houter hlimits
   let Z : ℕ → ℕ → ℝ → ℝ := fun n => zseq (seq n)
-  let L : ℕ → ℝ → ℝ := fun n => rotheLimit (zseq (seq n))
-  have horbit : ∀ n, LocallyUniformConverges (Z n) (L n) := by
+  let Lim : ℕ → ℝ → ℝ := fun n => rotheLimit (zseq (seq n))
+  have horbit : ∀ n, LocallyUniformConverges (Z n) (Lim n) := by
     intro n
-    simpa [Z, L] using (hdata (seq n) (hseq n).bare).locallyUniform hM
+    simpa [Z, Lim] using (hdata (seq n) (hseq n).bare).locallyUniform hQ0
   obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
-    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hlimits)
+    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [Lim] using hlimits)
   obtain ⟨hstep, _hWdiff, _hWderivDiff⟩ := hoff seq u W ks
     (fun n => (hseq n).bare) hu.bare hW.bare houter hks
     (by simpa [Z] using hold) (by simpa [Z] using hnew)
@@ -500,7 +511,7 @@ theorem paperLowerRawParamRotheContinuousDependence
       p c lam M κ κtilde D Λ hκ hM)
     (hlower : RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D)
       (paperLowerRawParamRotheSeq h.producer))
-    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hMpos : 0 < M) (hΛ0 : 0 ≤ Λ)
     (hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
     RotheContinuousDependence p c lam
@@ -510,18 +521,28 @@ theorem paperLowerRawParamRotheContinuousDependence
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
+  let Q : ℝ := max M Λ
+  have hQ0 : 0 ≤ Q := le_trans hMpos.le (le_max_left M Λ)
+  have hΛQ : Λ ≤ Q := le_max_right M Λ
+  have hMQ : M ≤ Q := le_max_left M Λ
+  have hbarLipQ : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
+    intro x y
+    exact (hbarLip x y).trans
+      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitData p c lam M κ zseq u := by
+      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
     intro u hu
     simpa [zseq, paperLowerRawParamRotheSeq, hinput] using
-      paperRouteARotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
+      paperRouteARotheOrbitDataWithModulus_fromTrap
+        (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hinput
-        hκ hM hΛ0 hΛM hbarLip hu
+        hκ hM hΛ0 hΛQ hbarLipQ hu
   have hcompactBare : LocalUniformSequentiallyCompactRange
       (InMonotoneWaveTrapSet κ M)
       (fun u => rotheLimit (zseq u)) :=
-    paperTmap_compactRange_of_uniformModulus
-      p c lam M κ hM zseq hdata
+    paperTmap_compactRange_of_orbitModulus
+      p c lam M κ Q hM hQ0 zseq hdata
   have hlimitLower : ∀ u,
       InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
       ∀ x, lowerBarrierRaw κ κtilde D x ≤ rotheLimit (zseq u) x :=
@@ -541,7 +562,7 @@ theorem paperLowerRawParamRotheContinuousDependence
       (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
       (fun u => rotheLimit (zseq u)) := by
     simpa [zseq] using paperLowerRawParamRotheLimitClosedGraph
-      h hMpos hΛ0 hΛM hbarLip
+      h hMpos hΛ0 hbarLip
   have hcont := hcompact.continuousOn_of_closedGraph hclosed
   simpa [zseq] using hcont
 
@@ -553,6 +574,75 @@ def PaperLowerPinnedFlatFloor
     (∀ x, frozenWaveOperator p c U U x = 0) →
       FrozenStationaryFlatAtLeft p U
 
+/-- Direct Schauder--Tychonoff fixed point followed by the adaptive whole-line
+Green closed graph, with amplitude and spatial modulus independent.  This is
+the finite-cube-free construction used by the live lower-raw branch. -/
+theorem paperLowerPinned_stationary_of_modulusSchauder
+    (p : CMParams) (c lam M κ L : ℝ) (φ : ℝ → ℝ)
+    (hM : 0 ≤ M) (hL : 0 ≤ L) (hlam : 0 < lam)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitDataWithModulus p c lam M κ L (rotheSeq u))
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq)
+    (hcont : LocalUniformContinuousOn
+      (InLowerPinnedMonotoneTrap κ M φ)
+      (fun u => rotheLimit (rotheSeq u)))
+    (hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
+      p c lam M κ rotheSeq)
+    (hne : ∃ u, InLowerPinnedMonotoneTrap κ M φ u) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+      (∀ x, frozenWaveOperator p c U U x = 0) ∧
+      Differentiable ℝ U ∧ Differentiable ℝ (deriv U) ∧
+      PaperGreenSourceTailData c lam U := by
+  let Tmap : (ℝ → ℝ) → ℝ → ℝ :=
+    fun u => rotheLimit (rotheSeq u)
+  have hbareMap : ∀ u, InMonotoneWaveTrapSet κ M u →
+      InMonotoneWaveTrapSet κ M (Tmap u) := by
+    intro u hu
+    let h := hdata u hu
+    exact rotheLimit_mem_trap (h.limit_continuous hL) h.bddBelow
+      h.anti_x h.nonneg h.le_upperBarrier (upperBarrier_isBddFun hM)
+  have hlowerMap : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ Tmap u x :=
+    Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower
+  have hmap : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      InLowerPinnedMonotoneTrap κ M φ (Tmap u) :=
+    fun u hu => ⟨hbareMap u hu.bare, hlowerMap u hu⟩
+  have hcompactBare : LocalUniformSequentiallyCompactRange
+      (InMonotoneWaveTrapSet κ M) Tmap := by
+    simpa [Tmap] using paperTmap_compactRange_of_orbitModulus
+      p c lam M κ L hM hL rotheSeq hdata
+  have hcompact : LocalUniformSequentiallyCompactRange
+      (InLowerPinnedMonotoneTrap κ M φ) Tmap := by
+    intro seq hseq
+    obtain ⟨sub, hsub, U, hUbare, hconv⟩ :=
+      hcompactBare seq (fun n => (hseq n).bare)
+    have hUlower : ∀ x, φ x ≤ U x := by
+      intro x
+      exact le_of_tendsto_of_tendsto tendsto_const_nhds (hconv.tendsto_at x)
+        (Eventually.of_forall fun n =>
+          hlowerMap (seq (sub n)) (hseq (sub n)) x)
+    exact ⟨sub, hsub, U, ⟨hUbare, hUlower⟩, hconv⟩
+  obtain ⟨U, hU, hfix⟩ :=
+    (InLowerPinnedMonotoneTrap.boundedConvexProfileTrapData hne).exists_fixed
+      hmap hcont hcompact
+  have hLU : LocallyUniformConverges (rotheSeq U) U := by
+    simpa only [Tmap, hfix] using (hdata U hU.bare).locallyUniform hL
+  have hLU_succ : LocallyUniformConverges
+      (fun n => rotheSeq U (n + 1)) U :=
+    hLU.comp_strictMono (strictMono_id.add_const 1)
+  obtain ⟨hstep, hUdiff, hUderivDiff, hsourceTail⟩ :=
+    hgraph (fun _ : ℕ => U) U id (fun _ => hU.bare) hU.bare
+      (LocallyUniformConverges.const U) tendsto_id
+      (by simpa using hLU) (by simpa using hLU_succ)
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+      p c lam U hlam hU.bare.trap.cunif_bdd hU.bare.nonneg hUdiff
+      (fun x => frozenElliptic_deriv_differentiableAt p
+        hU.bare.trap.cunif_bdd hU.bare.nonneg x)
+      (fun x => (hUdiff x).rpow_const (Or.inr p.hm)) hstep
+  exact ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩
+
 /-- B1 χ≤0 Route-A wrapper after replacing the monolithic Route-A per-step
 producer residual by the explicit source-box parameter layer. -/
 theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
@@ -560,7 +650,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
     (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
     (hD_ge_one : 1 ≤ D)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hΛ0 : 0 ≤ Λ)
     (hpar :
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
@@ -604,17 +694,27 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         exact rotheSeqOfPaperRouteA_lowerPinned_base (hinputTrap u hu.bare)
           hcond.hκ0.le hM0 hu)
       hstep
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  let Q : ℝ := max M Λ
+  have hQ0 : 0 ≤ Q := le_trans hM0 (le_max_left M Λ)
+  have hΛQ : Λ ≤ Q := le_max_right M Λ
+  have hMQ : M ≤ Q := le_max_left M Λ
+  have hbarLipQ : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
+    intro x y
+    exact (hcond.upperBarrier_barLip x y).trans
+      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitData p c lam M κ zseq u := by
+      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
     intro u hu
     simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hinputTrap] using
-      paperRouteARotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
+      paperRouteARotheOrbitDataWithModulus_fromTrap
+        (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hinputTrap
-        hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
+        hcond.hκ0.le hM0 hΛ0 hΛQ hbarLipQ hu
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
       (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).stepParams.hlam
-  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
   have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
   have hDpos : 0 < D := D_pos_of_paperDMin_lt hcond hD
   have hExpM :
@@ -625,17 +725,12 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       (lowerBarrierPlateau κ κtilde D) :=
     lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
       hcond.hκ0 hgap_pos hDpos hExpM
-  have hcube : LowerPinnedWaveCubeApproxData κ M
-      (lowerBarrierRaw κ κtilde D) zseq :=
-    lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq
-      (upperBarrier_isBddFun hM0)
-      (by
-        simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-          paperLowerRawParamRotheContinuousDependence hpar hlower
-            hMpos hΛ0 hΛM
-            hcond.upperBarrier_barLip)
-      hdata hlower
+  have hcont : LocalUniformContinuousOn
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (zseq u)) := by
+    simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+      paperLowerRawParamRotheContinuousDependence hpar hlower
+        hMpos hΛ0 hcond.upperBarrier_barLip
   have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
       p c lam M κ zseq := by
     simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
@@ -644,9 +739,11 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
   obtain ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩ :=
-    paperLowerPinned_adaptiveStationary_of_cubeApproxData
-      p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
-      hdata hlower hcube hgraph
+    paperLowerPinned_stationary_of_modulusSchauder
+      p c lam M κ Q (lowerBarrierRaw κ κtilde D)
+      hM0 hQ0 hlam zseq hdata hlower hcont hgraph
+      ⟨lowerBarrierPlateau κ κtilde D, hplat,
+        lowerBarrierRaw_le_plateau hcond.hκ0 hgap_pos hDpos⟩
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
       (fun x _hx => hU.lower x)
@@ -680,7 +777,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
     (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
     (hD_ge_one : 1 ≤ D)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hΛ0 : 0 ≤ Λ)
     (hpar :
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
@@ -724,17 +821,27 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         exact rotheSeqOfPaperRouteA_lowerPinned_base (hinputTrap u hu.bare)
           hcond.hκ0.le hM0 hu)
       hstep
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  let Q : ℝ := max M Λ
+  have hQ0 : 0 ≤ Q := le_trans hM0 (le_max_left M Λ)
+  have hΛQ : Λ ≤ Q := le_max_right M Λ
+  have hMQ : M ≤ Q := le_max_left M Λ
+  have hbarLipQ : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ Q * |x - y| := by
+    intro x y
+    exact (hcond.upperBarrier_barLip x y).trans
+      (mul_le_mul_of_nonneg_right hMQ (abs_nonneg _))
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperRotheOrbitData p c lam M κ zseq u := by
+      PaperRotheOrbitDataWithModulus p c lam M κ Q (zseq u) := by
     intro u hu
     simpa [zseq, paperLowerRawParamRotheSeqFromTrap, hinputTrap] using
-      paperRouteARotheOrbitData_fromTrap (p := p) (c := c) (lam := lam)
+      paperRouteARotheOrbitDataWithModulus_fromTrap
+        (p := p) (c := c) (lam := lam)
         (M := M) (κ := κ) (Λ := Λ) (u := u) hinputTrap
-        hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
+        hcond.hκ0.le hM0 hΛ0 hΛQ hbarLipQ hu
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
       (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).stepParams.hlam
-  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
   have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
   have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
   have hExpM :
@@ -745,17 +852,12 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       (lowerBarrierPlateau κ κtilde D) :=
     lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
       hcond.hκ0 hgap_pos hDpos hExpM
-  have hcube : LowerPinnedWaveCubeApproxData κ M
-      (lowerBarrierRaw κ κtilde D) zseq :=
-    lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq
-      (upperBarrier_isBddFun hM0)
-      (by
-        simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
-          paperLowerRawParamRotheContinuousDependence hpar hlower
-            hMpos hΛ0 hΛM
-            hcond.upperBarrier_barLip)
-      hdata hlower
+  have hcont : LocalUniformContinuousOn
+      (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (zseq u)) := by
+    simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
+      paperLowerRawParamRotheContinuousDependence hpar hlower
+        hMpos hΛ0 hcond.upperBarrier_barLip
   have hgraph : PaperGreenRotheAdaptiveStepClosedGraphOnTrap
       p c lam M κ zseq := by
     simpa [zseq, paperLowerRawParamRotheSeqFromTrap] using
@@ -764,9 +866,11 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         (paperLowerRawParamRotheSeq hpar.producer)
         (paperLowerRawParamGreenSourceCompactness hpar hMpos hΛ0)
   obtain ⟨U, hU, hstat, hUdiff, hUderivDiff, hsourceTail⟩ :=
-    paperLowerPinned_adaptiveStationary_of_cubeApproxData
-      p c lam M κ (lowerBarrierRaw κ κtilde D) hM0 hlam zseq
-      hdata hlower hcube hgraph
+    paperLowerPinned_stationary_of_modulusSchauder
+      p c lam M κ Q (lowerBarrierRaw κ κtilde D)
+      hM0 hQ0 hlam zseq hdata hlower hcont hgraph
+      ⟨lowerBarrierPlateau κ κtilde D, hplat,
+        lowerBarrierRaw_le_plateau hcond.hκ0 hgap_pos hDpos⟩
   have hnontriv : ProfileNontrivial U :=
     profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
       (fun x _hx => hU.lower x)
@@ -800,7 +904,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
     (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
     (hD_ge_one : 1 ≤ D)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hΛ0 : 0 ≤ Λ)
     (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM)) :
@@ -808,7 +912,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar
       FrozenStationaryWaveProfile p c U ∧
       Differentiable ℝ U ∧ Differentiable ℝ (deriv U) :=
   b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hpar
 
 /-- Clean positive-branch name after the finite-cube approximation and adaptive
 Green source compactness have both become internal theorems. -/
@@ -817,7 +921,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
     (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
     (hD_ge_one : 1 ≤ D)
-    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hΛ0 : 0 ≤ Λ)
     (hpar : PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM)) :
@@ -825,7 +929,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
       FrozenStationaryWaveProfile p c U ∧
       Differentiable ℝ U ∧ Differentiable ℝ (deriv U) :=
   b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hpar
 
 section AxiomAudit
 
@@ -842,6 +946,7 @@ section AxiomAudit
 #print axioms paperLowerRawParamRotheLimitClosedGraph
 #print axioms paperLowerRawParamRotheContinuousDependence
 #print axioms PaperLowerPinnedFlatFloor
+#print axioms paperLowerPinned_stationary_of_modulusSchauder
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar

@@ -192,41 +192,6 @@ theorem rotheSeqOfPaperSharedRate_shared_rate
       (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k) ell :=
   (paperSharedRateRotheStep p c lam M κ Λ sigma aL C u core k).2.rate
 
-/-! ## Orbit compactness with an independent spatial modulus -/
-
-/-- Paper orbit data with amplitude bound `M` and spatial modulus `L` kept
-separate.  The older `PaperRotheOrbitData` used `M` for both, forcing the
-unrelated and generally false source-box restriction `Λ ≤ M`. -/
-structure PaperRotheOrbitDataWithModulus
-    (p : CMParams) (c lam M κ L : ℝ)
-    (z : ℕ → ℝ → ℝ) : Prop where
-  iterate_cont : ∀ k, Continuous (z k)
-  anti_k : ∀ x, Antitone (fun k => z k x)
-  anti_x : ∀ k, Antitone (z k)
-  nonneg : ∀ k x, 0 ≤ z k x
-  le_M : ∀ k x, z k x ≤ M
-  le_upperBarrier : ∀ k x, z k x ≤ upperBarrier κ M x
-  bddBelow : ∀ x, BddBelow (Set.range (fun k => z k x))
-  equiLip : ∀ k x y, |z k x - z k y| ≤ L * |x - y|
-  limitLip : ∀ x y,
-    |rotheLimit z x - rotheLimit z y| ≤ L * |x - y|
-
-namespace PaperRotheOrbitDataWithModulus
-
-theorem locallyUniform
-    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
-    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
-    LocallyUniformConverges z (rotheLimit z) :=
-  rotheLimit_locallyUniform hL h.anti_k h.bddBelow h.equiLip h.limitLip
-
-theorem limit_continuous
-    {p : CMParams} {c lam M κ L : ℝ} {z : ℕ → ℝ → ℝ}
-    (hL : 0 ≤ L) (h : PaperRotheOrbitDataWithModulus p c lam M κ L z) :
-    Continuous (rotheLimit z) :=
-  rotheLimit_continuous h.iterate_cont (h.locallyUniform hL)
-
-end PaperRotheOrbitDataWithModulus
-
 theorem rotheSeqOfPaperSharedRate_base
     (core : PaperGreenStepInputRouteASharedRateOrbitCore
       p c lam M κ Λ sigma aL C u) (k : ℕ) :
