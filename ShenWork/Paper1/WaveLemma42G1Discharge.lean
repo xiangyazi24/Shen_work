@@ -632,7 +632,8 @@ noncomputable def lowerPinnedRawWaveCubeApproxData
       (lowerBarrierPlateau κ κtilde D))
     (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
     (hŪbdd : IsBddFun (upperBarrier κ M))
-    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+    (hdep : RotheContinuousDependence p c lam
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
         rotheSeq)
     (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
         PaperRotheOrbitData p c lam M κ rotheSeq u)
@@ -662,7 +663,7 @@ noncomputable def lowerPinnedRawWaveCubeApproxData
         (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D))
         Tmap := by
     intro seq u hseq hu hconv
-    exact hdep seq u (fun n => (hseq n).bare) hu.bare hconv
+    exact hdep seq u hseq hu hconv
   have hTLip :
       ∀ u, InLowerPinnedMonotoneTrap κ M
         (lowerBarrierRaw κ κtilde D) u → ∀ x y,
@@ -831,7 +832,10 @@ theorem b1_chiNeg_existence_paper_of_cubeApproxData
   have Happrox : LowerPinnedWaveCubeApproxData κ M
       (lowerBarrierRaw κ κtilde D) zseq :=
     lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq hŪbdd hdep hdata hlower
+      hcond.hκ0 hgap_pos hDpos hplat zseq hŪbdd
+      (fun seq u hseq hu hconv =>
+        hdep seq u (fun n => (hseq n).bare) hu.bare hconv)
+      hdata hlower
   obtain ⟨U, hU, hfix⟩ :=
     paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData p c lam M κ
       (lowerBarrierRaw κ κtilde D) hM0 zseq hŪbdd
@@ -1230,7 +1234,10 @@ theorem b1_chiPos_existence_paper_of_cubeApproxData
   have Happrox : LowerPinnedWaveCubeApproxData κ M
       (lowerBarrierRaw κ κtilde D) zseq :=
     lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
-      hcond.hκ0 hgap_pos hDpos hplat zseq hŪbdd hdep hdata hlower
+      hcond.hκ0 hgap_pos hDpos hplat zseq hŪbdd
+      (fun seq u hseq hu hconv =>
+        hdep seq u (fun n => (hseq n).bare) hu.bare hconv)
+      hdata hlower
   obtain ⟨U, hU, hfix⟩ :=
     paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData p c lam M κ
       (lowerBarrierRaw κ κtilde D) hM0 zseq hŪbdd
