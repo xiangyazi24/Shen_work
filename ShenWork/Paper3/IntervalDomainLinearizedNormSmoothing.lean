@@ -125,8 +125,38 @@ theorem unitIntervalLinearized_fractionalPowerNorm_le_full
       rw [Real.sqrt_mul (sq_nonneg K), Real.sqrt_sq hK]
     _ = _ := rfl
 
+/-- Same-order full-mode decay in the strong norm. -/
+theorem unitIntervalLinearized_fractionalPowerNorm_le_exp
+    (p : CM2Params) {uStar vStar gap sigma t : ℝ}
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar gap)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => fractionalPowerEnergyTerm 1 sigma a n) :
+    Real.sqrt (∑' n : ℕ,
+        fractionalPowerEnergyTerm 1 sigma
+          (diagonalSemigroupCoeff
+            (unitIntervalLinearizedGrowth p uStar vStar) t a) n) ≤
+      Real.exp (-gap * t) *
+        Real.sqrt (∑' n : ℕ, fractionalPowerEnergyTerm 1 sigma a n) := by
+  have henergy := unitIntervalLinearized_fractionalPowerEnergy_le_exp
+    p hgap ht ha
+  have hroot := Real.sqrt_le_sqrt henergy
+  have hexp : 0 ≤ Real.exp (-gap * t) := Real.exp_nonneg _
+  have hbase : 0 ≤ ∑' n : ℕ, fractionalPowerEnergyTerm 1 sigma a n :=
+    tsum_nonneg fun n => fractionalPowerEnergyTerm_nonneg 1 sigma a n
+  calc
+    Real.sqrt (∑' n : ℕ,
+        fractionalPowerEnergyTerm 1 sigma
+          (diagonalSemigroupCoeff
+            (unitIntervalLinearizedGrowth p uStar vStar) t a) n) ≤
+        Real.sqrt (Real.exp (-gap * t) ^ 2 *
+          (∑' n : ℕ, fractionalPowerEnergyTerm 1 sigma a n)) := hroot
+    _ = Real.exp (-gap * t) *
+        Real.sqrt (∑' n : ℕ, fractionalPowerEnergyTerm 1 sigma a n) := by
+      rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq hexp]
+
 #print axioms unitInterval_fractionalPowerEnergy_zero_eq_coeffL2Energy
 #print axioms unitIntervalLinearized_fractionalPowerNorm_le_full
+#print axioms unitIntervalLinearized_fractionalPowerNorm_le_exp
 
 end
 
