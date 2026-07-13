@@ -12015,7 +12015,6 @@ def paperTruncatedFixedSourceBoxData_of_trap
 structure PaperStepOutput
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalytic p c lam M κ Λ u Z W
-  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -12027,7 +12026,6 @@ structure PaperStepOutput
 structure PaperStepOutputCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
-  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -12041,7 +12039,6 @@ def paperStepOutput_of_core
     (hlam : 0 < lam) (hout : PaperStepOutputCore p c lam M κ Λ u Z W) :
     PaperStepOutput p c lam M κ Λ u Z W :=
   { analytic := paperStepAnalytic_of_core hlam hout.analytic
-    left_rate := hout.left_rate
     C_chem := hout.C_chem
     lowerZero := hout.lowerZero
     upperOld := hout.upperOld
