@@ -43,6 +43,32 @@ theorem intervalDomain_Theorem_2_2_positiveEventual_branch
       p hm ha (paper3ConstantEquilibrium_positive p ha hb)
       hstable hexist⟩
 
+/-- The positive stable branch with small-data global existence discharged by
+the finite-horizon continuation producer. -/
+theorem intervalDomain_Theorem_2_2_positiveEventual_branch_unconditional
+    (p : CM2Params) (hm : p.m = 1)
+    (C : Paper3Constants intervalDomain p)
+    (hC :
+      Paper3ConstantsUsesCriticalSpectrum
+        unitIntervalNeumannSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    p.χ₀ < C.chiCritical eq.1 →
+      LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      EventualLocallyExponentiallyStableFromSup
+        intervalDomain p intervalDomainSectorialStabilityNorms eq.1 eq.2 := by
+  dsimp
+  intro hchi
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hC.positiveEquilibrium_linearlyStable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hchi
+  exact ⟨hstable,
+    intervalDomain_eventualLocallyExponentiallyStableFromSup_unconditional
+      p hm ha (paper3ConstantEquilibrium_positive p ha hb) hstable⟩
+
 /-- Complete faithful Theorem 2.2 on the positive logistic parameter slice.
 
 The positive stable branch uses the proved Stage-B orbit theorem.  The
@@ -82,6 +108,40 @@ theorem intervalDomain_Theorem_2_2_Eventual_positiveLogistic
   · intro ha0 _hb0
     exact False.elim ((ne_of_gt haP) ha0)
 
+/-- Unconditional faithful eventual Theorem 2.2 on the positive logistic
+slice.  In particular, this capstone has no `SmallDataGlobalExistence` or
+global-solution hypothesis. -/
+theorem intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional
+    (p : CM2Params) (hm : p.m = 1)
+    (haP : 0 < p.a) (hbP : 0 < p.b)
+    (C : Paper3Constants intervalDomain p)
+    (hC :
+      Paper3ConstantsUsesCriticalSpectrum
+        unitIntervalNeumannSpectrum p C) :
+    Theorem_2_2_EventualExponentialStability
+      intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms C := by
+  refine Theorem_2_2_EventualExponentialStability.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    dsimp
+    intro hchi
+    have hbranch :=
+      intervalDomain_Theorem_2_2_positiveEventual_branch_unconditional
+        p hm C hC ha hb hchi
+    rcases hbranch with
+      ⟨hstable, delta, hdelta, A, hA, rate, hrate, t₀, ht₀, hmain⟩
+    exact
+      ⟨hstable, delta, hdelta, A, hA, rate, hrate, t₀, ht₀, hmain⟩
+  · intro ha hb
+    dsimp
+    intro hchi
+    exact hC.positiveEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hchi
+  · intro _ha0 hb0
+    exact False.elim ((ne_of_gt hbP) hb0)
+  · intro ha0 _hb0
+    exact False.elim ((ne_of_gt haP) ha0)
+
 /-- Global Cauchy existence discharges the only non-stability input in the
 faithful positive-logistic Theorem 2.2 assembly. -/
 theorem
@@ -102,7 +162,11 @@ intervalDomain_Theorem_2_2_Eventual_positiveLogistic_of_globalSolutionExists
   exact hglobal.globalSolutionExists u₀ hu₀ (by simp [hm])
 
 #print axioms intervalDomain_Theorem_2_2_positiveEventual_branch
+#print axioms
+  intervalDomain_Theorem_2_2_positiveEventual_branch_unconditional
 #print axioms intervalDomain_Theorem_2_2_Eventual_positiveLogistic
+#print axioms
+  intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional
 #print axioms
   intervalDomain_Theorem_2_2_Eventual_positiveLogistic_of_globalSolutionExists
 
