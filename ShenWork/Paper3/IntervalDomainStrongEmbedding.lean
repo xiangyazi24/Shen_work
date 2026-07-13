@@ -24,6 +24,19 @@ theorem intervalDomainX2SigmaValueTrace_nonneg (sigma : ℝ) :
 theorem intervalDomainX2SigmaDerivativeTrace_nonneg (sigma : ℝ) :
     0 ≤ intervalDomainX2SigmaDerivativeTrace sigma := Real.sqrt_nonneg _
 
+/-- Uniform radius on which every segment from the positive equilibrium stays
+away from the singular power-law boundary.  The added `1` avoids a spurious
+case split if the trace constant vanishes. -/
+def intervalDomainX2SigmaPositivityRadius (sigma uStar : ℝ) : ℝ :=
+  uStar / (2 * (1 + intervalDomainX2SigmaValueTrace sigma))
+
+theorem intervalDomainX2SigmaPositivityRadius_pos
+    {sigma uStar : ℝ} (huStar : 0 < uStar) :
+    0 < intervalDomainX2SigmaPositivityRadius sigma uStar := by
+  unfold intervalDomainX2SigmaPositivityRadius
+  exact div_pos huStar (mul_pos (by norm_num)
+    (by linarith [intervalDomainX2SigmaValueTrace_nonneg sigma]))
+
 /-- Weighted energy times the derivative reciprocal trace recovers the
 frequency-weighted coefficient norm. -/
 theorem sqrt_energy_mul_sqrt_derivativeReciprocal_eq
@@ -147,7 +160,56 @@ structure IntervalDomainX2SigmaRealizationBounds
   gradient_bound : ∀ x : intervalDomainPoint,
     intervalDomain.gradNorm (fun y => w y - uStar) x ≤
       intervalDomainX2SigmaDerivativeTrace sigma *
-        intervalDomainX2SigmaDistance sigma uStar w
+      intervalDomainX2SigmaDistance sigma uStar w
+
+/-- The positivity radius is load-bearing for fractional powers: every point
+on the Taylor segment `uStar + s (w-uStar)`, `0 ≤ s ≤ 1`, is at least
+`uStar/2`. -/
+theorem IntervalDomainX2SigmaRealizationBounds.segment_lower_bound
+    {sigma uStar : ℝ} {w : intervalDomainPoint → ℝ}
+    (H : IntervalDomainX2SigmaRealizationBounds sigma uStar w)
+    (huStar : 0 < uStar)
+    (hsmall : intervalDomainX2SigmaDistance sigma uStar w ≤
+      intervalDomainX2SigmaPositivityRadius sigma uStar)
+    {s : ℝ} (hs : s ∈ Set.Icc (0 : ℝ) 1) (x : intervalDomainPoint) :
+    uStar / 2 ≤ uStar + s * (w x - uStar) := by
+  let Cinf := intervalDomainX2SigmaValueTrace sigma
+  have hCinf : 0 ≤ Cinf := intervalDomainX2SigmaValueTrace_nonneg sigma
+  have hdist0 : 0 ≤ intervalDomainX2SigmaDistance sigma uStar w :=
+    Real.sqrt_nonneg _
+  have hvalue := H.value_bound x
+  have hCradius : Cinf * intervalDomainX2SigmaPositivityRadius sigma uStar ≤
+      uStar / 2 := by
+    unfold intervalDomainX2SigmaPositivityRadius
+    have hden : 0 < 1 + Cinf := by linarith
+    have hfrac : Cinf / (1 + Cinf) ≤ 1 := by
+      rw [div_le_one hden]
+      linarith
+    calc
+      Cinf * (uStar / (2 * (1 + Cinf))) =
+          (uStar / 2) * (Cinf / (1 + Cinf)) := by
+        field_simp [ne_of_gt hden]
+        <;> ring
+      _ ≤ (uStar / 2) * 1 :=
+        mul_le_mul_of_nonneg_left hfrac (by linarith)
+      _ = uStar / 2 := mul_one _
+  have habs : |w x - uStar| ≤ uStar / 2 := by
+    calc
+      |w x - uStar| ≤ Cinf * intervalDomainX2SigmaDistance sigma uStar w :=
+        H.value_bound x
+      _ ≤ Cinf * intervalDomainX2SigmaPositivityRadius sigma uStar :=
+        mul_le_mul_of_nonneg_left hsmall hCinf
+      _ ≤ uStar / 2 := hCradius
+  have hlower : -(uStar / 2) ≤ w x - uStar :=
+    neg_le_of_abs_le habs
+  have hscaled : -(uStar / 2) ≤ s * (w x - uStar) := by
+    by_cases hw : 0 ≤ w x - uStar
+    · have : 0 ≤ s * (w x - uStar) := mul_nonneg hs.1 hw
+      linarith
+    · have hsle : s * (w x - uStar) ≥ 1 * (w x - uStar) := by
+        exact mul_le_mul_of_nonpos_right hs.2 (le_of_not_ge hw)
+      linarith
+  linarith
 
 private theorem intervalSupNorm_le_of_pointwise_abs
     {f : intervalDomainPoint → ℝ} {M : ℝ}
@@ -199,6 +261,7 @@ theorem IntervalDomainX2SigmaRealizationBounds.c1Distance_le
 
 #print axioms sqrt_eigen_mul_coeff_norm_summable
 #print axioms tsum_sqrt_eigen_mul_coeff_norm_le
+#print axioms IntervalDomainX2SigmaRealizationBounds.segment_lower_bound
 #print axioms IntervalDomainX2SigmaRealizationBounds.c1Distance_le
 
 end
