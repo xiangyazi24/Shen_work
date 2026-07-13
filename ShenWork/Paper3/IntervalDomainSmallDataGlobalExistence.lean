@@ -1,5 +1,11 @@
 /- Small-data global existence near a linearly stable positive equilibrium. -/
 import ShenWork.Paper2.IntervalDomainL2USubHorizonGluing
+import ShenWork.Paper2.IntervalConjugatePicardFloorCoreInhabit
+import ShenWork.Paper2.IntervalBFormInitialTrace
+import ShenWork.Paper2.IntervalConjugateMildJointTimeDerivativeInterior
+import ShenWork.Paper2.IntervalConjugateMildClassicalRegularityFromJointUT
+import ShenWork.Paper2.IntervalDuhamelIntegrability
+import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
 import ShenWork.PDE.P3MoserEnergyContinuity
 import ShenWork.Paper3.IntervalDomainWeakSupBasinEntry
 
@@ -12,11 +18,157 @@ open ShenWork.Paper2.IntervalDomainM
 open ShenWork.IntervalDomainExistence
 open ShenWork.PDE
 open ShenWork.PDE.SectorialOperator
+open ShenWork.IntervalConjugatePicard
+open ShenWork.IntervalCoupledRegularityBootstrap
 
 noncomputable section
 
 local instance : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
+
+/-! ### Unconditional local Cauchy producer
+
+The Paper-2 all-exponent local theorem imports a much larger theorem-level
+assembly.  The small-data continuation only needs its already-proved local
+ingredients, so we expose the same direct reduced-core route here without any
+global or stability hypothesis. -/
+
+/-- Direct joint-value/time-derivative package for a positive-floor conjugate
+mild solution. -/
+def paper3ConjugateMildResolverTimeData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ y, |intervalDomainLift u₀ y| ≤ S.M)
+    (hu₀_meas : AEStronglyMeasurable
+      (intervalDomainLift u₀) (intervalMeasure 1)) :
+    ShenWork.Paper2.ResolverTimeFromJointUTData S.T S.u
+      (ShenWork.Paper2.conjugateMildTimeDerivJointRep S) where
+  jointValue :=
+    ShenWork.Paper2.conjugateMild_jointValue_u S hu₀_bound hu₀_meas
+  jointTimeDeriv :=
+    ShenWork.Paper2.conjugateMildTimeDerivJointRep_jointContinuousOn
+      S hu₀_cont hu₀_bound hu₀_meas
+  positive := by
+    intro t ht x hx
+    simpa [intervalDomainLift, hx] using S.hpos t ht.1 ht.2.le ⟨x, hx⟩
+  hasTimeDeriv := by
+    intro t ht x hx
+    exact ShenWork.Paper2.conjugateMild_intervalDomainLift_hasDerivAt_time_Icc
+      S hu₀_cont hu₀_bound hu₀_meas ht.1 ht.2 hx
+
+/-- The reduced classical core for an arbitrary positive-floor conjugate mild
+solution, assembled only from the direct local regularity producers. -/
+theorem paper3ConjugateMild_reducedClassicalCore
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ y, |intervalDomainLift u₀ y| ≤ S.M)
+    (hu₀_meas : AEStronglyMeasurable
+      (intervalDomainLift u₀) (intervalMeasure 1))
+    (htrace : InitialTrace intervalDomain u₀ S.u) :
+    CoupledDuhamelReducedClassicalCore p S.T u₀ S.u :=
+  ShenWork.Paper2.conjugateMild_reducedClassicalCore_of_jointUT
+    S hu₀_cont hu₀_bound hu₀_meas
+      (paper3ConjugateMildResolverTimeData
+        S hu₀_cont hu₀_bound hu₀_meas)
+      htrace
+
+/-- Upgrade an inhabited positive-floor Picard datum to a classical solution
+at its explicit horizon, for every exponent allowed by `CM2Params`. -/
+theorem paper3ClassicalSolution_of_floorData
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (D : ConjugateMildExistenceFloorData p u₀) :
+    let S : ConjugateMildSolutionData p u₀ :=
+      conjugateMildSolutionData_of_floorData D
+    ∃ v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p D.T S.u v ∧
+      InitialTrace intervalDomain u₀ S.u := by
+  let S : ConjugateMildSolutionData p u₀ :=
+    conjugateMildSolutionData_of_floorData D
+  have htrace : InitialTrace intervalDomain u₀ S.u :=
+    ShenWork.Paper2.BFormInitialTrace.conjugateMildSolutionData_initialTrace
+      p hu₀.admissible.2 S
+  have hu₀_bound_lift : ∀ y, |intervalDomainLift u₀ y| ≤ S.M := by
+    intro y
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · have hsemigroup :=
+        ShenWork.IntervalPicardIterateInitialApproach.semigroup_initialApproach
+      simp only [S, conjugateMildSolutionData_of_floorData,
+        intervalDomainLift, dif_pos hy]
+      by_contra hnot
+      push Not at hnot
+      obtain ⟨delta, hdelta, hclose⟩ := hsemigroup p hu₀.admissible.2
+        ((|u₀ ⟨y, hy⟩| - D.M) / 2) (by linarith)
+      let t := min D.T delta / 2
+      have hmin : 0 < min D.T delta := lt_min D.hT hdelta
+      have ht : 0 < t := by dsimp [t]; linarith
+      have htT : t ≤ D.T := by
+        dsimp [t]
+        linarith [min_le_left D.T delta]
+      have htdelta : t < delta := by
+        dsimp [t]
+        linarith [min_le_right D.T delta]
+      have hb := D.hbase_ball t ht htT ⟨y, hy⟩
+      have hclose' := hclose t ht htdelta ⟨y, hy⟩
+      simp only [conjugatePicardIter] at hb
+      have htri : |u₀ ⟨y, hy⟩| ≤
+          |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
+            (intervalDomainLift u₀) y - u₀ ⟨y, hy⟩| +
+          |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
+            (intervalDomainLift u₀) y| := by
+        have h := abs_add_le
+          (u₀ ⟨y, hy⟩ -
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
+              (intervalDomainLift u₀) y)
+          (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
+            (intervalDomainLift u₀) y)
+        rw [sub_add_cancel] at h
+        simpa [abs_sub_comm, add_comm] using h
+      linarith
+    · simp [S, conjugateMildSolutionData_of_floorData,
+        intervalDomainLift, hy, D.hM.le]
+  have hu₀_meas : AEStronglyMeasurable
+      (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
+      hu₀.admissible.2
+  have hcore := paper3ConjugateMild_reducedClassicalCore
+    S hu₀.admissible.2 hu₀_bound_lift hu₀_meas htrace
+  have hreg :=
+    ShenWork.IntervalCoupledRegularityBootstrap.regularityBootstrap_of_coupledDuhamel_reducedClassicalCore
+      p hcore
+  obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace'⟩ := hreg
+  exact ⟨v,
+    IsPaper2ClassicalSolution.of_components S.hT hclassreg hpos hvnn
+      hpde_u hpde_v hbc,
+    htrace'⟩
+
+/-- Uniform local classical existence on a positive strip.  This is the
+continuation factory used below; its lifespan is fixed before the datum. -/
+theorem paper3ThresholdLocalExistence_positiveStrip
+    (p : CM2Params) :
+    ∀ M c : ℝ, 0 < M → 0 < c → ∃ delta : ℝ, 0 < delta ∧
+      ∀ w : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain w →
+        (∀ x, |w x| ≤ M) →
+        (∀ x, c ≤ w x) →
+        ∃ uw vw,
+          IsPaper2ClassicalSolution intervalDomain p delta uw vw ∧
+          InitialTrace intervalDomain w uw := by
+  intro M c hM hc
+  obtain ⟨delta, hdelta, hfactory⟩ :=
+    conjugateMildExistenceFloorData_exists_uniform p M c hc
+  refine ⟨delta, hdelta, ?_⟩
+  intro w hw hbound hfloor
+  have hwPaper : PaperPositiveInitialDatum intervalDomain w :=
+    ⟨hw.admissible, ⟨c, hc, hfloor⟩⟩
+  obtain ⟨D, hDdelta⟩ := hfactory w hw.admissible.2 hbound hfloor
+  let S : ConjugateMildSolutionData p w :=
+    conjugateMildSolutionData_of_floorData D
+  obtain ⟨v, hsol, htrace⟩ := paper3ClassicalSolution_of_floorData p hwPaper D
+  subst delta
+  exact ⟨S.u, v, hsol, htrace⟩
 
 /-- A finite classical solution with a bounded initial trace is uniformly
 bounded on every closed half-horizon `(0,t]`, with `t` strictly below its
@@ -120,6 +272,10 @@ def intervalDomainPaperPositiveOverlapUniqueAt
       (le_abs_self _).trans
         ((hM₂ τ hτ hτT' y hy).trans (le_max_right _ _))⟩
 
+#print axioms paper3ConjugateMildResolverTimeData
+#print axioms paper3ConjugateMild_reducedClassicalCore
+#print axioms paper3ClassicalSolution_of_floorData
+#print axioms paper3ThresholdLocalExistence_positiveStrip
 #print axioms intervalDomain_solution_lift_uniform_abs_on_halfHorizon
 #print axioms intervalDomainPaperPositiveOverlapUniqueAt
 
