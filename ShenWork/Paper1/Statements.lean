@@ -111,11 +111,41 @@ theorem StrictlyPositiveAtLeft.shift
 def HasInitialDatum (u : ℝ → ℝ → ℝ) (u₀ : ℝ → ℝ) : Prop :=
   ∀ x, u 0 x = u₀ x
 
+/-- Uniform right trace at the initial time.  This prevents a function that
+has merely been assigned the datum at `t = 0` from jumping to an unrelated
+classical solution for every `t > 0`. -/
+def HasUniformInitialTrace (u : ℝ → ℝ → ℝ) (u₀ : ℝ → ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0, ∀ t x, 0 ≤ t → t < δ → |u t x - u₀ x| < ε
+
+theorem HasUniformInitialTrace.movingWave
+    {U : ℝ → ℝ} (hU : UniformContinuous U) (c : ℝ) :
+    HasUniformInitialTrace
+      (fun t x => U (x - c * t)) U := by
+  rw [Metric.uniformContinuous_iff] at hU
+  intro ε hε
+  rcases hU ε hε with ⟨δx, hδx, hmod⟩
+  refine ⟨δx / (|c| + 1), div_pos hδx (by linarith [abs_nonneg c]), ?_⟩
+  intro t x ht htδ
+  have hct : |c * t| < δx := by
+    have hden_pos : 0 < |c| + 1 := by linarith [abs_nonneg c]
+    have ht' : t * (|c| + 1) < δx :=
+      (lt_div_iff₀ hden_pos).mp htδ
+    rw [abs_mul, abs_of_nonneg ht]
+    nlinarith [abs_nonneg c]
+  have hdist : dist (x - c * t) x < δx := by
+    simpa [Real.dist_eq] using hct
+  simpa [Real.dist_eq] using hmod hdist
+
+section InitialTraceAxiomAudit
+#print axioms HasUniformInitialTrace.movingWave
+end InitialTraceAxiomAudit
+
 def IsGlobalCauchySolutionFrom
     (p : CMParams) (u₀ : ℝ → ℝ) (u v : ℝ → ℝ → ℝ) : Prop :=
   IsGlobalClassicalSolution p u v ∧
     HasInitialDatum u u₀ ∧
-    ∀ t x, 0 ≤ t → 0 < u t x
+    HasUniformInitialTrace u u₀ ∧
+    ∀ t x, 0 < t → 0 < u t x
 
 def UniformEventuallyBounded (u : ℝ → ℝ → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, ∀ x, |u t x| ≤ M
@@ -397,13 +427,15 @@ theorem IsRightVanishingTravelingWave.nonnegativeInitialDatum
 theorem IsRightVanishingTravelingWave.to_globalCauchySolutionFrom
     {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
     (hTW : IsRightVanishingTravelingWave p c U V)
+    (hU_uc : UniformContinuous U)
     (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
     IsGlobalCauchySolutionFrom p U
       (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · exact hTW.to_movingFrame_global_classical_solution hU_diff hV_diff
   · intro x
     simp
+  · exact HasUniformInitialTrace.movingWave hU_uc c
   · intro t x _ht
     exact hTW.U_pos (x - c * t)
 
@@ -713,29 +745,94 @@ theorem IsGlobalCauchySolutionFrom.initial
     HasInitialDatum u u₀ :=
   h.2.1
 
+theorem IsGlobalCauchySolutionFrom.initialTrace
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) :
+    HasUniformInitialTrace u u₀ :=
+  h.2.2.1
+
 theorem IsGlobalCauchySolutionFrom.pos
     {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
     (h : IsGlobalCauchySolutionFrom p u₀ u v) :
-    ∀ t x, 0 ≤ t → 0 < u t x :=
-  h.2.2
-
-theorem IsGlobalCauchySolutionFrom.initial_pos
-    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
-    (h : IsGlobalCauchySolutionFrom p u₀ u v) (x : ℝ) :
-    0 < u₀ x := by
-  rw [← h.initial x]
-  exact h.pos 0 x le_rfl
+    ∀ t x, 0 < t → 0 < u t x :=
+  h.2.2.2
 
 theorem IsGlobalCauchySolutionFrom.shift_space
     {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
     (h : IsGlobalCauchySolutionFrom p u₀ u v) (a : ℝ) :
     IsGlobalCauchySolutionFrom p (fun x => u₀ (x + a))
       (fun t x => u t (x + a)) (fun t x => v t (x + a)) := by
-  refine ⟨_root_.IsGlobalClassicalSolution.shift_space h.classical a, ?_, ?_⟩
+  refine ⟨_root_.IsGlobalClassicalSolution.shift_space h.classical a, ?_, ?_, ?_⟩
   · intro x
     exact h.initial (x + a)
+  · intro ε hε
+    rcases h.initialTrace ε hε with ⟨δ, hδ, htrace⟩
+    exact ⟨δ, hδ, fun t x ht htδ => htrace t (x + a) ht htδ⟩
   · intro t x ht
     exact h.pos t (x + a) ht
+
+/-- A continuous real function with finite limits at both ends is uniformly
+continuous, even when the two limiting values differ. -/
+theorem uniformContinuous_of_continuous_tendsto_atBot_atTop
+    {f : ℝ → ℝ} {a b : ℝ}
+    (hf : Continuous f)
+    (hbot : Tendsto f atBot (𝓝 a))
+    (htop : Tendsto f atTop (𝓝 b)) :
+    UniformContinuous f := by
+  rw [Metric.uniformContinuous_iff]
+  intro ε hε
+  have hε4 : 0 < ε / 4 := by linarith
+  have hleft_ev : ∀ᶠ x in atBot, f x ∈ Metric.ball a (ε / 4) :=
+    hbot.eventually (Metric.ball_mem_nhds a hε4)
+  have hright_ev : ∀ᶠ x in atTop, f x ∈ Metric.ball b (ε / 4) :=
+    htop.eventually (Metric.ball_mem_nhds b hε4)
+  rcases (eventually_atBot.1 hleft_ev) with ⟨A, hA⟩
+  rcases (eventually_atTop.1 hright_ev) with ⟨B, hB⟩
+  have huc := isCompact_Icc.uniformContinuousOn_of_continuous
+    (s := Set.Icc (A - 2) (B + 2)) hf.continuousOn
+  rw [Metric.uniformContinuousOn_iff] at huc
+  rcases huc ε hε with ⟨δ₀, hδ₀, hlocal⟩
+  refine ⟨min δ₀ 1, lt_min hδ₀ zero_lt_one, ?_⟩
+  intro x y hxy
+  have hxyδ₀ : dist x y < δ₀ := lt_of_lt_of_le hxy (min_le_left _ _)
+  have hxy1 : |x - y| < 1 := by
+    simpa [Real.dist_eq] using lt_of_lt_of_le hxy (min_le_right _ _)
+  have hxy_parts := abs_lt.mp hxy1
+  by_cases hxleft : x < A - 1
+  · have hxA : x ≤ A := by linarith
+    have hyA : y ≤ A := by linarith
+    have hxball := hA x hxA
+    have hyball := hA y hyA
+    have htri := dist_triangle (f x) a (f y)
+    rw [Metric.mem_ball] at hxball hyball
+    rw [dist_comm a (f y)] at htri
+    linarith
+  · by_cases hxright : B + 1 < x
+    · have hBx : B ≤ x := by linarith
+      have hBy : B ≤ y := by linarith
+      have hxball := hB x hBx
+      have hyball := hB y hBy
+      have htri := dist_triangle (f x) b (f y)
+      rw [Metric.mem_ball] at hxball hyball
+      rw [dist_comm b (f y)] at htri
+      linarith
+    · have hxI : x ∈ Set.Icc (A - 2) (B + 2) := by
+        constructor <;> linarith
+      have hyI : y ∈ Set.Icc (A - 2) (B + 2) := by
+        constructor <;> linarith
+      exact hlocal x hxI y hyI hxyδ₀
+
+theorem travelingWave_U_uniformContinuous
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) (hU_cont : Continuous U) :
+    UniformContinuous U :=
+  uniformContinuous_of_continuous_tendsto_atBot_atTop
+    hU_cont hTW.lim_neg_inf.1 hTW.lim_pos_inf.1
+
+section TravelingWaveUniformContinuityAxiomAudit
+#print axioms uniformContinuous_of_continuous_tendsto_atBot_atTop
+#print axioms travelingWave_U_uniformContinuous
+end TravelingWaveUniformContinuityAxiomAudit
 
 theorem IsTravelingWave.strictlyPositiveAtLeft
     {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
@@ -759,11 +856,13 @@ theorem IsTravelingWave.to_globalCauchySolutionFrom
     (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
     IsGlobalCauchySolutionFrom p U
       (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · exact _root_.IsTravelingWave.to_movingFrame_global_classical_solution
       p hTW hU_diff hV_diff
   · intro x
     simp
+  · exact HasUniformInitialTrace.movingWave
+      (travelingWave_U_uniformContinuous hTW hU_diff.continuous) c
   · intro t x _ht
     exact hTW.U_pos (x - c * t)
 
@@ -16265,7 +16364,11 @@ theorem Proposition_1_1_constant_one_branch (p : CMParams) :
         UniformLimsupLe u 1 ∧
         UniformEventuallyBounded u := by
   refine ⟨fun _ _ => (1 : ℝ), fun _ _ => (1 : ℝ), ?_, ?_, ?_, ?_⟩
-  · exact ⟨constant_solution_is_global p, by intro x; rfl, by intro t x _; norm_num⟩
+  · exact ⟨constant_solution_is_global p, by intro x; rfl,
+      by
+        intro ε hε
+        exact ⟨1, one_pos, fun _t _x _ht _ht1 => by simpa using hε⟩,
+      by intro t x _; norm_num⟩
   · intro M hM t x _ht
     exact le_trans (hM x) (le_max_right 1 M)
   · intro ε hε
@@ -16379,7 +16482,11 @@ theorem Proposition_1_2_constant_one_branch (p : CMParams) :
       IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
         UniformConvergesToConstant u 1 := by
   refine ⟨fun _ _ => (1 : ℝ), fun _ _ => (1 : ℝ), ?_, ?_⟩
-  · exact ⟨constant_solution_is_global p, by intro x; rfl, by intro t x _; norm_num⟩
+  · exact ⟨constant_solution_is_global p, by intro x; rfl,
+      by
+        intro ε hε
+        exact ⟨1, one_pos, fun _t _x _ht _ht1 => by simpa using hε⟩,
+      by intro t x _; norm_num⟩
   · intro ε hε
     exact ⟨0, fun _t _x _ht => by simpa using hε⟩
 
