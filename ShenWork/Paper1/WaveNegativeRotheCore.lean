@@ -55,7 +55,7 @@ def Paper1NegativeLocalStepRestCore : Prop :=
       let s := paper1NegativeLocalStepScalars p hα hχ hc
       ∀ u, InMonotoneWaveTrapSet (kappa c) 1 u →
         PaperLocalFixedStepRestProvider
-          p c s.lam 1 (kappa c) s.Λ u
+          p c s.lam 1 (kappa c) s.Λ s.B u
 
 /-- Canonical lower-raw producer induced by the exact local step residual. -/
 noncomputable def paper1NegativeParamProducer

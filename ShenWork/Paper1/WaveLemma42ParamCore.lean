@@ -58,7 +58,7 @@ structure PaperLocalRouteAStepParameters
       + lam ≤ B
   barrier : PaperUpperBarrierSuperScalarConditions p c κ M
   derivBound : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M)
-  rest : PaperLocalFixedStepRestProvider p c lam M κ Λ u
+  rest : PaperLocalFixedStepRestProvider p c lam M κ Λ B u
 
 namespace PaperLocalRouteAStepParameters
 
