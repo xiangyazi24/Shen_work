@@ -9989,7 +9989,7 @@ def rpow_selfHolderOnIcc
 end LeftTailQuant
 
 theorem paperFixedSourceMap_holder_kernel
-    (p : CMParams) {c lam M κ B Hbox : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (p : CMParams) {c lam M κ B : ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
@@ -9997,7 +9997,8 @@ theorem paperFixedSourceMap_holder_kernel
     (hu : InWaveTrapSet κ M u)
     (hZ : PaperIterateBase p c κ M u Z) :
     ∃ H0 : ℝ, 0 ≤ H0 ∧
-      ∀ R, PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
+      ∀ (Hbox : ℝ) (ω : ℝ → ℝ) R,
+        PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
         ∀ x y,
           |paperFixedSourceMap p c lam M κ u Z R x -
               paperFixedSourceMap p c lam M κ u Z R y| ≤
@@ -10112,7 +10113,7 @@ theorem paperFixedSourceMap_holder_kernel
   let bLin : HolderBudget := HolderBudget.const_mul lam bZ
   let bTotal : HolderBudget := (bChem.add bReact).add bLin
   refine ⟨bTotal.H, bTotal.H_nonneg, ?_⟩
-  intro R hR x y
+  intro Hbox ω R hR x y
   let W : ℝ → ℝ := fun z => greenConv c lam R z
   let Θ : ℝ → ℝ := fun z => paperWeightedClamp κ M W z
   let hWloc : LocalLipQuant W := by
@@ -11437,8 +11438,6 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
       Classical.choose
         (paperFixedSourceMap_holder_kernel
           (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
-          (Hbox := H)
-          (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
           (u := u) (Z := Z)
           hlam hrpκ hrmκ hκ hM hBnn hu.trap hZ) ≤ H)
     (hcontract :
@@ -11453,8 +11452,6 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
   let holderKernel :=
     paperFixedSourceMap_holder_kernel
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
-      (Hbox := H)
-      (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
       (u := u) (Z := Z)
       hlam hrpκ hrmκ hκ hM hBnn hu.trap hZ
   let H0 : ℝ := Classical.choose holderKernel
@@ -11470,7 +11467,9 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
             H * |x - y| ^ paperWeightedHolderExponent p := by
     intro R hR x y
     have h0 :=
-      (Classical.choose_spec holderKernel).2 R hR x y
+      (Classical.choose_spec holderKernel).2 H
+        (expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
+        R hR x y
     calc
       |paperFixedSourceMap p c lam M κ u Z R x -
           paperFixedSourceMap p c lam M κ u Z R y|
@@ -11568,8 +11567,6 @@ def paperTruncatedFixedSourceBoxData_of_trap
       Classical.choose
         (paperFixedSourceMap_holder_kernel
           (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
-          (Hbox := H)
-          (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
           (u := u) (Z := Z)
           hlam hrpκ hrmκ hκ.le hM hBnn hu.trap hZ) ≤ H)
     (hcontract :
@@ -11590,7 +11587,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
   let holderKernel :=
     paperFixedSourceMap_holder_kernel
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (B := B)
-      (Hbox := H) (ω := ω) (u := u) (Z := Z)
+      (u := u) (Z := Z)
       hlam hrpκ hrmκ hκ.le hM hBnn hu.trap hZ
   let H0 : ℝ := Classical.choose holderKernel
   have hH0nn : 0 ≤ H0 := (Classical.choose_spec holderKernel).1
