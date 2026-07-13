@@ -15,24 +15,22 @@ namespace ShenWork.Paper1
 
 This is the concrete source-box route from `IntervalP1PerStepFixedSource`, kept
 as a reusable adapter so the B1 lower-raw floor can expose these smaller
-residuals instead of a monolithic `PaperGreenStepInputRouteACore`. -/
+residuals instead of a monolithic all-supertrap Green core. -/
 def paperRouteAParamGreenCore
     {p : CMParams} {c lam M κ Λ B sigma aL C_u L_u C_R m_sigma : ℝ}
     {u : ℝ → ℝ}
     (params : PerStepBoxParams p c lam M κ Λ B sigma aL C_u L_u C_R m_sigma u)
-    (wit : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
+    (wit : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
         PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
-    PaperGreenStepInputRouteACore p c lam M κ Λ u :=
-  paperGreenStepInputRouteACore_of_trap_fixedSource
+    (hrest : PaperGreenStepInputRouteARegularRestProvider
+      p c lam M κ Λ u) :
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
+  paperGreenStepInputRouteAOrbitCore_of_regularFixedSource
     (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
     params.hu params.hlam params.basePaperSuper
-    (paperStepFixedSourceExistsForSuperTrap_of_params params wit)
+    (paperStepFixedSourceExistsForRegularSuperTrap_of_params params wit)
     hrest
 
 /-- Route-A lower-raw producer core whose Green core is not carried directly:
@@ -48,14 +46,11 @@ structure PaperLowerRawStepProducerRouteAParamCore
   C_R : ℝ
   m_sigma : ℝ
   params : PerStepBoxParams p c lam M κ Λ B sigma aL C_u L_u C_R m_sigma u
-  witness : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
+  witness : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
         PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap
-  rest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u
+  rest : PaperGreenStepInputRouteARegularRestProvider p c lam M κ Λ u
   lowerRawAux :
     InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
       ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
@@ -73,18 +68,18 @@ def paperLowerRawRouteAParamGreenCore
     {hκ : 0 ≤ κ} {hM : 0 ≤ M} {u : ℝ → ℝ}
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
-    PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
   paperRouteAParamGreenCore h.params h.witness h.rest
 
-/-- The paper Rothe producer induced by a parameterized Route-A lower-raw core. -/
+/-- The orbit-faithful Green producer induced by the parameterized lower-raw
+core. -/
 def paperLowerRawRouteAParamProducer
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M} {u : ℝ → ℝ}
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
-    PaperRotheStepProducer p c lam M κ Λ u :=
-  paperRotheStepProducer_of_routeA_greenCore
-    (paperLowerRawRouteAParamGreenCore h)
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
+  paperLowerRawRouteAParamGreenCore h
 
 /-- The total analytic-preserving Rothe sequence induced by a trap-indexed
 parameterized Route-A Green core. -/
@@ -159,7 +154,7 @@ theorem paperLowerRawParamGreenSourceCompactness
     PaperGreenRotheAdaptiveSourceCompactnessOnTrap p c lam M κ Λ
       (paperLowerRawParamRotheSeq h.producer) := by
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
   have hlam : 0 < lam :=
     (hinput (upperBarrier κ M)
@@ -194,7 +189,7 @@ theorem paperLowerRawParamOffDiagonalStepClosedGraph
     PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOnTrap p c lam M κ
       (paperLowerRawParamRotheSeq h.producer) := by
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
   have hlam : 0 < lam :=
     (hinput (upperBarrier κ M)
@@ -231,7 +226,7 @@ theorem paperLowerRawParamRotheLimitClosedGraph
     PaperLowerRawParamRotheLimitClosedGraph h.producer := by
   let zseq := paperLowerRawParamRotheSeq h.producer
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperRotheOrbitData p c lam M κ zseq u := by
@@ -271,7 +266,7 @@ theorem paperLowerRawParamRotheContinuousDependence
       (paperLowerRawParamRotheSeq h.producer) := by
   let zseq := paperLowerRawParamRotheSeq h.producer
   let hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (h.producer u hu)
   have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
       PaperRotheOrbitData p c lam M κ zseq u := by
@@ -319,7 +314,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
   let hinputTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hstep : RotheStepLowerInvariant κ M
@@ -431,7 +426,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       FrozenStationaryWaveProfile p c U := by
   have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
   let hinputTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
     fun u hu => paperLowerRawRouteAParamGreenCore (hpar.producer u hu)
   let zseq := paperLowerRawParamRotheSeqFromTrap hpar
   have hstep : RotheStepLowerInvariant κ M

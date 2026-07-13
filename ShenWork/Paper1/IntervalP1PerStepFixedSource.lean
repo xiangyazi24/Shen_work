@@ -122,6 +122,63 @@ def PaperStepFixedSourceExistsForRegularSuperTrap
       R = paperStepSource p c lam u Z
         (fun x => greenConv c lam R x)
 
+/-- Repackage orbit-faithful fixed-source existence as the concrete Green
+source consumed by Route A. -/
+def PaperStepFixedSourceCore.of_existsForRegularSuperTrap
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hfixed : PaperStepFixedSourceExistsForRegularSuperTrap
+      p c lam M κ Λ u)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase p c κ M u Z) :
+    PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+  let hex := hfixed hu Z hZ
+  let R : ℝ → ℝ := Classical.choose hex
+  have hRspec :
+      Continuous R ∧
+        (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
+          Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
+        R = paperStepSource p c lam u Z
+          (fun x => greenConv c lam R x) :=
+    Classical.choose_spec hex
+  let B : ℝ := Classical.choose hRspec.2.1
+  have hBspec : (∀ y, |R y| ≤ B) ∧
+      Λ = 2 * (greenDelta c lam)⁻¹ * B :=
+    Classical.choose_spec hRspec.2.1
+  { R := R
+    source_eq := hRspec.2.2
+    R_cont := hRspec.1
+    R_bound_const := B
+    R_bound := hBspec.1
+    R_bound_eq := hBspec.2 }
+
+/-- Route-A comparison and antitonicity payload, quantified only over the
+regular iterates that can actually occur in the Rothe orbit. -/
+def PaperGreenStepInputRouteARegularRestProvider
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  ∀ Z : ℝ → ℝ, (hZ : PaperIterateBase p c κ M u Z) →
+    (fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z) →
+      PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed
+
+/-- Assemble exactly the orbit core from regular-iterate fixed-source
+existence.  No all-continuous-profile regularity oracle is introduced. -/
+def paperGreenStepInputRouteAOrbitCore_of_regularFixedSource
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hlam : 0 < lam)
+    (hbase : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0)
+    (hfixed : PaperStepFixedSourceExistsForRegularSuperTrap
+      p c lam M κ Λ u)
+    (hrest : PaperGreenStepInputRouteARegularRestProvider
+      p c lam M κ Λ u) :
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u where
+  hlam := hlam
+  basePaperSuper := hbase
+  produce_regular := by
+    intro Z hZ
+    let fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+      PaperStepFixedSourceCore.of_existsForRegularSuperTrap hfixed hu hZ
+    exact (hrest Z hZ fixed).toOutputRouteACore
+
 /-- Regular-iterate fixed-source existence from the same validated truncated
 weighted-Hölder source box.  The proof is the genuine source-box Schauder fixed
 point plus clamp-inactivity argument, specialized to the orbit invariant. -/
@@ -331,6 +388,8 @@ theorem paperRotheStepProducer_of_params
 section AxiomAudit
 #print axioms paperStepFixedSourceExistsForSuperTrap_of_boxProvider
 #print axioms PaperStepFixedSourceExistsForRegularSuperTrap.of_truncated_sourceBox
+#print axioms PaperStepFixedSourceCore.of_existsForRegularSuperTrap
+#print axioms paperGreenStepInputRouteAOrbitCore_of_regularFixedSource
 #print axioms perStepBoxZProvider_of_params
 #print axioms paperStepFixedSourceExistsForSuperTrap_of_params
 #print axioms paperStepFixedSourceExistsForRegularSuperTrap_of_params

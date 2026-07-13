@@ -88,16 +88,13 @@ def paperRouteAParamGreenCore_negative
       p c lam Λ B sigma aL C_u L_u C_R m_sigma u)
     (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
     (hc : cStarLower p < c)
-    (wit : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier (kappa c) 1 x) →
-      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
+    (wit : ∀ Z : ℝ → ℝ, PaperIterateBase p c (kappa c) 1 u Z →
         PerStepBoxZWitness p c lam 1 (kappa c) B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ
           (kappa_pos_of_cStarLower_lt hc) one_pos params.hBnn params.hu.trap)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider
+    (hrest : PaperGreenStepInputRouteARegularRestProvider
       p c lam 1 (kappa c) Λ u) :
-    PaperGreenStepInputRouteACore p c lam 1 (kappa c) Λ u :=
+    PaperGreenStepInputRouteAOrbitCore p c lam 1 (kappa c) Λ u :=
   paperRouteAParamGreenCore
     (params.toPerStepBoxParams hχ hα hc) wit hrest
 

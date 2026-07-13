@@ -11,7 +11,7 @@ forgetting where the output came from.  This is the shared assembly used by the
 analytic-preserving Rothe recursion below. -/
 def paperRotheStepFacts_of_routeA_output
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hout : PaperStepOutputRouteACore p c lam M κ Λ u Z W) :
     PaperRotheStepFacts p c lam M κ Λ u Z W := by
   have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
@@ -50,7 +50,7 @@ this recursion is extensionally the same construction pattern but exposes the
 source needed by the moving-index closed graph. -/
 def paperRouteARotheStep
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
     ∀ _k : ℕ, {Z : ℝ → ℝ // PaperIterateBase p c κ M u Z}
   | 0 =>
@@ -58,15 +58,14 @@ def paperRouteARotheStep
         upperBarrier_paperIterateBase hκ hM hin.basePaperSuper⟩
   | k + 1 =>
       let prev := paperRouteARotheStep p c lam M κ Λ u hin hκ hM k
-      let out := hin.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
-        prev.2.le_barrier prev.2.paperSuper
+      let out := hin.produce_regular prev.1 prev.2
       ⟨out.1,
         (paperRotheStepFacts_of_routeA_output hin out.2).toBase⟩
 
 /-- The Route-A paper orbit with its Green source selection retained. -/
 def rotheSeqOfPaperRouteA
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : ℕ → ℝ → ℝ :=
   fun k => (paperRouteARotheStep p c lam M κ Λ u hin hκ hM k).1
 
@@ -75,7 +74,7 @@ the Schauder domain. -/
 def rotheSeqOfPaperRouteAFromTrap
     (p : CMParams) (c lam M κ Λ : ℝ)
     (hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u)
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : (ℝ → ℝ) → ℕ → ℝ → ℝ :=
   fun u => by
     classical
@@ -85,7 +84,7 @@ def rotheSeqOfPaperRouteAFromTrap
 
 @[simp] theorem rotheSeqOfPaperRouteAFromTrap_eq
     (hinput : ∀ u, InMonotoneWaveTrapSet κ M u →
-      PaperGreenStepInputRouteACore p c lam M κ Λ u)
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M)
     (hu : InMonotoneWaveTrapSet κ M u) :
     rotheSeqOfPaperRouteAFromTrap p c lam M κ Λ hinput hκ hM u =
@@ -95,30 +94,29 @@ def rotheSeqOfPaperRouteAFromTrap
 /-- The actual dependent Route-A output used for successor `k+1`. -/
 def paperRouteARotheOutputAt
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
     Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u
       (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k) W :=
   let prev := paperRouteARotheStep p c lam M κ Λ u hin hκ hM k
-  hin.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
-    prev.2.le_barrier prev.2.paperSuper
+  hin.produce_regular prev.1 prev.2
 
 theorem rotheSeqOfPaperRouteA_base
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
     PaperIterateBase p c κ M u
       (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k) :=
   (paperRouteARotheStep p c lam M κ Λ u hin hκ hM k).2
 
 @[simp] theorem rotheSeqOfPaperRouteA_zero
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
     rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM 0 =
       upperBarrier κ M := rfl
 
 theorem rotheSeqOfPaperRouteA_lowerPinned_base
     {φ : ℝ → ℝ}
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M)
     (hu : InLowerPinnedMonotoneTrap κ M φ u) :
     ∀ x, φ x ≤ rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM 0 x := by
@@ -127,14 +125,14 @@ theorem rotheSeqOfPaperRouteA_lowerPinned_base
   exact le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
 
 theorem rotheSeqOfPaperRouteA_succ_eq_output
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
     rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM (k + 1) =
       (paperRouteARotheOutputAt p c lam M κ Λ u hin hκ hM k).1 := by
   rfl
 
 theorem rotheSeqOfPaperRouteA_stepFacts
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
     PaperRotheStepFacts p c lam M κ Λ u
       (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k)
@@ -144,7 +142,7 @@ theorem rotheSeqOfPaperRouteA_stepFacts
     (paperRouteARotheOutputAt p c lam M κ Λ u hin hκ hM k).2
 
 def rotheSeqOfPaperRouteA_stepAnalytic
-    (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
     PaperStepAnalytic p c lam M κ Λ u
       (rotheSeqOfPaperRouteA p c lam M κ Λ u hin hκ hM k)
@@ -155,7 +153,7 @@ def rotheSeqOfPaperRouteA_stepAnalytic
 
 section RouteAOrbit
 
-variable (hin : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+variable (hin : PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u)
   (hκ : 0 ≤ κ) (hM : 0 ≤ M)
 
 theorem rotheSeqOfPaperRouteA_cont (k : ℕ) :
@@ -265,7 +263,7 @@ end RouteAOrbit
 /-- Orbit compactness package for the analytic-preserving Route-A recursion. -/
 theorem paperRouteARotheOrbitData_fromTrap
     (hinput : ∀ v, InMonotoneWaveTrapSet κ M v →
-      PaperGreenStepInputRouteACore p c lam M κ Λ v)
+      PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ v)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
     (hbarLip : ∀ x y,
       |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
