@@ -28,6 +28,94 @@ def paper3ResolvedSourceGradient
   ∑' k : ℕ, a k * intervalNeumannResolverGradWeight p k *
     (-Real.sin ((k : ℝ) * Real.pi * x))
 
+lemma paper3ResolvedSourceValue_series_summable
+    (p : CM2Params) {a : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2) (x : ℝ) :
+    Summable fun k : ℕ =>
+      a k * intervalNeumannResolverWeight p k *
+        unitIntervalCosineMode k x := by
+  let m : ℕ → ℝ := fun k =>
+    intervalNeumannResolverWeight p k * unitIntervalCosineMode k x
+  have hm : Summable fun k => (m k) ^ 2 := by
+    refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_
+      (intervalNeumannResolverWeight_sq_summable p)
+    intro k
+    have hcos : (unitIntervalCosineMode k x) ^ 2 ≤ 1 := by
+      rw [sq_le_one_iff_abs_le_one]
+      exact Real.abs_cos_le_one _
+    dsimp [m]
+    rw [mul_pow]
+    exact mul_le_of_le_one_right (sq_nonneg _) hcos
+  have hprod : Summable fun k : ℕ => a k * m k := by
+    apply Summable.of_norm
+    refine Summable.of_nonneg_of_le (fun k => norm_nonneg _) ?_
+      ((ha.add hm).mul_left (1 / 2))
+    intro k
+    rw [Real.norm_eq_abs, abs_mul]
+    nlinarith [sq_abs (a k), sq_abs (m k),
+      sq_nonneg (|a k| - |m k|)]
+  convert hprod using 1
+  funext k
+  dsimp [m]
+  ring
+
+lemma paper3ResolvedSourceGradient_series_summable
+    (p : CM2Params) {a : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2) (x : ℝ) :
+    Summable fun k : ℕ =>
+      a k * intervalNeumannResolverGradWeight p k *
+        (-Real.sin ((k : ℝ) * Real.pi * x)) := by
+  let m : ℕ → ℝ := fun k =>
+    intervalNeumannResolverGradWeight p k *
+      (-Real.sin ((k : ℝ) * Real.pi * x))
+  have hm : Summable fun k => (m k) ^ 2 := by
+    refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_
+      (intervalNeumannResolverGradWeight_sq_summable p)
+    intro k
+    have hsin : (-Real.sin ((k : ℝ) * Real.pi * x)) ^ 2 ≤ 1 := by
+      rw [sq_le_one_iff_abs_le_one, abs_neg]
+      exact Real.abs_sin_le_one _
+    dsimp [m]
+    rw [mul_pow]
+    exact mul_le_of_le_one_right (sq_nonneg _) hsin
+  have hprod : Summable fun k : ℕ => a k * m k := by
+    apply Summable.of_norm
+    refine Summable.of_nonneg_of_le (fun k => norm_nonneg _) ?_
+      ((ha.add hm).mul_left (1 / 2))
+    intro k
+    rw [Real.norm_eq_abs, abs_mul]
+    nlinarith [sq_abs (a k), sq_abs (m k),
+      sq_nonneg (|a k| - |m k|)]
+  convert hprod using 1
+  funext k
+  dsimp [m]
+  ring
+
+theorem paper3ResolvedSourceValue_add
+    (p : CM2Params) {a b : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2)
+    (hb : Summable fun k => (b k) ^ 2) (x : ℝ) :
+    paper3ResolvedSourceValue p (fun k => a k + b k) x =
+      paper3ResolvedSourceValue p a x + paper3ResolvedSourceValue p b x := by
+  unfold paper3ResolvedSourceValue
+  rw [← (paper3ResolvedSourceValue_series_summable p ha x).tsum_add
+    (paper3ResolvedSourceValue_series_summable p hb x)]
+  refine tsum_congr (fun k => ?_)
+  ring
+
+theorem paper3ResolvedSourceGradient_add
+    (p : CM2Params) {a b : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2)
+    (hb : Summable fun k => (b k) ^ 2) (x : ℝ) :
+    paper3ResolvedSourceGradient p (fun k => a k + b k) x =
+      paper3ResolvedSourceGradient p a x +
+        paper3ResolvedSourceGradient p b x := by
+  unfold paper3ResolvedSourceGradient
+  rw [← (paper3ResolvedSourceGradient_series_summable p ha x).tsum_add
+    (paper3ResolvedSourceGradient_series_summable p hb x)]
+  refine tsum_congr (fun k => ?_)
+  ring
+
 /-- Arbitrary `ell^2` real source coefficients give a pointwise resolver value
 bound by the `ell^2` resolvent weight. -/
 theorem paper3ResolvedSourceValue_abs_le
@@ -136,6 +224,8 @@ theorem paper3ResolvedSourceGradient_abs_le
 
 #print axioms paper3ResolvedSourceValue_abs_le
 #print axioms paper3ResolvedSourceGradient_abs_le
+#print axioms paper3ResolvedSourceValue_add
+#print axioms paper3ResolvedSourceGradient_add
 
 end
 
