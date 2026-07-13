@@ -5,7 +5,7 @@ import ShenWork.Paper2.IntervalDomainTheorem11CorePath
 import ShenWork.Paper2.IntervalDuhamelIntegrability
 
 /-!
-# Direct classical closure for the faithful chi-negative V6 solution
+# Direct classical closure for the faithful chi-negative solution
 
 The truncated zero extension does not have a global closed-endpoint source
 `DuhamelSourceTimeC1` package.  After energy and Jensen have produced the full
@@ -115,7 +115,7 @@ theorem chiNegDatumUniformCore
     S hu₀.admissible.2 hu₀_bound_lift hu₀_meas htrace
   simpa [S, conjugateMildSolutionData_of_truncatedEnergyJensen, hCT] using hcore
 
-/-- Unconditional chi-negative V6 assembly from its three proved producers.
+/-- Unconditional chi-negative assembly from its three proved producers.
 The former global-source spectral route is retained as
 `paper2_chiNeg_spectral`; this theorem is the endpoint-faithful closure. -/
 theorem paper2_chiNeg

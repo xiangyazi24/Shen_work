@@ -30,7 +30,7 @@ open ShenWork.Paper2.IntervalChiNegAssembly
 open ShenWork.Paper2.StrongPath
 open ShenWork.IntervalDomainExistence
 
-/-- The already produced V6 local core is a quantitative PPID local factory.
+/-- The already produced local core is a quantitative PPID local factory.
 The construction is sign-agnostic; the old `chiNeg` name records only its first
 headline consumer. -/
 def positiveCriticalQuantitativeLocalPPID_geOne

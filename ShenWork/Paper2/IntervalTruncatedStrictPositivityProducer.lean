@@ -2,7 +2,7 @@ import ShenWork.Paper2.IntervalTruncatedJensenLocalProducer
 import ShenWork.Paper2.IntervalTruncatedWeakBarrierComparisonClosure
 
 /-!
-# Strict-positivity producer for the V6 Jensen field (χ₀ < 0 branch)
+# Strict-positivity producer for the Jensen field (χ₀ < 0 branch)
 
 This file reduces the `jensenStrictPos` field of
 `UniformTruncatedAssemblyInputs` to pointwise strict positivity of the
@@ -224,7 +224,7 @@ theorem truncatedConjugatePicardLimit_strictPos
     exact mul_pos (Real.exp_pos _) (sq_pos_of_pos hS)
   exact hbar.trans_le (by simpa [U] using hcompare t ht htT X)
 
-/-- Exact type of the V6 `jensenStrictPos` field. -/
+/-- Exact type of the `jensenStrictPos` field. -/
 abbrev UniformTruncatedJensenStrictPosData (p : CM2Params) : Prop :=
   ∀ {M : ℝ}, 0 < M → ∀ {u₀ : intervalDomainPoint → ℝ},
     PositiveInitialDatum intervalDomain u₀ → (∀ X, |u₀ X| ≤ M) →
@@ -233,7 +233,7 @@ abbrev UniformTruncatedJensenStrictPosData (p : CM2Params) : Prop :=
         (truncatedConjugatePicardLimit p u₀ C.T)
 
 /-- Uniform Jensen strict-positivity producer, using the same truncated-map
-certificate that supplies the mild existence datum in the V6 assembly. -/
+certificate that supplies the mild existence datum in the assembly. -/
 def uniformTruncatedJensenStrictPosData_producer
     (p : CM2Params) (Hmap : UniformTruncatedConjugateMapCertificateData p) :
     UniformTruncatedJensenStrictPosData p := by

@@ -5,11 +5,11 @@ import ShenWork.Paper2.IntervalUniformTruncatedMapCertificateDatum
 import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
 
 /-!
-# Unconditional chi-negative and chi-nonpositive V6 headlines
+# Unconditional chi-negative and chi-nonpositive headlines
 
 This is the final producer wiring: the faithful truncated map certificate,
 negative-part energy, and matched-divergence Jensen producer feed the direct
-classical V6 closure.  The nonpositive headline then splits between this
+classical closure.  The nonpositive headline then splits between this
 strict-negative result and the existing unconditional zero-sensitivity branch.
 -/
 
@@ -24,7 +24,7 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalChiNegAssembly
 
-/-- The three independently verified faithful V6 producers in their common
+/-- The three independently verified faithful producers in their common
 assembly record. -/
 def uniformTruncatedAssemblyInputs_producer
     (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :

@@ -99,7 +99,7 @@ abbrev UniformTruncatedEnergyData (p : CM2Params) : Type :=
       TruncatedNegativePartEnergyCoreRegularData p
         (uniformTruncatedConjugateMildExistenceCore_of_uniformCore C A).toData
 
-/-- The only non-spectral V6 inputs: energy and Jensen strict positivity. -/
+/-- The only non-spectral inputs: energy and Jensen strict positivity. -/
 structure UniformTruncatedAssemblyInputs (p : CM2Params) where
   mapCertificate : UniformTruncatedConjugateMapCertificateData p
   energy : UniformTruncatedEnergyData p

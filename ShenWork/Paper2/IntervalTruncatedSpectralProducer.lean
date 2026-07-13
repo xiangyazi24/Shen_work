@@ -4,9 +4,9 @@ import ShenWork.Paper2.IntervalBFormSpectralProviderDischarge
 import ShenWork.Paper2.IntervalMildPositiveTimeRegularity
 
 /-!
-# HSpectral producer for the χ₀<0 V6 assembly — generic-`S` assembler
+# HSpectral producer for the χ₀<0 assembly — generic-`S` assembler
 
-The V6 assembly consumes
+The assembly consumes
 `HSpectral : ∀ {u₀} (S : ConjugateMildSolutionData p u₀), BFormMildSpectralBootstrapData p S`.
 `BFormMildSpectralBootstrapData` mentions only `S.T` and `S.u`, so it is built
 generically from a `ConjugateMildSolutionData` — no reference to how `S.u` was
