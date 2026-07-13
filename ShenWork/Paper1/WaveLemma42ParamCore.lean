@@ -4,6 +4,7 @@ import ShenWork.Paper1.WavePaperAdaptiveSourceCompactness
 import ShenWork.Paper1.WavePaperRouteARotheAnalytic
 import ShenWork.Paper1.WaveLocalUniformClosedGraph
 import ShenWork.Paper1.WaveUniformModulusTrap
+import ShenWork.Paper1.WaveLocalStepConstruction
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Filter Topology
@@ -34,33 +35,58 @@ def paperRouteAParamGreenCore
     (paperStepFixedSourceExistsForRegularSuperTrap_of_params params wit)
     hrest
 
-/-- Route-A lower-raw producer core whose Green core is not carried directly:
-it is assembled from the explicit per-step source-box parameter package. -/
+/-- Scalar and Route-A data for the genuine no-tail local-source construction.
+The fixed source itself is built internally for each regular orbit iterate. -/
+structure PaperLocalRouteAStepParameters
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
+  B : ℝ
+  hlam : 0 < lam
+  hrpκ : κ < greenRootPlus c lam
+  hrmκ : κ < -greenRootMinus c lam
+  hκ : 0 < κ
+  hM : 0 < M
+  hB : 0 ≤ B
+  hu : InMonotoneWaveTrapSet κ M u
+  sourceScalar :
+    |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
+          greenWeightedMass1 c lam κ * B
+      + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
+          + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+      + lam ≤ B
+  barrier : PaperUpperBarrierSuperScalarConditions p c κ M
+  derivBound : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M)
+  rest : PaperGreenStepInputRouteARegularRestProvider p c lam M κ Λ u
+
+namespace PaperLocalRouteAStepParameters
+
+/-- The no-tail source Schauder theorem turns the scalar package into the
+analytic-preserving Route-A orbit core. -/
+noncomputable def toOrbitCore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (h : PaperLocalRouteAStepParameters p c lam M κ Λ u) :
+    PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
+  paperGreenStepInputRouteAOrbitCore_of_localFixedStep
+    p h.hlam h.hrpκ h.hrmκ h.hκ h.hM h.hB h.hu
+    h.sourceScalar h.barrier h.derivBound h.rest
+
+end PaperLocalRouteAStepParameters
+
+/-- Route-A lower-raw producer core using the genuine no-tail local source
+Schauder construction.  No exponential rate of the frozen parameter profile
+or of an arbitrary old iterate is present. -/
 structure PaperLowerRawStepProducerRouteAParamCore
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Type where
-  B : ℝ
-  sigma : ℝ
-  aL : ℝ
-  C_u : ℝ
-  L_u : ℝ
-  C_R : ℝ
-  m_sigma : ℝ
-  params : PerStepBoxParams p c lam M κ Λ B sigma aL C_u L_u C_R m_sigma u
-  witness : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
-        PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
-          params.hlam params.hrpκ params.hrmκ params.hκ params.hM
-          params.hBnn params.hu.trap
-  rest : PaperGreenStepInputRouteARegularRestProvider p c lam M κ Λ u
+  stepParams : PaperLocalRouteAStepParameters p c lam M κ Λ u
   lowerRawAux :
     InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
       ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
         rotheSeqOfPaperRouteA p c lam M κ Λ u
-          (paperRouteAParamGreenCore params witness rest) hκ hM k x) →
+          stepParams.toOrbitCore hκ hM k x) →
         ∃ C_chem La Lb,
           PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
             (rotheSeqOfPaperRouteA p c lam M κ Λ u
-              (paperRouteAParamGreenCore params witness rest)
+              stepParams.toOrbitCore
               hκ hM (k + 1))
 
 /-- The Route-A Green core produced by the parameterized lower-raw core. -/
@@ -70,7 +96,7 @@ def paperLowerRawRouteAParamGreenCore
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
     PaperGreenStepInputRouteAOrbitCore p c lam M κ Λ u :=
-  paperRouteAParamGreenCore h.params h.witness h.rest
+  h.stepParams.toOrbitCore
 
 /-- The orbit-faithful Green producer induced by the parameterized lower-raw
 core. -/
@@ -100,7 +126,7 @@ theorem PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
   let first := core.produce_regular (upperBarrier κ M) hbase
   exact first.2.routeA.hχ
 
-/-! ## Non-vacuity obstruction for the bare parameter trap -/
+/-! ## Counterexample to the retired shared-left-rate parameterization -/
 
 /-- A continuous antitone profile with a polynomially slow left tail and a
 zero right half-line.  It belongs to every wave trap with `κ ≥ 0` and `M ≥ 1`,
@@ -343,35 +369,6 @@ theorem PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
       InMonotoneWaveTrapSet κ M (upperBarrier κ M) :=
     upperBarrier_mem_InMonotoneWaveTrapSet hκ hM
   exact (h.producer (upperBarrier κ M) htrap).chi_nonpos
-
-/-- The per-profile parameter package cannot be supplied on the whole bare
-wave trap: the slow-left profile has no exponential-rate witness, while that
-witness is a field of every `PerStepBoxParams`. -/
-theorem not_stepProducerRouteAParamCore_slowLeft
-    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
-    {hκ : 0 ≤ κ} {hM : 0 ≤ M} :
-    PaperLowerRawStepProducerRouteAParamCore
-      p c lam M κ κtilde D Λ hκ hM slowLeftTrapProfile → False := by
-  intro h
-  apply slowLeftTrapProfile_not_expLeftRateData
-  exact
-    ⟨h.sigma, h.aL, h.C_u, h.L_u, h.params.hsigma,
-      h.params.hu_rate⟩
-
-/-- Consequently the present Route-A floor is empty whenever `M ≥ 1`.
-This applies to both headline specializations (`M = 1` in the negative branch
-and `M = MChi p ≥ 1` in the positive branch).  A sound replacement must index
-the outer trap by a shared left-tail modulus instead of quantifying over the
-bare monotone trap. -/
-theorem not_PaperLowerRawParabolicFloorRouteAParamCoreNoBar_of_one_le_M
-    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
-    {hκ : 0 ≤ κ} {hM : 0 ≤ M} (hM1 : 1 ≤ M) :
-    PaperLowerRawParabolicFloorRouteAParamCoreNoBar
-      p c lam M κ κtilde D Λ hκ hM → False := by
-  intro h
-  exact not_stepProducerRouteAParamCore_slowLeft
-    (h.producer slowLeftTrapProfile
-      (slowLeftTrapProfile_mem_monotoneTrap hκ hM1))
 
 /-- The total map used by Schauder, with the producer invoked only on its trap
 domain and the upper barrier used outside it. -/
@@ -616,7 +613,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
-      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).stepParams.hlam
   have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
   have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
   have hDpos : 0 < D := D_pos_of_paperDMin_lt hcond hD
@@ -736,7 +733,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
         hcond.hκ0.le hM0 hΛ0 hΛM hcond.upperBarrier_barLip hu
   have hlam : 0 < lam :=
     (hpar.producer (upperBarrier κ M)
-      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).params.hlam
+      (upperBarrier_mem_InMonotoneWaveTrapSet hcond.hκ0.le hM0)).stepParams.hlam
   have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
   have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
   have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
@@ -833,12 +830,11 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar
 section AxiomAudit
 
 #print axioms paperRouteAParamGreenCore
+#print axioms PaperLocalRouteAStepParameters.toOrbitCore
 #print axioms PaperLowerRawStepProducerRouteAParamCore.chi_nonpos
 #print axioms PaperLowerRawParabolicFloorRouteAParamCoreNoBar.chi_nonpos
 #print axioms slowLeftTrapProfile_mem_monotoneTrap
 #print axioms slowLeftTrapProfile_not_expLeftRateData
-#print axioms not_stepProducerRouteAParamCore_slowLeft
-#print axioms not_PaperLowerRawParabolicFloorRouteAParamCoreNoBar_of_one_le_M
 #print axioms paperLowerRawParamRotheSeq
 #print axioms paperLowerRawParamRotheSeqFromTrap
 #print axioms paperLowerRawParamGreenSourceCompactness
