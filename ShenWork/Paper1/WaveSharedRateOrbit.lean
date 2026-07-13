@@ -176,6 +176,16 @@ theorem rotheSeqOfPaperSharedRate_stepFacts
   exact paperRotheStepFacts_of_sharedRate_output core.hlam core.hsigma
     (paperSharedRateOutputAt p c lam M κ Λ sigma aL C u core k).2
 
+def rotheSeqOfPaperSharedRate_stepAnalytic
+    (core : PaperGreenStepInputRouteASharedRateOrbitCore
+      p c lam M κ Λ sigma aL C u) (k : ℕ) :
+    PaperStepAnalytic p c lam M κ Λ u
+      (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core k)
+      (rotheSeqOfPaperSharedRate p c lam M κ Λ sigma aL C u core (k + 1)) :=
+  paperStepAnalytic_of_core core.hlam
+    (paperSharedRateOutputAt
+      p c lam M κ Λ sigma aL C u core k).2.output.analytic
+
 theorem rotheSeqOfPaperSharedRate_shared_rate
     (core : PaperGreenStepInputRouteASharedRateOrbitCore
       p c lam M κ Λ sigma aL C u) (k : ℕ) :
@@ -400,6 +410,7 @@ section AxiomAudit
 #print axioms paperRotheStepFacts_of_sharedRate_output
 #print axioms paperSharedRateRotheStep
 #print axioms rotheSeqOfPaperSharedRate_stepFacts
+#print axioms rotheSeqOfPaperSharedRate_stepAnalytic
 #print axioms rotheSeqOfPaperSharedRate_shared_rate
 #print axioms PaperRotheOrbitDataWithModulus.locallyUniform
 #print axioms paperSharedRate_orbitData
