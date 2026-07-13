@@ -128,8 +128,8 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
       (paperLowerRawParamRotheSeq producer)
 
 /-- Forget the explicit source-box parameter layer at the per-profile producer
-level.  The sequence-local tail is kept separately because it intentionally
-does not imply the older globally quantified parabolic-floor tail. -/
+level.  The adaptive source compactness stays on the parabolic-floor package;
+no family-uniform Rothe tail is introduced. -/
 def paperLowerRawStepProducerTrap_of_paramCoreNoBar
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
