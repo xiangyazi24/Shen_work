@@ -628,3 +628,4 @@ import ShenWork.Paper2.IntervalDomainPositiveCriticalOverlapAllExponents
 import ShenWork.Paper2.IntervalDomainTheorem12PositiveCriticalAllExponents
 import ShenWork.Paper2.IntervalFullKernelLpContraction
 import ShenWork.Paper2.IntervalDomainProposition21
+import ShenWork.Paper2.IntervalDomainProposition23
