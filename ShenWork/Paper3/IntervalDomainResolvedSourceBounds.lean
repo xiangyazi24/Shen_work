@@ -132,6 +132,31 @@ theorem paper3ResolvedSourceGradient_add
   refine tsum_congr (fun k => ?_)
   ring
 
+theorem paper3ResolvedSourceValue_sub
+    (p : CM2Params) {a b : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2)
+    (hb : Summable fun k => (b k) ^ 2) (x : ℝ) :
+    paper3ResolvedSourceValue p (fun k => a k - b k) x =
+      paper3ResolvedSourceValue p a x - paper3ResolvedSourceValue p b x := by
+  unfold paper3ResolvedSourceValue
+  rw [← (paper3ResolvedSourceValue_series_summable p ha x).tsum_sub
+    (paper3ResolvedSourceValue_series_summable p hb x)]
+  refine tsum_congr (fun k => ?_)
+  ring
+
+theorem paper3ResolvedSourceGradient_sub
+    (p : CM2Params) {a b : ℕ → ℝ}
+    (ha : Summable fun k => (a k) ^ 2)
+    (hb : Summable fun k => (b k) ^ 2) (x : ℝ) :
+    paper3ResolvedSourceGradient p (fun k => a k - b k) x =
+      paper3ResolvedSourceGradient p a x -
+        paper3ResolvedSourceGradient p b x := by
+  unfold paper3ResolvedSourceGradient
+  rw [← (paper3ResolvedSourceGradient_series_summable p ha x).tsum_sub
+    (paper3ResolvedSourceGradient_series_summable p hb x)]
+  refine tsum_congr (fun k => ?_)
+  ring
+
 /-- Arbitrary `ell^2` real source coefficients give a pointwise resolver value
 bound by the `ell^2` resolvent weight. -/
 theorem paper3ResolvedSourceValue_abs_le
@@ -244,6 +269,8 @@ theorem paper3ResolvedSourceGradient_abs_le
 #print axioms paper3ResolvedSourceGradient_one
 #print axioms paper3ResolvedSourceValue_add
 #print axioms paper3ResolvedSourceGradient_add
+#print axioms paper3ResolvedSourceValue_sub
+#print axioms paper3ResolvedSourceGradient_sub
 
 end
 
