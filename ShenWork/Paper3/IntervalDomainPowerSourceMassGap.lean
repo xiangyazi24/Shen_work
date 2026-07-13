@@ -57,18 +57,40 @@ theorem intervalMeasure_rpow_integrable_of_continuous_nonneg_le
   rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg y) _)]
   exact Real.rpow_le_rpow (hU_nonneg y) (hU_le y) hgamma
 
-/-- Uniform positive integral of the power-source deficit.  The witness is
-explicit in each exponent regime and is independent of the profile maximum
-`M` once `M >= uStar + d`. -/
-theorem intervalPowerSourceDeficit_uniform_integral_gap
+/-- The uniform source-gap constant.  It depends only on the equilibrium mass
+and the prescribed excess `d`, not on the actual profile maximum. -/
+def intervalPowerSourceGapConstant
+    (p : CM2Params) (uStar d : ℝ) : ℝ :=
+  if p.γ ≤ 1 then
+    p.ν * ((uStar + d) ^ p.γ - uStar ^ p.γ)
+  else
+    p.ν * ((uStar + d) ^ (p.γ - 1) * d)
+
+theorem intervalPowerSourceGapConstant_pos
+    (p : CM2Params) {uStar d : ℝ}
+    (huStar : 0 < uStar) (hd : 0 < d) :
+    0 < intervalPowerSourceGapConstant p uStar d := by
+  unfold intervalPowerSourceGapConstant
+  split_ifs with hγ1
+  · have hpowStrict : uStar ^ p.γ < (uStar + d) ^ p.γ :=
+      Real.rpow_lt_rpow huStar.le (by linarith) p.hγ
+    exact mul_pos p.hν (sub_pos.mpr hpowStrict)
+  · have hγge : 1 ≤ p.γ := le_of_not_ge hγ1
+    have hbase : 0 < uStar + d := by linarith
+    exact mul_pos p.hν
+      (mul_pos (Real.rpow_pos_of_pos hbase (p.γ - 1)) hd)
+
+/-- The explicit source-gap constant is a lower bound for the integrated
+power deficit. -/
+theorem intervalPowerSourceGapConstant_le_integral
     (p : CM2Params) {U : ℝ → ℝ} {uStar M d : ℝ}
     (huStar : 0 < uStar) (hd : 0 < d)
     (hU_cont : Continuous U) (hU_nonneg : ∀ y, 0 ≤ U y)
     (hU_le : ∀ y, U y ≤ M)
     (hmass : (∫ y, U y ∂(intervalMeasure 1)) = uStar)
     (hMgap : uStar + d ≤ M) :
-    ∃ q > 0,
-      q ≤ ∫ y, p.ν * (M ^ p.γ - U y ^ p.γ) ∂(intervalMeasure 1) := by
+    intervalPowerSourceGapConstant p uStar d ≤
+      ∫ y, p.ν * (M ^ p.γ - U y ^ p.γ) ∂(intervalMeasure 1) := by
   letI : IsProbabilityMeasure (intervalMeasure 1) :=
     intervalMeasure_one_isProbability
   have hM : 0 < M := lt_of_lt_of_le (by linarith) hMgap
@@ -88,11 +110,10 @@ theorem intervalPowerSourceDeficit_uniform_integral_gap
       intervalMeasure_integral_const (L := (1 : ℝ)) (c := M ^ p.γ) (by norm_num)]
     ring
   by_cases hγ1 : p.γ ≤ 1
-  · let q : ℝ := p.ν * ((uStar + d) ^ p.γ - uStar ^ p.γ)
+  ·
     have hbase : 0 ≤ uStar + d := by linarith
     have hpowStrict : uStar ^ p.γ < (uStar + d) ^ p.γ :=
       Real.rpow_lt_rpow huStar.le (by linarith) p.hγ
-    have hq : 0 < q := mul_pos p.hν (sub_pos.mpr hpowStrict)
     have hJensen :
         (∫ y, U y ^ p.γ ∂(intervalMeasure 1)) ≤ uStar ^ p.γ := by
       have hj := (Real.concaveOn_rpow p.hγ.le hγ1).le_map_integral
@@ -102,16 +123,12 @@ theorem intervalPowerSourceDeficit_uniform_integral_gap
       simpa [Function.comp_apply, hmass] using hj
     have hMpow : (uStar + d) ^ p.γ ≤ M ^ p.γ :=
       Real.rpow_le_rpow hbase hMgap p.hγ.le
-    refine ⟨q, hq, ?_⟩
     rw [hsourceIntegral]
-    dsimp [q]
+    rw [intervalPowerSourceGapConstant, if_pos hγ1]
     exact mul_le_mul_of_nonneg_left (by linarith) p.hν.le
   · have hγge : 1 ≤ p.γ := le_of_not_ge hγ1
     have hγsub : 0 ≤ p.γ - 1 := sub_nonneg.mpr hγge
-    let q : ℝ := p.ν * ((uStar + d) ^ (p.γ - 1) * d)
     have hbase : 0 < uStar + d := by linarith
-    have hq : 0 < q :=
-      mul_pos p.hν (mul_pos (Real.rpow_pos_of_pos hbase _) hd)
     have hpoint : ∀ y,
         U y ^ p.γ ≤ M ^ (p.γ - 1) * U y := by
       intro y
@@ -145,15 +162,33 @@ theorem intervalPowerSourceDeficit_uniform_integral_gap
         M ^ (p.γ - 1) * (M - uStar) := by
       exact mul_le_mul hbasePow (by linarith) hd.le
         (Real.rpow_nonneg hM.le _)
-    refine ⟨q, hq, ?_⟩
     rw [hsourceIntegral]
-    dsimp [q]
+    rw [intervalPowerSourceGapConstant, if_neg hγ1]
     apply mul_le_mul_of_nonneg_left _ p.hν.le
     rw [hMsplit]
     exact le_trans hproduct (by linarith)
 
+/-- Uniform positive integral of the power-source deficit.  The witness is
+explicit in each exponent regime and is independent of the profile maximum
+`M` once `M >= uStar + d`. -/
+theorem intervalPowerSourceDeficit_uniform_integral_gap
+    (p : CM2Params) {U : ℝ → ℝ} {uStar M d : ℝ}
+    (huStar : 0 < uStar) (hd : 0 < d)
+    (hU_cont : Continuous U) (hU_nonneg : ∀ y, 0 ≤ U y)
+    (hU_le : ∀ y, U y ≤ M)
+    (hmass : (∫ y, U y ∂(intervalMeasure 1)) = uStar)
+    (hMgap : uStar + d ≤ M) :
+    ∃ q > 0,
+      q ≤ ∫ y, p.ν * (M ^ p.γ - U y ^ p.γ) ∂(intervalMeasure 1) := by
+  exact ⟨intervalPowerSourceGapConstant p uStar d,
+    intervalPowerSourceGapConstant_pos p huStar hd,
+    intervalPowerSourceGapConstant_le_integral
+      p huStar hd hU_cont hU_nonneg hU_le hmass hMgap⟩
+
 #print axioms intervalMeasure_integrable_of_continuous_nonneg_le
 #print axioms intervalMeasure_rpow_integrable_of_continuous_nonneg_le
+#print axioms intervalPowerSourceGapConstant_pos
+#print axioms intervalPowerSourceGapConstant_le_integral
 #print axioms intervalPowerSourceDeficit_uniform_integral_gap
 
 end ShenWork.Paper3
