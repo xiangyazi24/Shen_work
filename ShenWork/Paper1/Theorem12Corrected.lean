@@ -266,6 +266,8 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
       IsTravelingWave p c U V ∧
       TravelingWaveRegularity p c U V ∧
       HasStrictWaveUpperTailBound p c U ∧
+      kappa c < η ∧
+      η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) ∧
       NonnegativeInitialDatum U ∧
       StrictlyPositiveAtLeft U ∧
       WeightedL2InitialCloseness η U U ∧
@@ -297,12 +299,30 @@ theorem Theorem_1_2_amended_self_initial_data_concrete_nonvacuous :
     simpa [V] using hprofile.to_travelingWave
   have hstrict : HasStrictWaveUpperTailBound p 3 U :=
     hupper.hasStrictWaveUpperTailBound hχ0 hχ1
+  have hkappa_half : kappa (3 : ℝ) < 1 / 2 := by
+    unfold kappa
+    have hsqrt_gt :
+        (3 : ℝ) - 1 < Real.sqrt ((3 : ℝ) ^ 2 - 4) :=
+      Real.lt_sqrt_of_sq_lt (by norm_num)
+    norm_num at hsqrt_gt ⊢
+    linarith
+  have hpow_lt : |p.χ| ^ (1 / 6 : ℝ) < 1 := by
+    apply Real.rpow_lt_one
+    · positivity
+    · norm_num [p]
+    · norm_num
+  have hhalf_cap :
+      (1 / 2 : ℝ) < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
+    have hden_pos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+      positivity
+    rw [lt_div_iff₀ hden_pos]
+    nlinarith
   have hself :=
     Theorem_1_2_amended_self_initial_data_nonvacuous
-      (η := 0) hTW hstrict hU2 (by simpa [V] using hV2)
-  exact ⟨p, 3, 0, U, V, hχpos, hc,
+      (η := 1 / 2) hTW hstrict hU2 (by simpa [V] using hV2)
+  exact ⟨p, 3, 1 / 2, U, V, hχpos, hc,
     StableWaveParameterRegime.of_positive hχ0 hχstar hα,
-    hTW, by simpa [V] using hreg, hstrict, hself⟩
+    hTW, by simpa [V] using hreg, hstrict, hkappa_half, hhalf_cap, hself⟩
 
 section Theorem12CorrectedAxiomAudit
 #print axioms CoMovingWeightedL2Convergence.of_energy_dissipation
