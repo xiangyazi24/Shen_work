@@ -281,7 +281,7 @@ structure PaperWaveOperatorPosMaxBookkeeping
   v2Coeff_le : v2Coeff ≤ a * p.m * M ^ (p.m - 1) * BV2
   vCoeff_le : vCoeff ≤ a * p.m * M ^ (p.m - 1) * BV
 
-private theorem paperWaveOperator_hasDerivAt_routeA
+theorem paperWaveOperator_hasDerivAt_routeA
     {p : CMParams} {c a : ℝ} {u W : ℝ → ℝ} {x₀ : ℝ}
     (ha : a = -p.χ)
     (hW0 : HasDerivAt W (deriv W x₀) x₀)
@@ -634,7 +634,10 @@ theorem paperWaveOperator_deriv_at_approx_pos_max_le_of_structural
     {p : CMParams} {c a M BV BV2 BVd Cmono eta : ℝ}
     {u W : ℝ → ℝ} {x₀ : ℝ}
     (ha : a = -p.χ) (hχ : p.χ ≤ 0)
-    (hWreg : ContDiff ℝ 3 W)
+    (hW0 : HasDerivAt W (deriv W x₀) x₀)
+    (hW1 : HasDerivAt (deriv W) (deriv (deriv W) x₀) x₀)
+    (hW2 : HasDerivAt (iteratedDeriv 2 W)
+      (deriv (deriv (deriv W)) x₀) x₀)
     (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
     (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
     (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
@@ -657,17 +660,6 @@ theorem paperWaveOperator_deriv_at_approx_pos_max_le_of_structural
   have hW_nonneg : 0 ≤ W x₀ := hWpos.le
   have hW_le_M : W x₀ ≤ M := (hWrange x₀).2
   have hM_nonneg : 0 ≤ M := le_trans hW_nonneg hW_le_M
-  have hW0 : HasDerivAt W (deriv W x₀) x₀ :=
-    (hWreg.differentiable (by norm_num)).differentiableAt.hasDerivAt
-  have hW1 : HasDerivAt (deriv W) (deriv (deriv W) x₀) x₀ := by
-    have h := (hWreg.differentiable_iteratedDeriv 1 (by norm_num)).differentiableAt.hasDerivAt
-      (x := x₀)
-    simpa [iteratedDeriv_one] using h
-  have hW2 : HasDerivAt (iteratedDeriv 2 W)
-      (deriv (deriv (deriv W)) x₀) x₀ := by
-    have h := (hWreg.differentiable_iteratedDeriv 2 (by norm_num)).differentiableAt.hasDerivAt
-      (x := x₀)
-    simpa [iteratedDeriv_succ, iteratedDeriv_zero, iteratedDeriv_one] using h
   have hV0 : HasDerivAt (frozenElliptic p u)
       (deriv (frozenElliptic p u) x₀) x₀ :=
     (hVreg.differentiable (by norm_num)).differentiableAt.hasDerivAt
@@ -1250,11 +1242,22 @@ theorem paperStep_antitone_by_routeA_of_structuralData_tailfree
       deriv (fun x => paperWaveOperator p c u W x) x₀ ≤
         Cmono * deriv W x₀ + E * eta := by
     intro eta heta x₀ hqpos hqSlope hqSecond
+    have hW0 : HasDerivAt W (deriv W x₀) x₀ :=
+      (hWreg.differentiable (by norm_num) x₀).hasDerivAt
+    have hW1 : HasDerivAt (deriv W) (deriv (deriv W) x₀) x₀ := by
+      have h := (hWreg.differentiable_iteratedDeriv 1
+        (by norm_num) x₀).hasDerivAt
+      simpa [iteratedDeriv_one] using h
+    have hW2 : HasDerivAt (iteratedDeriv 2 W)
+        (deriv (deriv (deriv W)) x₀) x₀ := by
+      have h := (hWreg.differentiable_iteratedDeriv 2
+        (by norm_num) x₀).hasDerivAt
+      simpa [iteratedDeriv_succ, iteratedDeriv_zero, iteratedDeriv_one] using h
     exact paperWaveOperator_deriv_at_approx_pos_max_le_of_structural
       (p := p) (c := c) (a := hd.a) (M := hd.M) (BV := hd.BV)
       (BV2 := hd.BV2) (BVd := hd.BV) (Cmono := Cmono) (eta := eta)
       (u := u) (W := W) (x₀ := x₀)
-      hd.ha hd.hχ hWreg hd.V_reg hWrange hd.V_deriv_nonpos
+      hd.ha hd.hχ hW0 hW1 hW2 hd.V_reg hWrange hd.V_deriv_nonpos
       hd.V_deriv_bound hd.V_bound hd.V2_bound hBV0 heta hqpos
       hqSlope hqSecond hd.Cmono_bound
   have hqnonpos := smooth_paperStep_deriv_nonpos_of_quasiMonotone_tailfree
