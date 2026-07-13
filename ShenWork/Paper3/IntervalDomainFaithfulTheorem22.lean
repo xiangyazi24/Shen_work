@@ -142,6 +142,23 @@ theorem intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional
   · intro ha0 _hb0
     exact False.elim ((ne_of_gt haP) ha0)
 
+/-- Concrete non-vacuous capstone: the abstract constants package is
+instantiated by the unit-interval spectral formulas. -/
+theorem
+intervalDomain_Theorem_2_2_Eventual_positiveLogistic_concrete_unconditional
+    (p : CM2Params) (hm : p.m = 1)
+    (haP : 0 < p.a) (hbP : 0 < p.b)
+    (M0 uBar vLower : ℝ) :
+    Theorem_2_2_EventualExponentialStability
+      intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional
+    p hm haP hbP
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+      (intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+        p M0 uBar vLower)
+
 /-- Global Cauchy existence discharges the only non-stability input in the
 faithful positive-logistic Theorem 2.2 assembly. -/
 theorem
@@ -167,6 +184,8 @@ intervalDomain_Theorem_2_2_Eventual_positiveLogistic_of_globalSolutionExists
 #print axioms intervalDomain_Theorem_2_2_Eventual_positiveLogistic
 #print axioms
   intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional
+#print axioms
+  intervalDomain_Theorem_2_2_Eventual_positiveLogistic_concrete_unconditional
 #print axioms
   intervalDomain_Theorem_2_2_Eventual_positiveLogistic_of_globalSolutionExists
 
