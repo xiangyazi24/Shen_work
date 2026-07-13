@@ -20,7 +20,7 @@ theorem paperUniformModulusLowerPinned_fixed_stationary
     (hne : ∃ u, InLowerPinnedUniformModulusMonotoneTrap κ M L φ u)
     (hdata : ∀ u,
       InLowerPinnedUniformModulusMonotoneTrap κ M L φ u →
-      PaperRotheOrbitData p c lam M κ rotheSeq u)
+      PaperRotheOrbitDataWithModulus p c lam M κ L (rotheSeq u))
     (hmap : ∀ u,
       InLowerPinnedUniformModulusMonotoneTrap κ M L φ u →
       InLowerPinnedUniformModulusMonotoneTrap κ M L φ
@@ -41,7 +41,7 @@ theorem paperUniformModulusLowerPinned_fixed_stationary
     InLowerPinnedUniformModulusMonotoneTrap.exists_fixed
       hne hMpos.le hL (fun u => rotheLimit (rotheSeq u)) hmap hcont
   have hLU : LocallyUniformConverges (rotheSeq U) U := by
-    simpa only [hfix] using (hdata U hU).locallyUniform hMpos.le
+    simpa only [hfix] using (hdata U hU).locallyUniform hL
   have hLU_succ :
       LocallyUniformConverges (fun n => rotheSeq U (n + 1)) U :=
     hLU.comp_strictMono (strictMono_id.add_const 1)
