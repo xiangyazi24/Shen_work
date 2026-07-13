@@ -35,16 +35,34 @@ def EventuallyGloballyExponentiallyStableNonminimal
           EventualExponentialC1ConvergenceWith
             D N u v uStar vStar C rate t₀
 
+/-- Physical mass compatibility for an already existing global orbit.
+
+`HasInitialMass` reads the stored slice `u 0`.  The legacy classical-solution
+API permits that slice to be re-anchored without changing any positive-time
+PDE or initial-trace fact, so it is not by itself a faithful mass constraint
+on an orbit supplied without its datum and trace. -/
+def HasEquilibriumMassOnPositiveTimes
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (uStar : ℝ) : Prop :=
+  ∀ t, 0 < t → D.integral (u t) = D.volume * uStar
+
+/-- Faithful qualitative global attraction in the neutral-mode branch. -/
+def GloballyAsymptoticallyStableMinimalOnPhysicalMass
+    (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
+  ∀ u v : ℝ → D.Point → ℝ,
+    PositiveGlobalBoundedSolution D p u v →
+    HasEquilibriumMassOnPositiveTimes D u uStar →
+      UniformConvergesInSup D u uStar
+
 /-- Mass-constrained global sup convergence together with orbitwise eventual
 exponential convergence.  This is the correct global target when the
 constant mode is neutral. -/
 def EventuallyGloballyExponentiallyStableMinimal
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (uStar vStar : ℝ) : Prop :=
-  GloballyAsymptoticallyStableMinimal D p uStar vStar ∧
+  GloballyAsymptoticallyStableMinimalOnPhysicalMass D p uStar vStar ∧
     ∀ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v →
-      HasInitialMass D u uStar →
+      HasEquilibriumMassOnPositiveTimes D u uStar →
         ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
           EventualExponentialC1ConvergenceWith
             D N u v uStar vStar C rate t₀
