@@ -20,6 +20,10 @@ structure PaperLocalFixedStepData
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
   fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z
   range : ∀ x, fixed.W x ∈ Set.Icc (0 : ℝ) (upperBarrier κ M x)
+  sourceWeight : ℝ
+  sourceWeight_nonneg : 0 ≤ sourceWeight
+  sourceWeightedBound :
+    ∀ x, |fixed.R x| ≤ sourceWeight * upperBarrier κ M x
 
 /-- The local source Schauder construction produces the exact genuine paper
 source equation after the tail-free maximum principles deactivate the spatial
@@ -89,7 +93,12 @@ theorem paperLocalFixedStepData_exists_of_trap
     { fixed := fixed
       range := by
         intro x
-        simpa [fixed, PaperStepFixedSourceCore.W] using hIcc x }
+        simpa [fixed, PaperStepFixedSourceCore.W] using hIcc x
+      sourceWeight := B
+      sourceWeight_nonneg := hB
+      sourceWeightedBound := by
+        intro x
+        simpa [fixed] using hR.bound x }
   exact ⟨d, by simpa [d, fixed] using hR⟩
 
 namespace PaperLocalFixedStepData
@@ -111,6 +120,75 @@ theorem deriv_le
     (hlam : 0 < lam) (d : PaperLocalFixedStepData p c lam M κ Λ u Z) :
     ∀ x, |deriv d.fixed.W x| ≤ Λ :=
   (smooth_paperStep_basic_regular_of_core hlam d.fixed.analyticCore).2.2
+
+/-- Coefficient in the weighted Green derivative estimate. -/
+def weightedDerivCoeff
+    {p : CMParams} {M Λ : ℝ} {u Z : ℝ → ℝ}
+    (c lam κ : ℝ) (d : PaperLocalFixedStepData p c lam M κ Λ u Z) : ℝ :=
+  (greenDelta c lam)⁻¹ *
+    (greenRootPlus c lam *
+        (d.sourceWeight / (greenRootPlus c lam - κ)) +
+      (-greenRootMinus c lam) *
+        (d.sourceWeight / (-(greenRootMinus c lam + κ))))
+
+theorem weightedDerivCoeff_nonneg
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (d : PaperLocalFixedStepData p c lam M κ Λ u Z) :
+    0 ≤ d.weightedDerivCoeff c lam κ := by
+  unfold weightedDerivCoeff
+  have hδ : 0 < greenDelta c lam := greenDelta_pos hlam
+  have hrp : 0 < greenRootPlus c lam := greenRootPlus_pos hlam
+  have hrm : greenRootMinus c lam < 0 := greenRootMinus_neg hlam
+  have hdenp : 0 < greenRootPlus c lam - κ := by linarith
+  have hdenm : 0 < -(greenRootMinus c lam + κ) := by linarith
+  exact mul_nonneg (inv_nonneg.mpr hδ.le)
+    (add_nonneg
+      (mul_nonneg hrp.le (div_nonneg d.sourceWeight_nonneg hdenp.le))
+      (mul_nonneg (neg_nonneg.mpr hrm.le)
+        (div_nonneg d.sourceWeight_nonneg hdenm.le)))
+
+/-- The fixed source's weighted box yields a derivative bound with the same
+exponential upper barrier, rather than only a global constant. -/
+theorem deriv_abs_le_weighted_barrier
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (d : PaperLocalFixedStepData p c lam M κ Λ u Z) :
+    ∀ x, |deriv d.fixed.W x| ≤
+      d.weightedDerivCoeff c lam κ * upperBarrier κ M x := by
+  intro x
+  have hHi : ∀ t, IntegrableOn
+      (gWeight (greenRootPlus c lam) d.fixed.R) (Set.Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) d.fixed.R_cont
+      d.fixed.R_bound t
+  have hLo : ∀ t, IntegrableOn
+      (gWeight (greenRootMinus c lam) d.fixed.R) (Set.Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) d.fixed.R_cont
+      d.fixed.R_bound t
+  have hraw := deriv_greenConv_abs_le_upperBarrier_of_source_bound
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM
+      d.sourceWeight_nonneg d.fixed.R_cont d.sourceWeightedBound hHi hLo x
+  change |deriv (greenConv c lam d.fixed.R) x| ≤ _ at hraw
+  change |deriv (greenConv c lam d.fixed.R) x| ≤ _
+  calc
+    |deriv (greenConv c lam d.fixed.R) x| ≤
+        (greenDelta c lam)⁻¹ *
+          (greenRootPlus c lam *
+              (d.sourceWeight * upperBarrier κ M x /
+                (greenRootPlus c lam - κ)) +
+            (-greenRootMinus c lam) *
+              (d.sourceWeight * upperBarrier κ M x /
+                (-(greenRootMinus c lam + κ)))) := hraw
+    _ = d.weightedDerivCoeff c lam κ * upperBarrier κ M x := by
+      unfold weightedDerivCoeff
+      ring
 
 end PaperLocalFixedStepData
 
@@ -187,6 +265,8 @@ section AxiomAudit
 #print axioms PaperLocalFixedStepData.step_op
 #print axioms PaperLocalFixedStepData.contDiff_two
 #print axioms PaperLocalFixedStepData.deriv_le
+#print axioms PaperLocalFixedStepData.weightedDerivCoeff_nonneg
+#print axioms PaperLocalFixedStepData.deriv_abs_le_weighted_barrier
 #print axioms paperGreenStepInputRouteAOrbitCore_of_localFixedStep
 
 end AxiomAudit
