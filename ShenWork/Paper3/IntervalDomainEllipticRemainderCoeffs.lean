@@ -73,6 +73,22 @@ theorem cosineCoeffs_const_mul_of_intervalIntegrable
   rw [hsplit]
   ring
 
+/-- Subtractivity under the same minimal interval-integrability hypothesis. -/
+theorem cosineCoeffs_sub_of_intervalIntegrable
+    {f g : ℝ → ℝ} (k : ℕ)
+    (hf : IntervalIntegrable f volume 0 1)
+    (hg : IntervalIntegrable g volume 0 1) :
+    cosineCoeffs (fun x => f x - g x) k =
+      cosineCoeffs f k - cosineCoeffs g k := by
+  have hneg : IntervalIntegrable (fun x => -g x) volume 0 1 := hg.neg
+  rw [show (fun x => f x - g x) = (fun x => f x + (-g x)) by
+    funext x
+    ring]
+  rw [cosineCoeffs_add_of_intervalIntegrable k hf hneg]
+  rw [show cosineCoeffs (fun x => -g x) k = -cosineCoeffs g k by
+    simpa using cosineCoeffs_const_mul_of_intervalIntegrable (-1) k hg]
+  ring
+
 /-- Cosine coefficients only depend on values on the physical unit interval. -/
 theorem paper3_cosineCoeffs_congr_on_Icc
     {f g : ℝ → ℝ}
@@ -434,6 +450,7 @@ theorem paper3IntervalEllipticRemainder_difference_coeff_l2
 
 #print axioms cosineCoeffs_l2_norm_le_of_pointwise_mul
 #print axioms cosineCoeffs_const_mul_of_intervalIntegrable
+#print axioms cosineCoeffs_sub_of_intervalIntegrable
 #print axioms intervalNeumannResolverSourceCoeff_split
 #print axioms intervalNeumannResolverCoeff_split
 #print axioms paper3IntervalEllipticRemainder_coeff_l2
