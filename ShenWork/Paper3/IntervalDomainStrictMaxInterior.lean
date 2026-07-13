@@ -37,6 +37,9 @@ theorem intervalDomain_interior_max_point_strict_signal
   have hux_lift : intervalDomainLift (u t) x.1 = u t x := by
     rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hint)]
     congr
+  have hvx_lift : intervalDomainLift (v t) x.1 = v t x := by
+    rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hint)]
+    congr
   have hu_pos : 0 < intervalDomainLift (u t) x.1 := by
     rw [hux_lift]
     exact hsol.u_pos' ht0 htT
@@ -55,11 +58,11 @@ theorem intervalDomain_interior_max_point_strict_signal
     have hpv := hsol.pde_v ht0 htT hint
     have hlap : intervalDomain.laplacian (v t) x =
         deriv (deriv (intervalDomainLift (v t))) x.1 := rfl
-    rw [hlap, hux_lift] at hpv
+    rw [hlap, ← hux_lift, ← hvx_lift] at hpv
     linarith
   have hgap : deriv (deriv (intervalDomainLift (v t))) x.1 ≤ -p.μ * q := by
     rw [hvxx_eq]
-    have hmul := (le_div_iff₀ p.hμ).mp hsignal
+    have hmul := (le_div_iff₀ p.hμ).mp ((le_sub_iff_add_le).mp hsignal)
     nlinarith
   have hfirst :
       -p.β * (1 + intervalDomainLift (v t) x.1) ^ (-p.β - 1) *
