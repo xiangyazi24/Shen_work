@@ -256,10 +256,10 @@ theorem positiveCritical_reachableArbitrarilyLong_geOne
     have hsol : IsPaper2ClassicalSolution intervalDomain p
         (finiteMaximalReachableHorizon p u₀) u v :=
       boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
-        huniq hu₀.toPositive hbdd hne hTmax
+        (huniq.at hu₀.toPositive) hu₀.toPositive hbdd hne hTmax
     have htrace : InitialTrace intervalDomain u₀ u :=
       boundedReachableGlued_initialTrace_of_overlapUnique
-        huniq hu₀.toPositive hbdd hne
+        (huniq.at hu₀.toPositive) hu₀.toPositive hbdd hne
     have hbound :=
       critical_bounded_before_positive_restarted_affine_intervalDomain
         hguard hu₀.toPositive hsol htrace hβ hm hχ hthreshold

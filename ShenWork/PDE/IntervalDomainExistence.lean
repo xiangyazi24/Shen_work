@@ -4805,6 +4805,24 @@ def IntervalClassicalSolutionOverlapUnique (p : CM2Params) : Prop :=
       ∀ t, 0 < t → t < min T₁ T₂ →
         ∀ x : intervalDomainPoint, d₁.u t x = d₂.u t x ∧ d₁.v t x = d₂.v t x
 
+/-- Datum-specific overlap uniqueness.  This is the faithful gluing interface
+when the Cauchy theory is available only for a strengthened datum class (such
+as the paper's uniformly positive data). -/
+def IntervalClassicalSolutionOverlapUniqueAt
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  ∀ {T₁ T₂ : ℝ}
+    (d₁ : ReachableClassicalSolutionData p u₀ T₁)
+    (d₂ : ReachableClassicalSolutionData p u₀ T₂),
+      ∀ t, 0 < t → t < min T₁ T₂ →
+        ∀ x : intervalDomainPoint, d₁.u t x = d₂.u t x ∧ d₁.v t x = d₂.v t x
+
+theorem IntervalClassicalSolutionOverlapUnique.at
+    {p : CM2Params} (h : IntervalClassicalSolutionOverlapUnique p)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    IntervalClassicalSolutionOverlapUniqueAt p u₀ :=
+  h hu₀
+
 /-- Locality frontier for the formal `IsPaper2ClassicalSolution` predicate:
 if a candidate agrees pointwise with a known classical solution throughout
 `(0,T)`, then it is itself a classical solution on `T`.
@@ -5169,7 +5187,7 @@ noncomputable def reachableArbitrarilyLongGluedV
 with any chosen reachable witness on horizon `T`. -/
 theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hreach : ReachableArbitrarilyLong p u₀)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
@@ -5181,7 +5199,7 @@ theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
     reachableClassicalSolutionDataOfReach (hreach (t + 1) (by linarith))
   have ht_overlap : t < min (t + 1) T := by
     exact lt_min (by linarith) htT
-  have hsame := huniq hu₀ dshort d t ht0 ht_overlap x
+  have hsame := huniq dshort d t ht0 ht_overlap x
   constructor
   · simpa [reachableArbitrarilyLongGluedU, ht0, dshort] using hsame.1
   · simpa [reachableArbitrarilyLongGluedV, ht0, dshort] using hsame.2
@@ -5190,7 +5208,7 @@ theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
 witness, using overlap uniqueness for small positive times. -/
 theorem reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hreach : ReachableArbitrarilyLong p u₀) :
     InitialTrace intervalDomain u₀ (reachableArbitrarilyLongGluedU hreach) := by
@@ -5234,6 +5252,30 @@ theorem GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
     let dT : ReachableClassicalSolutionData p u₀ T :=
       reachableClassicalSolutionDataOfReach (hreach T hT)
     refine hlocality hT dT.sol ?_
+    intro t ht0 htT x
+    exact reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
+      (huniq.at hu₀) hu₀ hreach dT t ht0 htT x
+  · exact reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
+      (huniq.at hu₀) hu₀ hreach
+
+/-- Datum-specific canonical gluing.  Unlike the global frontier above, this
+requires uniqueness only for the one datum whose reachable branches are being
+glued. -/
+theorem globalSolution_of_reachableArbitrarilyLong_of_overlapUniqueAt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hreach : ReachableArbitrarilyLong p u₀) :
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  let u := reachableArbitrarilyLongGluedU hreach
+  let v := reachableArbitrarilyLongGluedV hreach
+  refine ⟨u, v, ?_, ?_⟩
+  · intro T hT
+    let dT : ReachableClassicalSolutionData p u₀ T :=
+      reachableClassicalSolutionDataOfReach (hreach T hT)
+    refine classicalSolutionLocalityUnderIooAgreement_intervalDomain p hT dT.sol ?_
     intro t ht0 htT x
     exact reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
       huniq hu₀ hreach dT t ht0 htT x
@@ -5382,7 +5424,7 @@ noncomputable def boundedReachableGluedV
 `(0, T)` with any chosen reachable witness on horizon `T ≤ T*`. -/
 theorem boundedReachableGlued_eq_reachableData_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
@@ -5405,7 +5447,7 @@ theorem boundedReachableGlued_eq_reachableData_of_overlapUnique
     pickReachableAbove_lt hbdd hne ht_lt_Tmax
   have ht_overlap : t < min (pickReachableAbove hbdd hne ht_lt_Tmax).1 T :=
     lt_min ht_lt_pick htT
-  have hsame := huniq hu₀ dpick d t ht0 ht_overlap x
+  have hsame := huniq dpick d t ht0 ht_overlap x
   refine ⟨?_, ?_⟩
   · -- `boundedReachableGluedU t x = dpick.u t x = d.u t x`.
     have h_if : boundedReachableGluedU hbdd hne t x = dpick.u t x := by
@@ -5444,7 +5486,7 @@ chosen witness on the WHOLE open slab `Ioo 0 T`.  Same statement as
 direct use by the `_congr_Ioo` regularity transfer. -/
 private lemma boundedReachableGlued_eq_on_subSlab
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
@@ -5466,7 +5508,7 @@ witness, using overlap uniqueness for small positive times.  Picks the witness
 on the unique smallest reachable horizon via `hne`. -/
 theorem boundedReachableGlued_initialTrace_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
@@ -5502,7 +5544,7 @@ theorem boundedReachableGlued_initialTrace_of_overlapUnique
 interior time `t ∈ (0, T)`. -/
 private lemma boundedReachableGluedU_lift_eq
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
@@ -5517,7 +5559,7 @@ private lemma boundedReachableGluedU_lift_eq
 
 private lemma boundedReachableGluedV_lift_eq
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
@@ -5536,7 +5578,7 @@ private lemma boundedReachableGluedV_lift_eq
 (plus joint-continuity local-to-global). -/
 theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
@@ -5855,7 +5897,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
 /-- The glued branch is a classical interval solution at horizon `T*`. -/
 theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (huniq : IntervalClassicalSolutionOverlapUniqueAt p u₀)
     (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
@@ -5977,8 +6019,8 @@ theorem realize_at_finiteMaximalReachableHorizon_of_overlapUnique
     finiteMaximalReachableHorizon_pos_of_localExistence p hlocal hu₀ hbdd
   refine ⟨boundedReachableGluedU hbdd hne, boundedReachableGluedV hbdd hne,
     boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
-      huniq hu₀ hbdd hne hTmax_pos,
-    boundedReachableGlued_initialTrace_of_overlapUnique huniq hu₀ hbdd hne⟩
+      (huniq.at hu₀) hu₀ hbdd hne hTmax_pos,
+    boundedReachableGlued_initialTrace_of_overlapUnique (huniq.at hu₀) hu₀ hbdd hne⟩
 
 /-! #### Blow-up exclusion from an a priori bound
 
