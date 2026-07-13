@@ -750,10 +750,419 @@ theorem intervalDomain_minimal_signal_energy_hasDerivAt
   rw [hslope]
   ring
 
+/-! ## PDE dissipation identity -/
+
+/-- Pointwise minimal-model parabolic equation in lifted coordinates. -/
+theorem intervalDomain_minimal_u_timeDeriv_pde
+    {p : CM2Params} {T t y : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (ha0 : p.a = 0) (hb0 : p.b = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) (hy : y ∈ Ioo (0 : ℝ) 1) :
+    deriv (fun r => intervalDomainLift (u r) y) t =
+      deriv (fun z => deriv (intervalDomainLift (u t)) z) y -
+        p.χ₀ * deriv (intervalFlux p (u t) (v t)) y := by
+  let x : intervalDomainPoint := ⟨y, Ioo_subset_Icc_self hy⟩
+  have htime :
+      deriv (fun r => intervalDomainLift (u r) y) t =
+        intervalDomain.timeDeriv u t x := by
+    have heq : (fun r => intervalDomainLift (u r) y) = fun r => u r x := by
+      funext r
+      simp [intervalDomainLift, x, Ioo_subset_Icc_self hy]
+    rw [heq]
+    rfl
+  have hpde := hsol.pde_u ht.1 ht.2 (x := x) hy
+  rw [htime, hpde]
+  change
+    intervalDomainLaplacian (u t) x -
+      p.χ₀ * intervalDomainChemotaxisDiv p (u t) (v t) x +
+        u t x * (p.a - p.b * (u t x) ^ p.α) = _
+  simp only [intervalDomainLaplacian, intervalDomainChemotaxisDiv]
+  have hu : u t x = intervalDomainLift (u t) y := by
+    simp [intervalDomainLift, x, Ioo_subset_Icc_self hy]
+  rw [hu, ha0, hb0]
+  dsimp [x]
+  have hfluxeq :
+      (fun yy : ℝ => intervalDomainLift (u t) yy *
+        deriv (intervalDomainLift (v t)) yy /
+          (1 + intervalDomainLift (v t) yy) ^ p.β) =
+        intervalFlux p (u t) (v t) := rfl
+  rw [hfluxeq]
+  ring
+
+/-- Cross integration by parts between the signal difference and the
+parabolic Laplacian. -/
+theorem intervalDomain_minimal_signal_u_lap_cross_ibp
+    {p : CM2Params} {T t vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (v t) y - vStar) *
+          deriv (fun z => deriv (intervalDomainLift (u t)) z) y) =
+      -∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (v t)) y *
+          deriv (intervalDomainLift (u t)) y := by
+  let phi : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let phi' : ℝ → ℝ := fun y => deriv (intervalDomainLift (v t)) y
+  let F : ℝ → ℝ := fun y => deriv (intervalDomainLift (u t)) y
+  let F' : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (u t)) z) y
+  have hphiCont : ContinuousOn phi (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hFCont : ContinuousOn F (uIcc (0 : ℝ) 1) := by
+    simpa [uIcc_of_le zero_le_one, F] using
+      solution_deriv_lift_continuousOn_Icc hsol ht
+  have hphi : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt phi (phi' y) y := by
+    intro y hy
+    simpa [phi, phi'] using
+      (intervalDomain_solution_v_lift_hasDerivAt_interior hsol ht hy).1.sub_const vStar
+  have hF : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt F (F' y) y := by
+    intro y hy
+    simpa [F, F'] using (lift_hasDerivAt_interior hsol ht hy).2
+  have hphiInt : IntervalIntegrable phi' volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one, phi'] using
+      intervalDomain_solution_v_deriv_lift_continuousOn_Icc hsol ht
+  have hFInt : IntervalIntegrable F' volume 0 1 := by
+    simpa [F'] using solution_lap_lift_intervalIntegrable hsol ht
+  have hzero := (hsol.regularity.2.2.2.2.1 t ht).1
+  simpa [phi, phi', F, F'] using
+    intervalFluxByParts_open hphiCont hFCont hphi hF hphiInt hFInt
+      hzero.2.1 hzero.2.2
+
+/-- Cross integration by parts for the chemotaxis divergence. -/
+theorem intervalDomain_minimal_signal_flux_cross_ibp
+    {p : CM2Params} {T t vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (v t) y - vStar) *
+          deriv (intervalFlux p (u t) (v t)) y) =
+      -∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (v t)) y *
+          intervalFlux p (u t) (v t) y := by
+  let phi : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let phi' : ℝ → ℝ := fun y => deriv (intervalDomainLift (v t)) y
+  let F : ℝ → ℝ := intervalFlux p (u t) (v t)
+  let F' : ℝ → ℝ := fun y => deriv F y
+  have hphiCont : ContinuousOn phi (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hFCont : ContinuousOn F (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact (flux_contDiffOn_Icc hsol ht).continuousOn
+  have hphi : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt phi (phi' y) y := by
+    intro y hy
+    simpa [phi, phi'] using
+      (intervalDomain_solution_v_lift_hasDerivAt_interior hsol ht hy).1.sub_const vStar
+  have hF : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt F (F' y) y := by
+    intro y hy
+    exact (((flux_contDiffOn_Ioo_of_solution hsol ht).differentiableOn
+      (by norm_num)).differentiableAt
+        (IsOpen.mem_nhds isOpen_Ioo hy)).hasDerivAt
+  have hphiInt : IntervalIntegrable phi' volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one, phi'] using
+      intervalDomain_solution_v_deriv_lift_continuousOn_Icc hsol ht
+  have hFInt : IntervalIntegrable F' volume 0 1 := by
+    simpa [F, F'] using solution_deriv_flux_intervalIntegrable hsol ht
+  have hzero := flux_endpoint_zero hsol ht
+  simpa [phi, phi', F, F'] using
+    intervalFluxByParts_open hphiCont hFCont hphi hF hphiInt hFInt
+      hzero.1 hzero.2
+
+/-- Testing the minimal parabolic equation against `v-vStar`. -/
+theorem intervalDomain_minimal_signal_ut_pairing_pde
+    {p : CM2Params} {T t vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (ha0 : p.a = 0) (hb0 : p.b = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    (∫ y in (0 : ℝ)..1,
+        deriv (fun r => intervalDomainLift (u r) y) t *
+          (intervalDomainLift (v t) y - vStar)) =
+      -(∫ y in (0 : ℝ)..1,
+          deriv (intervalDomainLift (u t)) y *
+            deriv (intervalDomainLift (v t)) y) +
+        p.χ₀ * (∫ y in (0 : ℝ)..1,
+          intervalDomainLift (u t) y *
+            (deriv (intervalDomainLift (v t)) y) ^ 2 /
+              (1 + intervalDomainLift (v t) y) ^ p.β) := by
+  let Ut : ℝ → ℝ :=
+    fun y => deriv (fun r => intervalDomainLift (u r) y) t
+  let W : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let Lap : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (u t)) z) y
+  let Fd : ℝ → ℝ := fun y => deriv (intervalFlux p (u t) (v t)) y
+  have hUtCont : ContinuousOn Ut (Icc (0 : ℝ) 1) := by
+    simpa [Ut] using ShenWork.Paper2.intervalDomain_continuousOn_timeSlice
+      hsol.regularity.2.2.2.2.2.1.1 ht
+  have hWCont : ContinuousOn W (Icc (0 : ℝ) 1) := by
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hWContU : ContinuousOn W (uIcc (0 : ℝ) 1) := by
+    simpa [uIcc_of_le zero_le_one] using hWCont
+  have hLapInt : IntervalIntegrable Lap volume 0 1 := by
+    simpa [Lap] using solution_lap_lift_intervalIntegrable hsol ht
+  have hFdInt : IntervalIntegrable Fd volume 0 1 := by
+    simpa [Fd] using solution_deriv_flux_intervalIntegrable hsol ht
+  have hUtWInt : IntervalIntegrable (fun y => Ut y * W y) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hUtCont.mul hWCont
+  have hWLapInt : IntervalIntegrable (fun y => W y * Lap y) volume 0 1 :=
+    hLapInt.continuousOn_mul hWContU
+  have hWFdInt : IntervalIntegrable (fun y => W y * Fd y) volume 0 1 :=
+    hFdInt.continuousOn_mul hWContU
+  have hpoint : EqOn (fun y => Ut y * W y)
+      (fun y => W y * Lap y - p.χ₀ * (W y * Fd y))
+      (Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have h := intervalDomain_minimal_u_timeDeriv_pde
+      ha0 hb0 hsol ht hy
+    dsimp [Ut, W, Lap, Fd]
+    rw [h]
+    ring
+  have hintegral :
+      (∫ y in (0 : ℝ)..1, Ut y * W y) =
+        (∫ y in (0 : ℝ)..1, W y * Lap y) -
+          p.χ₀ * (∫ y in (0 : ℝ)..1, W y * Fd y) := by
+    calc
+      (∫ y in (0 : ℝ)..1, Ut y * W y) =
+          ∫ y in (0 : ℝ)..1,
+            W y * Lap y - p.χ₀ * (W y * Fd y) := by
+        apply intervalIntegral.integral_congr_ae
+        have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := Real.volume_singleton
+        refine (ae_iff).2 (measure_mono_null ?_ hnull)
+        intro y hy
+        simp only [mem_setOf_eq] at hy
+        push_neg at hy
+        obtain ⟨hyIoc, hne⟩ := hy
+        rw [uIoc_of_le zero_le_one] at hyIoc
+        simp only [mem_singleton_iff]
+        by_contra hy1
+        exact hne (hpoint ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩)
+      _ = (∫ y in (0 : ℝ)..1, W y * Lap y) -
+          ∫ y in (0 : ℝ)..1, p.χ₀ * (W y * Fd y) := by
+        rw [intervalIntegral.integral_sub hWLapInt (hWFdInt.const_mul p.χ₀)]
+      _ = (∫ y in (0 : ℝ)..1, W y * Lap y) -
+          p.χ₀ * (∫ y in (0 : ℝ)..1, W y * Fd y) := by
+        rw [intervalIntegral.integral_const_mul]
+  have hlap := intervalDomain_minimal_signal_u_lap_cross_ibp
+    (vStar := vStar) hsol ht
+  have hflux := intervalDomain_minimal_signal_flux_cross_ibp
+    (vStar := vStar) hsol ht
+  have hchem :
+      (∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (v t)) y *
+          intervalFlux p (u t) (v t) y) =
+        ∫ y in (0 : ℝ)..1,
+          intervalDomainLift (u t) y *
+            (deriv (intervalDomainLift (v t)) y) ^ 2 /
+              (1 + intervalDomainLift (v t) y) ^ p.β := by
+    apply intervalIntegral.integral_congr
+    intro y _
+    unfold intervalFlux
+    ring
+  rw [hlap, hflux, hchem] at hintegral
+  dsimp [Ut, W, Lap, Fd] at hintegral
+  have hgradComm :
+      (∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (v t)) y *
+          deriv (intervalDomainLift (u t)) y) =
+        ∫ y in (0 : ℝ)..1,
+          deriv (intervalDomainLift (u t)) y *
+            deriv (intervalDomainLift (v t)) y := by
+    apply intervalIntegral.integral_congr
+    intro y _
+    ring
+  rw [hgradComm] at hintegral
+  linarith
+
+/-- Cross integration by parts between the population difference and the
+signal Laplacian. -/
+theorem intervalDomain_minimal_u_signal_lap_cross_ibp
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y - uStar) *
+          deriv (fun z => deriv (intervalDomainLift (v t)) z) y) =
+      -∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (u t)) y *
+          deriv (intervalDomainLift (v t)) y := by
+  let phi : ℝ → ℝ := fun y => intervalDomainLift (u t) y - uStar
+  let phi' : ℝ → ℝ := fun y => deriv (intervalDomainLift (u t)) y
+  let F : ℝ → ℝ := fun y => deriv (intervalDomainLift (v t)) y
+  let F' : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (v t)) z) y
+  have hphiCont : ContinuousOn phi (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn).sub
+      continuousOn_const
+  have hFCont : ContinuousOn F (uIcc (0 : ℝ) 1) := by
+    simpa [uIcc_of_le zero_le_one, F] using
+      intervalDomain_solution_v_deriv_lift_continuousOn_Icc hsol ht
+  have hphi : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt phi (phi' y) y := by
+    intro y hy
+    simpa [phi, phi'] using
+      (lift_hasDerivAt_interior hsol ht hy).1.sub_const uStar
+  have hF : ∀ y ∈ Ioo (0 : ℝ) 1, HasDerivAt F (F' y) y := by
+    intro y hy
+    simpa [F, F'] using
+      (intervalDomain_solution_v_lift_hasDerivAt_interior hsol ht hy).2
+  have hphiInt : IntervalIntegrable phi' volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one, phi'] using
+      solution_deriv_lift_continuousOn_Icc hsol ht
+  have hFInt : IntervalIntegrable F' volume 0 1 := by
+    simpa [F'] using intervalDomain_solution_v_lap_lift_intervalIntegrable hsol ht
+  have hzero := (hsol.regularity.2.2.2.2.1 t ht).2
+  simpa [phi, phi', F, F'] using
+    intervalFluxByParts_open hphiCont hFCont hphi hF hphiInt hFInt
+      hzero.2.1 hzero.2.2
+
+/-- The `γ = 1` elliptic equation converts the population--signal gradient
+pairing into the two coercive signal terms. -/
+theorem intervalDomain_minimal_signal_diffusion_pairing
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    -p.ν * (∫ y in (0 : ℝ)..1,
+        deriv (intervalDomainLift (u t)) y *
+          deriv (intervalDomainLift (v t)) y) =
+      -(∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2) -
+        p.μ * (∫ y in (0 : ℝ)..1,
+          (deriv (intervalDomainLift (v t)) y) ^ 2) := by
+  let U : ℝ → ℝ := fun y => intervalDomainLift (u t) y - uStar
+  let W : ℝ → ℝ := fun y => intervalDomainLift (v t) y - vStar
+  let Lap : ℝ → ℝ :=
+    fun y => deriv (fun z => deriv (intervalDomainLift (v t)) z) y
+  have hUCont : ContinuousOn U (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn).sub
+      continuousOn_const
+  have hWCont : ContinuousOn W (uIcc (0 : ℝ) 1) := by
+    rw [uIcc_of_le zero_le_one]
+    exact ((hsol.regularity.2.2.2.2.1 t ht).2.1.continuousOn).sub
+      continuousOn_const
+  have hLapInt : IntervalIntegrable Lap volume 0 1 := by
+    simpa [Lap] using intervalDomain_solution_v_lap_lift_intervalIntegrable hsol ht
+  have hULapInt : IntervalIntegrable (fun y => U y * Lap y) volume 0 1 := by
+    simpa [mul_comm] using hLapInt.continuousOn_mul hUCont
+  have hWLapInt : IntervalIntegrable (fun y => W y * Lap y) volume 0 1 := by
+    simpa [mul_comm] using hLapInt.continuousOn_mul hWCont
+  have hrepCont : ContinuousOn
+      (fun y => p.μ * W y - p.ν * U y) (uIcc (0 : ℝ) 1) :=
+    (hWCont.const_mul p.μ).sub (hUCont.const_mul p.ν)
+  have hLapSqInt : IntervalIntegrable (fun y => (Lap y) ^ 2) volume 0 1 := by
+    have hrepSqInt : IntervalIntegrable
+        (fun y => (p.μ * W y - p.ν * U y) ^ 2) volume 0 1 :=
+      (hrepCont.pow 2).intervalIntegrable
+    refine hrepSqInt.congr_ae ?_
+    rw [uIoc_of_le zero_le_one]
+    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := Real.volume_singleton
+    refine (ae_iff).2 (measure_mono_null ?_ hnull)
+    intro y hy
+    simp only [mem_setOf_eq] at hy
+    push_neg at hy
+    obtain ⟨hyIoc, hne⟩ := hy
+    simp only [mem_singleton_iff]
+    by_contra hy1
+    have hdiff := intervalDomain_minimal_elliptic_difference
+      hgamma heq hsol ht ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩
+    apply hne
+    dsimp [U, W, Lap]
+    have hrearranged :
+        p.μ * (intervalDomainLift (v t) y - vStar) -
+            p.ν * (intervalDomainLift (u t) y - uStar) =
+          deriv (fun z => deriv (intervalDomainLift (v t)) z) y := by
+      linarith
+    rw [hrearranged]
+  have hpoint : EqOn (fun y => p.ν * (U y * Lap y))
+      (fun y => p.μ * (W y * Lap y) - (Lap y) ^ 2)
+      (Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hdiff := intervalDomain_minimal_elliptic_difference
+      hgamma heq hsol ht hy
+    calc
+      p.ν * (U y * Lap y) = (p.ν * U y) * Lap y := by ring
+      _ = (p.μ * W y - Lap y) * Lap y := by rw [hdiff]
+      _ = p.μ * (W y * Lap y) - (Lap y) ^ 2 := by ring
+  have hscaled :
+      p.ν * (∫ y in (0 : ℝ)..1, U y * Lap y) =
+        p.μ * (∫ y in (0 : ℝ)..1, W y * Lap y) -
+          ∫ y in (0 : ℝ)..1, (Lap y) ^ 2 := by
+    rw [← intervalIntegral.integral_const_mul,
+      ← intervalIntegral.integral_const_mul,
+      ← intervalIntegral.integral_sub
+        (hWLapInt.const_mul p.μ) hLapSqInt]
+    apply intervalIntegral.integral_congr_ae
+    have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := Real.volume_singleton
+    refine (ae_iff).2 (measure_mono_null ?_ hnull)
+    intro y hy
+    simp only [mem_setOf_eq] at hy
+    push_neg at hy
+    obtain ⟨hyIoc, hne⟩ := hy
+    rw [uIoc_of_le zero_le_one] at hyIoc
+    simp only [mem_singleton_iff]
+    by_contra hy1
+    exact hne (hpoint ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩)
+  have huCross := intervalDomain_minimal_u_signal_lap_cross_ibp
+    (uStar := uStar) hsol ht
+  have hvCross := intervalDomain_minimal_signal_cross_ibp
+    (vStar := vStar) hsol ht ht
+  rw [huCross, hvCross] at hscaled
+  dsimp [U, W, Lap] at hscaled
+  ring_nf at hscaled ⊢
+  linarith
+
+/-- Exact signal-energy dissipation identity for the minimal `γ = 1` model. -/
+theorem intervalDomain_minimal_signal_energy_hasDerivAt_pde
+    {p : CM2Params} {T t uStar vStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (ha0 : p.a = 0) (hb0 : p.b = 0) (hgamma : p.γ = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) :
+    HasDerivAt
+      (fun s => chemotaxisSignalEnergy intervalDomain p.μ vStar v s)
+      (-2 * (∫ y in (0 : ℝ)..1,
+          (deriv (fun z => deriv (intervalDomainLift (v t)) z) y) ^ 2) -
+        2 * p.μ * (∫ y in (0 : ℝ)..1,
+          (deriv (intervalDomainLift (v t)) y) ^ 2) +
+        2 * p.ν * p.χ₀ * (∫ y in (0 : ℝ)..1,
+          intervalDomainLift (u t) y *
+            (deriv (intervalDomainLift (v t)) y) ^ 2 /
+              (1 + intervalDomainLift (v t) y) ^ p.β)) t := by
+  have henergy := intervalDomain_minimal_signal_energy_hasDerivAt
+    hgamma heq hsol ht
+  have hut := intervalDomain_minimal_signal_ut_pairing_pde
+    (vStar := vStar) ha0 hb0 hsol ht
+  have hdiff := intervalDomain_minimal_signal_diffusion_pairing
+    hgamma heq hsol ht
+  convert henergy using 1
+  rw [hut]
+  ring_nf at hdiff ⊢
+  linarith
+
 #print axioms intervalDomain_minimal_signal_pairing_comm
 #print axioms intervalDomain_chemotaxisSignalEnergy_eq_pairing
 #print axioms intervalDomain_joint_intervalIntegral_hasDerivAt
 #print axioms intervalDomain_minimal_signal_energy_hasDerivAt
+#print axioms intervalDomain_minimal_signal_ut_pairing_pde
+#print axioms intervalDomain_minimal_signal_diffusion_pairing
+#print axioms intervalDomain_minimal_signal_energy_hasDerivAt_pde
 
 end
 
