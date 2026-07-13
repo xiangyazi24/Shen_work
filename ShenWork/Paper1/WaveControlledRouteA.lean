@@ -273,6 +273,223 @@ def paperRouteAQuantitativeCore_of_params
         ell := q.ell
         rate := q.W_rate }⟩
 
+/-- Per-profile lower-raw producer on the corrected controlled trap. -/
+structure PaperControlledLowerRawStepProducer
+    (p : CMParams) (c lam M κ κtilde D Λ sigma aL C : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) where
+  core : PaperGreenStepInputRouteAQuantitativeOrbitCore
+    p c lam M κ Λ sigma aL C u
+  lowerRawAux : ∀ k,
+    (∀ x, lowerBarrierRaw κ κtilde D x ≤
+      rotheSeqOfPaperRouteA p c lam M κ Λ u core.toOrbitCore hκ hM k x) →
+      ∃ C_chem La Lb,
+        PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+          (rotheSeqOfPaperRouteA p c lam M κ Λ u
+            core.toOrbitCore hκ hM (k + 1))
+
+/-- The corrected lower-raw floor quantifies only over the compact controlled
+parameter trap.  This replaces the formally empty bare-trap floor. -/
+structure PaperControlledLowerRawFloor
+    (p : CMParams) (c lam M κ κtilde D Λ sigma aL C : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
+  producer : ∀ u,
+    InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u →
+    PaperControlledLowerRawStepProducer
+      p c lam M κ κtilde D Λ sigma aL C hκ hM u
+
+/-- Total Rothe sequence for the controlled Schauder map. -/
+def paperControlledLowerRawRotheSeq
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM) :
+    (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  fun u => by
+    classical
+    exact if hu : InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+        (lowerBarrierRaw κ κtilde D) u then
+      rotheSeqOfPaperRouteA p c lam M κ Λ u
+        (floor.producer u hu).core.toOrbitCore hκ hM
+    else fun _ => upperBarrier κ M
+
+@[simp] theorem paperControlledLowerRawRotheSeq_eq
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    {u : ℝ → ℝ}
+    (hu : InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u) :
+    paperControlledLowerRawRotheSeq floor u =
+      rotheSeqOfPaperRouteA p c lam M κ Λ u
+        (floor.producer u hu).core.toOrbitCore hκ hM := by
+  simp [paperControlledLowerRawRotheSeq, hu]
+
+theorem paperControlledLowerRaw_orbitData
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    {u : ℝ → ℝ}
+    (hu : InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u) :
+    PaperRotheOrbitData p c lam M κ
+      (paperControlledLowerRawRotheSeq floor) u := by
+  let hd := (floor.producer u hu).core.orbitData
+    hκ hM hΛ0 hΛM hbarLip
+  refine
+    { iterate_cont := ?_
+      anti_k := ?_
+      anti_x := ?_
+      nonneg := ?_
+      le_M := ?_
+      le_upperBarrier := ?_
+      bddBelow := ?_
+      equiLip := ?_
+      limitLip := ?_ }
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.iterate_cont
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.anti_k
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.anti_x
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.nonneg
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.le_M
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using
+      hd.le_upperBarrier
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.bddBelow
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.equiLip
+  · simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hd.limitLip
+
+theorem paperControlledLowerRaw_stepLowerInvariant
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D)
+      (paperControlledLowerRawRotheSeq floor) := by
+  intro u hu k hprev
+  by_cases huControlled :
+      InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+        (lowerBarrierRaw κ κtilde D) u
+  · let prod := floor.producer u huControlled
+    rw [paperControlledLowerRawRotheSeq_eq floor huControlled] at hprev ⊢
+    obtain ⟨C_chem, La, Lb, haux⟩ := prod.lowerRawAux k hprev
+    have hstep := rotheSeqOfPaperRouteA_stepFacts
+      prod.core.toOrbitCore hκ hM k
+    have hdata := paperLowerBarrierStepData_lowerBarrierRaw_of_paperStep
+      (Λ := Λ) hcond hD hD_ge_one hu hprev prod.core.hlam
+      hstep.step_op haux
+    exact lowerBarrier_step_ge_of_paperData hdata
+  · simp [paperControlledLowerRawRotheSeq, huControlled]
+    exact fun x => le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
+
+/-- Full lower invariant on the controlled domain. -/
+theorem paperControlledLowerRaw_orbitLowerBound
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    ∀ u, InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u →
+      ∀ k x, lowerBarrierRaw κ κtilde D x ≤
+        paperControlledLowerRawRotheSeq floor u k x := by
+  intro u hu
+  apply rotheOrbitLowerBound_of_stepLowerInvariant
+    (φ := lowerBarrierRaw κ κtilde D)
+    (rotheSeq := paperControlledLowerRawRotheSeq floor) ?_
+    (paperControlledLowerRaw_stepLowerInvariant floor hcond hD hD_ge_one)
+    u ⟨hu.bare, hu.lower⟩
+  intro v hv x
+  by_cases hvC : InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) v
+  · rw [paperControlledLowerRawRotheSeq_eq floor hvC,
+      rotheSeqOfPaperRouteA_zero]
+    exact le_trans (hv.lower x) (hv.bare.le_upperBarrier x)
+  · simp [paperControlledLowerRawRotheSeq, hvC]
+    exact le_trans (hv.lower x) (hv.bare.le_upperBarrier x)
+
+/-- The controlled long-time map is a self-map of the same compact trap. -/
+theorem paperControlledLowerRaw_mapsTo
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y,
+      |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hsigma : 0 < sigma) :
+    ∀ u, InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u →
+      InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+        (lowerBarrierRaw κ κtilde D)
+        (rotheLimit (paperControlledLowerRawRotheSeq floor u)) := by
+  intro u hu
+  let hdata := paperControlledLowerRaw_orbitData floor hΛ0 hΛM hbarLip hu
+  have hbare : InMonotoneWaveTrapSet κ M
+      (rotheLimit (paperControlledLowerRawRotheSeq floor u)) :=
+    rotheLimit_mem_trap (hdata.limit_continuous hM) hdata.bddBelow
+      hdata.anti_x hdata.nonneg hdata.le_upperBarrier
+      (upperBarrier_isBddFun hM)
+  have hlower : ∀ x, lowerBarrierRaw κ κtilde D x ≤
+      rotheLimit (paperControlledLowerRawRotheSeq floor u) x := by
+    intro x
+    exact rotheLimit_ge_of_ge
+      (paperControlledLowerRaw_orbitLowerBound floor hcond hD hD_ge_one u hu)
+      x
+  have hrate := (floor.producer u hu).core.rotheLimit_rate
+    hκ hM hΛ0 hΛM hbarLip hsigma
+  exact
+    { uniformTrap := ⟨hbare, hdata.limitLip⟩
+      lower := hlower
+      leftRateData := by
+        simpa only [paperControlledLowerRawRotheSeq_eq floor hu] using hrate }
+
+/-- Compactness of the controlled map range is now immediate from compactness
+of the corrected trap itself. -/
+theorem paperControlledLowerRaw_compactRange
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM)
+    (hmap : ∀ u, InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D) u →
+      InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+        (lowerBarrierRaw κ κtilde D)
+        (rotheLimit (paperControlledLowerRawRotheSeq floor u))) :
+    LocalUniformSequentiallyCompactRange
+      (InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+        (lowerBarrierRaw κ κtilde D))
+      (fun u => rotheLimit (paperControlledLowerRawRotheSeq floor u)) := by
+  intro seq hseq
+  simpa using
+    (InControlledLowerPinnedMonotoneTrap.locallyUniform_sequentiallyCompact
+      (κ := κ) (M := M) (L := M) (sigma := sigma) (aL := aL) (C := C)
+      (φ := lowerBarrierRaw κ κtilde D) hM hM
+      (fun n => rotheLimit (paperControlledLowerRawRotheSeq floor (seq n)))
+      (fun n => hmap (seq n) (hseq n)))
+
+/-- Exact remaining L10 analytic statement for the corrected construction. -/
+def PaperControlledLowerRawContinuousDependence
+    {p : CMParams} {c lam M κ κtilde D Λ sigma aL C : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (floor : PaperControlledLowerRawFloor
+      p c lam M κ κtilde D Λ sigma aL C hκ hM) : Prop :=
+  LocalUniformContinuousOn
+    (InControlledLowerPinnedMonotoneTrap κ M M sigma aL C
+      (lowerBarrierRaw κ κtilde D))
+    (fun u => rotheLimit (paperControlledLowerRawRotheSeq floor u))
+
 section AxiomAudit
 
 #print axioms paperStepFixedSourceQuantitativeCore_of_params
@@ -280,6 +497,9 @@ section AxiomAudit
 #print axioms PaperGreenStepInputRouteAQuantitativeOrbitCore.orbitData
 #print axioms PaperGreenStepInputRouteAQuantitativeOrbitCore.rotheLimit_rate
 #print axioms paperRouteAQuantitativeCore_of_params
+#print axioms paperControlledLowerRaw_mapsTo
+#print axioms paperControlledLowerRaw_compactRange
+#print axioms PaperControlledLowerRawContinuousDependence
 
 end AxiomAudit
 
