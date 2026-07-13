@@ -44,6 +44,35 @@ private theorem boundary_weighted_factor_upper
     have hmul : (1 + V) ^ (-β) * z ≤ z := by simpa using hm
     exact hmul.trans hz
 
+private theorem boundary_weighted_factor_lower_of_weight
+    {β V z D q : ℝ} (hV : 0 ≤ V) (hq : 0 ≤ q)
+    (hD : 0 ≤ D) (hφq : (1 + V) ^ (-β) ≤ q) (hz : -D ≤ z) :
+    -q * D ≤ (1 + V) ^ (-β) * z := by
+  have hφ0 : 0 ≤ (1 + V) ^ (-β) :=
+    Real.rpow_nonneg (by linarith) _
+  by_cases hz0 : 0 ≤ z
+  · exact (by nlinarith [mul_nonneg hq hD] : -q * D ≤ 0).trans
+      (mul_nonneg hφ0 hz0)
+  · have hqz : q * z ≤ (1 + V) ^ (-β) * z := by
+      simpa using mul_le_mul_of_nonpos_right hφq (le_of_not_ge hz0)
+    have hDz : -q * D ≤ q * z := by
+      have hm := mul_le_mul_of_nonneg_left hz hq
+      nlinarith
+    exact hDz.trans hqz
+
+private theorem boundary_weighted_factor_upper_of_weight
+    {β V z D q : ℝ} (hV : 0 ≤ V) (hq : 0 ≤ q)
+    (hD : 0 ≤ D) (hφq : (1 + V) ^ (-β) ≤ q) (hz : z ≤ D) :
+    (1 + V) ^ (-β) * z ≤ q * D := by
+  have hφ0 : 0 ≤ (1 + V) ^ (-β) :=
+    Real.rpow_nonneg (by linarith) _
+  by_cases hz0 : z ≤ 0
+  · exact (mul_nonpos_of_nonneg_of_nonpos hφ0 hz0).trans
+      (mul_nonneg hq hD)
+  · have hφz : (1 + V) ^ (-β) * z ≤ q * z := by
+      simpa using mul_le_mul_of_nonneg_right hφq (le_of_not_ge hz0)
+    exact hφz.trans (mul_le_mul_of_nonneg_left hz hq)
+
 set_option maxHeartbeats 1600000 in
 /-- Exact left-endpoint balance.  At a boundary maximum the time slope is at
 most reaction minus the limiting chemotaxis term; at a boundary minimum the
@@ -259,11 +288,12 @@ theorem intervalDomain_rectangle_boundary_left_balance
     simp only [hR_def, hCL_def, hU_def, hV_def]
     linarith
 
-/-- Left-boundary maximum slope with the concrete interval resolver
-constant. -/
-theorem intervalDomain_rectangle_boundary_left_max_slope
+/-- Left-boundary maximum slope under a uniform sensitivity-weight bound. -/
+theorem intervalDomain_rectangle_boundary_left_max_slope_with_weight
     {p : CM2Params} {T t uMin : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) 0) ^ (-p.β) ≤ q)
     (hχ : 0 ≤ p.χ₀)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
@@ -275,10 +305,10 @@ theorem intervalDomain_rectangle_boundary_left_max_slope
       intervalDomainLift (u t) 0 *
           (p.a - p.b * (intervalDomainLift (u t) 0) ^ p.α) +
         p.χ₀ * intervalDomainLift (u t) 0 *
-          (p.ν * ((intervalDomainLift (u t) 0) ^ p.γ - uMin ^ p.γ) +
+          (q * (p.ν * ((intervalDomainLift (u t) 0) ^ p.γ - uMin ^ p.γ) +
             p.β * (unitIntervalResolverGradientOscillationConstant p *
               (p.ν * ((intervalDomainLift (u t) 0) ^ p.γ -
-                uMin ^ p.γ))) ^ 2) := by
+                uMin ^ p.γ))) ^ 2)) := by
   let U := intervalDomainLift (u t) 0
   let V := intervalDomainLift (v t) 0
   let D := p.ν * (U ^ p.γ - uMin ^ p.γ)
@@ -306,29 +336,64 @@ theorem intervalDomain_rectangle_boundary_left_max_slope
     rw [hc] at hm
     dsimp [D, U, V]
     linarith
-  have hweighted := boundary_weighted_factor_lower p.hβ hVnn hD hfactor
-  have hCL : -U * D ≤
+  have hweighted := boundary_weighted_factor_lower_of_weight
+    hVnn hq hD (by simpa [V] using hweight) hfactor
+  have hCL : -U * (q * D) ≤
       U * ((1 + V) ^ (-p.β) * (p.μ * V - p.ν * U ^ p.γ)) := by
     have hm := mul_le_mul_of_nonneg_left hweighted hUpos.le
     nlinarith
   have hbal := (intervalDomain_rectangle_boundary_left_balance hsol ht).1
     (fun y hy => hhi y (Ioo_subset_Icc_self hy))
   have hchem := mul_le_mul_of_nonpos_left hCL (by linarith : -p.χ₀ ≤ 0)
-  have hextra : 0 ≤ p.χ₀ * U * (p.β * L ^ 2) :=
-    mul_nonneg (mul_nonneg hχ hUpos.le) (mul_nonneg p.hβ (sq_nonneg L))
+  have hextra : 0 ≤ p.χ₀ * U * (q * (p.β * L ^ 2)) :=
+    mul_nonneg (mul_nonneg hχ hUpos.le)
+      (mul_nonneg hq (mul_nonneg p.hβ (sq_nonneg L)))
   change deriv (fun r => intervalDomainLift (u r) 0) t ≤
     U * (p.a - p.b * U ^ p.α) +
-      p.χ₀ * U * (D + p.β * L ^ 2)
+      p.χ₀ * U * (q * (D + p.β * L ^ 2))
   change deriv (fun r => intervalDomainLift (u r) 0) t ≤
     U * (p.a - p.b * U ^ p.α) -
       p.χ₀ * U * ((1 + V) ^ (-p.β) *
         (p.μ * V - p.ν * U ^ p.γ)) at hbal
   nlinarith
 
-/-- Left-boundary minimum slope. -/
-theorem intervalDomain_rectangle_boundary_left_min_slope
+/-- Left-boundary maximum slope with the concrete interval resolver
+constant. -/
+theorem intervalDomain_rectangle_boundary_left_max_slope
+    {p : CM2Params} {T t uMin : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      uMin ≤ intervalDomainLift (u t) y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ intervalDomainLift (u t) 0) :
+    deriv (fun r => intervalDomainLift (u r) 0) t ≤
+      intervalDomainLift (u t) 0 *
+          (p.a - p.b * (intervalDomainLift (u t) 0) ^ p.α) +
+        p.χ₀ * intervalDomainLift (u t) 0 *
+          (p.ν * ((intervalDomainLift (u t) 0) ^ p.γ - uMin ^ p.γ) +
+            p.β * (unitIntervalResolverGradientOscillationConstant p *
+              (p.ν * ((intervalDomainLift (u t) 0) ^ p.γ -
+                uMin ^ p.γ))) ^ 2) := by
+  have h0 : (0 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
+  have hv : 0 ≤ intervalDomainLift (v t) 0 := by
+    rw [intervalDomainLift, dif_pos h0]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hweight : (1 + intervalDomainLift (v t) 0) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos (by linarith)
+      (neg_nonpos.mpr p.hβ)
+  simpa using intervalDomain_rectangle_boundary_left_max_slope_with_weight
+    (p := p) (T := T) (t := t) (uMin := uMin) (u := u) (v := v)
+      1 zero_le_one hweight hχ hsol ht huMin hlo hhi
+
+/-- Left-boundary minimum slope under a uniform sensitivity-weight bound. -/
+theorem intervalDomain_rectangle_boundary_left_min_slope_with_weight
     {p : CM2Params} {T t uMax : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) 0) ^ (-p.β) ≤ q)
     (hχ : 0 ≤ p.χ₀)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (ht : t ∈ Ioo (0 : ℝ) T)
@@ -336,7 +401,7 @@ theorem intervalDomain_rectangle_boundary_left_min_slope
       intervalDomainLift (u t) 0 ≤ intervalDomainLift (u t) y)
     (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
       intervalDomainLift (u t) y ≤ uMax) :
-    -p.χ₀ * intervalDomainLift (u t) 0 *
+    -p.χ₀ * q * intervalDomainLift (u t) 0 *
           (p.ν * (uMax ^ p.γ -
             (intervalDomainLift (u t) 0) ^ p.γ)) +
         intervalDomainLift (u t) 0 *
@@ -366,20 +431,49 @@ theorem intervalDomain_rectangle_boundary_left_min_slope
     rw [hc] at hm
     dsimp [D, U, V]
     linarith
-  have hweighted := boundary_weighted_factor_upper p.hβ hVnn hD hfactor
+  have hweighted := boundary_weighted_factor_upper_of_weight
+    hVnn hq hD (by simpa [V] using hweight) hfactor
   have hCL :
       U * ((1 + V) ^ (-p.β) * (p.μ * V - p.ν * U ^ p.γ)) ≤
-        U * D := mul_le_mul_of_nonneg_left hweighted hUpos.le
+        U * (q * D) := mul_le_mul_of_nonneg_left hweighted hUpos.le
   have hbal := (intervalDomain_rectangle_boundary_left_balance hsol ht).2
     (fun y hy => hlo y (Ioo_subset_Icc_self hy))
   have hchem := mul_le_mul_of_nonpos_left hCL (by linarith : -p.χ₀ ≤ 0)
-  change -p.χ₀ * U * D + U * (p.a - p.b * U ^ p.α) ≤
+  change -p.χ₀ * q * U * D + U * (p.a - p.b * U ^ p.α) ≤
     deriv (fun r => intervalDomainLift (u r) 0) t
   change U * (p.a - p.b * U ^ p.α) -
       p.χ₀ * U * ((1 + V) ^ (-p.β) *
         (p.μ * V - p.ν * U ^ p.γ)) ≤
     deriv (fun r => intervalDomainLift (u r) 0) t at hbal
   nlinarith
+
+/-- Left-boundary minimum slope. -/
+theorem intervalDomain_rectangle_boundary_left_min_slope
+    {p : CM2Params} {T t uMax : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) 0 ≤ intervalDomainLift (u t) y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ uMax) :
+    -p.χ₀ * intervalDomainLift (u t) 0 *
+          (p.ν * (uMax ^ p.γ -
+            (intervalDomainLift (u t) 0) ^ p.γ)) +
+        intervalDomainLift (u t) 0 *
+          (p.a - p.b * (intervalDomainLift (u t) 0) ^ p.α) ≤
+      deriv (fun r => intervalDomainLift (u r) 0) t := by
+  have h0 : (0 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
+  have hv : 0 ≤ intervalDomainLift (v t) 0 := by
+    rw [intervalDomainLift, dif_pos h0]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hweight : (1 + intervalDomainLift (v t) 0) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos (by linarith)
+      (neg_nonpos.mpr p.hβ)
+  simpa using intervalDomain_rectangle_boundary_left_min_slope_with_weight
+    (p := p) (T := T) (t := t) (uMax := uMax) (u := u) (v := v)
+      1 zero_le_one hweight hχ hsol ht hlo hhi
 
 set_option maxHeartbeats 1600000 in
 /-- Exact right-endpoint balance, dual to the left-endpoint result. -/
@@ -597,11 +691,12 @@ theorem intervalDomain_rectangle_boundary_right_balance
     simp only [hR_def, hCL_def, hU_def, hV_def]
     linarith
 
-/-- Right-boundary maximum slope with the concrete interval resolver
-constant. -/
-theorem intervalDomain_rectangle_boundary_right_max_slope
+/-- Right-boundary maximum slope under a uniform sensitivity-weight bound. -/
+theorem intervalDomain_rectangle_boundary_right_max_slope_with_weight
     {p : CM2Params} {T t uMin : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) 1) ^ (-p.β) ≤ q)
     (hχ : 0 ≤ p.χ₀)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
@@ -613,10 +708,10 @@ theorem intervalDomain_rectangle_boundary_right_max_slope
       intervalDomainLift (u t) 1 *
           (p.a - p.b * (intervalDomainLift (u t) 1) ^ p.α) +
         p.χ₀ * intervalDomainLift (u t) 1 *
-          (p.ν * ((intervalDomainLift (u t) 1) ^ p.γ - uMin ^ p.γ) +
+          (q * (p.ν * ((intervalDomainLift (u t) 1) ^ p.γ - uMin ^ p.γ) +
             p.β * (unitIntervalResolverGradientOscillationConstant p *
               (p.ν * ((intervalDomainLift (u t) 1) ^ p.γ -
-                uMin ^ p.γ))) ^ 2) := by
+                uMin ^ p.γ))) ^ 2)) := by
   let U := intervalDomainLift (u t) 1
   let V := intervalDomainLift (v t) 1
   let D := p.ν * (U ^ p.γ - uMin ^ p.γ)
@@ -644,29 +739,64 @@ theorem intervalDomain_rectangle_boundary_right_max_slope
     rw [hc] at hm
     dsimp [D, U, V]
     linarith
-  have hweighted := boundary_weighted_factor_lower p.hβ hVnn hD hfactor
-  have hCL : -U * D ≤
+  have hweighted := boundary_weighted_factor_lower_of_weight
+    hVnn hq hD (by simpa [V] using hweight) hfactor
+  have hCL : -U * (q * D) ≤
       U * ((1 + V) ^ (-p.β) * (p.μ * V - p.ν * U ^ p.γ)) := by
     have hm := mul_le_mul_of_nonneg_left hweighted hUpos.le
     nlinarith
   have hbal := (intervalDomain_rectangle_boundary_right_balance hsol ht).1
     (fun y hy => hhi y (Ioo_subset_Icc_self hy))
   have hchem := mul_le_mul_of_nonpos_left hCL (by linarith : -p.χ₀ ≤ 0)
-  have hextra : 0 ≤ p.χ₀ * U * (p.β * L ^ 2) :=
-    mul_nonneg (mul_nonneg hχ hUpos.le) (mul_nonneg p.hβ (sq_nonneg L))
+  have hextra : 0 ≤ p.χ₀ * U * (q * (p.β * L ^ 2)) :=
+    mul_nonneg (mul_nonneg hχ hUpos.le)
+      (mul_nonneg hq (mul_nonneg p.hβ (sq_nonneg L)))
   change deriv (fun r => intervalDomainLift (u r) 1) t ≤
     U * (p.a - p.b * U ^ p.α) +
-      p.χ₀ * U * (D + p.β * L ^ 2)
+      p.χ₀ * U * (q * (D + p.β * L ^ 2))
   change deriv (fun r => intervalDomainLift (u r) 1) t ≤
     U * (p.a - p.b * U ^ p.α) -
       p.χ₀ * U * ((1 + V) ^ (-p.β) *
         (p.μ * V - p.ν * U ^ p.γ)) at hbal
   nlinarith
 
-/-- Right-boundary minimum slope. -/
-theorem intervalDomain_rectangle_boundary_right_min_slope
+/-- Right-boundary maximum slope with the concrete interval resolver
+constant. -/
+theorem intervalDomain_rectangle_boundary_right_max_slope
+    {p : CM2Params} {T t uMin : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      uMin ≤ intervalDomainLift (u t) y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ intervalDomainLift (u t) 1) :
+    deriv (fun r => intervalDomainLift (u r) 1) t ≤
+      intervalDomainLift (u t) 1 *
+          (p.a - p.b * (intervalDomainLift (u t) 1) ^ p.α) +
+        p.χ₀ * intervalDomainLift (u t) 1 *
+          (p.ν * ((intervalDomainLift (u t) 1) ^ p.γ - uMin ^ p.γ) +
+            p.β * (unitIntervalResolverGradientOscillationConstant p *
+              (p.ν * ((intervalDomainLift (u t) 1) ^ p.γ -
+                uMin ^ p.γ))) ^ 2) := by
+  have h1 : (1 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
+  have hv : 0 ≤ intervalDomainLift (v t) 1 := by
+    rw [intervalDomainLift, dif_pos h1]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hweight : (1 + intervalDomainLift (v t) 1) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos (by linarith)
+      (neg_nonpos.mpr p.hβ)
+  simpa using intervalDomain_rectangle_boundary_right_max_slope_with_weight
+    (p := p) (T := T) (t := t) (uMin := uMin) (u := u) (v := v)
+      1 zero_le_one hweight hχ hsol ht huMin hlo hhi
+
+/-- Right-boundary minimum slope under a uniform sensitivity-weight bound. -/
+theorem intervalDomain_rectangle_boundary_right_min_slope_with_weight
     {p : CM2Params} {T t uMax : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) 1) ^ (-p.β) ≤ q)
     (hχ : 0 ≤ p.χ₀)
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (ht : t ∈ Ioo (0 : ℝ) T)
@@ -674,7 +804,7 @@ theorem intervalDomain_rectangle_boundary_right_min_slope
       intervalDomainLift (u t) 1 ≤ intervalDomainLift (u t) y)
     (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
       intervalDomainLift (u t) y ≤ uMax) :
-    -p.χ₀ * intervalDomainLift (u t) 1 *
+    -p.χ₀ * q * intervalDomainLift (u t) 1 *
           (p.ν * (uMax ^ p.γ -
             (intervalDomainLift (u t) 1) ^ p.γ)) +
         intervalDomainLift (u t) 1 *
@@ -704,14 +834,15 @@ theorem intervalDomain_rectangle_boundary_right_min_slope
     rw [hc] at hm
     dsimp [D, U, V]
     linarith
-  have hweighted := boundary_weighted_factor_upper p.hβ hVnn hD hfactor
+  have hweighted := boundary_weighted_factor_upper_of_weight
+    hVnn hq hD (by simpa [V] using hweight) hfactor
   have hCL :
       U * ((1 + V) ^ (-p.β) * (p.μ * V - p.ν * U ^ p.γ)) ≤
-        U * D := mul_le_mul_of_nonneg_left hweighted hUpos.le
+        U * (q * D) := mul_le_mul_of_nonneg_left hweighted hUpos.le
   have hbal := (intervalDomain_rectangle_boundary_right_balance hsol ht).2
     (fun y hy => hlo y (Ioo_subset_Icc_self hy))
   have hchem := mul_le_mul_of_nonpos_left hCL (by linarith : -p.χ₀ ≤ 0)
-  change -p.χ₀ * U * D + U * (p.a - p.b * U ^ p.α) ≤
+  change -p.χ₀ * q * U * D + U * (p.a - p.b * U ^ p.α) ≤
     deriv (fun r => intervalDomainLift (u r) 1) t
   change U * (p.a - p.b * U ^ p.α) -
       p.χ₀ * U * ((1 + V) ^ (-p.β) *
@@ -719,12 +850,44 @@ theorem intervalDomain_rectangle_boundary_right_min_slope
     deriv (fun r => intervalDomainLift (u r) 1) t at hbal
   nlinarith
 
+/-- Right-boundary minimum slope. -/
+theorem intervalDomain_rectangle_boundary_right_min_slope
+    {p : CM2Params} {T t uMax : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) 1 ≤ intervalDomainLift (u t) y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ uMax) :
+    -p.χ₀ * intervalDomainLift (u t) 1 *
+          (p.ν * (uMax ^ p.γ -
+            (intervalDomainLift (u t) 1) ^ p.γ)) +
+        intervalDomainLift (u t) 1 *
+          (p.a - p.b * (intervalDomainLift (u t) 1) ^ p.α) ≤
+      deriv (fun r => intervalDomainLift (u r) 1) t := by
+  have h1 : (1 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
+  have hv : 0 ≤ intervalDomainLift (v t) 1 := by
+    rw [intervalDomainLift, dif_pos h1]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hweight : (1 + intervalDomainLift (v t) 1) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos (by linarith)
+      (neg_nonpos.mpr p.hβ)
+  simpa using intervalDomain_rectangle_boundary_right_min_slope_with_weight
+    (p := p) (T := T) (t := t) (uMax := uMax) (u := u) (v := v)
+      1 zero_le_one hweight hχ hsol ht hlo hhi
+
 #print axioms intervalDomain_rectangle_boundary_left_balance
 #print axioms intervalDomain_rectangle_boundary_left_max_slope
 #print axioms intervalDomain_rectangle_boundary_left_min_slope
 #print axioms intervalDomain_rectangle_boundary_right_balance
 #print axioms intervalDomain_rectangle_boundary_right_max_slope
 #print axioms intervalDomain_rectangle_boundary_right_min_slope
+#print axioms intervalDomain_rectangle_boundary_left_max_slope_with_weight
+#print axioms intervalDomain_rectangle_boundary_left_min_slope_with_weight
+#print axioms intervalDomain_rectangle_boundary_right_max_slope_with_weight
+#print axioms intervalDomain_rectangle_boundary_right_min_slope_with_weight
 
 end
 
