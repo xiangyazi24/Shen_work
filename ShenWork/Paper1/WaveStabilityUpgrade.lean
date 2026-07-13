@@ -85,7 +85,7 @@ keeps that interval away from the degenerating end of the exponential
 weight, contradicting weighted-energy decay. -/
 theorem uniformMovingFrameConvergence_of_weightedL2_of_spatialModulus_of_leftTail
     {η c : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
-    (hη : 0 < η) (hc : 0 < c)
+    (hη : 0 < η) (hc : 0 ≤ c)
     (henergy_int : EventuallyIntegrableMovingFrameEnergy η c u U)
     (hweighted : WeightedL2MovingFrameConvergence η c u U)
     (hmod : EventuallyUniformMovingFrameSpatialModulus c u U)
@@ -140,7 +140,7 @@ theorem uniformMovingFrameConvergence_of_weightedL2_of_spatialModulus_of_leftTai
     by_contra hnotframe
     have htail := hleft_event t x htleft (le_of_not_gt hnotframe)
     linarith
-  have hct : 0 ≤ c * t := mul_nonneg hc.le ht0
+  have hct : 0 ≤ c * t := mul_nonneg hc ht0
   have hxbase : -R < x := by linarith
   have hpointwise : ∀ y ∈ Set.Icc (x - r) (x + r),
       C ≤ Real.exp (2 * η * y) * |movingFrameError c u U t y| ^ 2 := by
