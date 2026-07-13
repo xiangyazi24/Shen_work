@@ -27,7 +27,7 @@ theorem paperImplicitStep_le_barrier_of_quasiMonotone_tailfree
       paperImplicitStepOp p c (1 / lam) u W x = Z x)
     (hZB : ∀ x, Z x ≤ B x)
     (hf2 : ContDiff ℝ 2 (fun x => W x - B x))
-    (hfbound : ∀ x, |W x - B x| ≤ Q)
+    (hfbound : ∀ x, W x - B x ≤ Q)
     (hBsuper : ∀ x, paperWaveOperator p c u B x ≤ 0)
     (hop_approx : ∀ eta, 0 < eta → ∀ x₀,
       0 < W x₀ - B x₀ →
@@ -52,7 +52,7 @@ theorem paperImplicitStep_le_barrier_of_quasiMonotone_tailfree
     exact div_pos (mul_pos (sub_pos.mpr hClam) hfpos)
       (mul_pos (by norm_num) (by linarith))
   obtain ⟨x₀, hfvalue, hfSlope, hfSecond⟩ :=
-    exists_approx_positive_max_deriv_data
+    exists_approx_positive_max_deriv_data_of_upperBound
       (f := fun x => W x - B x) (A := Q) (eta := eta) (x₁ := x₁)
       hf2 hfbound hfpos heta
   have hfpos₀ : 0 < W x₀ - B x₀ := by
@@ -125,8 +125,9 @@ theorem paperImplicitStep_ge_barrier_of_quasiMonotone_tailfree
       paperImplicitStepOp p c (1 / lam) u W x = Z x)
     (hAZ : ∀ x, A x ≤ Z x)
     (hf2 : ContDiff ℝ 2 (fun x => A x - W x))
-    (hfbound : ∀ x, |A x - W x| ≤ Q)
-    (hAsub : ∀ x, 0 ≤ paperWaveOperator p c u A x)
+    (hfbound : ∀ x, A x - W x ≤ Q)
+    (hAsub : ∀ x, 0 < A x - W x →
+      0 ≤ paperWaveOperator p c u A x)
     (hop_approx : ∀ eta, 0 < eta → ∀ x₀,
       0 < A x₀ - W x₀ →
       |deriv (fun x => A x - W x) x₀| < eta →
@@ -150,7 +151,7 @@ theorem paperImplicitStep_ge_barrier_of_quasiMonotone_tailfree
     exact div_pos (mul_pos (sub_pos.mpr hClam) hfpos)
       (mul_pos (by norm_num) (by linarith))
   obtain ⟨x₀, hfvalue, hfSlope, hfSecond⟩ :=
-    exists_approx_positive_max_deriv_data
+    exists_approx_positive_max_deriv_data_of_upperBound
       (f := fun x => A x - W x) (A := Q) (eta := eta) (x₁ := x₁)
       hf2 hfbound hfpos heta
   have hfpos₀ : 0 < A x₀ - W x₀ := by
@@ -171,7 +172,7 @@ theorem paperImplicitStep_ge_barrier_of_quasiMonotone_tailfree
         lam * (A x₀ - W x₀) ≤
             lam * (-(1 / lam) * paperWaveOperator p c u W x₀) := hmul
         _ = -paperWaveOperator p c u W x₀ := by field_simp [hlamne]
-    linarith [hAsub x₀]
+    linarith [hAsub x₀ hfpos₀]
   have hEeta :
       E * eta < (lam - Cmono) * (A x₁ - W x₁) / 4 := by
     dsimp [eta]
