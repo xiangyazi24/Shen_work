@@ -272,6 +272,255 @@ theorem intervalDomainM_classical_restart_diff_bound
     simpa [q, w₁, w₂, classicalRestartTrajectoryM,
       restartTimeClamp_eq_self ⟨hr0, hrh⟩] using hle.trans hd_bound
 
+/-- The concrete initial sup-norm trace controls every point of a faithful
+general-`m` classical slice. -/
+theorem intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (htrace : InitialTrace intervalDomainM u₀ u)
+    (hu₀b : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x : intervalDomainPoint, |u t x - u₀ x| < ε := by
+  obtain ⟨δtrace, hδtrace, hsmall⟩ := htrace.eventually_small hε
+  refine ⟨min δtrace T, lt_min hδtrace hsol.T_pos, ?_⟩
+  intro t ht htδ x
+  have httrace : t < δtrace := htδ.trans_le (min_le_left _ _)
+  have htT : t < T := htδ.trans_le (min_le_right _ _)
+  have hbdd := bddAbove_range_abs_diff_of_bddAbove
+    (solution_slice_abs_bddAbove hsol ⟨ht, htT⟩) hu₀b
+  have hsup : intervalDomainSupNorm (fun y => u t y - u₀ y) < ε := by
+    simpa [intervalDomainM] using hsmall t ht httrace
+  exact (le_csSup hbdd ⟨x, rfl⟩).trans_lt hsup
+
+/-- Two faithful positive classical solutions with the same paper datum agree
+on a nontrivial initial time interval. -/
+theorem intervalDomainM_classical_initial_u_unique_on_short
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀)
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomainM p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomainM p T₂ u₂ v₂)
+    (htr₁ : InitialTrace intervalDomainM u₀ u₁)
+    (htr₂ : InitialTrace intervalDomainM u₀ u₂) :
+    ∃ H > 0, ∀ t, 0 < t → t < H →
+      ∀ x : intervalDomainPoint, u₁ t x = u₂ t x := by
+  have hu₀adm :
+      BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)) ∧
+        Continuous u₀ := by
+    simpa [intervalDomainM] using hu₀.admissible
+  obtain ⟨η, hη, hηle⟩ := hu₀.floor
+  obtain ⟨B, hB⟩ := hu₀adm.1
+  let x₀ : intervalDomainPoint := ⟨0, by constructor <;> norm_num⟩
+  have hB_nn : 0 ≤ B := (abs_nonneg (u₀ x₀)).trans (hB ⟨x₀, rfl⟩)
+  set c : ℝ := η / 2 with hcdef
+  have hc : 0 < c := by rw [hcdef]; linarith
+  set M : ℝ := B + 1 with hMdef
+  have hM : 0 < M := by rw [hMdef]; linarith
+  have hcM : c ≤ M := by
+    have hηB : η ≤ B :=
+      (hηle x₀).trans ((le_abs_self (u₀ x₀)).trans (hB ⟨x₀, rfl⟩))
+    rw [hcdef, hMdef]
+    linarith
+  set ε₀ : ℝ := min c 1 with hε₀def
+  have hε₀ : 0 < ε₀ := lt_min hc one_pos
+  obtain ⟨δ₁, hδ₁, hclose₁⟩ :=
+    intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+      hsol₁ htr₁ hu₀adm.1 hε₀
+  obtain ⟨δ₂, hδ₂, hclose₂⟩ :=
+    intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+      hsol₂ htr₂ hu₀adm.1 hε₀
+  obtain ⟨CL, hCL, hCL_lip⟩ :=
+    ShenWork.IntervalDomainExistence.intervalLogisticSource_lipschitz p hM
+  set CQ : ℝ := chemFluxMLipschitzConstant p c M with hCQdef
+  have hCQ : 0 ≤ CQ := chemFluxMLipschitzConstant_nonneg p hc hcM
+  set A : ℝ := |p.χ₀| *
+      (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        2 * CQ) with hAdef
+  have hA : 0 ≤ A := by
+    rw [hAdef]
+    exact mul_nonneg (abs_nonneg _)
+      (mul_nonneg
+        (mul_nonneg heatGradientLinftyLinftyConstant_nonneg
+          (by norm_num)) hCQ)
+  obtain ⟨H₀, hH₀, hsmall₀⟩ :=
+    exists_small_contraction_time_target hA hCL.le one_pos
+  set R : ℝ := min H₀ (min δ₁ (min δ₂ (min T₁ T₂))) with hRdef
+  have hR : 0 < R := lt_min hH₀ (lt_min hδ₁ (lt_min hδ₂
+    (lt_min hsol₁.T_pos hsol₂.T_pos)))
+  set H : ℝ := R / 3 with hHdef
+  have hH : 0 < H := by rw [hHdef]; linarith
+  have h2H_R : 2 * H < R := by rw [hHdef]; linarith
+  have hH_H₀ : H ≤ H₀ := by
+    rw [hHdef]
+    exact (div_le_self hR.le (by norm_num)).trans (min_le_left _ _)
+  have hcontract :
+      |p.χ₀| *
+          (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+            (2 * Real.sqrt H) * chemFluxMLipschitzConstant p c M) +
+        H * CL < 1 := by
+    have hsqrt : Real.sqrt H ≤ Real.sqrt H₀ :=
+      Real.sqrt_le_sqrt hH_H₀
+    have hAstep : A * Real.sqrt H ≤ A * Real.sqrt H₀ :=
+      mul_le_mul_of_nonneg_left hsqrt hA
+    have hCLstep : CL * H ≤ CL * H₀ :=
+      mul_le_mul_of_nonneg_left hH_H₀ hCL.le
+    have hmono : A * Real.sqrt H + CL * H ≤
+        A * Real.sqrt H₀ + CL * H₀ := add_le_add hAstep hCLstep
+    rw [hAdef, hCQdef] at hmono
+    calc
+      _ = |p.χ₀| *
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              2 * chemFluxMLipschitzConstant p c M) * Real.sqrt H +
+          CL * H := by ring
+      _ ≤ |p.χ₀| *
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              2 * chemFluxMLipschitzConstant p c M) * Real.sqrt H₀ +
+          CL * H₀ := hmono
+      _ < 1 := hsmall₀
+  refine ⟨H, hH, ?_⟩
+  intro t ht htH x
+  have hq_lt := hcontract
+  set q : ℝ :=
+    |p.χ₀| *
+        (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+          (2 * Real.sqrt H) * chemFluxMLipschitzConstant p c M) +
+      H * CL with hqdef
+  have hq_lt' : q < 1 := by simpa [q] using hq_lt
+  have hq_nn : 0 ≤ q := by
+    rw [hqdef]
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg _)
+        (mul_nonneg
+          (mul_nonneg heatGradientLinftyLinftyConstant_nonneg
+            (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))) hCQ))
+      (mul_nonneg hH.le hCL.le)
+  by_contra hne
+  have hdiff_pos : 0 < |u₁ t x - u₂ t x| :=
+    abs_pos.mpr (sub_ne_zero.mpr hne)
+  set e : ℝ := (1 - q) * |u₁ t x - u₂ t x| / 2 with hedef
+  have he : 0 < e := by
+    rw [hedef]
+    exact div_pos (mul_pos (sub_pos.mpr hq_lt') hdiff_pos) (by norm_num)
+  obtain ⟨δe₁, hδe₁, htracee₁⟩ :=
+    intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+      hsol₁ htr₁ hu₀adm.1 (show 0 < e / 2 by positivity)
+  obtain ⟨δe₂, hδe₂, htracee₂⟩ :=
+    intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+      hsol₂ htr₂ hu₀adm.1 (show 0 < e / 2 by positivity)
+  set a : ℝ := min (t / 2) (min (δe₁ / 2) (δe₂ / 2)) with hadef
+  have ha : 0 < a := lt_min (by linarith) (lt_min (by linarith) (by linarith))
+  have hat : a < t := by
+    have := min_le_left (t / 2) (min (δe₁ / 2) (δe₂ / 2))
+    rw [← hadef] at this
+    linarith
+  have haδe₁ : a < δe₁ := by
+    have := (min_le_right (t / 2) (min (δe₁ / 2) (δe₂ / 2))).trans
+      (min_le_left (δe₁ / 2) (δe₂ / 2))
+    rw [← hadef] at this
+    linarith
+  have haδe₂ : a < δe₂ := by
+    have := (min_le_right (t / 2) (min (δe₁ / 2) (δe₂ / 2))).trans
+      (min_le_right (δe₁ / 2) (δe₂ / 2))
+    rw [← hadef] at this
+    linarith
+  have haH : a < H := hat.trans htH
+  have haH_R : a + H < R := by linarith
+  have haHT₁ : a + H < T₁ :=
+    haH_R.trans_le ((min_le_right H₀ (min δ₁ (min δ₂ (min T₁ T₂)))).trans
+      ((min_le_right δ₁ (min δ₂ (min T₁ T₂))).trans
+        ((min_le_right δ₂ (min T₁ T₂)).trans (min_le_left _ _))))
+  have haHT₂ : a + H < T₂ :=
+    haH_R.trans_le ((min_le_right H₀ (min δ₁ (min δ₂ (min T₁ T₂)))).trans
+      ((min_le_right δ₁ (min δ₂ (min T₁ T₂))).trans
+        ((min_le_right δ₂ (min T₁ T₂)).trans (min_le_right _ _))))
+  have htime_bounds : ∀ s, 0 < s → s ≤ H →
+      0 < a + s ∧ a + s < δ₁ ∧ a + s < δ₂ := by
+    intro s hs hsH
+    have hasR : a + s < R := by linarith
+    have hRδ₁ : R ≤ δ₁ :=
+      (min_le_right H₀ (min δ₁ (min δ₂ (min T₁ T₂)))).trans
+        (min_le_left _ _)
+    have hRδ₂ : R ≤ δ₂ :=
+      (min_le_right H₀ (min δ₁ (min δ₂ (min T₁ T₂)))).trans
+        ((min_le_right δ₁ (min δ₂ (min T₁ T₂))).trans (min_le_left _ _))
+    exact ⟨by linarith, hasR.trans_le hRδ₁, hasR.trans_le hRδ₂⟩
+  have hub₁ : ∀ s, 0 < s → s ≤ H → ∀ y,
+      |classicalRestartTrajectoryM a H u₁ s y| ≤ M := by
+    intro s hs hsH y
+    have hb := htime_bounds s hs hsH
+    have hclose := hclose₁ (a + s) hb.1 hb.2.1 y
+    have hu₀B : |u₀ y| ≤ B := hB ⟨y, rfl⟩
+    rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsH⟩]
+    calc
+      |u₁ (a + s) y| =
+          |(u₁ (a + s) y - u₀ y) + u₀ y| := by congr 1 <;> ring
+      _ ≤ |u₁ (a + s) y - u₀ y| + |u₀ y| := abs_add_le _ _
+      _ = |u₀ y| + |u₁ (a + s) y - u₀ y| := add_comm _ _
+      _ ≤ B + 1 := add_le_add hu₀B ((hclose.le.trans (min_le_right _ _)))
+      _ = M := hMdef.symm
+  have hub₂ : ∀ s, 0 < s → s ≤ H → ∀ y,
+      |classicalRestartTrajectoryM a H u₂ s y| ≤ M := by
+    intro s hs hsH y
+    have hb := htime_bounds s hs hsH
+    have hclose := hclose₂ (a + s) hb.1 hb.2.2 y
+    have hu₀B : |u₀ y| ≤ B := hB ⟨y, rfl⟩
+    rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsH⟩]
+    calc
+      |u₂ (a + s) y| =
+          |(u₂ (a + s) y - u₀ y) + u₀ y| := by congr 1 <;> ring
+      _ ≤ |u₂ (a + s) y - u₀ y| + |u₀ y| := abs_add_le _ _
+      _ = |u₀ y| + |u₂ (a + s) y - u₀ y| := add_comm _ _
+      _ ≤ B + 1 := add_le_add hu₀B ((hclose.le.trans (min_le_right _ _)))
+      _ = M := hMdef.symm
+  have huf₁ : ∀ s, 0 < s → s ≤ H → ∀ y,
+      c ≤ classicalRestartTrajectoryM a H u₁ s y := by
+    intro s hs hsH y
+    have hb := htime_bounds s hs hsH
+    have hclose := hclose₁ (a + s) hb.1 hb.2.1 y
+    rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsH⟩]
+    have hfloor := hηle y
+    have habs_lower := neg_le_of_abs_le hclose.le
+    rw [hε₀def] at habs_lower
+    have heps : ε₀ ≤ c := min_le_left _ _
+    linarith
+  have huf₂ : ∀ s, 0 < s → s ≤ H → ∀ y,
+      c ≤ classicalRestartTrajectoryM a H u₂ s y := by
+    intro s hs hsH y
+    have hb := htime_bounds s hs hsH
+    have hclose := hclose₂ (a + s) hb.1 hb.2.2 y
+    rw [classicalRestartTrajectoryM_eq ⟨hs.le, hsH⟩]
+    have hfloor := hηle y
+    have habs_lower := neg_le_of_abs_le hclose.le
+    rw [hε₀def] at habs_lower
+    have heps : ε₀ ≤ c := min_le_left _ _
+    linarith
+  have hdatum : ∀ y, |u₁ a y - u₂ a y| ≤ e := by
+    intro y
+    have h1 := htracee₁ a ha haδe₁ y
+    have h2 := htracee₂ a ha haδe₂ y
+    calc
+      |u₁ a y - u₂ a y| =
+          |(u₁ a y - u₀ y) + (u₀ y - u₂ a y)| := by congr 1 <;> ring
+      _ ≤ |u₁ a y - u₀ y| + |u₀ y - u₂ a y| := abs_add_le _ _
+      _ = |u₁ a y - u₀ y| + |u₂ a y - u₀ y| := by
+        rw [abs_sub_comm (u₀ y) (u₂ a y)]
+      _ ≤ e := by linarith
+  have hdiff := intervalDomainM_classical_restart_diff_bound
+    hsol₁ hsol₂ ha hH haHT₁ haHT₂ hc hcM hCL.le hCL_lip
+      hub₁ huf₁ hub₂ huf₂ he.le hdatum hcontract
+      (t - a) (sub_nonneg.mpr hat.le) (by linarith) x
+  have hediv : e / (1 - q) = |u₁ t x - u₂ t x| / 2 := by
+    rw [hedef]
+    field_simp [ne_of_gt (sub_pos.mpr hq_lt')]
+  rw [show a + (t - a) = t by ring, ← hqdef, hediv] at hdiff
+  linarith
+
 #print axioms intervalDomainM_classical_restart_diff_bound
+#print axioms intervalDomainM_initialTrace_pointwise_abs_lt_of_classical
+#print axioms intervalDomainM_classical_initial_u_unique_on_short
 
 end ShenWork.Paper2.IntervalDomainM
