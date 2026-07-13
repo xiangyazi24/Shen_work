@@ -7,7 +7,7 @@ import ShenWork.Paper2.IntervalBankChemSliceFix
 
 namespace ShenWork.Paper3
 
-open MeasureTheory Set
+open MeasureTheory Set Filter
 open ShenWork.IntervalDomain
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.Paper2
@@ -112,6 +112,19 @@ theorem paper3UxxPhysicalRep_continuousOn_strictSlab
       hsol ha hab hbT)
     (logisticReaction_continuousOn_strictSlab_of_classicalSolution
       hsol ha hab hbT)
+
+theorem paper3UxxPhysicalRep_continuousOn_slice
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {T t : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ContinuousOn (paper3UxxPhysicalRep p u v t)
+      (Set.Icc (0 : ℝ) 1) := by
+  have hjoint := paper3UxxPhysicalRep_continuousOn_strictSlab
+    hsol ht.1 le_rfl ht.2
+  exact hjoint.comp
+    (continuousOn_const.prodMk continuousOn_id)
+    (fun x hx => ⟨⟨le_rfl, le_rfl⟩, hx⟩)
 
 theorem paper3UxxPhysicalRep_eq_liftDeriv2_interior
     {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
@@ -226,13 +239,304 @@ theorem intervalDomainX2SigmaPerturbation_of_classical_positive
         paper3UxxPhysicalRep_cosineCoeff_eq_graphCoeff
           (uStar := uStar) hsol ht n)
 
+set_option maxHeartbeats 800000 in
+/-- Quantitative graph-norm continuity estimate.  If both the value slices and
+the endpoint-safe `u_xx` representatives are uniformly `B`-close, then their
+weighted coefficient vectors are `4B`-close in `X_2^sigma`. -/
+theorem weightedPerturbationCoeff_sub_norm_le_of_value_uxx_bounds
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {T s t sigma uStar B : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hs : s ∈ Set.Ioo (0 : ℝ) T) (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hsigma1 : sigma ≤ 1) (hB : 0 ≤ B)
+    (huBound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (u s) x - intervalDomainLift (u t) x| ≤ B)
+    (huxxBound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3UxxPhysicalRep p u v s x -
+        paper3UxxPhysicalRep p u v t x| ≤ B) :
+    ‖weightedCoeffToLp 1 sigma
+          (intervalDomainPerturbationCosineCoeff uStar (u s))
+          (intervalDomainX2SigmaPerturbation_of_classical_positive
+            hsol hs hsigma1) -
+        weightedCoeffToLp 1 sigma
+          (intervalDomainPerturbationCosineCoeff uStar (u t))
+          (intervalDomainX2SigmaPerturbation_of_classical_positive
+            hsol ht hsigma1)‖ ≤ 4 * B := by
+  let phi : ℝ → ℝ := fun x =>
+    intervalDomainLift (u s) x - intervalDomainLift (u t) x
+  let F : ℝ → ℝ := fun x =>
+    paper3UxxPhysicalRep p u v s x - paper3UxxPhysicalRep p u v t x
+  let a : ℕ → ℂ := fun n => ((cosineCoeffs phi n : ℝ) : ℂ)
+  let b : ℕ → ℂ := fun n => ((cosineCoeffs F n : ℝ) : ℂ)
+  have huS : ContinuousOn (intervalDomainLift (u s)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 s hs).1.1.continuousOn
+  have huT : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn
+  have hphiCont : ContinuousOn phi (Set.Icc (0 : ℝ) 1) := by
+    simpa [phi] using huS.sub huT
+  have hFS : ContinuousOn (paper3UxxPhysicalRep p u v s)
+      (Set.Icc (0 : ℝ) 1) := paper3UxxPhysicalRep_continuousOn_slice hsol hs
+  have hFT : ContinuousOn (paper3UxxPhysicalRep p u v t)
+      (Set.Icc (0 : ℝ) 1) := paper3UxxPhysicalRep_continuousOn_slice hsol ht
+  have hFCont : ContinuousOn F (Set.Icc (0 : ℝ) 1) := by
+    simpa [F] using hFS.sub hFT
+  have hphiData := cosineCoeffs_l2_norm_le_of_pointwise_abs_bound hB
+    (hphiCont.aestronglyMeasurable measurableSet_Icc)
+    (by simpa [phi] using huBound)
+  have hFData := cosineCoeffs_l2_norm_le_of_pointwise_abs_bound hB
+    (hFCont.aestronglyMeasurable measurableSet_Icc)
+    (by simpa [F] using huxxBound)
+  have ha : Summable fun n => ‖a n‖ ^ 2 := by
+    simpa [a, Complex.norm_real, Real.norm_eq_abs, sq_abs] using hphiData.1
+  have hb : Summable fun n => ‖b n‖ ^ 2 := by
+    simpa [b, Complex.norm_real, Real.norm_eq_abs, sq_abs] using hFData.1
+  have hphiSInt : IntervalIntegrable
+      (fun x => intervalDomainLift (u s) x - uStar) volume 0 1 := by
+    exact (huS.sub continuousOn_const).intervalIntegrable_of_Icc (by norm_num)
+  have hphiTInt : IntervalIntegrable
+      (fun x => intervalDomainLift (u t) x - uStar) volume 0 1 := by
+    exact (huT.sub continuousOn_const).intervalIntegrable_of_Icc (by norm_num)
+  have hphiCoeff : ∀ n,
+      a n = intervalDomainPerturbationCosineCoeff uStar (u s) n -
+        intervalDomainPerturbationCosineCoeff uStar (u t) n := by
+    intro n
+    have hsub := cosineCoeffs_sub_of_intervalIntegrable n hphiSInt hphiTInt
+    have hcongr : cosineCoeffs phi n =
+        cosineCoeffs (fun x =>
+          (intervalDomainLift (u s) x - uStar) -
+            (intervalDomainLift (u t) x - uStar)) n := by
+      exact paper3_cosineCoeffs_congr_on_Icc (fun x _hx => by ring) n
+    dsimp [a]
+    rw [hcongr, hsub]
+    simp [intervalDomainPerturbationCosineCoeff]
+  have hFSInt : IntervalIntegrable (paper3UxxPhysicalRep p u v s)
+      volume 0 1 := hFS.intervalIntegrable_of_Icc (by norm_num)
+  have hFTInt : IntervalIntegrable (paper3UxxPhysicalRep p u v t)
+      volume 0 1 := hFT.intervalIntegrable_of_Icc (by norm_num)
+  have hFCoeff : ∀ n, b n =
+      ((cosineCoeffs (paper3UxxPhysicalRep p u v s) n : ℝ) : ℂ) -
+        ((cosineCoeffs (paper3UxxPhysicalRep p u v t) n : ℝ) : ℂ) := by
+    intro n
+    have hsub := cosineCoeffs_sub_of_intervalIntegrable n hFSInt hFTInt
+    dsimp [b, F]
+    rw [hsub]
+    push_cast
+    rfl
+  have hrel : ∀ n, b n =
+      -((neumannEigenvalue 1 n : ℝ) : ℂ) * a n := by
+    intro n
+    rw [hFCoeff n,
+      paper3UxxPhysicalRep_cosineCoeff_eq_graphCoeff
+        (uStar := uStar) hsol hs n,
+      paper3UxxPhysicalRep_cosineCoeff_eq_graphCoeff
+        (uStar := uStar) hsol ht n,
+      hphiCoeff n]
+    ring
+  have hmem := fractionalPowerEnergy_summable_of_graphCoeffs
+    hsigma1 ha hb hrel
+  have henergy := fractionalPowerEnergy_tsum_le_graphCoeffs
+    hsigma1 ha hb hrel
+  let A : ℝ := ∑' n, ‖a n‖ ^ 2
+  let D : ℝ := ∑' n, ‖b n‖ ^ 2
+  have hA0 : 0 ≤ A := tsum_nonneg fun n => sq_nonneg ‖a n‖
+  have hD0 : 0 ≤ D := tsum_nonneg fun n => sq_nonneg ‖b n‖
+  have hAroot : Real.sqrt A ≤ 2 * B := by
+    simpa [A, a, Complex.norm_real, Real.norm_eq_abs, sq_abs] using hphiData.2
+  have hDroot : Real.sqrt D ≤ 2 * B := by
+    simpa [D, b, Complex.norm_real, Real.norm_eq_abs, sq_abs] using hFData.2
+  have hAle : A ≤ 4 * B ^ 2 := by
+    have hsq := mul_self_le_mul_self (Real.sqrt_nonneg A) hAroot
+    have hsqrt := Real.sq_sqrt hA0
+    nlinarith [hsqrt]
+  have hDle : D ≤ 4 * B ^ 2 := by
+    have hsq := mul_self_le_mul_self (Real.sqrt_nonneg D) hDroot
+    have hsqrt := Real.sq_sqrt hD0
+    nlinarith [hsqrt]
+  have henergy16 : (∑' n, fractionalPowerEnergyTerm 1 sigma a n) ≤
+      16 * B ^ 2 := by
+    dsimp [A, D] at hAle hDle
+    exact henergy.trans (by nlinarith)
+  have hvec :
+      weightedCoeffToLp 1 sigma
+          (intervalDomainPerturbationCosineCoeff uStar (u s))
+          (intervalDomainX2SigmaPerturbation_of_classical_positive
+            hsol hs hsigma1) -
+        weightedCoeffToLp 1 sigma
+          (intervalDomainPerturbationCosineCoeff uStar (u t))
+          (intervalDomainX2SigmaPerturbation_of_classical_positive
+            hsol ht hsigma1) =
+      weightedCoeffToLp 1 sigma a hmem := by
+    ext n
+    change
+      (((1 + neumannEigenvalue 1 n) ^ sigma : ℝ) : ℂ) *
+          intervalDomainPerturbationCosineCoeff uStar (u s) n -
+        (((1 + neumannEigenvalue 1 n) ^ sigma : ℝ) : ℂ) *
+          intervalDomainPerturbationCosineCoeff uStar (u t) n =
+        (((1 + neumannEigenvalue 1 n) ^ sigma : ℝ) : ℂ) * a n
+    rw [hphiCoeff n]
+    ring
+  rw [hvec, norm_weightedCoeffToLp]
+  rw [Real.sqrt_le_iff]
+  refine ⟨mul_nonneg (by norm_num) hB, ?_⟩
+  nlinarith
+
+/-- Complete weighted coefficient trajectory, extended by zero outside the
+positive classical time interval.  All later continuity statements restrict
+back to strict positive slabs, so the extension values are immaterial. -/
+def intervalDomainStrongCoeffTrajectory
+    (p : CM2Params) (T sigma uStar : ℝ)
+    (hsigma1 : sigma < 1)
+    (u v : ℝ → intervalDomainPoint → ℝ)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (t : ℝ) : CoeffL2 :=
+  if ht : t ∈ Set.Ioo (0 : ℝ) T then
+    weightedCoeffToLp 1 sigma
+      (intervalDomainPerturbationCosineCoeff uStar (u t))
+      (intervalDomainX2SigmaPerturbation_of_classical_positive
+        hsol ht hsigma1.le)
+  else 0
+
+@[simp] theorem intervalDomainStrongCoeffTrajectory_of_mem
+    {p : CM2Params} {T sigma uStar t : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hsigma1 : sigma < 1) (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    intervalDomainStrongCoeffTrajectory p T sigma uStar hsigma1 u v hsol t =
+      weightedCoeffToLp 1 sigma
+        (intervalDomainPerturbationCosineCoeff uStar (u t))
+        (intervalDomainX2SigmaPerturbation_of_classical_positive
+          hsol ht hsigma1.le) := by
+  simp only [intervalDomainStrongCoeffTrajectory, dif_pos ht]
+
+set_option maxHeartbeats 800000 in
+/-- On every compact positive-time window, the physical perturbation is
+continuous in the complete `X_2^sigma` coefficient realization. -/
+theorem intervalDomainStrongCoeffTrajectory_continuousOn_strictSlab
+    {p : CM2Params} {T sigma uStar a b : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b < T)
+    (hsigma1 : sigma < 1) :
+    ContinuousOn
+      (intervalDomainStrongCoeffTrajectory p T sigma uStar hsigma1 u v hsol)
+      (Set.Icc a b) := by
+  let K : Set (ℝ × ℝ) := Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1
+  have hK : IsCompact K := isCompact_Icc.prod isCompact_Icc
+  have hsub : K ⊆ Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1 := by
+    intro z hz
+    exact ⟨⟨lt_of_lt_of_le ha hz.1.1, lt_of_le_of_lt hz.1.2 hbT⟩, hz.2⟩
+  have huJoint : ContinuousOn
+      (Function.uncurry (fun r x => intervalDomainLift (u r) x)) K :=
+    hsol.regularity.2.2.2.2.2.2.1.mono hsub
+  have hFJoint : ContinuousOn
+      (Function.uncurry (paper3UxxPhysicalRep p u v)) K := by
+    simpa [K] using
+      paper3UxxPhysicalRep_continuousOn_strictSlab hsol ha hab hbT
+  have huUC : UniformContinuousOn
+      (Function.uncurry (fun r x => intervalDomainLift (u r) x)) K :=
+    hK.uniformContinuousOn_of_continuous huJoint
+  have hFUC : UniformContinuousOn
+      (Function.uncurry (paper3UxxPhysicalRep p u v)) K :=
+    hK.uniformContinuousOn_of_continuous hFJoint
+  rw [Metric.uniformContinuousOn_iff] at huUC hFUC
+  rw [Metric.continuousOn_iff]
+  intro t ht eps heps
+  let eta : ℝ := eps / 5
+  have heta : 0 < eta := by dsimp [eta]; linarith
+  obtain ⟨δu, hδu, huMod⟩ := huUC eta heta
+  obtain ⟨δF, hδF, hFMod⟩ := hFUC eta heta
+  refine ⟨min δu δF, lt_min hδu hδF, ?_⟩
+  intro s hs hst
+  have htPos : t ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le ha ht.1, lt_of_le_of_lt ht.2 hbT⟩
+  have hsPos : s ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le ha hs.1, lt_of_le_of_lt hs.2 hbT⟩
+  have hstu : dist s t < δu := lt_of_lt_of_le hst (min_le_left _ _)
+  have hstF : dist s t < δF := lt_of_lt_of_le hst (min_le_right _ _)
+  have huBound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (u s) x - intervalDomainLift (u t) x| ≤ eta := by
+    intro x hx
+    have hdist : dist ((s, x) : ℝ × ℝ) ((t, x) : ℝ × ℝ) < δu := by
+      rw [Prod.dist_eq]
+      simpa using hstu
+    have h := huMod (s, x) ⟨hs, hx⟩ (t, x) ⟨ht, hx⟩ hdist
+    simpa [Function.uncurry, Real.dist_eq] using h.le
+  have huxxBound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3UxxPhysicalRep p u v s x -
+        paper3UxxPhysicalRep p u v t x| ≤ eta := by
+    intro x hx
+    have hdist : dist ((s, x) : ℝ × ℝ) ((t, x) : ℝ × ℝ) < δF := by
+      rw [Prod.dist_eq]
+      simpa using hstF
+    have h := hFMod (s, x) ⟨hs, hx⟩ (t, x) ⟨ht, hx⟩ hdist
+    change dist (paper3UxxPhysicalRep p u v s x)
+      (paper3UxxPhysicalRep p u v t x) < eta at h
+    rw [Real.dist_eq] at h
+    exact h.le
+  rw [intervalDomainStrongCoeffTrajectory_of_mem hsol hsigma1 hsPos,
+    intervalDomainStrongCoeffTrajectory_of_mem hsol hsigma1 htPos,
+    dist_eq_norm]
+  have hnorm := weightedPerturbationCoeff_sub_norm_le_of_value_uxx_bounds
+    (uStar := uStar) hsol hsPos htPos hsigma1.le heta.le huBound huxxBound
+  exact hnorm.trans_lt (by dsimp [eta]; linarith)
+
+theorem intervalDomainX2SigmaDistance_continuousOn_strictSlab
+    {p : CM2Params} {T sigma uStar a b : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b < T)
+    (hsigma1 : sigma < 1) :
+    ContinuousOn
+      (fun t => intervalDomainX2SigmaDistance sigma uStar (u t))
+      (Set.Icc a b) := by
+  have hvec := intervalDomainStrongCoeffTrajectory_continuousOn_strictSlab
+    (uStar := uStar) hsol ha hab hbT hsigma1
+  have hnorm := continuous_norm.comp_continuousOn hvec
+  refine hnorm.congr ?_
+  intro t ht
+  have htPos : t ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le ha ht.1, lt_of_le_of_lt ht.2 hbT⟩
+  change intervalDomainX2SigmaDistance sigma uStar (u t) =
+    ‖intervalDomainStrongCoeffTrajectory
+      p T sigma uStar hsigma1 u v hsol t‖
+  rw [intervalDomainStrongCoeffTrajectory_of_mem hsol hsigma1 htPos,
+    norm_weightedCoeffToLp]
+  rfl
+
+theorem intervalDomainX2SigmaDistance_continuousOn_positive
+    {p : CM2Params} {T sigma uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hsigma1 : sigma < 1) :
+    ContinuousOn
+      (fun t => intervalDomainX2SigmaDistance sigma uStar (u t))
+      (Set.Ioo (0 : ℝ) T) := by
+  intro t ht
+  let a : ℝ := t / 2
+  let b : ℝ := (t + T) / 2
+  have ha : 0 < a := by dsimp [a]; linarith [ht.1]
+  have hab : a ≤ b := by dsimp [a, b]; linarith [ht.1, ht.2]
+  have hbT : b < T := by dsimp [b]; linarith [ht.2]
+  have hat : a < t := by dsimp [a]; linarith [ht.1]
+  have htb : t < b := by dsimp [b]; linarith [ht.2]
+  have hslab := intervalDomainX2SigmaDistance_continuousOn_strictSlab
+    (uStar := uStar) hsol ha hab hbT hsigma1
+  have hatmem : Set.Icc a b ∈ nhds t := Icc_mem_nhds hat htb
+  exact (hslab.continuousAt hatmem).continuousWithinAt
+
 #print axioms fractionalPowerEnergyTerm_le_graphEnergy
 #print axioms fractionalPowerEnergy_summable_of_graphCoeffs
 #print axioms fractionalPowerEnergy_tsum_le_graphCoeffs
 #print axioms paper3UxxPhysicalRep_continuousOn_strictSlab
+#print axioms paper3UxxPhysicalRep_continuousOn_slice
 #print axioms paper3UxxPhysicalRep_eq_liftDeriv2_interior
 #print axioms paper3UxxPhysicalRep_cosineCoeff_eq_graphCoeff
 #print axioms intervalDomainX2SigmaPerturbation_of_classical_positive
+#print axioms weightedPerturbationCoeff_sub_norm_le_of_value_uxx_bounds
+#print axioms intervalDomainStrongCoeffTrajectory_of_mem
+#print axioms intervalDomainStrongCoeffTrajectory_continuousOn_strictSlab
+#print axioms intervalDomainX2SigmaDistance_continuousOn_strictSlab
+#print axioms intervalDomainX2SigmaDistance_continuousOn_positive
 
 end
 
