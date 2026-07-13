@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WaveNegativePinnedOrbit
 import ShenWork.Paper1.WaveControlledConstruction
+import ShenWork.Paper1.WaveLocalUniformClosedGraph
 
 open Filter Set Topology
 
@@ -339,6 +340,122 @@ def PaperNegativePinnedRotheL10
     (fun u => rotheLimit
       (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u))
 
+/-- The exact identification atom beneath L10: a lower-pinned stationary
+cluster for frozen profile `u` is the particular upper-start Rothe limit
+selected at `u`.  Compactness and the Green passage do not imply this
+uniqueness statement. -/
+def PaperNegativePinnedStationaryIdentification
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) : Prop :=
+  ∀ u W,
+    InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) u →
+    InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D) W →
+    (∀ x, paperImplicitStepOp p c (1 / s.lam) u W x = W x) →
+      W = rotheLimit
+        (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)
+
+/-- The genuine orbit has the parameterized off-diagonal whole-line Green
+closed graph on exactly its compact lower-pinned domain. -/
+theorem paperNegativePinned_offDiagonalStepClosedGraph
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D) :
+    PaperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn
+      (InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+        (paperNegativePinnedOrbitModulus s)
+        (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D))
+      p c s.lam 1 (kappa c)
+      (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s) := by
+  apply paperGreenRotheAdaptiveOffDiagonalStepClosedGraphOn_of_stepAnalytic
+    (InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+      (paperNegativePinnedOrbitModulus s)
+      (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D))
+    p c s.lam 1 (kappa c) s.Λ one_pos s.hΛ0 s.hlam
+    (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s)
+  · intro _ hu
+    exact hu.uniformTrap.bare
+  · intro _ hu n
+    exact paperNegativePinnedRotheSeqFromTrap_stepAnalytic
+      hcond hD hD1 s hu n
+  · intro _ hu n x
+    exact (paperNegativePinnedRotheSeqFromTrap_orbitData
+      hcond hD hD1 s hu).nonneg (n + 1) x
+  · intro _ hu n x
+    exact (paperNegativePinnedRotheSeqFromTrap_orbitData
+      hcond hD hD1 s hu).le_M (n + 1) x
+
+/-- Adaptive moving-index Green passage reduces the sequential graph of the
+long-time map to stationary identification.  No family-uniform Rothe tail is
+used: each orbit chooses its own index after the output cluster is fixed. -/
+theorem paperNegativePinned_limitClosedGraph_of_stationaryIdentification
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (hidentify : PaperNegativePinnedStationaryIdentification
+      hcond hD hD1 s) :
+    LocalUniformSequentialClosedGraphOn
+      (InLowerPinnedUniformModulusMonotoneTrap (kappa c) 1
+        (paperNegativePinnedOrbitModulus s)
+        (lowerBarrierRaw (kappa c) (negativeBranchTailCap p c) D))
+      (fun u => rotheLimit
+        (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s u)) := by
+  intro seq u W hseq hu hW houter hlimits
+  let Z : ℕ → ℕ → ℝ → ℝ := fun n =>
+    paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s (seq n)
+  let L : ℕ → ℝ → ℝ := fun n =>
+    rotheLimit (paperNegativePinnedRotheSeqFromTrap hcond hD hD1 s (seq n))
+  have horbit : ∀ n, LocallyUniformConverges (Z n) (L n) := by
+    intro n
+    simpa [Z, L] using
+      (paperNegativePinnedRotheSeqFromTrap_orbitData
+        hcond hD hD1 s (hseq n)).locallyUniform
+          (paperNegativePinnedOrbitModulus_nonneg s)
+  obtain ⟨ks, hks, hold, hnew, _hgap⟩ :=
+    exists_adaptiveMovingIndex_commonLimit horbit (by simpa [L] using hlimits)
+  obtain ⟨hstep, _hWdiff, _hWderivDiff⟩ :=
+    paperNegativePinned_offDiagonalStepClosedGraph hcond hD hD1 s
+      seq u W ks hseq hu.uniformTrap.bare hW.uniformTrap.bare
+      houter hks (by simpa [Z] using hold) (by simpa [Z] using hnew)
+  exact hidentify u W hu hW hstep
+
+/-- Compactness plus the preceding closed graph proves L10 once stationary
+identification is available. -/
+theorem paperNegativePinnedRotheL10_of_stationaryIdentification
+    {p : CMParams} {c D : ℝ}
+    (hcond : PaperLemma42ExactConditions
+      p c (kappa c) (negativeBranchTailCap p c) 1)
+    (hD : paperDMin p.χ 1 (kappa c) (negativeBranchTailCap p c)
+      p.m p.γ c < D)
+    (hD1 : 1 ≤ D)
+    (s : Paper1NegativeLocalStepScalarData p c D)
+    (hidentify : PaperNegativePinnedStationaryIdentification
+      hcond hD hD1 s) :
+    PaperNegativePinnedRotheL10 hcond hD hD1 s := by
+  apply LocalUniformSequentiallyCompactRange.continuousOn_of_closedGraph
+    (InLowerPinnedUniformModulusMonotoneTrap.compactRange_of_mapsTo
+      zero_le_one (paperNegativePinnedOrbitModulus_nonneg s)
+      (fun _ hu => paperNegativePinnedRotheSeqFromTrap_mapsTo
+        hcond hD hD1 s hu))
+  exact paperNegativePinned_limitClosedGraph_of_stationaryIdentification
+    hcond hD hD1 s hidentify
+
 /-- Direct Schauder--Tychonoff closure of the genuine negative orbit.  The
 uniform modulus makes the domain compact in `C⁰_loc`; the whole-line Green
 closed graph turns the Schauder fixed point into a stationary profile. -/
@@ -381,6 +498,9 @@ section AxiomAudit
 #print axioms paperNegativePinnedRotheSeqFromTrap_orbitData
 #print axioms paperNegativePinnedRotheSeqFromTrap_mapsTo
 #print axioms paperNegativePinnedUniformModulusTrap_nonempty
+#print axioms paperNegativePinned_offDiagonalStepClosedGraph
+#print axioms paperNegativePinned_limitClosedGraph_of_stationaryIdentification
+#print axioms paperNegativePinnedRotheL10_of_stationaryIdentification
 #print axioms paperNegativePinned_fixed_stationary_of_L10
 
 end AxiomAudit
