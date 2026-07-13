@@ -1,0 +1,253 @@
+import ShenWork.Paper1.CStarStarSpecSatisfiable
+import ShenWork.Paper1.Lemma53Full
+import ShenWork.Paper1.Theorem12CoordinateAudit
+import ShenWork.Paper1.Theorem12RootObstruction
+import ShenWork.Paper1.WaveStabilityUpgrade
+
+open Filter Topology MeasureTheory
+
+noncomputable section
+
+namespace ShenWork.Paper1
+
+/-!
+# Faithful moving-coordinate form of Paper 1 Theorem 1.2
+
+The paper's Section 5 proof is written after transforming the Cauchy solution
+to the frame moving at speed `c`.  This file states that conclusion with the
+weight in the same coordinate.  It also puts the regularity of a “traveling
+wave solution” explicitly in the Lean signature: the bare repository
+`IsTravelingWave` structure records pointwise `deriv` equations but does not
+logically imply differentiability.
+-/
+
+/-- Laboratory solution observed in the coordinate moving at speed `c`. -/
+def coMovingPath (c : ℝ) (u : ℝ → ℝ → ℝ) (t z : ℝ) : ℝ :=
+  u t (z + c * t)
+
+/-- Paper 1 Theorem 1.2 with the Section 5 weighted norm in its actual
+moving coordinate, and with classical wave regularity made explicit. -/
+def Theorem_1_2_amended : Prop :=
+  ∀ p : CMParams, StableWaveParameterRegime p →
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        TravelingWaveRegularity p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              CoMovingWeightedL2Convergence η c u U ∧
+              UniformMovingFrameConvergence c u U
+
+/-! ## Closed scalar energy and Step 4 endpoints -/
+
+theorem CoMovingWeightedL2Convergence.of_eventual_bound_tendsto_zero
+    {η c : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {B : ℝ → ℝ}
+    (hB : Tendsto B atTop (𝓝 0))
+    (hbound : ∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ B t) :
+    CoMovingWeightedL2Convergence η c u U := by
+  unfold CoMovingWeightedL2Convergence
+  have hnonneg : ∀ᶠ t in atTop, 0 ≤ coMovingWeightedL2Energy η c u U t :=
+    Eventually.of_forall fun t => integral_nonneg fun z =>
+      mul_nonneg (Real.exp_pos _).le (sq_nonneg _)
+  exact squeeze_zero' hnonneg hbound hB
+
+theorem CoMovingWeightedL2Convergence.of_eventual_exponential_decay
+    {η c lam A : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdecay : ∀ᶠ t in atTop,
+      coMovingWeightedL2Energy η c u U t ≤ A * Real.exp (-lam * t)) :
+    CoMovingWeightedL2Convergence η c u U := by
+  have hmul : Tendsto (fun t : ℝ => lam * t) atTop atTop := by
+    simpa [mul_comm] using Filter.tendsto_id.atTop_mul_const hlam
+  have hneg : Tendsto (fun t : ℝ => -(lam * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(lam * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hupper : Tendsto (fun t : ℝ => A * Real.exp (-lam * t)) atTop (𝓝 0) := by
+    simpa using tendsto_const_nhds.mul hexp
+  exact CoMovingWeightedL2Convergence.of_eventual_bound_tendsto_zero
+    hupper hdecay
+
+theorem CoMovingWeightedL2Convergence.of_energy_dissipation
+    {η c lam : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {E : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hcontrol : ∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ E t)
+    (hcont : ∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T))
+    (hderiv : ∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+      HasDerivWithinAt E (deriv E t) (Set.Ici t) t)
+    (hdiss : ∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) :
+    CoMovingWeightedL2Convergence η c u U := by
+  have hE_decay : ∀ᶠ t in atTop, E t ≤ E 0 * Real.exp (-lam * t) :=
+    scalarEnergy_eventual_exponential_bound_of_deriv_le hcont hderiv hdiss
+  have hdecay : ∀ᶠ t in atTop,
+      coMovingWeightedL2Energy η c u U t ≤ E 0 * Real.exp (-lam * t) := by
+    filter_upwards [hcontrol, hE_decay] with t hctrl hE
+    exact hctrl.trans hE
+  exact CoMovingWeightedL2Convergence.of_eventual_exponential_decay
+    hlam hdecay
+
+/-- The proved interval-localization upgrade applied in the stationary wave
+coordinate.  All three extra hypotheses are genuine Step 4 inputs; weighted
+`L²` decay alone is not enough at the left end. -/
+theorem uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
+    {η c : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hη : 0 < η)
+    (henergy_int :
+      EventuallyIntegrableMovingFrameEnergy η 0 (coMovingPath c u) U)
+    (hweighted : CoMovingWeightedL2Convergence η c u U)
+    (hmod :
+      EventuallyUniformMovingFrameSpatialModulus 0 (coMovingPath c u) U)
+    (hleft : UniformMovingFrameLeftTailConvergence 0 (coMovingPath c u) U) :
+    UniformMovingFrameConvergence c u U := by
+  have hweighted_zero :
+      WeightedL2MovingFrameConvergence η 0 (coMovingPath c u) U := by
+    unfold CoMovingWeightedL2Convergence coMovingWeightedL2Energy at hweighted
+    unfold WeightedL2MovingFrameConvergence
+    simpa [coMovingPath] using hweighted
+  have huniform_zero :
+      UniformMovingFrameConvergence 0 (coMovingPath c u) U :=
+    uniformMovingFrameConvergence_of_weightedL2_of_spatialModulus_of_leftTail
+      hη (le_refl 0) henergy_int hweighted_zero hmod hleft
+  intro ε hε
+  rcases huniform_zero ε hε with ⟨T, hT⟩
+  refine ⟨T, fun t x ht => ?_⟩
+  have hz := hT t (x - c * t) ht
+  simpa [coMovingPath] using hz
+
+/-! ## The already-proved Section 5 signal block -/
+
+/-- The exact profile/initial-datum signal estimate consumed by the nonlinear
+energy calculation, at the theorem's canonical exponent `2`. -/
+abbrev Section5ProfileInitialSignalBounds
+    (p : CMParams) (U V u₀ : ℝ → ℝ) : Prop :=
+  ∃ kMax > 0, ∃ C > 0,
+    ∀ k : ℝ, 0 ≤ k → k < kMax →
+    ∀ psi : ExponentialWeight,
+      (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+      Integrable (fun x : ℝ => (U x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+      Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+        (Integrable (fun x : ℝ => |deriv V x| ^ (2 : ℝ) * psi.weight x) ∧
+          ∫ x : ℝ, |deriv V x| ^ (2 : ℝ) * psi.weight x ≤
+            C * ∫ x : ℝ, (U x) ^ (p.γ * (2 : ℝ)) * psi.weight x) ∧
+        (Integrable
+            (fun x : ℝ =>
+              |deriv (frozenElliptic p u₀) x| ^ (2 : ℝ) * psi.weight x) ∧
+          ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ (2 : ℝ) * psi.weight x ≤
+            C * ∫ x : ℝ, (u₀ x) ^ (p.γ * (2 : ℝ)) * psi.weight x)
+
+theorem section5ProfileInitialSignalBounds_proved
+    (p : CMParams) {c : ℝ} {U V u₀ : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hu₀ : NonnegativeInitialDatum u₀) :
+    Section5ProfileInitialSignalBounds p U V u₀ :=
+  Lemma_5_3_profile_initial_signal_derivative_from_Lemma_2_5
+    p (by norm_num) hTW hreg hbound hu₀
+
+/-! ## Honest one-core capstone
+
+The remaining hypothesis below is deliberately not hidden in a structure and
+does not contain either convergence conclusion.  It is the exact whole-line
+Cauchy/perturbation/Step 4 analytic block still missing after Lemma 2.5,
+Lemma 5.3, scalar Grönwall, and interval localization have been discharged.
+-/
+
+theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
+    (hcore :
+      ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarWitness p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        TravelingWaveRegularity p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          Section5ProfileInitialSignalBounds p U V u₀ →
+          ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+            (∀ᶠ t in atTop, coMovingWeightedL2Energy η c u U t ≤ E t) ∧
+            (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+            (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+              HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+            (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) ∧
+            EventuallyIntegrableMovingFrameEnergy η 0 (coMovingPath c u) U ∧
+            EventuallyUniformMovingFrameSpatialModulus 0 (coMovingPath c u) U ∧
+            UniformMovingFrameLeftTailConvergence 0 (coMovingPath c u) U) :
+    Theorem_1_2_amended := by
+  intro p hregime
+  refine ⟨cStarStarWitness p, cStarStarWitness_asymptotic p,
+    stabilitySpeedBaseline_le_cStarStarWitness p, ?_⟩
+  intro c hc U V hTW hreg hstrict htail η hketa heta u₀ hu₀ hleft hclose
+  have hsignal : Section5ProfileInitialSignalBounds p U V u₀ :=
+    section5ProfileInitialSignalBounds_proved p hTW hreg
+      hstrict.hasWaveUpperTailBound hu₀
+  rcases hcore p hregime c hc U V u₀ hTW hreg hstrict htail η hketa heta
+      hu₀ hleft hclose hsignal with
+    ⟨u, v, E, lam, hlam, hsol, hcontrol, hcont, hderiv, hdiss,
+      hint, hmod, hleftStep4⟩
+  have hweighted : CoMovingWeightedL2Convergence η c u U :=
+    CoMovingWeightedL2Convergence.of_energy_dissipation
+      hlam hcontrol hcont hderiv hdiss
+  have hη : 0 < η :=
+    eta_pos_of_stability_weight_hypotheses
+      (stabilitySpeedBaseline_le_cStarStarWitness p) hc hketa
+  exact ⟨u, v, hsol, hweighted,
+    uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
+      hη hint hweighted hmod hleftStep4⟩
+
+/-! ## Non-vacuity of the amended conclusion -/
+
+theorem IsTravelingWave.coMovingWeightedL2Convergence_self
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V) :
+    CoMovingWeightedL2Convergence η c
+      (fun t x => U (x - c * t)) U := by
+  unfold CoMovingWeightedL2Convergence coMovingWeightedL2Energy
+  simp
+
+theorem Theorem_1_2_amended_self_initial_data_nonvacuous
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hstrict : HasStrictWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        CoMovingWeightedL2Convergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  refine ⟨hstrict.nonnegativeInitialDatum_of_continuous hreg.U_cont,
+    IsTravelingWave.strictlyPositiveAtLeft hTW,
+    WeightedL2InitialCloseness.refl η U, ?_⟩
+  exact ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
+    IsTravelingWave.to_globalCauchySolutionFrom hTW hU_diff hV_diff,
+    IsTravelingWave.coMovingWeightedL2Convergence_self hTW,
+    IsTravelingWave.uniformMovingFrameConvergence_self hTW⟩
+
+section Theorem12CorrectedAxiomAudit
+#print axioms CoMovingWeightedL2Convergence.of_energy_dissipation
+#print axioms uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
+#print axioms section5ProfileInitialSignalBounds_proved
+#print axioms paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
+#print axioms Theorem_1_2_amended_self_initial_data_nonvacuous
+end Theorem12CorrectedAxiomAudit
+
+end ShenWork.Paper1
