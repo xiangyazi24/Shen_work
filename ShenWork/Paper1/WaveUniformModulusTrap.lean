@@ -182,6 +182,55 @@ theorem locallyUniform_sequentiallyCompact
 
 end InLowerPinnedUniformModulusMonotoneTrap
 
+/-! ## Spatial-modulus obstruction for the L10 time-limit interchange -/
+
+/-- A family-uniform local tail for a two-index orbit. -/
+def LocalUniformFamilyTail
+    (Z : ℕ → ℕ → ℝ → ℝ) (limit : ℕ → ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∀ ε > 0, ∃ K : ℕ,
+    ∀ n k, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
+      |Z n k x - limit n x| < ε
+
+/-- The standard moving-plateau counterexample, made constant in space so it
+has every possible uniform spatial modulus and spatial smoothness. -/
+def movingPlateauFamily (n k : ℕ) (_x : ℝ) : ℝ :=
+  if k ≤ n then 1 else 0
+
+theorem movingPlateauFamily_contDiff (n k : ℕ) :
+    ContDiff ℝ ⊤ (movingPlateauFamily n k) := by
+  unfold movingPlateauFamily
+  split <;> fun_prop
+
+theorem movingPlateauFamily_zero_modulus (n k : ℕ) :
+    ∀ x y, |movingPlateauFamily n k x - movingPlateauFamily n k y| ≤
+      0 * |x - y| := by
+  intro x y
+  simp [movingPlateauFamily]
+
+theorem movingPlateauFamily_each_locallyUniform (n : ℕ) :
+    LocallyUniformConverges (movingPlateauFamily n) (fun _ => 0) := by
+  intro R _hR ε hε
+  filter_upwards [eventually_ge_atTop (n + 1)] with k hk
+  intro x _hx
+  have hkn : ¬ k ≤ n := by omega
+  simp [movingPlateauFamily, hkn, hε]
+
+theorem movingPlateauFamily_moving_index (n : ℕ) :
+    movingPlateauFamily n n = fun _ => 1 := by
+  funext x
+  simp [movingPlateauFamily]
+
+/-- Even uniform spatial `C^∞` regularity and zero Lipschitz modulus do not
+upgrade per-orbit time convergence to a tail uniform over a convergent family.
+Thus the strengthened spatial trap closes compactness (L9), but cannot by
+itself discharge the double-limit continuity statement L10. -/
+theorem not_localUniformFamilyTail_movingPlateau :
+    ¬ LocalUniformFamilyTail movingPlateauFamily (fun _ _ => 0) := by
+  intro htail
+  obtain ⟨K, hK⟩ := htail 1 one_pos (1 / 2) (by norm_num)
+  have hbad := hK K K le_rfl 0 (by constructor <;> norm_num)
+  norm_num [movingPlateauFamily] at hbad
+
 section AxiomAudit
 
 #print axioms InUniformModulusMonotoneWaveTrap.set_convex
@@ -190,6 +239,8 @@ section AxiomAudit
 #print axioms paperTmap_compactRange_of_uniformModulus
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.set_convex
 #print axioms InLowerPinnedUniformModulusMonotoneTrap.locallyUniform_sequentiallyCompact
+#print axioms movingPlateauFamily_each_locallyUniform
+#print axioms not_localUniformFamilyTail_movingPlateau
 
 end AxiomAudit
 
