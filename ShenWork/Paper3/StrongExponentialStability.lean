@@ -52,11 +52,22 @@ def IntervalDomainStrongInitialState
     (u v : ℝ → intervalDomainPoint → ℝ) : Prop :=
   u 0 = u₀ ∧ v 0 = intervalNeumannResolverR p u₀
 
+/-- Strong solutions issued from fractional-power data are continuous at the
+initial edge in that strong norm.  This is deliberately stronger than the
+legacy physical `InitialTrace`, which records only sup-norm convergence. -/
+def IntervalDomainStrongInitialTrace
+    (sigma uStar : ℝ) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  Filter.Tendsto
+    (fun t => intervalDomainX2SigmaDistance sigma uStar (u t))
+    (nhdsWithin (0 : ℝ) (Set.Ioi 0))
+    (nhds (intervalDomainX2SigmaDistance sigma uStar u₀))
+
 /-- Stage A (Henry form): smallness in a strong fractional-power phase norm
 gives all-time exponential decay in that norm and, because `sigma>3/4` in the
-unit-interval Hilbert realization, in the concrete `C¹` distance.  This is a
-correct nearby theorem, not the paper's flawed all-time claim from a weak
-`L∞` ball. -/
+unit-interval Hilbert realization, concrete `C¹` decay at every strictly
+positive time.  This is a correct nearby theorem, not the paper's flawed
+all-time claim from a weak `L∞` ball. -/
 def IntervalDomainStrongSpectralSemigroupOrbitBound
     (p : CM2Params) : Prop :=
   p.m = 1 ∧
@@ -74,15 +85,17 @@ def IntervalDomainStrongSpectralSemigroupOrbitBound
             IsPaper2GlobalClassicalSolution intervalDomain p u v →
             InitialTrace intervalDomain u₀ u →
             IntervalDomainStrongInitialState p u₀ u v →
+            IntervalDomainStrongInitialTrace sigma uStar u₀ u →
               ∀ t, 0 ≤ t →
                 IntervalDomainX2SigmaPerturbation sigma uStar (u t) ∧
                 intervalDomainX2SigmaDistance sigma uStar (u t) ≤
                   C * Real.exp (-rate * t) *
                     intervalDomainX2SigmaDistance sigma uStar u₀ ∧
-                intervalDomainSectorialC1Distance (u t) (fun _ => uStar) +
-                  intervalDomainSectorialC1Distance (v t) (fun _ => vStar) ≤
-                    C * Real.exp (-rate * t) *
-                      intervalDomainX2SigmaDistance sigma uStar u₀
+                (0 < t →
+                  intervalDomainSectorialC1Distance (u t) (fun _ => uStar) +
+                    intervalDomainSectorialC1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t) *
+                        intervalDomainX2SigmaDistance sigma uStar u₀)
 
 /-- Stage B is the already repaired weak-data interface: the input gauge is
 the concrete sup distance and the `C¹` estimate begins only after a uniform
@@ -94,6 +107,7 @@ abbrev IntervalDomainWeakSupEventualSpectralSemigroupOrbitBound
 
 #print axioms intervalDomainPerturbationCosineCoeff
 #print axioms intervalDomainX2SigmaDistance
+#print axioms IntervalDomainStrongInitialTrace
 
 end
 
