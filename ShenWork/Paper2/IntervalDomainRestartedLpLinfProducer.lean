@@ -6,6 +6,7 @@ logistic sink through heat-semigroup order preservation.
 -/
 import ShenWork.Paper2.IntervalDomainRestartedLpLinf
 import ShenWork.Paper2.IntervalDomainMCriticalLinfBound
+import ShenWork.Paper2.IntervalDomainMCriticalGlobalLpBootstrap
 
 open MeasureTheory Set Filter Topology
 open scoped Topology Interval ENNReal
@@ -636,11 +637,82 @@ theorem Proposition_2_5_intervalDomain_of_restarted_affine
     (classicalSolution_intervalDomainM_of_m_eq_one hm hsol) htraceM hm hP hγP hLpM
   simpa [IsPaper2BoundedBefore, intervalDomainM, intervalDomain] using hbM
 
+theorem boundedGlobal_of_lp_restarted_affine
+    {p : CM2Params} {P C : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomainM p u v)
+    (hm : p.m = 1) (hP : 1 < P) (hγP : p.γ ≤ P)
+    (hpower : ∀ t, 0 < t →
+      intervalDomainM.integral (fun z => (u t z) ^ P) ≤ C) :
+    IsPaper2Bounded intervalDomainM u := by
+  let w : ℝ := 1 / 2
+  have hw : 0 < w := by norm_num [w]
+  have hw1 : w ≤ 1 := by norm_num [w]
+  let R : ℝ :=
+    (fullHeatShortConstant * w ^ (-(1 / 2 : ℝ))) ^ (1 / P) *
+        (C + 1) ^ (1 / P) +
+      |p.χ₀| *
+        (conjugateLpLinftyConstant P *
+          ((2 * p.ν * (C + 1)) * (C + 1) ^ (1 / P)) *
+          (w ^ (1 - conjugateLpLinftyTheta P) /
+            (1 - conjugateLpLinftyTheta P))) +
+      p.a * fullHeatShortConstant ^ (1 / P) * (C + 1) ^ (1 / P) *
+        (w ^ (1 - 1 / (2 * P)) / (1 - 1 / (2 * P)))
+  apply IsPaper2Bounded.of_forall_ge_supNorm_le (T := 2 * w) (M := R)
+  intro t ht
+  let T : ℝ := t + 1
+  let a : ℝ := t - w
+  have hT : 0 < T := by dsimp [T]; linarith
+  have ha : 0 < a := by dsimp [a]; linarith
+  have hahT : a + w < T := by dsimp [a, T]; linarith
+  have hsol : IsPaper2ClassicalSolution intervalDomainM p T u v :=
+    hglobal.classical hT
+  have hpowerT : ∀ τ, 0 < τ → τ < T →
+      intervalDomainM.integral (fun z => (u τ z) ^ P) ≤ C :=
+    fun τ hτ _ => hpower τ hτ
+  change intervalDomainSupNorm (u t) ≤ R
+  unfold intervalDomainSupNorm
+  apply csSup_le
+  · let x₀ : intervalDomainPoint := ⟨0, ⟨le_rfl, zero_le_one⟩⟩
+    exact ⟨|u t x₀|, ⟨x₀, rfl⟩⟩
+  intro y hy
+  obtain ⟨x, rfl⟩ := hy
+  change |u t x| ≤ R
+  have ht0 : 0 < t := lt_of_lt_of_le (by linarith [hw]) ht
+  have htT : t < T := by dsimp [T]; linarith
+  rw [abs_of_pos (u_pos hsol ht0 htT x)]
+  have hslice := solutionSlice_le_of_restart_affine_lp
+    hsol ha hw.le hahT hm hP hγP hpowerT hw le_rfl hw1 x.property
+  have heq : intervalDomainLift (u (a + w)) x.1 = u t x := by
+    dsimp [a]
+    simp [intervalDomainLift]
+  rw [← heq]
+  simpa [R] using hslice
+
+theorem critical_bounded_global_positive_restarted_affine
+    {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomainM u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomainM p u v)
+    (htrace : InitialTrace intervalDomainM u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    IsPaper2Bounded intervalDomainM u := by
+  obtain ⟨P, hPmax, C, hpower⟩ := exists_critical_lp_above_gamma_global
+    hguard hu₀ hglobal htrace hbeta hm hchi hthreshold
+  exact boundedGlobal_of_lp_restarted_affine hglobal hm
+    (lt_of_le_of_lt (le_max_left _ _) hPmax)
+    (le_of_lt (lt_of_le_of_lt (le_max_right _ _) hPmax)) hpower
+
 #print axioms restartFluxM_lp_root_le_of_lp
 #print axioms restartChemDuhamelM_abs_le_of_lp
 #print axioms restartLogisticDuhamelM_le_of_lp
 #print axioms solutionSlice_le_of_restart_affine_lp
 #print axioms boundedBefore_of_lp_restarted_affine
 #print axioms Proposition_2_5_intervalDomain_of_restarted_affine
+#print axioms boundedGlobal_of_lp_restarted_affine
+#print axioms critical_bounded_global_positive_restarted_affine
 
 end ShenWork.Paper2.IntervalDomainRestartedLpLinfProducer
