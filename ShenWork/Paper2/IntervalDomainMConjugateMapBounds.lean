@@ -234,6 +234,36 @@ theorem conjugateMDuhamel_sup_bound_of_positive_cone
     (chemFluxMLifted_duhamel_intervalIntegrable_of_positive_cone
       p hc hcM hCQ hbound hfloor hcont hmeas hQbound ht htT x)
 
+/-- Integrability-free version of the faithful general-`m` B-form bound.
+This is the interface needed by `PositiveFloorPicardData.hmapsTo`, whose
+inputs deliberately do not include joint measurability.  If the time
+integrand is not interval-integrable, Mathlib defines its interval integral
+to be zero; otherwise the usual kernel estimate applies. -/
+theorem conjugateMDuhamel_sup_bound_of_positive_cone_univ
+    (p : CM2Params) {T M c CQ : ℝ}
+    (hc : 0 < c) (hcM : c ≤ M) (hCQ : 0 ≤ CQ)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    (hbound : ∀ s, 0 < s → s ≤ T → ∀ x, |w s x| ≤ M)
+    (hfloor : ∀ s, 0 < s → s ≤ T → ∀ x, c ≤ w s x)
+    (hcont : HasContinuousSlices T w)
+    (hQbound : ∀ s, 0 < s → s ≤ T → ∀ y,
+      |chemFluxMLifted p (w s) y| ≤ CQ)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) (x : intervalDomainPoint) :
+    |∫ s in (0 : ℝ)..t,
+        intervalConjugateKernelOperator (t - s) (chemFluxMLifted p (w s)) x.1|
+      ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * CQ := by
+  by_cases hint : IntervalIntegrable
+      (fun s : ℝ => intervalConjugateKernelOperator (t - s)
+        (chemFluxMLifted p (w s)) x.1) volume 0 t
+  · exact conjugateDuhamel_sup_bound ht htT
+      (fun s hs hsT => chemFluxMLifted_integrable_of_pos_slice p hc hcM
+        (hbound s hs hsT) (hfloor s hs hsT) (hcont s hs hsT))
+      hCQ hQbound x.1 hint
+  · rw [intervalIntegral.integral_undef hint, abs_zero]
+    exact mul_nonneg
+      (mul_nonneg heatGradientLinftyLinftyConstant_nonneg
+        (mul_nonneg (by norm_num) (Real.sqrt_nonneg T))) hCQ
+
 private def endpointZero : intervalDomainPoint :=
   ⟨0, by constructor <;> norm_num⟩
 
@@ -413,6 +443,7 @@ theorem intervalConjugateDuhamelMapM_diff_bound_of_positive_cone
 #print axioms chemFluxMLifted_duhamel_intervalIntegrable_of_positive_cone
 #print axioms chemFluxMLifted_diff_duhamel_intervalIntegrable_of_positive_cone
 #print axioms conjugateMDuhamel_sup_bound_of_positive_cone
+#print axioms conjugateMDuhamel_sup_bound_of_positive_cone_univ
 #print axioms intervalConjugateDuhamelMapM_diff_bound_of_positive_cone
 
 end ShenWork.Paper2.IntervalDomainMConjugateMapBounds
