@@ -33,6 +33,22 @@ critical Theorem 1.2 headline all print only
 `[propext, Classical.choice, Quot.sound]`.  A clean-worktree uisai2 root build
 completed successfully with 9333 jobs.
 
+Q4596 audited an older branch and correctly identified four gaps in the
+generic `Corollary_2_1`/`Proposition_2_5` route.  On current `main`, all four
+are closed for the corrected positive-critical branch, but not by pretending
+the generic interfaces are solved.  `criticalLpBootstrapEnergyInputs_positive_intervalDomain`
+packages the sharp `rho = gamma` energy family;
+`critical_integratedMoserFirstCrossingStep_positive_of_seed` exposes the
+branch-specific first-crossing step from the fixed seed, bounded datum, and
+initial trace.  The physical restarted-Duhamel proof in
+`critical_bounded_before_positive` supplies the finite-Lp-to-Linf endpoint
+without a pointwise gradient bound, and `critical_bounded_global_positive`
+uses a horizon-independent global finite-power bound plus a one-unit moving
+window to produce the `atTop` bound.  These direct branch theorems do not use
+generic `Lemma_2_6`, generic `Proposition_2_5`, or generic
+`IntegratedMoserFirstCrossingStep`.  The remaining upstream inputs of the
+headline are Cauchy theory (`hlocal` and `hglobalExtension`), not boundedness.
+
 ## Task 323: Truncated positive-time bootstrap — Sobolev ladder (2026-07-08)
 
 File: `ShenWork/Paper2/IntervalTruncatedPositiveTimeBootstrap.lean`

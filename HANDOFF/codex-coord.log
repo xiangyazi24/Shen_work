@@ -404,3 +404,30 @@ with 9333 jobs and exit code 0.  The standalone seed, assembled
 print exactly `[propext, Classical.choice, Quot.sound]`; the local and remote
 SHA-256 of `IntervalDomainMCriticalLinfBound.lean` both equal
 `19710f18480c4212083c88a703586195783d9fb92fc8ae4b2870aeaba71b2090`.
+
+2026-07-12 [Codex] Q4596 CURRENT-MAIN RECONCILIATION.  The audit's four
+generic gaps remain accurately scoped to the old Corollary-2.1/Proposition-2.5
+surface, but later current-main producers already close them for the corrected
+positive-critical branch.  Commit `ef053757` packages the sharp rho=gamma
+energy inputs.  Commit `3a498d1a` adds the exact branch-specific
+`IntegratedMoserFirstCrossingStep` wrapper from the fixed critical seed,
+bounded datum, and initial trace.  The existing physical two-scale restart
+closes bounded-before, and the Global* moving-window producer closes the
+atTop bound without Corollary 2.1, generic Proposition 2.5, or a pointwise
+gradient estimate.  The only remaining headline inputs are local existence
+and bounded-solution continuation.  A detached clean worktree at `3a498d1a`
+was rsynced to uisai2; root build passed with 9335 jobs.  The new first-crossing
+wrapper, finite endpoint, global endpoint, and positive-critical headline all
+print exactly `[propext, Classical.choice, Quot.sound]`.
+
+2026-07-12 [Codex] RESTARTED-DUHAMEL COORDINATION.  Fable's unified design is
+accepted as an additional generic Prop-2.5 route: Paper2 uses the AFFINE exit,
+not Paper3's superlinear fixed point.  Codex#2 is the sole writer of
+`ShenWork/PDE/RestartedMildSmoothing.lean` (shared L1-L4).  Codex#1 will not
+edit or duplicate that file and will add only the Paper2 L5-L9 layer after it
+lands.  Existing Paper2 atom `chemical_gradient_abs_le_of_lp` already gives
+the required horizon-independent elliptic gradient bound from any finite
+power with gamma <= P.  The remaining new kernel atom is the integrable
+full-Neumann divergence smoothing rate theta=1/2+1/(2P); its shortest route is
+full-heat Lp-to-Linf smoothing followed by a half-step semigroup factorization
+and the existing full-kernel Linf gradient estimate.
