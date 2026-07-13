@@ -358,3 +358,41 @@ sectorial, NOT the entropy/LaSalle route I was designing. STOP scattered entropy
 NET FRONTIER = 3 keystones / 3 Codex: (1) Thm1.2 boundedness [Codex#1, signal-weighted, 2 lemmas left, NEAREST];
 (2) Paper3 stability orbit bound [Codex#2, full-rate eventual Duhamel — unlocks 2.2/2.3/2.4/2.5]; (3) Rothe Green-step
 compact closed-graph [Codex#3].
+
+2026-07-12 [Codex] Q4589 WEIGHTED/CRITICAL FRONTIER EXPOSED.  Commit
+`28bb65b1` adds explicit and existential `eta`-named Proposition 2.2 APIs with
+only `q > 1` and `eta >= 0`, and adds
+`criticalBootstrapFrontier_positive_intervalDomain`, which packages the
+separate `(1+v)^(-(2*beta-1))` critical seed with the all-p sharp estimate at
+`rho = gamma` into the exact legacy `hcriticalBootstrap` type.  This does not
+pretend that the generic `Corollary_2_1` is unconditional: its separate
+`Lemma_2_6 intervalDomain` leaf remains open/refuted on the old interpolation
+surface, while the positive critical headline already uses the valid direct
+finite-power endpoint.  All three relevant axiom audits are clean-3.
+
+2026-07-12 [Codex] Q4595 SEED/BOOTSTRAP SEPARATION AUDIT.  The existing seed
+proof is already the corrected one: `critical_lp_energy_damping` uses
+`critical_elliptic_gradient_control` at the special `2*beta-1` weight and then
+mass/Ehrling; it never estimates `integral u^(p+gamma)`.  It is therefore
+gamma-unrestricted apart from choosing `p0` above the later bootstrap
+threshold.  The branch bootstrap in
+`critical_lp_power_bounded_before_positive_of_seed` uses the fixed lower-rung
+`L^p0` norm via `produce_AgmonAbsorbedInterpolationBefore_of_classical`, not
+the false L1-mass-only/current-energy absorption.  A new standalone legacy
+producer `criticalFiniteSeed_positive_intervalDomain` makes this boundary
+explicit.  Literal `hcriticalBootstrap` is NOT inhabited by the seed alone:
+its type additionally requires `CrossDiffusionBootstrapEstimate`; the
+frontier producer combines the standalone seed with Q4589 at `rho=gamma`.
+
+2026-07-12 [Codex] REMOTE BUILD/LINKER NOTE.  The local worktree contained an
+unrelated uncommitted rewrite of `Paper1/WavePaperRotheCompactness.lean`; a
+read-only single-file check found three current type mismatches, so syncing the
+ordinary dirty worktree would have invalidated the Paper2 gate.  The build was
+therefore run from a detached clean worktree at `28bb65b1` and rsynced to
+uisai2.  The first orchestration attempt accidentally left three remote
+`lake build` sessions because the nested exec call yielded a session id after
+30 seconds while its printed output was empty; two duplicates were terminated
+and the single log-producing build retained.  Final result:
+`Build completed successfully (9333 jobs)`.  Future long remote builds should
+retain/poll the returned exec session id rather than interpreting an empty
+yield as completion.

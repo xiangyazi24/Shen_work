@@ -1,5 +1,38 @@
 # UNDERSTANDING.md — Shen_work
 
+## Paper 2 positive critical bootstrap frontier (2026-07-12)
+
+Commit `28bb65b1` exposes the Q4589 two-mechanism route without conflating
+their hypotheses.  `intervalDomain_signalWeightedGradientEstimate_of_classical_explicit`
+is the `eta`-named form of Proposition 2.2: it assumes only `1 < q` and
+`0 ≤ eta`, with no admissible-range relation between them.  The separate
+critical elliptic test remains in `IntervalDomainMCriticalLpSeed` through
+`elliptic_multiplier_ibp_identity_eta`, `critical_elliptic_gradient_control`,
+and `exists_critical_seed_exponent`; this is where `2 * beta - 1` and the
+upper seed threshold enter.
+
+`criticalFiniteSeed_positive_intervalDomain` now transports the faithful
+finite seed back to the legacy interval domain as a standalone theorem.  Its
+energy proof uses the special `2 * beta - 1` elliptic weight and mass/Ehrling;
+it never introduces or absorbs an `u ^ (p + gamma)` term, so it has no
+additional `gamma < 2` restriction.  The later branch-specific bootstrap uses
+the fixed lower-rung `L^p0` seed through
+`produce_AgmonAbsorbedInterpolationBefore_of_classical`; it does not use the
+false L1-mass-only or current-energy remainder criticized in Q4595.
+
+The seed alone does not inhabit the literal `hcriticalBootstrap` type, because
+that type also contains a `CrossDiffusionBootstrapEstimate` conjunct.
+`criticalBootstrapFrontier_positive_intervalDomain` combines the standalone
+seed with the Q4589 sharp estimate at `rho = gamma` and realizes the exact
+frontier.  The positive critical headline continues to use the stronger direct
+finite-power/boundedness route rather than claiming the generic
+`Corollary_2_1`: that statement still depends on the generic
+`Lemma_2_6 intervalDomain` interface, which is not discharged merely by this
+branch instance.  The frontier, direct bounded-before theorem, and positive
+critical Theorem 1.2 headline all print only
+`[propext, Classical.choice, Quot.sound]`.  A clean-worktree uisai2 root build
+completed successfully with 9333 jobs.
+
 ## Task 323: Truncated positive-time bootstrap — Sobolev ladder (2026-07-08)
 
 File: `ShenWork/Paper2/IntervalTruncatedPositiveTimeBootstrap.lean`

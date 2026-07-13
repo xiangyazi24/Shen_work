@@ -858,6 +858,35 @@ theorem classicalSolution_intervalDomainM_of_m_eq_one
   simpa [IsPaper2ClassicalSolution, intervalDomainM, intervalDomain,
     intervalDomainChemotaxisDivM, intervalDomainChemotaxisDiv, hm] using hsol
 
+/-- Legacy-domain form of the finite critical seed.  The energy closure is
+the single `(1 + v) ^ (-(2 * beta - 1))` elliptic test followed by the
+mass/Ehrling estimate; it does not use the later `u ^ (p + gamma)` bootstrap
+term.  The occurrence of `gamma` here is only in the lower exponent threshold
+needed by the subsequent bootstrap. -/
+theorem criticalFiniteSeed_positive_intervalDomain
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hbeta : 1 ≤ p.β) (hm : p.m = 1)
+    (hchi : 0 < p.χ₀) (hthreshold : p.χ₀ < chiBeta p) :
+    ∃ p0 > max 1 (p.γ * (p.N : ℝ) / 2),
+      LpPowerBoundedBefore intervalDomain p0 T u := by
+  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
+    simpa [intervalDomainM, intervalDomain] using hu₀
+  have htraceM : InitialTrace intervalDomainM u₀ u := by
+    simpa [intervalDomainM, intervalDomain] using htrace
+  obtain ⟨p0, hp0, hLpM⟩ :=
+    exists_high_critical_lp_power_bounded_before hguard hu₀M
+      (classicalSolution_intervalDomainM_of_m_eq_one hm hsol) htraceM
+      hbeta hm hchi hthreshold
+  have hLp : LpPowerBoundedBefore intervalDomain p0 T u := by
+    simpa [intervalDomainM, intervalDomain] using hLpM
+  exact ⟨p0, hp0, hLp⟩
+
 /-- Positive-sensitivity realization of the exact finite-horizon
 `hcriticalBootstrap` frontier in the legacy Theorem 1.2 assembly.
 
@@ -878,16 +907,9 @@ theorem criticalBootstrapFrontier_positive_intervalDomain
             ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
               LpPowerBoundedBefore intervalDomain p0 T u := by
   intro _ha _hb hbeta hm hthreshold u₀ hu₀ T _hT u v hsol htrace
-  have hu₀M : PositiveInitialDatum intervalDomainM u₀ := by
-    simpa [intervalDomainM, intervalDomain] using hu₀
-  have htraceM : InitialTrace intervalDomainM u₀ u := by
-    simpa [intervalDomainM, intervalDomain] using htrace
-  obtain ⟨p0, hp0, hLpM⟩ :=
-    exists_high_critical_lp_power_bounded_before hguard hu₀M
-      (classicalSolution_intervalDomainM_of_m_eq_one hm hsol) htraceM
+  obtain ⟨p0, hp0, hLp⟩ :=
+    criticalFiniteSeed_positive_intervalDomain hguard hu₀ hsol htrace
       hbeta hm hchiPos hthreshold
-  have hLp : LpPowerBoundedBefore intervalDomain p0 T u := by
-    simpa [intervalDomainM, intervalDomain] using hLpM
   exact ⟨p.γ, p.hγ,
     intervalDomain_crossDiffusionBootstrapEstimate_sharp hsol hbeta,
     p0, hp0, hLp⟩
@@ -923,6 +945,7 @@ theorem critical_bounded_before_positive_intervalDomain
 #print axioms restartChemDuhamelM_two_scale_abs_le
 #print axioms critical_two_scale_terms_le
 #print axioms solutionSlice_le_of_restart_critical_lp_slab_guard
+#print axioms criticalFiniteSeed_positive_intervalDomain
 #print axioms criticalBootstrapFrontier_positive_intervalDomain
 #print axioms critical_bounded_before_positive
 #print axioms critical_bounded_before_positive_intervalDomain
