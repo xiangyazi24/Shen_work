@@ -37,6 +37,28 @@ theorem PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact
     exp_branch := hsmooth.2
     interface := hinterface }
 
+/-- A differentiable trapped profile cannot touch a `min(M, exp(-κx))` upper
+barrier at its nonsmooth interface. -/
+theorem upperBarrier_interfaceNoContact_of_profile_differentiable
+    {κ M : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < κ) (hM : 0 < M)
+    (htrap : InMonotoneWaveTrapSet κ M U)
+    (hUdiff : Differentiable ℝ U) :
+    ∀ x, Real.exp (-κ * x) = M → U x = M → False := by
+  intro x hx hUx
+  have hbarrier_x : upperBarrier κ M x = M :=
+    upperBarrier_eq_M_of_le_exp hx.ge
+  have hmax : IsLocalMax (fun y => U y - upperBarrier κ M y) x := by
+    dsimp [IsLocalMax, IsMaxFilter]
+    refine Filter.Eventually.of_forall fun y => ?_
+    have hy : U y - upperBarrier κ M y ≤ 0 :=
+      sub_nonpos.mpr (htrap.le_upperBarrier y)
+    have hx0 : U x - upperBarrier κ M x = 0 := by
+      rw [hUx, hbarrier_x, sub_self]
+    simpa [hx0] using hy
+  exact maxSub_upperBarrier_ne_interface
+    hκ hM (hUdiff x) hmax hx
+
 /-- A differentiable trapped profile cannot touch the positive upper barrier at
 the nonsmooth interface.  This reuses the existing kink-avoidance lemma for
 local maxima of `U - upperBarrier`. -/
@@ -840,6 +862,7 @@ theorem paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactDataFac
 section AxiomAudit
 #print axioms positiveUpperBarrier_expOperatorCompareAtContact_of_profile_regularity
 #print axioms positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual_profile
+#print axioms upperBarrier_interfaceNoContact_of_profile_differentiable
 end AxiomAudit
 
 end

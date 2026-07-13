@@ -52,7 +52,7 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                     (positiveBranchTailCap p c) (MChi p) :=
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
-              ∃ hpar :
+              ∃ _hpar :
                 PaperLowerRawParabolicFloorRouteAParamCoreNoBar
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
@@ -121,7 +121,7 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                     (positiveBranchTailCap p c) (MChi p) :=
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
-              ∃ hpar :
+              ∃ _hpar :
                 PaperLowerRawParabolicFloorRouteAParamCoreNoBar
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
@@ -195,7 +195,7 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                     (positiveBranchTailCap p c) (MChi p) :=
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
-              ∃ hpar :
+              ∃ _hpar :
                 PaperLowerRawParabolicFloorRouteAParamCoreNoBar
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
@@ -227,7 +227,7 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                     (positiveBranchTailCap p c) (MChi p) :=
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
-              ∃ hpar :
+              ∃ _hpar :
                 PaperLowerRawParabolicFloorRouteAParamCoreNoBar
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
