@@ -12,11 +12,33 @@ open ShenWork.IntervalNeumannFullKernel
 
 noncomputable section
 
+/-- Uniform route-(a) flux constant after all bounded factors have been
+expressed through one common signal constant `C`.  It is independent of the
+trajectory and of the strong-ball radius. -/
+def paper3RouteAFluxL2Constant
+    (p : CM2Params) (uStar vStar C : ℝ) : ℝ :=
+  let U := uStar + 1
+  let qStar := paper3SensitivityFactor p.β vStar
+  let Cq := 2 * p.β * C
+  let K0 := |qStar| * C + |qStar| * C +
+    Cq * (2 * C) + U * Cq * (2 * C)
+  Real.sqrt 2 *
+    (Real.sqrt 2 *
+      (Real.sqrt 2 * (K0 + |qStar| * C) + U * |qStar| * C) +
+        U * Cq * (2 * C))
+
+/-- Uniform full nonlinear coefficient constant associated with the chosen
+signal and logistic Taylor constants. -/
+def paper3RouteAFullQuadraticConstant
+    (p : CM2Params) (uStar vStar C Klog : ℝ) : ℝ :=
+  2 * Real.sqrt 2 *
+    (|p.χ₀| * paper3RouteAFluxL2Constant p uStar vStar C + Klog)
+
 /-- The physical full nonlinear remainder at a positive classical slice
 inhabits the route-(a) `L²` package.  The radius hypotheses are explicit:
 `hu_near` is the positivity ball needed by the real-power Taylor estimates,
 and `M ≤ 1` is the local strong ball. -/
-theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice
+theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice_with_constants
     {p : CM2Params} {T t uStar vStar M : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : ShenWork.Paper2.IsPaper2ClassicalSolution
@@ -29,6 +51,17 @@ theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice
       (paper3IntervalEllipticLinearProfile p uStar (u t)))
     (Hquad : ResolvedSourceProfileRegularity
       (paper3IntervalEllipticRemainderProfile p uStar (u t)))
+    (C Klog : ℝ) (hC : 0 < C) (hKlog : 0 < Klog)
+    (hsignal : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3LinearSignalValue p uStar (u t) x| ≤ C * M ∧
+      |paper3LinearSignalGradient p uStar (u t) x| ≤ C * M ∧
+      |paper3LinearSignalLaplacian p uStar (u t) x| ≤ C * M ∧
+      |paper3QuadraticSignalValue p uStar (u t) x| ≤ C * M ^ 2 ∧
+      |paper3QuadraticSignalGradient p uStar (u t) x| ≤ C * M ^ 2 ∧
+      |paper3QuadraticSignalLaplacian p uStar (u t) x| ≤ C * M ^ 2)
+    (hlogQuad : ∀ x ∈ Set.Icc (uStar / 2) (3 * uStar / 2),
+      |paper3LogisticReaction p x + p.a * p.α * (x - uStar)| ≤
+        Klog * |x - uStar| ^ 2)
     (hM0 : 0 ≤ M) (hM1 : M ≤ 1)
     (hu_near : ∀ x ∈ Set.Icc (0 : ℝ) 1,
       intervalDomainLift (u t) x ∈ Set.Icc (uStar / 2) (3 * uStar / 2))
@@ -54,14 +87,9 @@ theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice
     ∃ H : FullNonlinearRemainderRouteAData
         (paper3FullModeNonlinearRemainderCoeffM
           p uStar vStar u v t),
-      H.flux.bounds.M = M ∧ H.flux.bounds.L = M := by
-  have hlin_meas := Hlin.profile_aestronglyMeasurable
-  have hquad_meas := Hquad.profile_aestronglyMeasurable
-  obtain ⟨C, hC, hsignal⟩ := paper3SignalComponents_strong_bounds
-    p heq.u_pos hM0 (u t) hu_near hphi hlin_meas hquad_meas
-      hphi_sup hphi_l2
-  obtain ⟨Klog, hKlog, hlogQuad⟩ :=
-    paper3LogisticReaction_quadratic_remainder p heq
+      H.flux.bounds.M = M ∧ H.flux.bounds.L = M ∧
+        H.toL2Data.quadraticConstant =
+          paper3RouteAFullQuadraticConstant p uStar vStar C Klog := by
   let U : ℝ := uStar + 1
   let B : EliminatedFluxDerivativeRouteABounds :=
     { M := M
@@ -363,9 +391,70 @@ theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice
             hsol ht hm heq Hsplit Hlin Hquad hfluxDerivInt n,
           paper3LogisticRemainderCoeffM_eq_cosine
             p uStar u t n hreact hphiInt] }
-  refine ⟨Hfull, ?_, ?_⟩ <;> rfl
+  refine ⟨Hfull, rfl, rfl, ?_⟩
+  simp only [Hfull, FullNonlinearRemainderRouteAData.toL2Data,
+    FullNonlinearRemainderL2Data.quadraticConstant,
+    FullNonlinearRemainderRouteAData.chemConstant, Hflux,
+    EliminatedFluxDerivativeRouteAL2Data.l2Constant, B,
+    eliminatedFluxDerivativeRouteAConstant,
+    paper3RouteAFullQuadraticConstant, paper3RouteAFluxL2Constant, U]
+
+/-- Compatibility wrapper which chooses the slice estimates internally. -/
+theorem exists_fullNonlinearRemainderRouteAData_of_strong_slice
+    {p : CM2Params} {T t uStar vStar M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : ShenWork.Paper2.IsPaper2ClassicalSolution
+      intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hm : p.m = 1)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (Hsplit : IntervalSolutionSignalSplitData p uStar (u t))
+    (Hlin : ResolvedSourceProfileRegularity
+      (paper3IntervalEllipticLinearProfile p uStar (u t)))
+    (Hquad : ResolvedSourceProfileRegularity
+      (paper3IntervalEllipticRemainderProfile p uStar (u t)))
+    (hM0 : 0 ≤ M) (hM1 : M ≤ 1)
+    (hu_near : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) x ∈ Set.Icc (uStar / 2) (3 * uStar / 2))
+    (hphi : MemLp (paper3IntervalPerturbationProfile uStar (u t)) 2
+      (intervalMeasure 1))
+    (hphi_sup : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |paper3IntervalPerturbationProfile uStar (u t) x| ≤ M)
+    (hphi_l2 : intervalL2Size
+      (paper3IntervalPerturbationProfile uStar (u t)) ≤ M)
+    (hphiInt : IntervalIntegrable
+      (paper3IntervalPerturbationProfile uStar (u t)) volume 0 1)
+    (hreact : IntervalIntegrable
+      (fun x => paper3LogisticReaction p (intervalDomainLift (u t) x))
+      volume 0 1)
+    (hlog_meas : AEStronglyMeasurable
+      (paper3IntervalLogisticRemainderProfile p uStar (u t))
+      (intervalMeasure 1))
+    (hwx : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      |deriv (intervalDomainLift (u t)) x| ≤ M)
+    (hfluxDerivInt : IntervalIntegrable
+      (deriv (paper3ChemFluxRemainderProfileM
+        p uStar vStar (u t) (v t))) volume 0 1) :
+    ∃ H : FullNonlinearRemainderRouteAData
+        (paper3FullModeNonlinearRemainderCoeffM
+          p uStar vStar u v t),
+      H.flux.bounds.M = M ∧ H.flux.bounds.L = M := by
+  have hlin_meas := Hlin.profile_aestronglyMeasurable
+  have hquad_meas := Hquad.profile_aestronglyMeasurable
+  obtain ⟨C, hC, hsignal⟩ := paper3SignalComponents_strong_bounds
+    p heq.u_pos hM0 (u t) hu_near hphi hlin_meas hquad_meas
+      hphi_sup hphi_l2
+  obtain ⟨Klog, hKlog, hlogQuad⟩ :=
+    paper3LogisticReaction_quadratic_remainder p heq
+  rcases exists_fullNonlinearRemainderRouteAData_of_strong_slice_with_constants
+      hsol ht hm heq Hsplit Hlin Hquad C Klog hC hKlog hsignal hlogQuad
+      hM0 hM1 hu_near hphi hphi_sup hphi_l2 hphiInt hreact hlog_meas hwx
+      hfluxDerivInt with ⟨H, hM, hL, _hconst⟩
+  exact ⟨H, hM, hL⟩
 
 #print axioms exists_fullNonlinearRemainderRouteAData_of_strong_slice
+#print axioms
+  exists_fullNonlinearRemainderRouteAData_of_strong_slice_with_constants
 
 end
 
