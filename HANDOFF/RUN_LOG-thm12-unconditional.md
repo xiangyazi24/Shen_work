@@ -20,3 +20,11 @@
   (α=γ=1,a=b=1,β=1,μ=ν=1,χ₀=1/2<chiBeta=1). Q4614 vacuity defect FIXED+verified.
 - REMAINING for FULL unconditional: 0<α<1 / 0<γ<1 (Codex#1 building positive-floor Picard core; Q4618 support).
 - two-question verify discipline (axiom + non-vacuity) HELD.
+
+### Q4617 TRIPLE-CONFIRMS geOne non-vacuity (2026-07-12 automode)
+Adversarial ChatGPT audit (live code) PASS: local existence = real Picard FP + regularity bootstrap (no assumed
+mild-sol); global = reachableArbitrarilyLong + GlobalSolutionGluingFromReachability (classical on every T>0); finite
+branch genuinely eliminated (Paper2MaximalContinuation real 2-constructor inductive, .global inhabited); param class
+nonempty (α=γ=…=1,χ₀=1/2<chiBeta=1; u₀≡1 PPID; const pair explicit global bounded sol). NO empty-hypothesis/degenerate
+defect. Milestone TRIPLE-verified (local trace + own remote-build axioms + Q4617). Scope: (1) α,γ≥1 (→general, Codex#1
+in progress); (2) datum = PaperPositiveInitialDatum (inf u₀>0) = EXACTLY paper Prop 1.1 hypothesis (FAITHFUL, not a gap).
