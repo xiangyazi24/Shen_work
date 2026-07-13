@@ -90,7 +90,7 @@ theorem paper1_positiveRawContactData_of_routeAParamData
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv.flat hsmp
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -169,7 +169,7 @@ theorem paper1_positiveRawSmoothContactData_of_routeAParamData
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv.flat hsmp
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -310,7 +310,7 @@ theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
   obtain ⟨U, hpin, hprofile⟩ :=
     b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv.flat hsmp
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,

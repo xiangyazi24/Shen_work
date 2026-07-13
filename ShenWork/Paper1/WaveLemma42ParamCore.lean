@@ -162,10 +162,10 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
-    (hconv :
-      PaperLowerPinnedStationaryFlatFloor p c κ M
-        (lowerBarrierRaw κ κtilde D)
-        (paperLowerRawParamRotheSeqFromTrap hpar))
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
@@ -234,7 +234,7 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hpos : ∀ x, 0 < U x := hsmp U hU.bare hstat hnontriv
   have hlim_neg : Tendsto U atBot (nhds 1) :=
     InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
-      hU.bare hsmp hnontriv (hconv.flat U hU hstat) hstat
+      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
@@ -257,10 +257,10 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
       PaperLowerRawParabolicFloorRouteAParamCoreNoBar
         p c lam M κ κtilde D Λ hcond.hκ0.le
         (le_trans zero_le_one hcond.hM))
-    (hconv :
-      PaperLowerPinnedStationaryFlatFloor p c κ M
-        (lowerBarrierRaw κ κtilde D)
-        (paperLowerRawParamRotheSeqFromTrap hpar))
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
     (hsmp : StationaryStrongMaxPrinciple p c κ M) :
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U := by
@@ -329,7 +329,7 @@ theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
   have hpos : ∀ x, 0 < U x := hsmp U hU.bare hstat hnontriv
   have hlim_neg : Tendsto U atBot (nhds 1) :=
     InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
-      hU.bare hsmp hnontriv (hconv.flat U hU hstat) hstat
+      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
   have hlim_pos : Tendsto U atTop (nhds 0) :=
     hU.bare.tendsto_atTop_zero hcond.hκ0
   have hcpos : 0 < c := by
