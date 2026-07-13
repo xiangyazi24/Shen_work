@@ -241,12 +241,35 @@ private theorem correctedObstruction_minimal_equilibrium :
     (paper3ConstantEquilibrium_minimal proposition12CounterParams
       (by rfl) (by rfl) 1 one_pos)
 
+/-- Historical all-branch version of the mass-free eventual frontier.
+
+This is intentionally separate from the valid positive-logistic interface
+`IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass`,
+which assumes `0 < p.a`.  In the minimal model the zero mode is neutral, so a
+mass-free attraction statement is false. -/
+def IntervalDomainMinimalEventualEquilibriumWithoutMass
+    (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    Paper3ConstantEquilibrium p uStar vStar →
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
+      ∃ eps > 0, ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v →
+              InitialTrace intervalDomain u₀ u →
+                ∀ t, t₀ ≤ t →
+                  N.c1Distance (u t) (fun _ => uStar) +
+                    N.c1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t)
+
 /-- In the zero-reaction branch, even a genuine linearly stable equilibrium
 cannot attract nearby data of a different mass.  A nearby spatial constant is
 itself a stationary solution and stays a fixed positive distance away. -/
 theorem
-not_intervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass_sectorialNorms :
-    ¬ IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass
+not_intervalDomainMinimalEventualEquilibriumWithoutMass_sectorialNorms :
+    ¬ IntervalDomainMinimalEventualEquilibriumWithoutMass
       proposition12CounterParams intervalDomainSectorialStabilityNorms := by
   intro horbit
   rcases horbit (3 / 4) 2 1 1
@@ -317,7 +340,7 @@ not_intervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass_sect
 #print axioms
   not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectorialNorms
 #print axioms
-  not_intervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass_sectorialNorms
+  not_intervalDomainMinimalEventualEquilibriumWithoutMass_sectorialNorms
 
 end
 
