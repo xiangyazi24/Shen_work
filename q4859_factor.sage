@@ -47,7 +47,6 @@ assert rel == vector(R,[0,0,0])
 
 g = gcd(cs)
 cs = [R(c/g) for c in cs]
-# Normalize sign so c3 has negative leading coefficient, matching earlier notes where convenient.
 if cs[3].leading_coefficient() > 0:
     cs = [-c for c in cs]
 print("raw primitive degrees:", [c.degree() for c in cs])
@@ -65,7 +64,6 @@ for j in range(4):
     nh.append(R(cs[j]*prod))
 gh = gcd(nh)
 nh = [R(c/gh) for c in nh]
-# Primitive content over ZZ.
 cont = gcd([ZZ(c.content()) for c in nh])
 if cont != 0 and abs(cont) != 1:
     nh = [R(c/cont) for c in nh]
@@ -81,6 +79,7 @@ print("normalized coefficients end")
 print("sum coefficients factor (S-1 test):", factor(sum(nh)))
 
 K = FractionField(R)
+
 
 def shift_rat(f,k):
     num = R(f.numerator())
@@ -110,6 +109,33 @@ for name,r in r_candidates.items():
         print("candidate residual factor num:", factor(R(res.numerator())))
         print("candidate residual factor den:", factor(R(res.denominator())))
 
+# First-order LEFT factors of L correspond to hypergeometric solutions of the
+# shifted formal adjoint S^3 L^*.  Its coefficient of S^k is ell_{3-k}(n+k).
+adj = [sh_poly(nh[3-k], k) for k in range(4)]
+print("adjoint-shifted degrees:", [c.degree() for c in adj])
+print("adjoint-shifted endpoints:", factor(adj[0]), factor(adj[3]))
+
+# SymPy's rsolve_hyper is an independent implementation of Petkovsek's
+# complete hypergeometric-solution algorithm.  Run it on L and the adjoint.
+try:
+    import sympy as sp
+    from sympy.solvers.recurr import rsolve_hyper
+    x = sp.symbols('n', integer=True)
+
+    def to_sp(p):
+        return sp.sympify(str(p).replace('^','**'), locals={'n':x})
+
+    for label, coeffs in [('RIGHT_ORIGINAL',nh),('RIGHT_ADJOINT_FOR_LEFT_FACTOR',adj)]:
+        sp_coeffs = [to_sp(c) for c in coeffs]
+        print("SYMPY_RSOLVE_HYPER_CALL",label)
+        try:
+            sol = rsolve_hyper(sp_coeffs, sp.Integer(0), x)
+            print("SYMPY_RSOLVE_HYPER_RESULT",label,repr(sol))
+        except Exception as ex:
+            print("SYMPY_RSOLVE_HYPER_ERROR",label,type(ex).__name__,str(ex))
+except Exception as ex:
+    print("SYMPY_SETUP_ERROR",type(ex).__name__,str(ex))
+
 # Build the Ore operator and inspect/call all available exact factor routines.
 try:
     from ore_algebra import OreAlgebra
@@ -128,26 +154,39 @@ try:
             except Exception as ex:
                 print("ERROR",meth,type(ex).__name__,str(ex))
 
+    # Test the shifted adjoint as an Ore operator too.
+    Ladj = sum((OA(adj[j])*S^j for j in range(4)), OA.zero())
+    print("Shifted adjoint Ore operator:", Ladj)
+    for meth in ['factor','right_factors','left_factors','hypergeometric_solutions','solutions']:
+        if hasattr(Ladj,meth):
+            print("CALL_ADJOINT",meth,"over QQ(n)")
+            try:
+                out = getattr(Ladj,meth)()
+                print("RESULT_ADJOINT",meth,out)
+            except Exception as ex:
+                print("ERROR_ADJOINT",meth,type(ex).__name__,str(ex))
+
     # Repeat over Q(sqrt(2)).
     K2 = QuadraticField(2, 'a')
-    a = K2.gen()
     R2 = PolynomialRing(K2, 'n')
-    n2 = R2.gen()
     OA2 = OreAlgebra(R2)
     S2 = OA2.gen()
     nh2 = [R2(str(c)) for c in nh]
+    adj2 = [R2(str(c)) for c in adj]
     L2 = sum((OA2(nh2[j])*S2^j for j in range(4)), OA2.zero())
-    print("Ore operator over Qsqrt2 constructed")
+    L2adj = sum((OA2(adj2[j])*S2^j for j in range(4)), OA2.zero())
+    print("Ore operators over Qsqrt2 constructed")
     methods2 = [x for x in dir(L2) if any(key in x.lower() for key in ['factor','hypergeom','solution','riccati'])]
     print("relevant Ore methods Qsqrt2:", methods2)
-    for meth in ['factor','right_factors','left_factors','hypergeometric_solutions','solutions']:
-        if hasattr(L2,meth):
-            print("CALL",meth,"over Qsqrt2(n)")
-            try:
-                out = getattr(L2,meth)()
-                print("RESULT",meth,out)
-            except Exception as ex:
-                print("ERROR",meth,type(ex).__name__,str(ex))
+    for label,op in [('ORIGINAL',L2),('ADJOINT',L2adj)]:
+        for meth in ['factor','right_factors','left_factors','hypergeometric_solutions','solutions']:
+            if hasattr(op,meth):
+                print("CALL_QSQRT2",label,meth)
+                try:
+                    out = getattr(op,meth)()
+                    print("RESULT_QSQRT2",label,meth,out)
+                except Exception as ex:
+                    print("ERROR_QSQRT2",label,meth,type(ex).__name__,str(ex))
 except Exception as ex:
     print("ORE_SETUP_ERROR",type(ex).__name__,str(ex))
 
