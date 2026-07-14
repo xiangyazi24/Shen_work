@@ -5035,3 +5035,14 @@ then assemble into a global positive-exponent Holder estimate.  The capstone
 and the local root build passes 9562 jobs.  The next analytic rung can now
 integrate by parts in the divergence Duhamel leg and use Hessian cancellation
 on this Holder derivative to obtain the second spatial derivative.
+
+The first C2 bridge is now root-imported.  For a bounded C1 source with a
+bounded continuous derivative, whole-line Gaussian integration by parts
+identifies the modified heat Hessian applied to the source with the modified
+heat gradient applied to its derivative.  The proof uses Mathlib's integrable
+whole-line integration-by-parts theorem; the Gaussian gradient/source,
+Gaussian Hessian/source, and Gaussian gradient/source-derivative products are
+all proved integrable, so no boundary-decay package is externalized.  The
+local full build passes 9563 jobs and the bridge is clean-3.  To integrate this
+identity through the Duhamel history, the next step is to uniformize the flux
+derivative Holder coefficient on compact positive-time windows.
