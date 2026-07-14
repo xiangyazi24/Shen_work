@@ -12627,12 +12627,13 @@ analysis on sign of v(y):
 - v(y) < 0: |v| = -v in right neighborhood, slope → -v'(y) ≤ -a₀·|v y| + G.
 - v(y) = 0: |v(z)| = |slope of v · (z-y) + o(z-y)|, slope → |v'(y)| = |g(y)| ≤ G.
 -/
-theorem first_order_ode_duhamel_bound
+theorem first_order_ode_duhamel_bound_on_Icc
     {v a g : ℝ → ℝ} {a₀ G : ℝ} (x₀ x_target : ℝ)
     (ha₀ : 0 < a₀) (hG : 0 ≤ G)
-    (ha : ∀ y, a₀ ≤ a y)
-    (hg : ∀ y, |g y| ≤ G)
-    (hode : ∀ y, deriv v y = -a y * v y + g y)
+    (ha : ∀ y ∈ Set.Icc x₀ x_target, a₀ ≤ a y)
+    (hg : ∀ y ∈ Set.Icc x₀ x_target, |g y| ≤ G)
+    (hode : ∀ y ∈ Set.Icc x₀ x_target,
+      deriv v y = -a y * v y + g y)
     (hv_diff : Differentiable ℝ v)
     (hx_target : x₀ ≤ x_target) :
     |v x_target| ≤ |v x₀| * Real.exp (-a₀ * (x_target - x₀)) +
@@ -12646,9 +12647,10 @@ theorem first_order_ode_duhamel_bound
     fun y _ => le_refl _
   have hslope : ∀ y ∈ Set.Ico x₀ x_target, ∀ r, f_bnd y < r →
       ∃ᶠ z in 𝓝[>] y, (z - y)⁻¹ * (f z - f y) < r := by
-    intro y _ r hr
+    intro y hy r hr
+    have hyIcc : y ∈ Set.Icc x₀ x_target := ⟨hy.1, hy.2.le⟩
     have hv_y_at : HasDerivAt v (deriv v y) y := (hv_diff y).hasDerivAt
-    have hv_y_eq : deriv v y = -a y * v y + g y := hode y
+    have hv_y_eq : deriv v y = -a y * v y + g y := hode y hyIcc
     rcases lt_trichotomy (v y) 0 with hvy_neg | hvy_zero | hvy_pos
     · -- v y < 0
       have habs_at : HasDerivAt (fun z => |v z|) (-deriv v y) y := by
@@ -12657,10 +12659,10 @@ theorem first_order_ode_duhamel_bound
       have hbound_val : -deriv v y ≤ f_bnd y := by
         rw [hv_y_eq]
         have habs_vy : |v y| = -v y := abs_of_neg hvy_neg
-        have hg_neg : -g y ≤ G := neg_le_abs (g y) |>.trans (hg y)
+        have hg_neg : -g y ≤ G := neg_le_abs (g y) |>.trans (hg y hyIcc)
         show -(-a y * v y + g y) ≤ -a₀ * |v y| + G
         rw [habs_vy]
-        nlinarith [ha y]
+        nlinarith [ha y hyIcc]
       have hslope_tendsto := habs_at.hasDerivWithinAt (s := Set.Ici y)
       have := hslope_tendsto.liminf_right_slope_le
         (lt_of_le_of_lt hbound_val hr)
@@ -12674,7 +12676,7 @@ theorem first_order_ode_duhamel_bound
         rw [hvy_abs_zero]; ring
       rw [hf_bnd_eq] at hr
       have habs_lt : |deriv v y| < r := by
-        rw [hv_y_eq']; exact lt_of_le_of_lt (hg y) hr
+        rw [hv_y_eq']; exact lt_of_le_of_lt (hg y hyIcc) hr
       have hv_y_within : HasDerivWithinAt v (deriv v y) (Set.Ici y) y :=
         hv_y_at.hasDerivWithinAt
       have hnorm_slope : ∀ᶠ z in 𝓝[Set.Ici y] y,
@@ -12710,10 +12712,10 @@ theorem first_order_ode_duhamel_bound
       have hbound_val : deriv v y ≤ f_bnd y := by
         rw [hv_y_eq]
         have habs_vy : |v y| = v y := abs_of_pos hvy_pos
-        have hg_pos : g y ≤ G := (le_abs_self _).trans (hg y)
+        have hg_pos : g y ≤ G := (le_abs_self _).trans (hg y hyIcc)
         show -a y * v y + g y ≤ -a₀ * |v y| + G
         rw [habs_vy]
-        nlinarith [ha y]
+        nlinarith [ha y hyIcc]
       have hslope_tendsto := habs_at.hasDerivWithinAt (s := Set.Ici y)
       have := hslope_tendsto.liminf_right_slope_le
         (lt_of_le_of_lt hbound_val hr)
@@ -12731,6 +12733,22 @@ theorem first_order_ode_duhamel_bound
     field_simp
     ring
   linarith [hgronwall, hsimp]
+
+/-- Global-hypothesis compatibility wrapper for
+`first_order_ode_duhamel_bound_on_Icc`. -/
+theorem first_order_ode_duhamel_bound
+    {v a g : ℝ → ℝ} {a₀ G : ℝ} (x₀ x_target : ℝ)
+    (ha₀ : 0 < a₀) (hG : 0 ≤ G)
+    (ha : ∀ y, a₀ ≤ a y)
+    (hg : ∀ y, |g y| ≤ G)
+    (hode : ∀ y, deriv v y = -a y * v y + g y)
+    (hv_diff : Differentiable ℝ v)
+    (hx_target : x₀ ≤ x_target) :
+    |v x_target| ≤ |v x₀| * Real.exp (-a₀ * (x_target - x₀)) +
+        G / a₀ * (1 - Real.exp (-a₀ * (x_target - x₀))) :=
+  first_order_ode_duhamel_bound_on_Icc x₀ x_target ha₀ hG
+    (fun y _ => ha y) (fun y _ => hg y) (fun y _ => hode y)
+    hv_diff hx_target
 
 /-- For a traveling wave with regularity, the weighted derivative
 w(x) := U'(x) · exp(κx) satisfies the first-order linear ODE
