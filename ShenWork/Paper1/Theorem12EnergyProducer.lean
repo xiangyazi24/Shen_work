@@ -52,6 +52,41 @@ theorem paper5WeightedEnergy_eq_coMovingWeightedL2Energy
   rw [hexp]
   ring
 
+/-- The full corrected energy is the squared weighted population norm. -/
+theorem paper5WeightedEnergy_eq_weightedPopulationIntegral
+    (η c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) (t : ℝ) :
+    paper5WeightedEnergy η c u U t =
+      ∫ x, (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2 := by
+  unfold paper5WeightedEnergy paper5WeightedHalfEnergy
+    ShenWork.PaperOne.wholeLineHalfEnergy
+  rw [← integral_const_mul]
+  apply integral_congr_ae
+  filter_upwards [] with x
+  ring
+
+/-- Doubling the half-energy derivative gives the derivative of the full
+energy used in the theorem statement. -/
+theorem paper5WeightedEnergy_hasDerivAt_of_half
+    {η c t d : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hhalf : HasDerivAt (paper5WeightedHalfEnergy η c u U) d t) :
+    HasDerivAt (paper5WeightedEnergy η c u U) (2 * d) t := by
+  simpa only [paper5WeightedEnergy] using hhalf.const_mul 2
+
+/-- Scalar conversion from the corrected half-energy inequality to the
+full-energy differential inequality consumed by the Section 5 Gronwall
+argument. -/
+theorem paper5WeightedEnergy_deriv_le_of_half
+    {η c t d q : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hhalf : HasDerivAt (paper5WeightedHalfEnergy η c u U) d t)
+    (hle : d ≤ q * ∫ x,
+      (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2) :
+    deriv (paper5WeightedEnergy η c u U) t ≤
+      2 * q * paper5WeightedEnergy η c u U t := by
+  have hfull := paper5WeightedEnergy_hasDerivAt_of_half hhalf
+  rw [hfull.deriv,
+    paper5WeightedEnergy_eq_weightedPopulationIntegral]
+  nlinarith
+
 /-- Lemma 5.3 in the exact moving-frame signal fields used by the corrected
 energy identity.  The two elliptic equalities are the canonical-resolver
 property of the Cauchy solution and of the wave; after those identifications,
@@ -370,6 +405,9 @@ section Theorem12EnergyProducerAxiomAudit
 #print axioms remark5SpeedCondition_of_correctedCStarStar_lt
 #print axioms barrierSpeed_lt_of_correctedCStarStar_lt
 #print axioms paper5WeightedEnergy_eq_coMovingWeightedL2Energy
+#print axioms paper5WeightedEnergy_eq_weightedPopulationIntegral
+#print axioms paper5WeightedEnergy_hasDerivAt_of_half
+#print axioms paper5WeightedEnergy_deriv_le_of_half
 #print axioms paper5WeightedSignal_resolver_bounds
 #print axioms paper5WeightedSignal_resolver_data
 #print axioms paper5WeightedHalfEnergy_deriv_le_concrete_of_timeLeibniz
