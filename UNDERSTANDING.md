@@ -5202,3 +5202,16 @@ the original parabolic PDE holds pointwise with `HasDerivAt`, not merely as a
 right derivative or almost everywhere.  The next interface task is to pair
 this result with the frozen elliptic resolver and package an
 `IsClassicalSolution` on the whole local horizon.
+
+`WholeLineCauchyClassicalSolution.lean` completes that semantic packaging.
+For a canonical fixed point confined to the physical strip, its ordinary
+time derivative and first spatial derivative supply `u_smooth`; the existing
+frozen-resolver differentiability supplies `v_smooth`; the pointwise physical
+PDE and frozen elliptic ODE supply the two equation fields.  Norm continuity
+of the BUC trajectory also gives the paper's uniform initial trace, since
+point evaluation is bounded by BUC distance.  Combining this with the
+previously constructed positive physical strip proves
+`exists_wholeLineCauchy_classicalSolution`: every nonnegative BUC datum has a
+positive local classical solution with both the exact initial datum and its
+uniform right trace.  No packaged analytic hypothesis remains in this local
+existence result.
