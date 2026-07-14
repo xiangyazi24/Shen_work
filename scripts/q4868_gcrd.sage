@@ -1,8 +1,8 @@
 from sage.all import *
 from ore_algebra import OreAlgebra
 
-# Q4868: right GCD of the corrected CMF Euler operator and the
-# symmetric-square Delannoy differential operator.
+# Q4868: greatest common RIGHT divisor of the corrected CMF Euler
+# operator and the symmetric-square Delannoy differential operator.
 
 Rn.<n> = PolynomialRing(QQ)
 
@@ -28,7 +28,7 @@ c_coeffs = [
 
 c0, c1, c2, c3 = [Rn(v) for v in c_coeffs]
 
-# Sanity check: the corrected normalized Poincare polynomial.
+# Corrected normalized Poincare polynomial.
 Rx.<xi> = PolynomialRing(QQ)
 chi = (c3.leading_coefficient()*xi^3
        + c2.leading_coefficient()*xi^2
@@ -62,16 +62,25 @@ print("ORDER_LD =", LD.order())
 print("HEAD_LREC =", factor(Lrec.leading_coefficient()))
 print("HEAD_LD =", factor(LD.leading_coefficient()))
 
-# gcrd = greatest common RIGHT divisor.
-G = Lrec.gcrd(LD)
-Gm = G.monic()
-print("GCRD_ORDER =", Gm.order())
-print("GCRD =", Gm)
+assert Lrec.order() == 13
+assert LD.order() == 3
+assert Lrec.leading_coefficient() == \
+       98304*z^13*(1-z)*(1-34*z+z^2)
+assert LD.leading_coefficient() == \
+       2*z^3*(1-z)*(1-34*z+z^2)
 
-# Independent factorization check on the smaller Delannoy operator.
-print("LD_FACTORIZATION =", LD.factor())
+# Exact quick certificate that the Brafman solution D_n^2 is not
+# annihilated by Lrec: this is the n=0 recurrence residual.
+Dsq = [ZZ(1), ZZ(9), ZZ(169), ZZ(3969)]
+res0 = c0(0)*Dsq[0] + c1(0)*Dsq[1] + c2(0)*Dsq[2] + c3(0)*Dsq[3]
+print("DELANN0_RESIDUAL =", res0)
+assert res0 == -1160938142806248
 
-# A unit GCRD is the definitive no-common-solution result.
-assert Gm.order() == 0
-assert Gm == A(1)
-print("RESULT = RIGHT_GCD_IS_1")
+# gcrd means greatest common RIGHT divisor. ore_algebra implicitly
+# localizes QQ[z] to QQ(z) for this operation.
+G = Lrec.gcrd(LD).normalize()
+print("GCRD_ORDER =", G.order())
+print("GCRD =", G)
+
+assert G.order() == 0
+print("RESULT = RIGHT_GCD_IS_A_UNIT")
