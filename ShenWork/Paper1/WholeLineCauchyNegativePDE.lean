@@ -1395,11 +1395,135 @@ theorem wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
     rfl
   exact hfixed.congr_of_eventuallyEq hnear_eq.symm
 
+/-! ## Actual clamped-source time derivatives at a negative point -/
+
+/-- An interior strict-negative point supplies a real-time product
+neighborhood on which both totalized clamped sources vanish. -/
+theorem wholeLineCauchy_sourceTrajectories_real_zero_near_negative
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ)
+    (ht : 0 < z.1) (htop : z.1 < T) (hneg : (U z).1 x < 0) :
+    ∃ eta > 0, 2 * eta < z.1 ∧ ∃ r > 0,
+      ∀ s, dist s z.1 < 2 * eta → ∀ y, dist y x < r →
+        (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 y = 0 ∧
+        (wholeLineCauchyReactionSourceTrajectory p hM hT U s).1 y = 0 := by
+  rcases wholeLineCauchy_sourceTrajectories_zero_near_negative
+      p hM hT U z x hneg with ⟨eps, heps, hzero⟩
+  let eta : ℝ := min (eps / 4) (min (z.1 / 4) ((T - z.1) / 4))
+  have heta : 0 < eta := by
+    dsimp [eta]
+    apply lt_min
+    · exact div_pos heps (by norm_num)
+    · apply lt_min
+      · exact div_pos ht (by norm_num)
+      · exact div_pos (sub_pos.mpr htop) (by norm_num)
+  have heta_eps : eta ≤ eps / 4 := by
+    dsimp [eta]
+    exact min_le_left _ _
+  have heta_time : eta ≤ z.1 / 4 := by
+    dsimp [eta]
+    exact (min_le_right _ _).trans (min_le_left _ _)
+  have heta_top : eta ≤ (T - z.1) / 4 := by
+    dsimp [eta]
+    exact (min_le_right _ _).trans (min_le_right _ _)
+  have hwindow : 2 * eta < z.1 := by linarith
+  refine ⟨eta, heta, hwindow, eps, heps, ?_⟩
+  intro s hs y hy
+  have hsabs : |s - z.1| < 2 * eta := by
+    simpa [Real.dist_eq] using hs
+  have hs0 : 0 ≤ s := by
+    have hslo := (abs_lt.mp hsabs).1
+    linarith
+  have hsT : s ≤ T := by
+    have hshi := (abs_lt.mp hsabs).2
+    linarith
+  let w : Set.Icc (0 : ℝ) T := ⟨s, hs0, hsT⟩
+  have hw : dist w z < eps := by
+    change dist s z.1 < eps
+    exact hs.trans (by linarith)
+  exact hzero w y hw hy
+
+/-- The actual clamped chemotaxis history has its time derivative at every
+interior strict-negative point. -/
+theorem wholeLineCauchyFluxGradientHistory_time_hasDerivAt_at_negative
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ)
+    (ht : 0 < z.1) (htop : z.1 < T) (hneg : (U z).1 x < 0) :
+    HasDerivAt
+      (fun q : ℝ => wholeLineCauchyGradientHistory
+        (wholeLineCauchyFluxSourceTrajectory p hM hT U) q x)
+      (∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyHeatThirdOp (z.1 - s)
+            (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 x -
+          wholeLineCauchyHeatGradOp (z.1 - s)
+            (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 x)) z.1 := by
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let MF : ℝ := M ^ p.m * M ^ p.γ
+  have hMF : 0 ≤ MF := by
+    dsimp [MF]
+    exact mul_nonneg (Real.rpow_nonneg hM _) (Real.rpow_nonneg hM _)
+  have hFcont : Continuous F := by
+    simpa [F] using wholeLineCauchyFluxSourceTrajectory_continuous p hM hT U
+  have hFnorm : ∀ s, ‖F s‖ ≤ MF := by
+    intro s
+    simpa [F, MF, wholeLineCauchyFluxSourceTrajectory] using
+      wholeLineCauchyTruncatedFluxBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  rcases wholeLineCauchy_sourceTrajectories_real_zero_near_negative
+      p hM hT U z x ht htop hneg with
+    ⟨eta, heta, hwindow, r, hr, hzero⟩
+  change HasDerivAt (fun q : ℝ => wholeLineCauchyGradientHistory F q x) _ z.1
+  apply wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
+    hFcont ht hMF heta hwindow hr hFnorm
+  intro s hs y hy
+  exact (hzero s hs y hy).1
+
+/-- The actual clamped reaction history has its time derivative at every
+interior strict-negative point. -/
+theorem wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ)
+    (ht : 0 < z.1) (htop : z.1 < T) (hneg : (U z).1 x < 0) :
+    HasDerivAt
+      (fun q : ℝ => wholeLineCauchyValueHistory
+        (wholeLineCauchyReactionSourceTrajectory p hM hT U) q x)
+      (∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyHeatHessOp (z.1 - s)
+            (wholeLineCauchyReactionSourceTrajectory p hM hT U s).1 x -
+          wholeLineCauchyHeatOp (z.1 - s)
+            (wholeLineCauchyReactionSourceTrajectory p hM hT U s).1 x)) z.1 := by
+  let F : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  have hMR : 0 ≤ MR := by
+    dsimp [MR]
+    exact add_nonneg hM
+      (mul_nonneg hM (add_nonneg zero_le_one (Real.rpow_nonneg hM _)))
+  have hFcont : Continuous F := by
+    simpa [F] using wholeLineCauchyReactionSourceTrajectory_continuous p hM hT U
+  have hFnorm : ∀ s, ‖F s‖ ≤ MR := by
+    intro s
+    simpa [F, MR, wholeLineCauchyReactionSourceTrajectory] using
+      wholeLineCauchyTruncatedReactionBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  rcases wholeLineCauchy_sourceTrajectories_real_zero_near_negative
+      p hM hT U z x ht htop hneg with
+    ⟨eta, heta, hwindow, r, hr, hzero⟩
+  change HasDerivAt (fun q : ℝ => wholeLineCauchyValueHistory F q x) _ z.1
+  apply wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
+    hFcont ht hMR heta hwindow hr hFnorm
+  intro s hs y hy
+  exact (hzero s hs y hy).2
+
 #print axioms wholeLineCauchyHeatOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatGradOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
 #print axioms wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
 #print axioms wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
 #print axioms wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
+#print axioms wholeLineCauchyFluxGradientHistory_time_hasDerivAt_at_negative
+#print axioms wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
 
 end ShenWork.Paper1
