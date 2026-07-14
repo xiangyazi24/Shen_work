@@ -4977,3 +4977,12 @@ proves that every positive-time canonical mild slice is spatially
 differentiable at every point.  The next rung is a quantitative Holder bound
 for this first derivative, needed to make the nonlinear flux `C^{1,eta}` and
 then justify the final spatial/time derivatives in the classical PDE.
+
+The kernel estimate needed for that derivative Holder bound is now also
+formalized.  The heat Hessian is globally Lipschitz with `t^(-3/2)` scale via
+the third kernel.  Interpolating this with the cancellative
+`t^(-1+theta/2)` sup estimate yields a `C^eta` Hessian modulus with time
+exponent `-1 + (theta - eta*(1+theta))/2`.  This exponent is integrable exactly
+under the strict condition `eta*(1+theta) < theta`.  The next assembly applies
+this estimate to the recent flux history, uses a nonsingular bound on the old
+history, and obtains a common positive-time Holder modulus for `u_x`.

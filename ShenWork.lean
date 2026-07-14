@@ -44,6 +44,7 @@ import ShenWork.Paper1.WholeLineCauchyNegativePDE
 import ShenWork.Paper1.WholeLineCauchyNonnegativity
 import ShenWork.Paper1.WholeLineCauchyHolderBootstrap
 import ShenWork.Paper1.WholeLineCauchyFluxHolderBootstrap
+import ShenWork.Paper1.WholeLineCauchyC1HolderBootstrap
 import ShenWork.Paper1.WholeLineCauchyGlobalBounds
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
