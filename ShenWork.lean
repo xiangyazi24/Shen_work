@@ -52,6 +52,7 @@ import ShenWork.Paper1.WholeLineCauchyTerminalAverages
 import ShenWork.Paper1.WholeLineCauchyPositivePDE
 import ShenWork.Paper1.WholeLineCauchyTimeRegularity
 import ShenWork.Paper1.WholeLineCauchyClassicalSolution
+import ShenWork.Paper1.WholeLineCauchyUniformRestart
 import ShenWork.Paper1.WholeLineCauchyGlobalBounds
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket

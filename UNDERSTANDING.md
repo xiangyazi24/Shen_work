@@ -5215,3 +5215,15 @@ previously constructed positive physical strip proves
 positive local classical solution with both the exact initial datum and its
 uniform right trace.  No packaged analytic hypothesis remains in this local
 existence result.
+
+`WholeLineCauchyUniformRestart.lean` strengthens local existence to the form
+needed by continuation.  Given a fixed clamp ceiling `M` and a positive norm
+margin `eta`, the contraction rate and Duhamel displacement choose one common
+lifespan `T` for every nonnegative datum satisfying `‖u₀‖ + eta ≤ M`.
+Heat contraction plus the displacement bound keeps every such canonical
+trajectory in `[0,M]`; nonnegativity, ordinary classical regularity, exact
+initial datum, and uniform trace then follow from the preceding files.  Thus
+the lifespan is controlled solely by a ceiling and margin, rather than by an
+individual solution or a future global bound.  The remaining continuation
+input is the nonlocal first-crossing estimate that supplies a uniform ceiling
+with positive restart margin.
