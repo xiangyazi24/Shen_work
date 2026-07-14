@@ -62,6 +62,10 @@ theorem wholeLineSlabSup_le_of_stable_resolver_pde
         (mul_nonneg (abs_nonneg _) (le_trans zero_le_one p.hm))
         (Real.rpow_nonneg hA0 _))
       (Real.rpow_nonneg hA0 _)
+  have hstrictMargin : ∀ r, C < r →
+      1 + max p.χ 0 * r ^ (p.m + p.γ - 1) < r ^ p.α :=
+    fun r hr => wholeLineCauchyCeiling_strict_margin_above
+      hregime hC1 hmargin hr
   rcases hregime with hχ | hpos
   · let G : ℝ → ℝ := fun r =>
       (-p.χ) * r ^ p.m * (L ^ p.γ - r ^ p.γ) +
@@ -188,29 +192,20 @@ theorem wholeLineSlabSup_le_of_stable_resolver_pde
       have hα0 : 0 ≤ p.α := le_trans zero_le_one p.hα
       dsimp [G]
       fun_prop (disch := assumption)
-    have hchi1 : p.χ < 1 := lt_of_lt_of_le hpos.2.1 (chiStar_le_one p)
     have hGstrict : C < wholeLineSlabSup T u →
         G (wholeLineSlabSup T u) < 0 := by
       intro hCL
       have hL1 : 1 < L := hC1.trans_lt (by simpa [L] using hCL)
-      have hL0 : 0 ≤ L := (zero_lt_one.trans hL1).le
-      have hCLpow : C ^ p.α < L ^ p.α :=
-        Real.rpow_lt_rpow (zero_le_one.trans hC1) (by simpa [L] using hCL)
-          (by linarith [p.hα])
-      have hmargin' : 1 ≤ (1 - p.χ) * C ^ p.α := by
-        have hm := hmargin
-        rw [max_eq_left hpos.1, ← hpos.2.2] at hm
-        nlinarith
-      have hstrict : 1 < (1 - p.χ) * L ^ p.α := by
-        have hmul := mul_lt_mul_of_pos_left hCLpow (sub_pos.mpr hchi1)
-        linarith
+      have hLpos : 0 < L := zero_lt_one.trans hL1
+      have hstrict := hstrictMargin L (by simpa [L] using hCL)
+      rw [max_eq_left hpos.1] at hstrict
       change G L < 0
       dsimp [G]
-      rw [show p.m + p.γ = 1 + p.α by linarith [hpos.2.2],
-        Real.rpow_add_of_nonneg hL0 zero_le_one (zero_le_one.trans p.hα),
-        Real.rpow_one]
-      have hprod : 0 < L * ((1 - p.χ) * L ^ p.α - 1) :=
-        mul_pos (zero_lt_one.trans hL1) (sub_pos.mpr hstrict)
+      rw [show p.m + p.γ = 1 + (p.m + p.γ - 1) by ring,
+        Real.rpow_add hLpos, Real.rpow_one]
+      have hprod :
+          L * (1 + p.χ * L ^ (p.m + p.γ - 1) - L ^ p.α) < 0 :=
+        mul_neg_of_pos_of_neg hLpos (sub_neg.mpr hstrict)
       nlinarith
     apply wholeLineSlabSup_le_of_scalar_pde hT hK hcont hupper hinit
       hGcont hGstrict htime hspace1 hspace2
