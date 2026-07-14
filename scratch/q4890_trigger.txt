@@ -1,1 +1,2 @@
 Run the exact Q4890 Jacobi/Christoffel-Darboux contiguous-band search.
+Trigger revision 2: include the alternate ARM runner pool.
