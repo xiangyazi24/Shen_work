@@ -310,11 +310,21 @@ theorem paper5CorrectedCStarStar_asymptotic (p : CMParams) :
 budget at the concrete threshold family. -/
 def paper531ConcreteStabilityBudget
     (p : CMParams) (hregime : StableWaveParameterRegime p) :
-    Paper531StabilityBudget p (paper5CorrectedCStarStar p) := by
-  have hM : 0 < MChi p := hregime.MChi_pos
-  obtain ⟨hA, hB⟩ := paper531ConcreteAB_nonneg p hM
-  apply paper531StabilityBudget_of_cap_threshold hA hB
-  exact paper5CorrectedCStarStar_cap_le p
+    Paper531StabilityBudget p (paper5CorrectedCStarStar p) :=
+  paper531StabilityBudget_of_cap_threshold
+    (paper531ConcreteAB_nonneg p hregime.MChi_pos).1
+    (paper531ConcreteAB_nonneg p hregime.MChi_pos).2
+    (paper5CorrectedCStarStar_cap_le p)
+
+@[simp] theorem paper531ConcreteStabilityBudget_A
+    (p : CMParams) (hregime : StableWaveParameterRegime p) :
+    (paper531ConcreteStabilityBudget p hregime).A =
+      paper531ConcreteA p := rfl
+
+@[simp] theorem paper531ConcreteStabilityBudget_B
+    (p : CMParams) (hregime : StableWaveParameterRegime p) :
+    (paper531ConcreteStabilityBudget p hregime).B =
+      paper531ConcreteB p := rfl
 
 theorem paper5Concrete_speed_data
     (p : CMParams) (hregime : StableWaveParameterRegime p) :
@@ -326,54 +336,6 @@ theorem paper5Concrete_speed_data
     paper5CorrectedCStarStar_baseline_le p,
     ⟨paper531ConcreteStabilityBudget p hregime⟩⟩
 
-/-- The corrected theorem now consumes only the genuine whole-line
-Cauchy/energy/Step-4 block.  The scalar threshold family and the complete
-perturbed-root budget are produced above rather than carried as hypotheses. -/
-theorem paper1_Theorem_1_2_amended_of_concrete_wholeLineCauchyEnergyStep4
-    (hcore :
-      ∀ p : CMParams, ∀ hregime : StableWaveParameterRegime p,
-      ∀ c : ℝ, paper5CorrectedCStarStar p p.χ < c →
-      ∀ U V u₀ : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        TravelingWaveRegularity p c U V →
-        HasStrictWaveUpperTailBound p c U →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
-          HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ,
-          paper531RootMinus c
-              (paper531ConcreteStabilityBudget p hregime).A
-              (paper531ConcreteStabilityBudget p hregime).B < η →
-          η < stabilityWeightCap p →
-          NonnegativeInitialDatum u₀ →
-          StrictlyPositiveAtLeft u₀ →
-          WeightedL2InitialCloseness η u₀ U →
-          Section5ProfileInitialSignalBounds p U V u₀ →
-          ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p u₀ u v ∧
-            (∀ᶠ t in Filter.atTop,
-              coMovingWeightedL2Energy η c u U t ≤ E t) ∧
-            (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
-            (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
-              HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
-            (∀ t : ℝ, 0 ≤ t → deriv E t ≤
-              2 * paper531Quadratic c
-                (paper531ConcreteStabilityBudget p hregime).A
-                (paper531ConcreteStabilityBudget p hregime).B η * E t) ∧
-            EventuallyIntegrableMovingFrameEnergy η 0
-              (coMovingPath c u) U ∧
-            EventuallyUniformMovingFrameSpatialModulus 0
-              (coMovingPath c u) U ∧
-            UniformMovingFrameLeftTailConvergence 0
-              (coMovingPath c u) U) :
-    Theorem_1_2_amended := by
-  refine paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
-      (fun p ↦ paper5CorrectedCStarStar p) ?_
-      paper531ConcreteStabilityBudget ?_
-  · intro p _hregime
-    exact ⟨paper5CorrectedCStarStar_asymptotic p,
-      paper5CorrectedCStarStar_baseline_le p⟩
-  · exact hcore
-
 section Theorem12ConcreteBudgetAxiomAudit
 
 #print axioms paper5CommonBounds_nonneg
@@ -381,9 +343,9 @@ section Theorem12ConcreteBudgetAxiomAudit
 #print axioms paper531ConcreteAB_nonneg
 #print axioms paper5CorrectedCStarStar_asymptotic
 #print axioms paper531ConcreteStabilityBudget
+#print axioms paper531ConcreteStabilityBudget_A
+#print axioms paper531ConcreteStabilityBudget_B
 #print axioms paper5Concrete_speed_data
-#print axioms
-  paper1_Theorem_1_2_amended_of_concrete_wholeLineCauchyEnergyStep4
 
 end Theorem12ConcreteBudgetAxiomAudit
 

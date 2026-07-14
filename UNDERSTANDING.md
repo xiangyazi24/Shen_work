@@ -4924,3 +4924,20 @@ the barrier-speed coefficient producer and all half/full-energy derivative
 interfaces accept `MChi <= M` and conclude with `paper531CommonA/B p M`.
 The former `MChi` declarations remain as proved compatibility specializations,
 so no downstream result silently changes meaning.
+
+The strict common-bound choice is now internalized as well.  On every positive
+base bound, the full corrected scalar coefficient is continuous in the common
+bound, including all real-power and maximum branches.  Hence a negative
+coefficient at `MChi` persists at some `Mtilde > MChi`.  The concrete Section 5
+capstone now selects this `Mtilde` from the admissible perturbed-root window and
+uses `paper531CommonA/B p Mtilde` in the energy inequality and Gronwall step.
+The older concrete wrapper that demanded the exact `MChi` coefficient has been
+removed rather than retained as a parallel route.  The local full root build
+passes 9558 jobs, and the selection plus revised capstone are clean-3.
+
+The remaining Paper 1 work is therefore analytic rather than scalar wiring:
+construct a positive-time classical whole-line solution from the unclamped BUC
+mild fixed point, continue it globally under the stable ceiling, produce the
+eventual common-bound energy data, and formalize the paper's genuine Step 4
+left-tail compactness/translation-rigidity argument.  The exponential weight
+still cannot replace that left-tail argument.
