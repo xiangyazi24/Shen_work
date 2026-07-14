@@ -57,6 +57,30 @@ theorem isClosed_wholeLineBUC :
 noncomputable instance wholeLineBUCCompleteSpace : CompleteSpace WholeLineBUC :=
   isClosed_wholeLineBUC.completeSpace_coe
 
+theorem WholeLineBUC.isCUnifBdd (u : WholeLineBUC) :
+    IsCUnifBdd (u.1 : ℝ → ℝ) := by
+  refine ⟨u.2.continuous, ⟨‖u.1‖, ?_⟩⟩
+  intro x
+  simpa [Real.norm_eq_abs] using
+    BoundedContinuousFunction.norm_coe_le_norm u.1 x
+
+/-- Construct a BUC element from an explicit uniform bound. -/
+def wholeLineBUCOfUniformBound
+    (f : ℝ → ℝ) (hf : UniformContinuous f) (M : ℝ)
+    (hM : ∀ x, |f x| ≤ M) : WholeLineBUC :=
+  ⟨{
+    toContinuousMap := ⟨f, hf.continuous⟩
+    map_bounded' := ⟨2 * M, fun x y => by
+      rw [Real.dist_eq]
+      exact (abs_sub (f x) (f y)).trans
+        (by linarith [hM x, hM y])⟩ }, hf⟩
+
+@[simp] theorem wholeLineBUCOfUniformBound_apply
+    (f : ℝ → ℝ) (hf : UniformContinuous f) (M : ℝ)
+    (hM : ∀ x, |f x| ≤ M) (x : ℝ) :
+    (wholeLineBUCOfUniformBound f hf M hM).1 x = f x :=
+  rfl
+
 /-- Build an element of the genuine BUC space from a paper-level function. -/
 def wholeLineBUCOfPaperCUnifBdd
     (f : ℝ → ℝ) (hf : PaperCUnifBdd f) : WholeLineBUC := by
@@ -111,6 +135,8 @@ section WholeLineCauchyBUCAxiomAudit
 #print axioms PaperCUnifBdd.to_isCUnifBdd
 #print axioms PaperNonnegativeInitialDatum.to_nonnegativeInitialDatum
 #print axioms isClosed_wholeLineBUC
+#print axioms WholeLineBUC.isCUnifBdd
+#print axioms wholeLineBUCOfUniformBound
 #print axioms wholeLineBUCOfPaperCUnifBdd
 #print axioms wholeLineBUCTrajectory_jointContinuous
 #print axioms wholeLineBUCClamp_mem_Icc
