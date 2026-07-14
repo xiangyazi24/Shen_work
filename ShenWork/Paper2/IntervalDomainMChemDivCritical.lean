@@ -15,6 +15,7 @@ import ShenWork.Paper2.IntervalDomainMinPointEstimate
 import ShenWork.Paper2.IntervalDomainFluxCoeffBound
 import ShenWork.PDE.IntervalDomain
 
+open Filter Topology
 open ShenWork.IntervalDomain
 
 noncomputable section
@@ -90,6 +91,51 @@ def generalMMinSlopeConst (p : CM2Params) (M : ℝ) : ℝ :=
 chemotaxis and logistic damping terms by a slice ceiling. -/
 def generalMMinGrowthRate (p : CM2Params) (M : ℝ) : ℝ :=
   p.a - generalMMinSlopeConst p M
+
+/-- The faithful all-sign loss coefficient vanishes with a positive slice
+ceiling.  This includes the endpoint `m = 1`: the factor `M^(m-1)` may tend
+to one, but the elliptic flux coefficient still tends to zero. -/
+theorem generalMMinSlopeConst_tendsto_zero_nhdsGT
+    (p : CM2Params) (hm : 1 ≤ p.m) :
+    Tendsto (generalMMinSlopeConst p) (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+  have hbase : Tendsto (fun M : ℝ => M) (𝓝[>] (0 : ℝ)) (𝓝 0) :=
+    tendsto_id.mono_left inf_le_left
+  have hm1 : 0 ≤ p.m - 1 := by linarith
+  have hpow_m1 : Tendsto (fun M : ℝ => M ^ (p.m - 1))
+      (𝓝[>] (0 : ℝ)) (𝓝 ((0 : ℝ) ^ (p.m - 1))) :=
+    hbase.rpow_const (Or.inr hm1)
+  have hpow_gamma : Tendsto (fun M : ℝ => M ^ p.γ)
+      (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    simpa [Real.zero_rpow p.hγ.ne'] using
+      hbase.rpow_const (Or.inr p.hγ.le)
+  have hB : Tendsto (fun M : ℝ => p.ν * M ^ p.γ)
+      (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    simpa using tendsto_const_nhds.mul hpow_gamma
+  have h2B : Tendsto (fun M : ℝ => 2 * (p.ν * M ^ p.γ))
+      (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    simpa using tendsto_const_nhds.mul hB
+  have hflux : Tendsto
+      (fun M : ℝ => ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+        (p.ν * M ^ p.γ)) (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    have hsquare := h2B.pow 2
+    have hconst_beta : Tendsto (fun _ : ℝ => p.β)
+        (𝓝[>] (0 : ℝ)) (𝓝 p.β) := tendsto_const_nhds
+    have hfirst := hconst_beta.mul hsquare
+    simpa [ShenWork.MinPersistenceAtoms.fluxCoeffConst] using hfirst.add h2B
+  have hchem : Tendsto
+      (fun M : ℝ => |p.χ₀| * (M ^ (p.m - 1) *
+        ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+          (p.ν * M ^ p.γ))) (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    have hprod := hpow_m1.mul hflux
+    simpa using tendsto_const_nhds.mul hprod
+  have hpow_alpha : Tendsto (fun M : ℝ => M ^ p.α)
+      (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    simpa [Real.zero_rpow p.hα.ne'] using
+      hbase.rpow_const (Or.inr p.hα.le)
+  have hlogistic : Tendsto (fun M : ℝ => p.b * M ^ p.α)
+      (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    simpa using tendsto_const_nhds.mul hpow_alpha
+  simpa [generalMMinSlopeConst] using hchem.add hlogistic
 
 /-- Interior critical-point Hamilton estimate for the faithful general-`m`
 flux, retaining the positive linear reaction. -/
@@ -172,6 +218,7 @@ section AxiomAudit
 
 #print axioms chemDivM_at_critical
 #print axioms rpow_eq_rpow_sub_one_mul
+#print axioms generalMMinSlopeConst_tendsto_zero_nhdsGT
 #print axioms min_point_estimate_interior_M_allChi_with_growth
 #print axioms min_point_estimate_interior_M_allChi
 
