@@ -305,6 +305,91 @@ theorem exists_wholeLineSlab_approx_max_deriv_data
     linarith [htwoEps]
   exact ⟨t₀, ht₀, x₀, huclose, hutNonneg, huxAbs, huxx⟩
 
+/-- Abstract scalar closure of the approximate-maximum argument.  If the PDE
+is bounded above by `u_xx + K |u_x| + G(u)` and `G` is strictly negative at
+every slab supremum above the initial ceiling, then the slab never crosses
+that ceiling. -/
+theorem wholeLineSlabSup_le_of_scalar_pde
+    {T C A K : ℝ} {u : ℝ → ℝ → ℝ} {G : ℝ → ℝ}
+    (hT : 0 < T) (hK : 0 ≤ K)
+    (hcont : Continuous (fun q : ℝ × ℝ => u q.1 q.2))
+    (hupper : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x, u t x ≤ A)
+    (hinit : ∀ x, u 0 x ≤ C)
+    (hGcont : Continuous G)
+    (hGstrict : ∀ L, C < L → L ≤ A → G L < 0)
+    (htime : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun s : ℝ => u s x)
+        (deriv (fun s : ℝ => u s x) t) t)
+    (hspace1 : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => u t y)
+        (deriv (fun y : ℝ => u t y) x) x)
+    (hspace2 : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => deriv (fun z : ℝ => u t z) y)
+        (deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x) x)
+    (hpde : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      deriv (fun s : ℝ => u s x) t ≤
+        deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x +
+          K * |deriv (fun y : ℝ => u t y) x| + G (u t x)) :
+    wholeLineSlabSup T u ≤ C := by
+  let L : ℝ := wholeLineSlabSup T u
+  have hLA : L ≤ A := wholeLineSlabSup_le hT.le hupper
+  by_contra hnot
+  have hCL : C < L := lt_of_not_ge hnot
+  have hGL : G L < 0 := hGstrict L hCL hLA
+  have hGat : ContinuousAt G L := hGcont.continuousAt
+  rw [Metric.continuousAt_iff] at hGat
+  obtain ⟨d, hd, hGclose⟩ := hGat (-G L / 2) (by linarith)
+  let delta : ℝ := min ((L - C) / 4) (d / 4)
+  have hdelta : 0 < delta := by
+    dsimp [delta]
+    exact lt_min (div_pos (sub_pos.mpr hCL) (by norm_num))
+      (div_pos hd (by norm_num))
+  have hgap : C + 2 * delta < L := by
+    have hle : delta ≤ (L - C) / 4 := by
+      dsimp [delta]
+      exact min_le_left _ _
+    linarith
+  let rho : ℝ := (-G L) / (4 * (K + 1))
+  have hKone : 0 < K + 1 := by linarith
+  have hrho : 0 < rho := by
+    dsimp [rho]
+    exact div_pos (neg_pos.mpr hGL) (mul_pos (by norm_num) hKone)
+  obtain ⟨t, ht, x, huclose, hut, hux, huxx⟩ :=
+    exists_wholeLineSlab_approx_max_deriv_data
+      hT hdelta hrho hcont hupper hinit hgap htime hspace1 hspace2
+  have huL : u t x ≤ L :=
+    le_wholeLineSlabSup hT.le hupper ⟨ht.1.le, ht.2⟩ x
+  have hudist : dist (u t x) L < d := by
+    rw [Real.dist_eq, abs_of_nonpos (sub_nonpos.mpr huL)]
+    have hdeltaD : 2 * delta < d := by
+      have hle : delta ≤ d / 4 := by
+        dsimp [delta]
+        exact min_le_right _ _
+      linarith
+    linarith
+  have hGnear := hGclose hudist
+  rw [Real.dist_eq] at hGnear
+  have hGu : G (u t x) < G L / 2 := by
+    have h := (lt_of_le_of_lt (le_abs_self (G (u t x) - G L)) hGnear)
+    linarith
+  have hpdeAt := hpde (t := t) (x := x) ht
+  have hrhoId : (K + 1) * rho = -G L / 4 := by
+    dsimp [rho]
+    field_simp [ne_of_gt hKone]
+  have hRhsNeg :
+      deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x +
+          K * |deriv (fun y : ℝ => u t y) x| + G (u t x) < 0 := by
+    have hKux : K * |deriv (fun y : ℝ => u t y) x| ≤ K * rho :=
+      mul_le_mul_of_nonneg_left hux.le hK
+    calc
+      deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x +
+            K * |deriv (fun y : ℝ => u t y) x| + G (u t x)
+          < rho + K * rho + G L / 2 := by linarith
+      _ = (K + 1) * rho + G L / 2 := by ring
+      _ = G L / 4 := by rw [hrhoId]; ring
+      _ < 0 := by linarith
+  linarith
+
 section WholeLineCauchySpaceTimeMaximumAxiomAudit
 
 #print axioms wholeLineSlabValues_nonempty
@@ -312,6 +397,7 @@ section WholeLineCauchySpaceTimeMaximumAxiomAudit
 #print axioms le_wholeLineSlabSup
 #print axioms wholeLineSlabSup_le
 #print axioms exists_wholeLineSlab_approx_max_deriv_data
+#print axioms wholeLineSlabSup_le_of_scalar_pde
 
 end WholeLineCauchySpaceTimeMaximumAxiomAudit
 
