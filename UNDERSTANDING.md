@@ -47,6 +47,16 @@ source must be `u + u(1-u^alpha) = u(2-u^alpha)`.  The older
 does not encode the stated Cauchy PDE.  New Cauchy work must use the corrected
 map.
 
+The original paper defines `C_unif^b(R)` as uniformly continuous and bounded.
+The repository's historical `IsCUnifBdd` predicate currently records only
+continuity and boundedness, so it is too weak for the uniform initial trace on
+the whole line.  The genuine Cauchy producer must expose a faithful BUC datum
+predicate instead of silently proving a false sup-norm approximate-identity
+claim for arbitrary bounded continuous data.  Independently of that trajectory
+space correction, `WholeLineCauchyTruncation.lean` now globalizes both coupled
+nonlinearities with `clampIcc`; it provides global sup/Lipschitz estimates and
+proves that the truncation disappears on `[0,M]`.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions

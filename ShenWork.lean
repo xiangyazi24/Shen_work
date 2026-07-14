@@ -26,6 +26,7 @@ import ShenWork.Paper1.Theorem12ConcreteBudget
 import ShenWork.Paper1.Theorem12EnergyProducer
 import ShenWork.Paper1.WholeLineCauchyLocalExistence
 import ShenWork.Paper1.WholeLineCauchyDuhamel
+import ShenWork.Paper1.WholeLineCauchyTruncation
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
