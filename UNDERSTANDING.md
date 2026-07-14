@@ -4743,3 +4743,21 @@ part; the damping term is dropped rather than estimated in `L^P`.  The same
 estimate produces finite-horizon `IsPaper2BoundedBefore` and, on a moving
 half-unit window, the global `atTop` bound.  Consequently this endpoint needs
 neither a pointwise-in-time gradient estimate nor `2gamma < alpha`.
+
+### Paper 1 BUC Duhamel contraction (2026-07-14)
+
+The whole-line Cauchy construction now has both nonlinear Duhamel legs as
+honest Bochner integrals in the complete space `BUC(R)`.  A rescaling to the
+fixed interval `[0,1]`, dominated convergence, and the integrable
+`(1-r)^(-1/2)` Gaussian-gradient singularity prove continuity of both legs as
+BUC-valued time trajectories.  Their sharp difference estimates assemble into
+a globally Lipschitz truncated mild self-map on `C([0,T];BUC(R))`, with
+coefficient `O(sqrt T)+O(T)`.  Continuity of that coefficient at zero supplies
+a positive contraction window, and Banach's theorem gives a genuine fixed
+point with the prescribed BUC initial value.  No invariant ball or assumed
+realization package is used.
+
+This is still the globally clamped equation.  The next analytic obligation is
+the comparison/positivity argument showing that the fixed point remains in the
+physical nonnegative strip (and below a short-time upper barrier), after which
+the clamp is inactive and the fixed point solves the original Cauchy system.

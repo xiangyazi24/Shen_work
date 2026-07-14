@@ -68,12 +68,35 @@ theorem isClosed_wholeLineBUC :
 noncomputable instance wholeLineBUCCompleteSpace : CompleteSpace WholeLineBUC :=
   isClosed_wholeLineBUC.completeSpace_coe
 
+/- Mathlib's `NormedAddCommGroup → NormedAddGroup → ENormedAddMonoid`
+instance chain is not synthesized through this reducible submodule alias. -/
+noncomputable instance wholeLineBUCENormedAddMonoid :
+    ENormedAddMonoid WholeLineBUC :=
+  NormedAddGroup.toENormedAddMonoid
+
+noncomputable instance wholeLineBUCNormSMulClass :
+    NormSMulClass ℝ WholeLineBUC :=
+  NormedSpace.toNormSMulClass
+
 theorem WholeLineBUC.isCUnifBdd (u : WholeLineBUC) :
     IsCUnifBdd (u.1 : ℝ → ℝ) := by
   refine ⟨u.2.continuous, ⟨‖u.1‖, ?_⟩⟩
   intro x
   simpa [Real.norm_eq_abs] using
     BoundedContinuousFunction.norm_coe_le_norm u.1 x
+
+/-- Bridge the subtype metric and the inherited submodule norm.  Lean selects
+these through different reducible-instance paths for `WholeLineBUC`, although
+both are the ambient sup metric. -/
+theorem WholeLineBUC.dist_eq_norm_sub (u w : WholeLineBUC) :
+    dist u w = ‖u - w‖ := by
+  change dist u.1 w.1 = ‖u.1 - w.1‖
+  exact dist_eq_norm _ _
+
+theorem WholeLineBUC.dist_zero_eq_norm (u : WholeLineBUC) :
+    dist u 0 = ‖u‖ := by
+  change dist u.1 0 = ‖u.1‖
+  simpa using dist_eq_norm u.1 (0 : BoundedContinuousFunction ℝ ℝ)
 
 /-- Construct a BUC element from an explicit uniform bound. -/
 def wholeLineBUCOfUniformBound
