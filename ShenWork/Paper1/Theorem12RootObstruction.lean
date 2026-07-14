@@ -45,6 +45,64 @@ theorem stabilityWeightCap_pos (p : CMParams) :
   unfold stabilityWeightCap
   positivity
 
+/-- The reciprocal of the paper's weight cap. -/
+theorem stabilityWeightCap_inv (p : CMParams) :
+    (stabilityWeightCap p)⁻¹ = 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+  have hpos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by positivity
+  unfold stabilityWeightCap
+  field_simp
+
+/-- Exact cancellation in the cap contribution to the corrected speed
+threshold.  In particular, its first error above `2` is quadratic in
+`|chi|^(1/6)`, not linear. -/
+theorem stabilityWeightCap_add_inv (p : CMParams) :
+    stabilityWeightCap p + (stabilityWeightCap p)⁻¹ =
+      2 + (|p.χ| ^ (1 / 6 : ℝ)) ^ 2 /
+        (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
+  let x : ℝ := |p.χ| ^ (1 / 6 : ℝ)
+  have hx : 0 ≤ x := Real.rpow_nonneg (abs_nonneg _) _
+  have hden : 0 < 1 + x := by linarith
+  rw [stabilityWeightCap_inv]
+  unfold stabilityWeightCap
+  change 1 / (1 + x) + (1 + x) = 2 + x ^ 2 / (1 + x)
+  field_simp
+  ring
+
+theorem stabilityWeightCap_add_inv_correction_bounds (p : CMParams) :
+    0 ≤ stabilityWeightCap p + (stabilityWeightCap p)⁻¹ - 2 ∧
+      stabilityWeightCap p + (stabilityWeightCap p)⁻¹ - 2 ≤
+        (|p.χ| ^ (1 / 6 : ℝ)) ^ 2 := by
+  let x : ℝ := |p.χ| ^ (1 / 6 : ℝ)
+  have hx : 0 ≤ x := Real.rpow_nonneg (abs_nonneg _) _
+  have hden : 0 < 1 + x := by linarith
+  rw [stabilityWeightCap_add_inv]
+  change 0 ≤ 2 + x ^ 2 / (1 + x) - 2 ∧
+    2 + x ^ 2 / (1 + x) - 2 ≤ x ^ 2
+  constructor
+  · have hquot : 0 ≤ x ^ 2 / (1 + x) :=
+      div_nonneg (sq_nonneg x) hden.le
+    linarith
+  · have hquot : x ^ 2 / (1 + x) ≤ x ^ 2 := by
+      rw [div_le_iff₀ hden]
+      nlinarith [mul_nonneg (sq_nonneg x) hx]
+    linarith
+
+/-- The full cap part of the exact threshold, split into its quadratic cap
+correction and the `B` contribution. -/
+theorem stabilityWeightCap_threshold_decomposition (p : CMParams) (B : ℝ) :
+    stabilityWeightCap p + (1 + B) / stabilityWeightCap p =
+      2 + (|p.χ| ^ (1 / 6 : ℝ)) ^ 2 /
+          (1 + |p.χ| ^ (1 / 6 : ℝ)) +
+        B * (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
+  let x : ℝ := |p.χ| ^ (1 / 6 : ℝ)
+  have hx : 0 ≤ x := Real.rpow_nonneg (abs_nonneg _) _
+  have hden : 0 < 1 + x := by linarith
+  unfold stabilityWeightCap
+  change 1 / (1 + x) + (1 + B) / (1 / (1 + x)) =
+    2 + x ^ 2 / (1 + x) + B * (1 + x)
+  field_simp
+  ring
+
 /-- Explicit algebraic data for the corrected (5.31) weight window.
 
 The budgets are conclusions to be produced by the Section 5 estimates, not
@@ -499,6 +557,10 @@ theorem paper531_corrected_decay_factor_tendsto_zero
 
 section Theorem12RootObstructionAxiomAudit
 #print axioms stabilityWeightCap_pos
+#print axioms stabilityWeightCap_inv
+#print axioms stabilityWeightCap_add_inv
+#print axioms stabilityWeightCap_add_inv_correction_bounds
+#print axioms stabilityWeightCap_threshold_decomposition
 #print axioms paper531Quadratic_factor
 #print axioms paper531Discriminant_pos_of_speed
 #print axioms paper531RootMinus_pos
