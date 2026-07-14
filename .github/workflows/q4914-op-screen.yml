@@ -1,0 +1,43 @@
+name: q4914 exact OP screen
+
+on:
+  push:
+    branches: [q4914-op-screen]
+    paths:
+      - q4914_op_screen.py
+      - .github/workflows/q4914-op-screen.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: q4914-op-screen
+  cancel-in-progress: true
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4914-op-screen
+      - name: Install SymPy
+        run: python3 -m pip install --upgrade sympy
+      - name: Run exact screen
+        shell: bash
+        run: |
+          set +e
+          python3 -u q4914_op_screen.py 2>&1 | tee q4914_result.txt
+          status=${PIPESTATUS[0]}
+          echo "PROCESS_EXIT_STATUS=$status" | tee -a q4914_result.txt
+          exit 0
+      - name: Commit result
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add q4914_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4914 exact OP screen'
+          git push origin HEAD:q4914-op-screen
