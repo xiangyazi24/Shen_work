@@ -17,7 +17,7 @@ jobs:
       - name: Install ore_algebra
         shell: bash
         run: |
-          sage -pip install --no-cache-dir git+https://github.com/mkauers/ore_algebra.git
+          sage -pip install --no-cache-dir --no-build-isolation git+https://github.com/mkauers/ore_algebra.git
       - name: Run exact factor audit
         shell: bash
         run: |
