@@ -468,19 +468,39 @@ theorem wholeLineCauchyValueHistory_Ctheta
   · intro a b _hab
     exact wholeLineCauchyValueHistory_lipschitz hF ht hM hFnorm a b
 
-/-- Every positive-time slice of the canonical BUC fixed point has a global
-fractional Holder modulus.  No regularity of the initial datum beyond BUC is
-assumed; the modulus may blow up as the slice time tends to zero. -/
-theorem wholeLineCauchyBUCMildFixedPoint_slice_Ctheta
+/-- Explicit spatial Holder coefficient produced by the first positive-time
+bootstrap. -/
+def wholeLineCauchySliceHolderConst
+    (p : CMParams) (M : ℝ) (u₀ : WholeLineBUC) (t theta : ℝ) : ℝ :=
+  let MF : ℝ := M ^ p.m * M ^ p.γ
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  let Hheat : ℝ := max
+    ((2 / Real.sqrt (4 * Real.pi)) * ‖u₀‖ * t ^ (-(1 / 2 : ℝ)))
+    (2 * ‖u₀‖)
+  let Hgrad : ℝ :=
+    ((2 : ℝ) ^ (1 - theta) *
+        ((5 * Real.sqrt 2 / 2) ^ theta *
+          (2 / Real.sqrt (4 * Real.pi)) ^ (1 - theta)) *
+      MF * (t ^ ((1 - theta) / 2 : ℝ) / ((1 - theta) / 2)))
+  let Hvalue : ℝ := max
+    ((2 / Real.sqrt (4 * Real.pi)) * MR * (2 * Real.sqrt t))
+    (2 * (MR * t))
+  Hheat + |p.χ| * Hgrad + Hvalue
+
+/-- Every positive-time slice of the canonical BUC fixed point satisfies the
+explicit global fractional Holder bound. -/
+theorem wholeLineCauchyBUCMildFixedPoint_slice_Ctheta_explicit
     (p : CMParams) {M T theta : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
     (u₀ : WholeLineBUC)
     (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
     (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
     (htheta0 : 0 < theta) (htheta1 : theta < 1) :
-    ∃ H : ℝ, 0 ≤ H ∧ ∀ x y : ℝ,
+    0 ≤ wholeLineCauchySliceHolderConst p M u₀ z.1 theta ∧
+      ∀ x y : ℝ,
       |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x -
           (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 y| ≤
-        H * |x - y| ^ theta := by
+        wholeLineCauchySliceHolderConst p M u₀ z.1 theta *
+          |x - y| ^ theta := by
   let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
   let F := wholeLineCauchyFluxSourceTrajectory p hM hT U
   let R := wholeLineCauchyReactionSourceTrajectory p hM hT U
@@ -515,6 +535,7 @@ theorem wholeLineCauchyBUCMildFixedPoint_slice_Ctheta
     ((2 / Real.sqrt (4 * Real.pi)) * MR * (2 * Real.sqrt z.1))
     (2 * (MR * z.1))
   let H : ℝ := Hheat + |p.χ| * Hgrad + Hvalue
+  have hH_eq : H = wholeLineCauchySliceHolderConst p M u₀ z.1 theta := rfl
   have hHheat : 0 ≤ Hheat := by
     dsimp [Hheat]
     exact le_max_of_le_left (by positivity)
@@ -528,86 +549,140 @@ theorem wholeLineCauchyBUCMildFixedPoint_slice_Ctheta
   have hHvalue : 0 ≤ Hvalue := by
     dsimp [Hvalue]
     exact le_max_of_le_left (by positivity)
-  refine ⟨H, by dsimp [H]; positivity, ?_⟩
-  intro x y
-  have hdatum : ∀ q, |u₀.1 q| ≤ ‖u₀‖ :=
-    fun q => WholeLineBUC.abs_apply_le_norm u₀ q
-  have hheat := wholeLineCauchyHeatOp_Ctheta
-    hz (norm_nonneg u₀) htheta0 htheta1 u₀.1.continuous.aestronglyMeasurable
-    hdatum x y
-  have hgrad := wholeLineCauchyGradientHistory_Ctheta
-    hFcont hz hMF htheta0 htheta1 hFnorm x y
-  have hvalue := wholeLineCauchyValueHistory_Ctheta
-    hRcont hz hMR htheta0 htheta1 hRnorm x y
-  have hxeq := wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
-    p hM hT u₀ hsmall z x hz
-  have hyeq := wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
-    p hM hT u₀ hsmall z y hz
-  have hheat' :
-      |wholeLineCauchyHeatOp z.1 u₀.1 x -
-          wholeLineCauchyHeatOp z.1 u₀.1 y| ≤
-        Hheat * |x - y| ^ theta := by
-    simpa [Hheat] using hheat
-  have hgrad' :
-      |wholeLineCauchyGradientHistory F z.1 x -
-          wholeLineCauchyGradientHistory F z.1 y| ≤
-        Hgrad * |x - y| ^ theta := by
-    simpa [Hgrad, mul_assoc, mul_left_comm, mul_comm] using hgrad
-  have hvalue' :
-      |wholeLineCauchyValueHistory R z.1 x -
-          wholeLineCauchyValueHistory R z.1 y| ≤
-        Hvalue * |x - y| ^ theta := by
-    simpa [Hvalue] using hvalue
-  rw [hxeq, hyeq]
-  calc
-    |(wholeLineCauchyHeatOp z.1 u₀.1 x +
-          -p.χ * wholeLineCauchyGradientHistory F z.1 x +
-          wholeLineCauchyValueHistory R z.1 x) -
-        (wholeLineCauchyHeatOp z.1 u₀.1 y +
-          -p.χ * wholeLineCauchyGradientHistory F z.1 y +
-          wholeLineCauchyValueHistory R z.1 y)| =
-      |(wholeLineCauchyHeatOp z.1 u₀.1 x -
-          wholeLineCauchyHeatOp z.1 u₀.1 y) +
-        (-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
-          wholeLineCauchyGradientHistory F z.1 y) +
-        (wholeLineCauchyValueHistory R z.1 x -
-          wholeLineCauchyValueHistory R z.1 y)| := by ring_nf
-    _ ≤ |wholeLineCauchyHeatOp z.1 u₀.1 x -
-          wholeLineCauchyHeatOp z.1 u₀.1 y| +
-        |(-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
-          wholeLineCauchyGradientHistory F z.1 y)| +
+  constructor
+  · rw [← hH_eq]
+    dsimp [H]
+    positivity
+  · intro x y
+    have hdatum : ∀ q, |u₀.1 q| ≤ ‖u₀‖ :=
+      fun q => WholeLineBUC.abs_apply_le_norm u₀ q
+    have hheat := wholeLineCauchyHeatOp_Ctheta
+      hz (norm_nonneg u₀) htheta0 htheta1 u₀.1.continuous.aestronglyMeasurable
+      hdatum x y
+    have hgrad := wholeLineCauchyGradientHistory_Ctheta
+      hFcont hz hMF htheta0 htheta1 hFnorm x y
+    have hvalue := wholeLineCauchyValueHistory_Ctheta
+      hRcont hz hMR htheta0 htheta1 hRnorm x y
+    have hxeq := wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+      p hM hT u₀ hsmall z x hz
+    have hyeq := wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+      p hM hT u₀ hsmall z y hz
+    have hheat' :
+        |wholeLineCauchyHeatOp z.1 u₀.1 x -
+            wholeLineCauchyHeatOp z.1 u₀.1 y| ≤
+          Hheat * |x - y| ^ theta := by
+      simpa [Hheat] using hheat
+    have hgrad' :
+        |wholeLineCauchyGradientHistory F z.1 x -
+            wholeLineCauchyGradientHistory F z.1 y| ≤
+          Hgrad * |x - y| ^ theta := by
+      simpa [Hgrad, mul_assoc, mul_left_comm, mul_comm] using hgrad
+    have hvalue' :
         |wholeLineCauchyValueHistory R z.1 x -
-          wholeLineCauchyValueHistory R z.1 y| := by
-      calc
+            wholeLineCauchyValueHistory R z.1 y| ≤
+          Hvalue * |x - y| ^ theta := by
+      simpa [Hvalue] using hvalue
+    rw [hxeq, hyeq]
+    calc
+      |(wholeLineCauchyHeatOp z.1 u₀.1 x +
+            -p.χ * wholeLineCauchyGradientHistory F z.1 x +
+            wholeLineCauchyValueHistory R z.1 x) -
+          (wholeLineCauchyHeatOp z.1 u₀.1 y +
+            -p.χ * wholeLineCauchyGradientHistory F z.1 y +
+            wholeLineCauchyValueHistory R z.1 y)| =
         |(wholeLineCauchyHeatOp z.1 u₀.1 x -
-              wholeLineCauchyHeatOp z.1 u₀.1 y) +
-            (-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
-              wholeLineCauchyGradientHistory F z.1 y) +
-            (wholeLineCauchyValueHistory R z.1 x -
-              wholeLineCauchyValueHistory R z.1 y)| ≤
-            |(wholeLineCauchyHeatOp z.1 u₀.1 x -
+            wholeLineCauchyHeatOp z.1 u₀.1 y) +
+          (-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
+            wholeLineCauchyGradientHistory F z.1 y) +
+          (wholeLineCauchyValueHistory R z.1 x -
+            wholeLineCauchyValueHistory R z.1 y)| := by ring_nf
+      _ ≤ |wholeLineCauchyHeatOp z.1 u₀.1 x -
+            wholeLineCauchyHeatOp z.1 u₀.1 y| +
+          |(-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
+            wholeLineCauchyGradientHistory F z.1 y)| +
+          |wholeLineCauchyValueHistory R z.1 x -
+            wholeLineCauchyValueHistory R z.1 y| := by
+        calc
+          |(wholeLineCauchyHeatOp z.1 u₀.1 x -
                 wholeLineCauchyHeatOp z.1 u₀.1 y) +
               (-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
-                wholeLineCauchyGradientHistory F z.1 y)| +
-              |wholeLineCauchyValueHistory R z.1 x -
-                wholeLineCauchyValueHistory R z.1 y| := abs_add_le _ _
-        _ ≤ (|wholeLineCauchyHeatOp z.1 u₀.1 x -
-                wholeLineCauchyHeatOp z.1 u₀.1 y| +
-              |(-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
-                wholeLineCauchyGradientHistory F z.1 y)|) +
-              |wholeLineCauchyValueHistory R z.1 x -
-                wholeLineCauchyValueHistory R z.1 y| := by
-          exact add_le_add (abs_add_le _ _) le_rfl
-    _ ≤ Hheat * |x - y| ^ theta +
-        |p.χ| * (Hgrad * |x - y| ^ theta) +
-        Hvalue * |x - y| ^ theta := by
-      rw [abs_mul, abs_neg]
-      exact add_le_add
-        (add_le_add hheat'
-          (mul_le_mul_of_nonneg_left hgrad' (abs_nonneg p.χ))) hvalue'
-    _ = H * |x - y| ^ theta := by
-      dsimp [H]
-      ring
+                wholeLineCauchyGradientHistory F z.1 y) +
+              (wholeLineCauchyValueHistory R z.1 x -
+                wholeLineCauchyValueHistory R z.1 y)| ≤
+              |(wholeLineCauchyHeatOp z.1 u₀.1 x -
+                  wholeLineCauchyHeatOp z.1 u₀.1 y) +
+                (-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
+                  wholeLineCauchyGradientHistory F z.1 y)| +
+                |wholeLineCauchyValueHistory R z.1 x -
+                  wholeLineCauchyValueHistory R z.1 y| := abs_add_le _ _
+          _ ≤ (|wholeLineCauchyHeatOp z.1 u₀.1 x -
+                  wholeLineCauchyHeatOp z.1 u₀.1 y| +
+                |(-p.χ) * (wholeLineCauchyGradientHistory F z.1 x -
+                  wholeLineCauchyGradientHistory F z.1 y)|) +
+                |wholeLineCauchyValueHistory R z.1 x -
+                  wholeLineCauchyValueHistory R z.1 y| := by
+            exact add_le_add (abs_add_le _ _) le_rfl
+      _ ≤ Hheat * |x - y| ^ theta +
+          |p.χ| * (Hgrad * |x - y| ^ theta) +
+          Hvalue * |x - y| ^ theta := by
+        rw [abs_mul, abs_neg]
+        exact add_le_add
+          (add_le_add hheat'
+            (mul_le_mul_of_nonneg_left hgrad' (abs_nonneg p.χ))) hvalue'
+      _ = wholeLineCauchySliceHolderConst p M u₀ z.1 theta *
+            |x - y| ^ theta := by
+        rw [← hH_eq]
+        dsimp [H]
+        ring
+
+/-- Existential wrapper retained for callers that do not need the displayed
+coefficient. -/
+theorem wholeLineCauchyBUCMildFixedPoint_slice_Ctheta
+    (p : CMParams) {M T theta : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1) :
+    ∃ H : ℝ, 0 ≤ H ∧ ∀ x y : ℝ,
+      |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x -
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 y| ≤
+        H * |x - y| ^ theta := by
+  rcases wholeLineCauchyBUCMildFixedPoint_slice_Ctheta_explicit
+      p hM hT u₀ hsmall z hz htheta0 htheta1 with ⟨hH, hholder⟩
+  exact ⟨wholeLineCauchySliceHolderConst p M u₀ z.1 theta, hH, hholder⟩
+
+/-- The explicit slice coefficient has a uniform upper bound on every compact
+positive-time window. -/
+theorem exists_wholeLineCauchySliceHolderConst_window_bound
+    (p : CMParams) {M a b theta : ℝ} (u₀ : WholeLineBUC)
+    (ha : 0 < a) :
+    ∃ H : ℝ, 0 ≤ H ∧ ∀ t ∈ Set.Icc a b,
+      wholeLineCauchySliceHolderConst p M u₀ t theta ≤ H := by
+  have hne : ∀ t ∈ Set.Icc a b, t ≠ 0 := by
+    intro t ht
+    exact ne_of_gt (ha.trans_le ht.1)
+  have hpowNeg : ContinuousOn (fun t : ℝ => t ^ (-(1 / 2 : ℝ)))
+      (Set.Icc a b) :=
+    continuousOn_id.rpow_const (fun t ht => Or.inl (hne t ht))
+  have hpowPos : ContinuousOn (fun t : ℝ => t ^ ((1 - theta) / 2 : ℝ))
+      (Set.Icc a b) :=
+    continuousOn_id.rpow_const (fun t ht => Or.inl (hne t ht))
+  have hsqrt : ContinuousOn (fun t : ℝ => Real.sqrt t) (Set.Icc a b) :=
+    Real.continuous_sqrt.continuousOn
+  have hcont : ContinuousOn
+      (fun t : ℝ => wholeLineCauchySliceHolderConst p M u₀ t theta)
+      (Set.Icc a b) := by
+    unfold wholeLineCauchySliceHolderConst
+    dsimp only
+    fun_prop
+  have hbdd : BddAbove
+      ((fun t : ℝ => wholeLineCauchySliceHolderConst p M u₀ t theta) ''
+        Set.Icc a b) :=
+    isCompact_Icc.bddAbove_image hcont
+  rcases hbdd with ⟨B, hB⟩
+  refine ⟨max 0 B, le_max_left _ _, ?_⟩
+  intro t ht
+  exact (hB (Set.mem_image_of_mem _ ht)).trans (le_max_right _ _)
 
 section WholeLineCauchyHolderBootstrapAxiomAudit
 
@@ -615,7 +690,9 @@ section WholeLineCauchyHolderBootstrapAxiomAudit
 #print axioms wholeLineCauchyHeatGradOp_Linf_to_Ctheta
 #print axioms wholeLineCauchyGradientHistory_Ctheta
 #print axioms wholeLineCauchyValueHistory_Ctheta
+#print axioms wholeLineCauchyBUCMildFixedPoint_slice_Ctheta_explicit
 #print axioms wholeLineCauchyBUCMildFixedPoint_slice_Ctheta
+#print axioms exists_wholeLineCauchySliceHolderConst_window_bound
 
 end WholeLineCauchyHolderBootstrapAxiomAudit
 
