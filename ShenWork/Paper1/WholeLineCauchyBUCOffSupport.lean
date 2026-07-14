@@ -664,6 +664,27 @@ theorem intervalIntegrable_of_aestronglyMeasurable_of_norm_le
   filter_upwards [ae_restrict_mem measurableSet_Icc] with s hs
   exact hbound s hs
 
+/-- Every continuous bounded BUC source has an integrable value Duhamel
+history on a finite positive time interval. -/
+theorem wholeLineCauchyValueHistory_intervalIntegrable
+    {F : ℝ → WholeLineBUC} (hF : Continuous F)
+    {t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hFnorm : ∀ s, ‖F s‖ ≤ M) (x : ℝ) :
+    IntervalIntegrable
+      (fun s : ℝ => wholeLineCauchyHeatOp (t - s) (F s).1 x)
+      volume 0 t := by
+  apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le ht.le
+      (wholeLineCauchyHeatOp_s_dependent_aestronglyMeasurable hF t x)
+  intro s hs
+  rw [Real.norm_eq_abs]
+  apply wholeLineCauchyHeatOp_abs_bound_of_nonneg_time
+    (M := M) (f := (F s).1)
+  · intro y
+    exact (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s)
+  · exact hM
+  · exact (F s).1.continuous.aestronglyMeasurable
+  · exact sub_nonneg.mpr hs.2
+
 /-- The uniformly bounded Hessian history is interval-integrable, including
 the harmless zero-lag endpoint. -/
 theorem wholeLineCauchyHeatHessOp_history_intervalIntegrable
@@ -1091,6 +1112,70 @@ theorem wholeLineCauchyValueHistory_second_hasDerivAt
     intro y
     exact (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s)
 
+/-- At a strictly negative trajectory point, the reaction Duhamel history has
+the two spatial derivatives needed for the local homogeneous PDE. -/
+theorem wholeLineCauchyReactionValueHistory_second_hasDerivAt_at_negative
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ) (ht : 0 < z.1)
+    (hneg : (U z).1 x < 0) :
+    HasDerivAt
+      (fun xi : ℝ => deriv
+        (fun w : ℝ => wholeLineCauchyValueHistory
+          (wholeLineCauchyReactionSourceTrajectory p hM hT U) z.1 w) xi)
+      (∫ s in (0 : ℝ)..z.1,
+        wholeLineCauchyHeatHessOp (z.1 - s)
+          (wholeLineCauchyReactionSourceTrajectory p hM hT U s).1 x) x := by
+  let F : ℝ → WholeLineBUC :=
+    wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  have hMR : 0 ≤ MR := by
+    dsimp [MR]
+    exact add_nonneg hM (mul_nonneg hM (add_nonneg zero_le_one (Real.rpow_nonneg hM _)))
+  have hFcont : Continuous F := by
+    simpa [F] using wholeLineCauchyReactionSourceTrajectory_continuous p hM hT U
+  have hFnorm : ∀ s, ‖F s‖ ≤ MR := by
+    intro s
+    simpa [F, MR, wholeLineCauchyReactionSourceTrajectory] using
+      wholeLineCauchyTruncatedReactionBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  rcases wholeLineCauchy_sourceTrajectories_terminal_zero_near_negative
+      p hM hT U z x hneg with
+    ⟨delta, hdelta, r, hr, _hzeroFlux, hzeroReaction⟩
+  have hzeroF : ∀ s, 0 ≤ s → s < z.1 → z.1 - delta < s →
+      ∀ y, dist y x < r → (F s).1 y = 0 := by
+    simpa [F] using hzeroReaction
+  have hvalue : ∀ q : ℝ,
+      IntervalIntegrable
+        (fun s : ℝ => wholeLineCauchyHeatOp (z.1 - s) (F s).1 q)
+        volume 0 z.1 := fun q =>
+    wholeLineCauchyValueHistory_intervalIntegrable hFcont ht hMR hFnorm q
+  have hgrad : ∀ q : ℝ,
+      IntervalIntegrable
+        (fun s : ℝ => wholeLineCauchyHeatGradOp (z.1 - s) (F s).1 q)
+        volume 0 z.1 := fun q =>
+    wholeLineCauchyGradientHistory_intervalIntegrable hFcont ht hMR hFnorm q
+  have hfirst : ∀ q : ℝ,
+      deriv (fun w : ℝ => wholeLineCauchyValueHistory F z.1 w) q =
+        ∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatGradOp (z.1 - s) (F s).1 q := by
+    intro q
+    exact (wholeLineCauchyValueHistory_hasDerivAt
+      (ρ := 1) hFcont ht hMR (by norm_num) hFnorm (hvalue q)).deriv
+  rcases wholeLineCauchyHeatHessOp_history_intervalIntegrable
+      hFcont ht hMR hdelta hr hFnorm hzeroF with
+    ⟨CH, hCH, _hHessInt, hHessBound⟩
+  change HasDerivAt
+    (fun xi : ℝ => deriv
+      (fun w : ℝ => wholeLineCauchyValueHistory F z.1 w) xi)
+    (∫ s in (0 : ℝ)..z.1,
+      wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x) x
+  apply wholeLineCauchyValueHistory_second_hasDerivAt
+    (bound := fun _ : ℝ => CH)
+    hFcont ht (half_pos hr) hFnorm hfirst (hgrad x) intervalIntegrable_const
+  intro s hs0 hst q hq
+  exact hHessBound s hs0 hst q hq
+
 section WholeLineCauchyBUCOffSupportAxiomAudit
 
 #print axioms wholeLineCauchyHeatOp_hasDerivAt
@@ -1098,6 +1183,7 @@ section WholeLineCauchyBUCOffSupportAxiomAudit
 #print axioms wholeLineCauchyHeatHessOp_hasDerivAt
 #print axioms wholeLineCauchyHeatThirdOp_s_dependent_aestronglyMeasurable
 #print axioms wholeLineCauchyFluxGradientHistory_second_hasDerivAt_at_negative
+#print axioms wholeLineCauchyReactionValueHistory_second_hasDerivAt_at_negative
 
 end WholeLineCauchyBUCOffSupportAxiomAudit
 
