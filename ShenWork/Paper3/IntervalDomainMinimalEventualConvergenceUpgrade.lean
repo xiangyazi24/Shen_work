@@ -13,7 +13,7 @@ open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainMinimalEventualTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Positive-time physical mass is preserved when a global orbit is shifted

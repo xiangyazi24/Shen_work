@@ -15,7 +15,7 @@ open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainWeakWindowNonlinearTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Fixed coefficient bound for the full nonlinear remainder on the last half

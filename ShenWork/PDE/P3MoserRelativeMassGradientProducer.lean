@@ -253,9 +253,13 @@ theorem intervalDomain_massGradientInterpolation_of_classical
     pExp_gt_one_of_bootstrap hboot hpExp
   have hq : 1 < pExp + rho := by linarith
   obtain ⟨Ceta, _hCeta_pos, hest⟩ :=
-    intervalDomain_classicalSolutionPositiveInterpolation
-      params hsol eta heta (pExp + rho) hq
-  exact ⟨Ceta, hest⟩
+    unitIntervalPositiveAgmonInterpolation
+      (pExp + rho) hq eta heta
+  refine ⟨Ceta, ?_⟩
+  intro t ht0 htT
+  exact hest (u t)
+    (fun x => hsol.u_pos' ht0 htT (x := x))
+    ((hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1)
 
 theorem intervalDomain_moserMassPowerToCurrentLpLowerOrder_of_classical
     {params : CM2Params}

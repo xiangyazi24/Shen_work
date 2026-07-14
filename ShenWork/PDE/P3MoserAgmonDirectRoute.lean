@@ -1,7 +1,6 @@
 import ShenWork.PDE.IntervalAgmonInterpolation
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-import ShenWork.Paper2.IntervalDomainChain
-import ShenWork.PDE.P3MoserDissipationShape
+import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
 
 /-!
 # GN-absorbed interpolation from Agmon → Moser iteration (1D)
@@ -19,16 +18,12 @@ for positive classical solutions on `intervalDomain = [0,1]`, using:
      `(A + G)^α ≤ εG + C_ε`  for `α = (p+ρ-p₀)/p < 1`
 
 The key insight (from the paper's Lemma 2.6): the lower-order term uses the
-SEED L^{p₀} norm (bounded by hypothesis), not the CURRENT L^p norm. This
-gives a CONSTANT lower-order term, which is stronger than
-`RelativeMoserInterpolationBefore` and feeds `moser_iteration_chain` directly.
-
-Combined with `LpBootstrapEnergyInequality` (proved from regularity), this
-yields all Lp bounds via `moser_iteration_chain`, and then L∞ via the proved
-Agmon/GN → Proposition 2.5.
+SEED L^{p₀} norm (bounded by hypothesis), not the CURRENT L^p norm.  Combined
+with `LpBootstrapEnergyInequality`, this yields a scalar linear damping
+inequality and hence terminal-window bounds at every finite exponent.
 -/
 
-open MeasureTheory Set
+open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainEnergyStep
@@ -36,7 +31,6 @@ open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 open ShenWork.Paper2.IntervalDomainLpMonotonicity
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open scoped Interval
 
 noncomputable section
@@ -52,6 +46,24 @@ private lemma intervalDomainSupNorm_nonneg_local
       (abs_nonneg _)
   · change 0 ≤ sSup (Set.range fun x : intervalDomain.Point => |f x|)
     rw [Real.sSup_def, dif_neg (by simp [hbdd])]
+
+private theorem solution_slice_abs_bddAbove_local
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)) := by
+  classical
+  have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
+  obtain ⟨M, hM⟩ :=
+    (isCompact_Icc.image_of_continuousOn hcont.abs).bddAbove
+  refine ⟨M, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  have hMx := hM ⟨x.1, x.2, rfl⟩
+  have hlift : intervalDomainLift (u t) x.1 = u t x := by
+    simp [intervalDomainLift]
+  simpa [hlift] using hMx
 
 def AgmonAbsorbedInterpolationBefore
     (u : ℝ → intervalDomain.Point → ℝ) (T rho p0 : ℝ) : Prop :=
@@ -264,204 +276,6 @@ theorem intervalDomain_gn_absorbed_interpolation_of_agmon
         Ceps := by
   exact hinterp pExp hpExp
 
-/-! ### Step 4: Feed into `moser_iteration_chain`
-
-The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
-`hstep` input to `moser_iteration_chain`, once the separate dissipation/drop
-frontier has removed the derivative and lower-order terms from the full PDE
-energy inequality.  A Gronwall route could avoid this pointwise dissipation
-drop, but it would need the scalar Gronwall data at every exponent:
-closed-time energy continuity, right-derivative data at `0`, an initial-energy
-bound, and the post-Agmon scalar differential inequality.  These fields are
-not produced by `AgmonAbsorbedInterpolationBefore` alone, so this file does
-not export a no-drop Agmon theorem. -/
-
-/-- Original version with dissipation drop (kept for compatibility). -/
-theorem intervalDomain_all_Lp_of_agmon_bootstrap
-    {params : CM2Params} {T rho p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hdiss : MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0)
-    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
-    (hrho : 0 < rho) :
-    ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  have henergy :
-      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
-    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
-  refine IntervalDomainChain.moser_iteration_chain
-    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
-    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
-  intro p hp
-  rcases henergy p hp with ⟨A, hA, B, hB, K, hK, L_const, hfull⟩
-  refine ⟨A, hA, K, hK, L_const, ?_, ?_⟩
-  · intro t ht0 htT
-    have hfull_t := hfull t ht0 htT
-    have hdrop_t := hdiss p hp A B K L_const hB.le hfull t ht0 htT
-    linarith
-  · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
-
-private theorem abstract_prop25_bootstrap_two_gamma
-    {params : CM2Params} {T pExp : ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 < T)
-    (hpExp :
-      max (params.N : ℝ)
-          (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
-        pExp)
-    (hLp : LpPowerBoundedBefore intervalDomain pExp T u) :
-    AbstractLpBootstrapHypothesis intervalDomain u
-      (params.N : ℝ) T (2 * params.γ) pExp := by
-  refine ⟨?_, hT, ?_, hLp⟩
-  · nlinarith [params.hγ]
-  · have hN_lt : (params.N : ℝ) < pExp :=
-      lt_of_le_of_lt (le_max_left _ _) hpExp
-    have hN_ge_one_nat : 1 ≤ params.N := Nat.succ_le_of_lt params.hN
-    have hN_ge_one : (1 : ℝ) ≤ (params.N : ℝ) := by
-      exact_mod_cast hN_ge_one_nat
-    have h1_lt : (1 : ℝ) < pExp := lt_of_le_of_lt hN_ge_one hN_lt
-    have hgammaN_le :
-        params.γ * (params.N : ℝ) ≤
-          max (params.N : ℝ)
-            (max (params.m * (params.N : ℝ))
-              (params.γ * (params.N : ℝ))) := by
-      exact le_trans (le_max_right _ _) (le_max_right _ _)
-    have hgammaN_lt : params.γ * (params.N : ℝ) < pExp :=
-      lt_of_le_of_lt hgammaN_le hpExp
-    have hrho_half :
-        (2 * params.γ) * (params.N : ℝ) / 2 =
-          params.γ * (params.N : ℝ) := by
-      ring
-    exact max_lt h1_lt (by simpa [hrho_half] using hgammaN_lt)
-
-/-! ### Step 5: Corollary 2.1 and Proposition 2.5
-
-All Lp bounds + Lp monotonicity → ∀ r > 1, LpPowerBoundedBefore r T u.
-Plus quantitative endpoint → Proposition 2.5.
--/
-
-theorem intervalDomain_Corollary_2_1_of_agmon
-    (params : CM2Params)
-    (hdiss :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0)
-    (hinterp :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          AgmonAbsorbedInterpolationBefore u T rho p0) :
-    Corollary_2_1 intervalDomain params := by
-  intro T hT u v hsol hbootstrap pExp hpExp
-  rcases hbootstrap with ⟨rho, hrho, hcross, p0, hp0, hp0Lp⟩
-  have hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T rho p0 :=
-    ⟨hrho, hT, hp0, hp0Lp⟩
-  have hchain :
-      ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u :=
-    intervalDomain_all_Lp_of_agmon_bootstrap
-      hsol hcross hboot (hdiss hsol hcross hboot)
-      (hinterp hsol hcross hboot) hrho
-  have hLpMono :
-      ∀ {p q : ℝ}, 1 < p → p ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-          LpPowerBoundedBefore intervalDomain p T u := by
-    intro p q hp hpq hq
-    exact intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
-      hp hpq
-      (fun t ht0 htT x =>
-        (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
-      (fun t ht0 htT =>
-        intervalDomain_u_rpow_intervalIntegrable_of_regularity
-          (q := p) hsol ht0 htT)
-      (fun t ht0 htT =>
-        intervalDomain_u_rpow_intervalIntegrable_of_regularity
-          (q := q) hsol ht0 htT)
-      hq
-  exact all_exponents_of_chain_and_lp_mono hrho hchain hLpMono pExp hpExp
-
-/-- Original version with dissipation drop (kept for compatibility). -/
-theorem intervalDomain_Proposition_2_5_of_agmon
-    (params : CM2Params)
-    (hdiss :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0)
-    (hinterp :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          AgmonAbsorbedInterpolationBefore u T rho p0)
-    (hEndpoint :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (params.N : ℝ)
-            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
-          pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          ∃ pSeq rootBound : ℕ → ℝ,
-            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
-    Proposition_2_5 intervalDomain params := by
-  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
-  have hcross :
-      CrossDiffusionBootstrapEstimate intervalDomain params T
-        (2 * params.γ) u v :=
-    intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol
-  have hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T (2 * params.γ) pExp :=
-    abstract_prop25_bootstrap_two_gamma hT hpExp hLp
-  have hrho : 0 < 2 * params.γ := by
-    nlinarith [params.hγ]
-  have hchain :
-      ∀ n : ℕ,
-        LpPowerBoundedBefore intervalDomain (pExp + n * (2 * params.γ)) T u :=
-    intervalDomain_all_Lp_of_agmon_bootstrap
-      hsol hcross hboot (hdiss hsol hcross hboot)
-      (hinterp hsol hcross hboot) hrho
-  have hLpMono :
-      ∀ {p q : ℝ}, 1 < p → p ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-          LpPowerBoundedBefore intervalDomain p T u := by
-    intro p q hp hpq hq
-    exact intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
-      hp hpq
-      (fun t ht0 htT x =>
-        (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
-      (fun t ht0 htT =>
-        intervalDomain_u_rpow_intervalIntegrable_of_regularity
-          (q := p) hsol ht0 htT)
-      (fun t ht0 htT =>
-        intervalDomain_u_rpow_intervalIntegrable_of_regularity
-          (q := q) hsol ht0 htT)
-      hq
-  have hAll :
-      ∀ r > 1, LpPowerBoundedBefore intervalDomain r T u :=
-    all_exponents_of_chain_and_lp_mono hrho hchain hLpMono
-  rcases hEndpoint hu₀ hT hsol htrace pExp hpExp hLp with
-    ⟨pSeq, rootBound, hQuantEndpoint⟩
-  exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
-    (hQuantEndpoint hAll)
-
 def scalarSeedAgmonAbsorbConstant
     (M p p0 rho eps : ℝ) : ℝ :=
   let theta : ℝ := (p - p0) / p
@@ -649,11 +463,9 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
     AgmonAbsorbedInterpolationBefore u T rho p0 := by
-  have _hcross_used := hcross
   unfold AgmonAbsorbedInterpolationBefore
   intro pExp hpExp eps heps
   rcases AbstractLpBootstrapHypothesis.initial_lp_bound hboot with ⟨C0, hC0⟩
@@ -700,8 +512,7 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
     fun x => (hsol.u_pos' ht0 htT (x := x)).le
   have hf_bdd :
       BddAbove (Set.range fun x : intervalDomain.Point => |u t x|) :=
-    ShenWork.IntervalDomainExistence.intervalDomain_solution_slice_abs_bddAbove
-      hsol ht
+    solution_slice_abs_bddAbove_local hsol ht
   have hp0_nonneg : 0 ≤ p0 := hp0_pos.le
   have hp_minus_nonneg : 0 ≤ pExp - p0 := sub_nonneg.mpr hpExp
   have hhigh_minus_nonneg : 0 ≤ pExp + rho - p0 := by
@@ -877,11 +688,219 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
       hp0_pos hpExp hrho hrho_lt_two_p0 heps hSineq
   exact le_trans hhigh_le_seed (by simpa [G] using hscalar)
 
+/-! ### Faithful positive-time conclusion of the abstract bootstrap
+
+The printed statement of Lemma 2.6 asks for a bound on the whole open time
+interval.  That conclusion additionally needs control of every higher power
+at the initial endpoint.  Corollary 2.1 only uses the terminal-time conclusion:
+after any fixed positive anchor time, the scalar damping inequality bounds the
+power uniformly up to the terminal horizon.  The following predicate records
+exactly that conclusion and does not smuggle an initial trace into the
+abstract energy hypothesis. -/
+
+/-- Uniform power control after every fixed positive anchor time. -/
+def LpPowerBoundedOnTerminalWindow
+    (D : BoundedDomainData) (pExp T : ℝ)
+    (u : ℝ → D.Point → ℝ) : Prop :=
+  ∀ s, 0 < s → s < T → ∃ C,
+    ∀ t, s ≤ t → t < T →
+      D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+/-- A before-horizon bound restricts to a terminal subwindow. -/
+theorem lpPowerBoundedOnTerminalWindow_of_boundedBefore
+    {D : BoundedDomainData} {pExp T : ℝ}
+    {u : ℝ → D.Point → ℝ}
+    (h : LpPowerBoundedBefore D pExp T u) :
+    LpPowerBoundedOnTerminalWindow D pExp T u := by
+  rcases h with ⟨C, hC⟩
+  intro s hs0 _hsT
+  refine ⟨C, ?_⟩
+  intro t ht htT
+  exact hC t (lt_of_lt_of_le hs0 ht) htT
+
+/-- Agmon absorption turns the abstract bootstrap energy inequality into a
+scalar linear damping inequality at every exponent above the seed. -/
+theorem intervalDomain_bootstrap_linear_damping_of_energy
+    {params : CM2Params} {T rho p0 pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u
+      (params.N : ℝ) T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hpExp : p0 ≤ pExp) :
+    ∃ B > 0, ∃ D, ∀ t, 0 < t → t < T →
+      (1 / pExp) *
+          deriv (fun τ =>
+            intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+        B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ D := by
+  have hinterp :=
+    produce_AgmonAbsorbedInterpolationBefore_of_classical hsol hboot
+  obtain ⟨A, hA, B, hB, K, hK, L, hfull⟩ := henergy pExp hpExp
+  let eps : ℝ := A / (2 * K)
+  have heps : 0 < eps := by
+    dsimp [eps]
+    positivity
+  obtain ⟨Ceps, hCeps⟩ := hinterp pExp hpExp eps heps
+  refine ⟨B, hB, K * Ceps + L, ?_⟩
+  intro t ht0 htT
+  let G : ℝ := intervalDomain.integral (fun x =>
+    (intervalDomain.gradNorm
+      (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)
+  let Z : ℝ := intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
+  have hfull_t := hfull t ht0 htT
+  have hinterp_t : Z ≤ eps * G + Ceps := by
+    simpa [Z, G] using hCeps t ht0 htT
+  have hG : 0 ≤ G := by
+    dsimp [G]
+    rw [intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (params := params) (T := T) (pExp := pExp)
+      (u := u) (v := v) hsol ht0 htT]
+    exact mul_nonneg (sq_nonneg _) <|
+      intervalDomain_lp_weighted_gradient_dissipation_nonneg_of_regularity
+        (pExp := pExp) hsol ht0 htT
+  have hscaled : K * Z ≤ K * (eps * G + Ceps) :=
+    mul_le_mul_of_nonneg_left hinterp_t hK.le
+  have hKe : K * eps = A / 2 := by
+    dsimp [eps]
+    field_simp [ne_of_gt hK]
+  have hscaled' : K * Z ≤ (A / 2) * G + K * Ceps := by
+    calc
+      K * Z ≤ K * (eps * G + Ceps) := hscaled
+      _ = (A / 2) * G + K * Ceps := by
+        rw [mul_add, ← mul_assoc, hKe]
+  dsimp [G, Z] at hfull_t hscaled' ⊢
+  nlinarith
+
+/-- A linear damping inequality bounds one terminal time window.  No initial
+trace is needed: the positive anchor slice is a finite classical slice. -/
+theorem intervalDomain_lp_power_bounded_on_terminal_window_of_linear_damping
+    {params : CM2Params} {T pExp B D : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hp : 1 < pExp) (hB : 0 < B)
+    (hdamp : ∀ t, 0 < t → t < T →
+      (1 / pExp) *
+          deriv (fun τ =>
+            intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+        B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ D) :
+    LpPowerBoundedOnTerminalWindow intervalDomain pExp T u := by
+  let E : ℝ → ℝ := fun s =>
+    intervalDomain.integral (fun x => (u s x) ^ pExp)
+  let K : ℝ := max 0 (D / B)
+  have hK : 0 ≤ K := by
+    dsimp [K]
+    exact le_max_left _ _
+  have hDK : D ≤ B * K := by
+    have hdiv : D / B ≤ K := by
+      dsimp [K]
+      exact le_max_right _ _
+    have hmul := mul_le_mul_of_nonneg_left hdiv hB.le
+    have hcancel : B * (D / B) = D := by
+      field_simp [ne_of_gt hB]
+    rwa [hcancel] at hmul
+  have hEderivAt : ∀ s, 0 < s → s < T →
+      HasDerivAt E (deriv E s) s := by
+    intro s hs0 hsT
+    have hpow := intervalDomainPowerEnergy_hasDerivAt
+      (q := pExp) hsol ⟨hs0, hsT⟩
+    have hEq : E = fun r => intervalDomainPowerEnergy pExp u r := by
+      funext r
+      dsimp [E, intervalDomainPowerEnergy]
+      exact intervalDomain_integral_rpow_eq_lift_integral
+    rw [hEq]
+    exact hpow.differentiableAt.hasDerivAt
+  have hEcont : ContinuousOn E (Set.Ioo (0 : ℝ) T) := by
+    intro s hs
+    exact (hEderivAt s hs.1 hs.2).continuousAt.continuousWithinAt
+  have hEderiv : ∀ s ∈ Set.Ioo (0 : ℝ) T, K < E s →
+      ∃ d : ℝ, d ≤ 0 ∧ HasDerivAt E d s := by
+    intro s hs hKs
+    have hDamp := hdamp s hs.1 hs.2
+    have hp0 : 0 < pExp := lt_trans zero_lt_one hp
+    refine ⟨deriv E s, ?_, hEderivAt s hs.1 hs.2⟩
+    have hinv : 0 < 1 / pExp := one_div_pos.mpr hp0
+    have hBE : B * K < B * E s := mul_lt_mul_of_pos_left hKs hB
+    change (1 / pExp) * deriv E s + B * E s ≤ D at hDamp
+    nlinarith
+  intro anchor hanchor0 hanchorT
+  let C : ℝ := max K (E anchor)
+  refine ⟨C, ?_⟩
+  intro t hat htT
+  have hEt : E t ≤ C := by
+    by_cases hle : E t ≤ K
+    · exact hle.trans (le_max_left _ _)
+    · push Not at hle
+      by_cases heq : t = anchor
+      · subst t
+        exact le_max_right _ _
+      · have hat_lt : anchor < t :=
+          lt_of_le_of_ne hat (Ne.symm heq)
+        have habove : ∀ s ∈ Set.Ioc (0 : ℝ) t, K < E s :=
+          threshold_persists_below_of_hasDerivAt_nonpos
+            (lt_of_lt_of_le hanchor0 hat) htT hEcont hEderiv hle
+        have hsubIoo : Set.Icc anchor t ⊆ Set.Ioo (0 : ℝ) T := fun z hz =>
+          ⟨lt_of_lt_of_le hanchor0 hz.1, lt_of_le_of_lt hz.2 htT⟩
+        have hsubIoc : Set.Ioo anchor t ⊆ Set.Ioc (0 : ℝ) t := fun z hz =>
+          ⟨lt_trans hanchor0 hz.1, hz.2.le⟩
+        have hanti : AntitoneOn E (Set.Icc anchor t) := by
+          apply antitoneOn_of_deriv_nonpos (convex_Icc _ _)
+            (hEcont.mono hsubIoo)
+          · intro z hz
+            rw [interior_Icc] at hz
+            exact ((hEderivAt z
+              (lt_trans hanchor0 hz.1) (lt_trans hz.2 htT)).differentiableAt
+                ).differentiableWithinAt
+          · intro z hz
+            rw [interior_Icc] at hz
+            have hzIoo : z ∈ Set.Ioo (0 : ℝ) T :=
+              ⟨lt_trans hanchor0 hz.1, lt_trans hz.2 htT⟩
+            obtain ⟨d, hd, hD⟩ := hEderiv z hzIoo (habove z (hsubIoc hz))
+            rw [hD.deriv]
+            exact hd
+        have hEtEa : E t ≤ E anchor :=
+          hanti (Set.left_mem_Icc.mpr hat_lt.le)
+            (Set.right_mem_Icc.mpr hat_lt.le) hat_lt.le
+        exact hEtEa.trans (le_max_right _ _)
+  simpa [E] using hEt
+
+/-- Correct positive-time form of the abstract Lemma 2.6 bootstrap on the
+unit interval: every exponent is uniformly bounded on a terminal subwindow.
+For exponents below the seed this follows from finite-measure monotonicity;
+for exponents above it, Agmon absorption and scalar damping apply directly. -/
+theorem intervalDomain_abstractLpBootstrap_terminal
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u
+      (params.N : ℝ) T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0) :
+    ∀ pExp > 1,
+      LpPowerBoundedOnTerminalWindow intervalDomain pExp T u := by
+  intro pExp hpExp
+  by_cases hp : p0 ≤ pExp
+  · obtain ⟨B, hB, D, hdamp⟩ :=
+      intervalDomain_bootstrap_linear_damping_of_energy
+        hsol hboot henergy hp
+    exact intervalDomain_lp_power_bounded_on_terminal_window_of_linear_damping
+      hsol hpExp hB hdamp
+  · have hp_le : pExp ≤ p0 := le_of_lt (lt_of_not_ge hp)
+    have hLp : LpPowerBoundedBefore intervalDomain pExp T u :=
+      intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
+        hpExp hp_le
+        (fun t ht0 htT x => (hsol.u_pos' ht0 htT (x := x)).le)
+        (fun t ht0 htT =>
+          intervalDomain_u_rpow_intervalIntegrable_of_regularity
+            (q := pExp) hsol ht0 htT)
+        (fun t ht0 htT =>
+          intervalDomain_u_rpow_intervalIntegrable_of_regularity
+            (q := p0) hsol ht0 htT)
+        (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+    exact lpPowerBoundedOnTerminalWindow_of_boundedBefore hLp
+
 /-! ### Axiom audit -/
 
-#print axioms intervalDomain_all_Lp_of_agmon_bootstrap
-#print axioms intervalDomain_Proposition_2_5_of_agmon
 #print axioms produce_AgmonAbsorbedInterpolationBefore_of_classical
+#print axioms intervalDomain_abstractLpBootstrap_terminal
 
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 

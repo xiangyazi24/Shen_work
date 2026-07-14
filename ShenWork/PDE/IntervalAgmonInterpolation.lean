@@ -1,7 +1,7 @@
-import ShenWork.Paper2.IntervalDomainTheorem11
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.GagliardoNirenberg
+import ShenWork.Paper2.IntervalDomainLemma41
 
 /-!
 # Interval Agmon interpolation audit
@@ -24,12 +24,10 @@ inequality is satisfiable by choosing a large constant depending on that
 slice.  This is honest but intentionally not exported as the paper-level
 interpolation frontier.
 
-The paper-level consumer needs the second, uniform interface:
+The PDE-level consumer needs the second, uniform interface:
 `UnitIntervalPositiveAgmonInterpolation`, where `Ceps` is chosen from `q`
 and `eps` before the solution slice is supplied, and where the slice carries
-the closed-interval `C²` regularity available from classical solutions.  The
-final theorem wires that uniform frontier into
-`IntervalDomainClassicalSolutionPositiveInterpolation`.
+the closed-interval `C²` regularity available from classical solutions.
 -/
 
 open MeasureTheory Set
@@ -848,39 +846,9 @@ theorem unitIntervalPositiveAgmonInterpolation :
               (mul_le_mul_of_nonneg_right hCabs_le hMp_nonneg)
   simpa [Y, G, M] using hfinal
 
-/-- Produce the classical-solution positive interpolation frontier from a
-uniform unit-interval Agmon/Gagliardo-Nirenberg frontier. -/
-theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-    {params : CM2Params}
-    (hagmon : UnitIntervalPositiveAgmonInterpolation) :
-    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-      params := by
-  intro T u v hsol eps heps q hq
-  rcases hagmon q hq eps heps with ⟨Ceps, hCeps_pos, hCeps⟩
-  refine ⟨Ceps, hCeps_pos, ?_⟩
-  intro t ht0 htT
-  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
-  have hf_pos : ∀ x : intervalDomain.Point, 0 < u t x :=
-    fun x => hsol.u_pos' ht0 htT
-  have hC2_closed :
-      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.1 t ht).1.1
-  exact hCeps (u t) hf_pos hC2_closed
-
-/-- The interval-domain positive solution-slice interpolation theorem obtained
-from the proved unit-interval Agmon interpolation frontier. -/
-theorem intervalDomain_classicalSolutionPositiveInterpolation
-    (params : CM2Params) :
-    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-      params :=
-  intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-    (params := params) unitIntervalPositiveAgmonInterpolation
-
 #print axioms intervalDomain_agmon_interpolation_slice
 #print axioms intervalDomainLift_rpow_agmon_bound
 #print axioms unitIntervalPositiveAgmonInterpolation
-#print axioms intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-#print axioms intervalDomain_classicalSolutionPositiveInterpolation
 
 end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 

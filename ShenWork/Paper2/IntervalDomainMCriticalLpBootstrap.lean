@@ -193,7 +193,7 @@ theorem critical_bootstrap_linear_damping
   have henergy :=
     intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
   have hinterp :=
-    produce_AgmonAbsorbedInterpolationBefore_of_classical hsol hcross hboot
+    produce_AgmonAbsorbedInterpolationBefore_of_classical hsol hboot
   obtain ⟨A, hA, B, hB, K, hK, L, hfull⟩ := henergy pExp hpExp
   let eps : ℝ := A / (2 * K)
   have heps : 0 < eps := by

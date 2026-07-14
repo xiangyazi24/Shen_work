@@ -17,7 +17,7 @@ open ShenWork.IntervalDomain ShenWork.Paper2
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainEntropyStrong1BasinMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- Every positive bounded global orbit in the first strict formula branch

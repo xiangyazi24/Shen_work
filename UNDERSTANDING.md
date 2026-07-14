@@ -1,5 +1,31 @@
 # UNDERSTANDING.md — Shen_work
 
+## Paper 2 Lemma 2.6 / Corollary 2.1 statement repair (2026-07-13)
+
+The raw `Lemma_2_6` interface in `Statements.lean` is deliberately not claimed
+as a theorem.  Its whole-open-interval conclusion is false from the two stored
+hypotheses alone: a positive Neumann heat flow starting from
+`L^p0 \ L^p` data has the uniform seed bound and the exact power-energy
+identity, but its `L^p` norm diverges as time tends to zero.  Pointwise `deriv`
+data would also be insufficient without the temporal regularity supplied by a
+classical solution.  This is a statement defect, not a missing Moser tactic.
+
+The faithful positive-time replacement is
+`intervalDomain_abstractLpBootstrap_terminal`.  For a concrete classical
+interval solution, the existing power-energy differentiability and the proved
+Agmon absorption produce a scalar linear damping inequality.  A first-crossing
+argument then yields a uniform power bound on `[s,T)` for every fixed
+`0 < s < T` and every finite exponent.  This is exactly what the printed
+terminal `limsup` in Corollary 2.1 needs.  The public concrete close is
+`intervalDomain_Corollary_2_1_terminalWindow`; it has no generic
+`Lemma_2_6` package assumption and prints only the standard three axioms.
+
+ChatGPT audit Q4708 independently confirmed the quantifier split used here:
+terminal control should quantify over every positive anchor, while the stronger
+whole-time statement requires a bounded initial datum plus an initial-trace
+bridge.  The old conditional all-time wrapper remains only as a clearly marked
+compatibility theorem; it is not used as evidence for the paper result.
+
 ## Paper 2 positive critical bootstrap frontier (2026-07-12)
 
 Commit `28bb65b1` exposes the Q4589 two-mechanism route without conflating

@@ -33,6 +33,22 @@ namespace ShenWork.Paper2
 
 noncomputable section
 
+/-- High-level solution-slice bridge kept in the statement assembly, rather
+than in the low-level Agmon module, so that the analytic dependency graph does
+not cycle through `IntervalDomainTheorem11`. -/
+private theorem solutionPositiveInterpolation_of_uniformAgmon
+    (p : CM2Params)
+    (hagmon : UnitIntervalPositiveAgmonInterpolation) :
+    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
+      p := by
+  intro T u v hsol eps heps q hq
+  rcases hagmon q hq eps heps with ⟨Ceps, hCeps_pos, hCeps⟩
+  refine ⟨Ceps, hCeps_pos, ?_⟩
+  intro t ht0 htT
+  exact hCeps (u t)
+    (fun x => hsol.u_pos' ht0 htT (x := x))
+    ((hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1)
+
 /-! ## Section 2 statement targets -/
 
 /-- Interval-domain Paper 2 section-2 targets covered by the existing bundled
@@ -2141,7 +2157,8 @@ theorem intervalDomainPaper2_Lemma_4_1_of_provedAgmon
     (p : CM2Params) :
     Lemma_4_1 intervalDomain p :=
   intervalDomainPaper2_Lemma_4_1_of_solutionInterpolationFrontier
-    p (intervalDomain_classicalSolutionPositiveInterpolation p)
+    p (solutionPositiveInterpolation_of_uniformAgmon
+      p unitIntervalPositiveAgmonInterpolation)
 
 /-- Assemble Lemma 3.1 and Lemma 4.1 from the proved unit-interval positive
 Agmon interpolation theorem. -/
@@ -2503,8 +2520,7 @@ def IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData.toP
     IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
       p cGrad where
   solutionInterpolation :=
-    intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-      (params := p) h.agmon
+    solutionPositiveInterpolation_of_uniformAgmon p h.agmon
   dissipation := h.dissipation
   gradConstantPositive := h.gradConstantPositive
   gradientChain := h.gradientChain
@@ -2538,7 +2554,9 @@ def
         p cGrad) :
     IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
       p cGrad where
-  solutionInterpolation := intervalDomain_classicalSolutionPositiveInterpolation p
+  solutionInterpolation :=
+    solutionPositiveInterpolation_of_uniformAgmon
+      p unitIntervalPositiveAgmonInterpolation
   dissipation := h.dissipation
   gradConstantPositive := h.gradConstantPositive
   gradientChain := h.gradientChain
@@ -5355,8 +5373,7 @@ def
       p C where
   section2 := h.section2
   aprioriInterpolation :=
-    intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-      (params := p) h.agmon
+    solutionPositiveInterpolation_of_uniformAgmon p h.agmon
   localAndMain := h.localAndMain
 
 /-- Fill the explicit Agmon field of the preferred raw-drop terminal-endpoint

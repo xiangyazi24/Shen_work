@@ -33,7 +33,7 @@ open ShenWork.PDE
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainWeakSupBootstrapTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Fixed lower edge of the weak positive tube. -/
