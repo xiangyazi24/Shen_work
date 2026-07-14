@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WholeLineCauchyDuhamel
 import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
+import ShenWork.Paper1.WholeLineCauchySpaceTimeMaximum
 import ShenWork.Paper1.Statements
 
 open MeasureTheory Set Filter Topology
@@ -58,10 +59,113 @@ theorem wholeLineCauchyHeatBUCTotal_pos_of_nonneg_of_pos_atBot
     (fun y => WholeLineBUC.abs_apply_le_norm u₀ y)
     u₀.1.continuous.aestronglyMeasurable hnn hδ hA x
 
+/-- **Pure-drift weak maximum principle (no zeroth-order term).**  A bounded
+space-time-regular trajectory whose PDE is bounded above by `u_xx + K|u_x|`
+(a drift subsolution, *no* reaction term) never exceeds its initial ceiling on
+the slab.  Proved from the strict-`G` slab driver by the standard `-η t`
+perturbation, which supplies the strict negativity the driver needs and is then
+removed in the limit `η → 0`.  This is the reusable min/max-side tool the strict
+positivity comparison runs on: applying it to `δ - e^{K t} u` turns the linear
+drift supersolution into a lower barrier. -/
+theorem wholeLineSlabSup_le_of_drift_subsolution
+    {T A C K : ℝ} {u : ℝ → ℝ → ℝ}
+    (hT : 0 < T) (hK : 0 ≤ K)
+    (hcont : Continuous (fun q : ℝ × ℝ => u q.1 q.2))
+    (hupper : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x, u t x ≤ A)
+    (hinit : ∀ x, u 0 x ≤ C)
+    (htime : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun s : ℝ => u s x) (deriv (fun s : ℝ => u s x) t) t)
+    (hspace1 : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => u t y) (deriv (fun y : ℝ => u t y) x) x)
+    (hspace2 : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => deriv (fun z : ℝ => u t z) y)
+        (deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x) x)
+    (hpde : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      deriv (fun s : ℝ => u s x) t ≤
+        deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x +
+          K * |deriv (fun y : ℝ => u t y) x|) :
+    wholeLineSlabSup T u ≤ C := by
+  refine le_of_forall_pos_le_add (fun ε hε => ?_)
+  set η : ℝ := ε / T with hηdef
+  have hη : 0 < η := div_pos hε hT
+  have hηT : η * T = ε := by rw [hηdef]; field_simp
+  set uη : ℝ → ℝ → ℝ := fun t x => u t x - η * t with huηdef
+  have hcontη : Continuous (fun q : ℝ × ℝ => uη q.1 q.2) := by
+    simp only [huηdef]
+    exact hcont.sub ((continuous_const.mul continuous_fst))
+  have hupperη : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x, uη t x ≤ A := by
+    intro t ht x
+    have : 0 ≤ η * t := mul_nonneg hη.le ht.1
+    simp only [huηdef]
+    linarith [hupper t ht x]
+  have hinitη : ∀ x, uη 0 x ≤ C := by
+    intro x; simp only [huηdef, mul_zero, sub_zero]; exact hinit x
+  have hdtη : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun s : ℝ => uη s x) (deriv (fun s : ℝ => u s x) t - η) t := by
+    intro t x ht
+    simp only [huηdef]
+    exact (htime ht).sub (((hasDerivAt_id t).const_mul η).congr_deriv (by ring))
+  have htimeη : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun s : ℝ => uη s x) (deriv (fun s : ℝ => uη s x) t) t := by
+    intro t x ht
+    exact (hdtη ht).differentiableAt.hasDerivAt
+  have hslice : ∀ t : ℝ, (fun y : ℝ => uη t y) = fun y : ℝ => u t y - η * t := by
+    intro t; rfl
+  have hspace1η : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => uη t y) (deriv (fun y : ℝ => uη t y) x) x := by
+    intro t x ht
+    have : DifferentiableAt ℝ (fun y : ℝ => uη t y) x := by
+      rw [hslice]; exact (hspace1 ht).differentiableAt.sub_const _
+    exact this.hasDerivAt
+  have hderiv_slice : ∀ t : ℝ,
+      (fun y : ℝ => deriv (fun z : ℝ => uη t z) y) =
+        fun y : ℝ => deriv (fun z : ℝ => u t z) y := by
+    intro t; funext y
+    simp only [huηdef]
+    exact deriv_sub_const _
+  have hspace2η : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => deriv (fun z : ℝ => uη t z) y)
+        (deriv (fun y : ℝ => deriv (fun z : ℝ => uη t z) y) x) x := by
+    intro t x ht
+    have : DifferentiableAt ℝ (fun y : ℝ => deriv (fun z : ℝ => uη t z) y) x := by
+      rw [hderiv_slice]; exact (hspace2 ht).differentiableAt
+    exact this.hasDerivAt
+  have hpdeη : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      deriv (fun s : ℝ => uη s x) t ≤
+        deriv (fun y : ℝ => deriv (fun z : ℝ => uη t z) y) x +
+          K * |deriv (fun y : ℝ => uη t y) x| + (fun _ : ℝ => -η) (uη t x) := by
+    intro t x ht
+    have hdt : deriv (fun s : ℝ => uη s x) t = deriv (fun s : ℝ => u s x) t - η :=
+      (hdtη ht).deriv
+    have hd2 : deriv (fun y : ℝ => deriv (fun z : ℝ => uη t z) y) x =
+        deriv (fun y : ℝ => deriv (fun z : ℝ => u t z) y) x := by
+      rw [hderiv_slice]
+    have hd1 : deriv (fun y : ℝ => uη t y) x = deriv (fun y : ℝ => u t y) x := by
+      rw [hslice]; exact deriv_sub_const _
+    simp only [hdt, hd2, hd1]
+    have := hpde (x := x) ht
+    linarith
+  have hdriver : wholeLineSlabSup T uη ≤ C :=
+    wholeLineSlabSup_le_of_scalar_pde hT hK hcontη hupperη hinitη
+      continuous_const (fun _ => by simpa using neg_neg_iff_pos.mpr hη)
+      htimeη hspace1η hspace2η hpdeη
+  have hkey : ∀ a ∈ wholeLineSlabValues T u, a ≤ C + ε := by
+    rintro a ⟨t, ht, x, rfl⟩
+    have hle : uη t x ≤ wholeLineSlabSup T uη :=
+      le_wholeLineSlabSup hT.le hupperη ht x
+    have hηt : η * t ≤ η * T := mul_le_mul_of_nonneg_left ht.2 hη.le
+    have hueq : u t x = uη t x + η * t := by simp only [huηdef]; ring
+    calc u t x = uη t x + η * t := hueq
+      _ ≤ wholeLineSlabSup T uη + η * T := add_le_add hle hηt
+      _ ≤ C + η * T := by linarith
+      _ = C + ε := by rw [hηT]
+  exact csSup_le (wholeLineSlabValues_nonempty hT.le u) hkey
+
 section WholeLineCauchyStrictPositivityAxiomAudit
 
 #print axioms wholeLineCauchyHeatOp_pos_of_nonneg_of_pos_atBot
 #print axioms wholeLineCauchyHeatBUCTotal_pos_of_nonneg_of_pos_atBot
+#print axioms wholeLineSlabSup_le_of_drift_subsolution
 
 end WholeLineCauchyStrictPositivityAxiomAudit
 
