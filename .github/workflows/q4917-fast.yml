@@ -7,10 +7,11 @@ on:
       - scratch/q4917_fast.py
       - .github/workflows/q4917-fast.yml
   pull_request:
-    branches: [chatgpt-scratch]
+    branches: [chatgpt-scratch, q4917-krecurrence]
     paths:
       - scratch/q4917_fast.py
       - .github/workflows/q4917-fast.yml
+      - scratch/q4917_trigger.txt
   workflow_dispatch:
 
 permissions:
