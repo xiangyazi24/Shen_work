@@ -7,7 +7,7 @@ monotonicity of traveling waves for repulsion/attraction chemotaxis models
 with logistic type source*, arXiv:2605.04401v1 (6 May 2026).  The source
 checked is the archived local copy `paper1.pdf`.
 
-## Four independent defects
+## Six independent defects
 
 ### 1. The root comparison in (5.35) has the wrong direction
 
@@ -88,12 +88,60 @@ and the `b_4 z` sign. This does not force a larger conservative budget in
 ```
 
 and the `b_4` term is estimated by absolute value. The displayed (5.33)
-already retains the `(2m+gamma)` contribution.
+already retains the `(2m+gamma)` contribution, but its other coefficient
+errors below still require replacement.
+
+### 5. The `J_1` Young term in (5.27) loses a factor of `b_1`
+
+Young's inequality gives
+
+```text
+|chi b_1 W_x W|
+  <= (1/2) W_x^2 + (1/2) |chi|^2 b_1^2 W^2.
+```
+
+Formula (5.27), propagated into (5.33), uses `b_1` rather than `b_1^2`.
+There is no hypothesis ensuring that this replacement is an upper bound;
+in particular, the negative-`chi` branch allows arbitrarily large
+`|chi|`. The corrected constant term must contain
+`|chi|^2 B_1^2/2`, where `B_1` bounds `|b_1|`.
+
+### 6. Formulas (5.29)–(5.30) drop the `M^(2(gamma-1))` resolver factor
+
+Lemma 5.3 states
+
+```text
+integral V^2   <= gamma^2 M^(2(gamma-1))/(1-eta)^2 integral W^2,
+integral V_x^2 <= gamma^2 M^(2(gamma-1))/(1-eta^2) integral W^2.
+```
+
+The subsequent estimates use only the factors with numerator `gamma^2`.
+The missing power is not identically one: in the positive-`chi` branch the
+asymptotic cap `M_chi` can exceed one. Put
+
+```text
+x = |chi|^(1/6),
+K = 1 + gamma^2 M^(2(gamma-1)) (1+x)^2/x^2
+```
+
+for `chi != 0`. For every admissible `eta < 1/(1+x)`, `K` bounds both
+`1+R_V(eta)` and `1+R_Vx(eta)`. The `chi=0` case is separate and all
+chemotactic corrections vanish.
 
 ## Recommended amended statement
 
-Use the paper's limiting error budgets in (5.32)–(5.33), evaluated at the
-asymptotic bound `M_chi`, and write them as `A_chi` and `B_chi`.  Define
+Let `B_i` bound `|b_i|`, use the corrected common resolver factor `K` above,
+and define
+
+```text
+A_chi = |chi| B_1 + (|chi| B_3/2) K,
+B_chi = |chi| ((2m+gamma) M^(m+gamma-1) + B_2)
+        + (|chi|^2 B_1^2)/2
+        + (|chi| (B_3+B_4)/2) K.
+```
+
+These replace, rather than merely rename, the printed budgets (5.32)–(5.33).
+Define
 
 ```text
 Delta = (c-A_chi)^2 - 4(1+B_chi),
@@ -145,7 +193,7 @@ proof.
 ## Lean certificates and present proof boundary
 
 The repository contains zero-`sorry`, standard-axiom certificates for all
-four defects:
+six defects:
 
 - `paper531_kappa_not_between_perturbed_roots`,
   `paper531_kappa_lt_rootMinus`, and
@@ -159,7 +207,11 @@ four defects:
   `ShenWork/Paper1/Theorem12RootObstruction.lean`;
 - `paper5ChemFluxDifference_expansion_corrected` and
   `paper5CorrectedChemZeroCoefficient_abs_le` in
-  `ShenWork/Paper1/Theorem12MeanCoefficients.lean`.
+  `ShenWork/Paper1/Theorem12MeanCoefficients.lean`;
+- `paper5J1VariableDensity_le`,
+  `paper5WeightedResolverFactors_le_cap`, and
+  `paper5ResolvedW2Coefficient_le_corrected531` in
+  `ShenWork/Paper1/Theorem12WeightedEnergy.lean`.
 
 `ShenWork/Paper1/Theorem12Corrected.lean` currently proves the scalar
 Gronwall and moving-frame localization wiring, but its general-data PDE
