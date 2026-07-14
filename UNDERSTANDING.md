@@ -4770,3 +4770,10 @@ strictly below the clamp ceiling `‖u₀‖ + 1` at every space-time point.  Th
 remaining clamp-inactivity seam is therefore exactly nonnegativity; uniform
 closeness to the initial datum cannot supply it when the datum has zero
 infimum.
+
+Pointwise evaluation now commutes with the BUC-valued interval integrals, using
+an explicit completeness witness for the norm-induced uniformity on the closed
+BUC subspace.  Consequently the canonical fixed point has a scalar Duhamel
+identity at every space-time point.  This is the interface needed to split the
+history before a negative point and prove the local homogeneous equation on a
+neighborhood where both clamped nonlinear sources vanish.

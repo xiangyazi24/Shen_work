@@ -299,6 +299,44 @@ theorem wholeLineCauchyBUCMildFixedPoint_eq_mildMap
   (wholeLineCauchyBUCMildFixedPoint_isFixedPt
     p hM hT u₀ hsmall).symm
 
+/-- Pointwise mild equation for the canonical BUC fixed point. -/
+theorem wholeLineCauchyBUCMildFixedPoint_apply_eq
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ) :
+    (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x =
+      (wholeLineCauchyHeatBUCTotal z.1 u₀).1 x +
+        (-p.χ) *
+          (wholeLineCauchyGradientDuhamelBUC p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) z.1).1 x +
+        (wholeLineCauchyValueDuhamelBUC p hM hT
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) z.1).1 x := by
+  have hfix := congrArg
+    (fun U : WholeLineBUCTrajectory T => (U z).1 x)
+    (wholeLineCauchyBUCMildFixedPoint_eq_mildMap
+      p hM hT u₀ hsmall)
+  simpa [wholeLineCauchyBUCMildMap, smul_eq_mul] using hfix
+
+/-- Pointwise mild equation with both BUC-valued Bochner histories evaluated
+as scalar interval integrals. -/
+theorem wholeLineCauchyBUCMildFixedPoint_apply_eq_integrals
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ) :
+    (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x =
+      (wholeLineCauchyHeatBUCTotal z.1 u₀).1 x +
+        (-p.χ) * (∫ s in (0 : ℝ)..z.1,
+          (wholeLineCauchyGradientBUCIntegrand p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)
+            z.1 s).1 x) +
+        (∫ s in (0 : ℝ)..z.1,
+          (wholeLineCauchyValueBUCIntegrand p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)
+            z.1 s).1 x) := by
+  rw [wholeLineCauchyBUCMildFixedPoint_apply_eq]
+  rw [wholeLineCauchyGradientDuhamelBUC_apply p hM hT _ z.2.1 x]
+  rw [wholeLineCauchyValueDuhamelBUC_apply p hM hT _ z.2.1 x]
+
 theorem wholeLineCauchyBUCMildFixedPoint_initial
     (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
     (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
@@ -419,6 +457,7 @@ section WholeLineCauchyBUCFixedPointAxiomAudit
 #print axioms wholeLineCauchyBUCMildMap_contracting
 #print axioms exists_pos_time_wholeLineCauchyBUCMildRate_lt_one
 #print axioms wholeLineCauchyBUCMildFixedPoint_isFixedPt
+#print axioms wholeLineCauchyBUCMildFixedPoint_apply_eq_integrals
 #print axioms wholeLineCauchyBUCMildFixedPoint_initial
 #print axioms wholeLineCauchyBUCMildFixedPoint_dist_homogeneous_le
 #print axioms exists_wholeLineCauchyBUCMildFixedPoint_below_clamp

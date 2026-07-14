@@ -193,6 +193,25 @@ theorem wholeLineCauchyGradientBUCIntegrand_intervalIntegrable
   apply ENNReal.ofReal_le_ofReal
   simpa only [Real.norm_eq_abs, abs_of_nonneg hg] using hnorm
 
+/-- Point evaluation commutes with interval integration in the BUC phase
+space.  The explicit completeness witness resolves the two reducible
+uniform-space paths on the closed BUC subspace. -/
+theorem wholeLineBUC_intervalIntegral_apply
+    {a b : ℝ} {f : ℝ → WholeLineBUC}
+    (hf : IntervalIntegrable f volume a b) (x : ℝ) :
+    (∫ s in a..b, f s).1 x = ∫ s in a..b, (f s).1 x := by
+  let L : WholeLineBUC →L[ℝ] ℝ := wholeLineBUCEvalCLM x
+  have hcomm :
+      (∫ s in a..b, L (f s)) = L (∫ s in a..b, f s) :=
+    @ContinuousLinearMap.intervalIntegral_comp_comm
+      ℝ WholeLineBUC ℝ
+      WholeLineBUC.normedAddCommGroup inferInstance
+      a b volume f
+      inferInstance inferInstance inferInstance inferInstance inferInstance
+      inferInstance wholeLineBUCMetricCompleteSpace
+      L hf
+  exact hcomm.symm
+
 /-- The divergence-form source integrated as an honest Bochner integral in
 `BUC(ℝ)`. -/
 def wholeLineCauchyGradientDuhamelBUC
@@ -200,6 +219,18 @@ def wholeLineCauchyGradientDuhamelBUC
     (U : WholeLineBUCTrajectory T) (t : ℝ) : WholeLineBUC :=
   ∫ s in (0 : ℝ)..t,
     wholeLineCauchyGradientBUCIntegrand p hM hT U t s
+
+/-- Pointwise evaluation commutes with the BUC-valued gradient Duhamel
+integral. -/
+theorem wholeLineCauchyGradientDuhamelBUC_apply
+    (p : CMParams) {M T t : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (ht : 0 ≤ t) (x : ℝ) :
+    (wholeLineCauchyGradientDuhamelBUC p hM hT U t).1 x =
+      ∫ s in (0 : ℝ)..t,
+        (wholeLineCauchyGradientBUCIntegrand p hM hT U t s).1 x := by
+  exact wholeLineBUC_intervalIntegral_apply
+    (wholeLineCauchyGradientBUCIntegrand_intervalIntegrable
+      p hM hT U ht) x
 
 @[simp] theorem wholeLineCauchyGradientDuhamelBUC_zero
     (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
@@ -317,6 +348,18 @@ def wholeLineCauchyValueDuhamelBUC
     (U : WholeLineBUCTrajectory T) (t : ℝ) : WholeLineBUC :=
   ∫ s in (0 : ℝ)..t,
     wholeLineCauchyValueBUCIntegrand p hM hT U t s
+
+/-- Pointwise evaluation commutes with the BUC-valued value Duhamel
+integral. -/
+theorem wholeLineCauchyValueDuhamelBUC_apply
+    (p : CMParams) {M T t : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (ht : 0 ≤ t) (x : ℝ) :
+    (wholeLineCauchyValueDuhamelBUC p hM hT U t).1 x =
+      ∫ s in (0 : ℝ)..t,
+        (wholeLineCauchyValueBUCIntegrand p hM hT U t s).1 x := by
+  exact wholeLineBUC_intervalIntegral_apply
+    (wholeLineCauchyValueBUCIntegrand_intervalIntegrable
+      p hM hT U ht) x
 
 @[simp] theorem wholeLineCauchyValueDuhamelBUC_zero
     (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
@@ -587,6 +630,9 @@ section WholeLineCauchyBUCDuhamelAxiomAudit
 
 #print axioms wholeLineCauchyGradientDuhamelBUC_norm_le
 #print axioms wholeLineCauchyValueDuhamelBUC_norm_le
+#print axioms wholeLineBUC_intervalIntegral_apply
+#print axioms wholeLineCauchyGradientDuhamelBUC_apply
+#print axioms wholeLineCauchyValueDuhamelBUC_apply
 #print axioms wholeLineCauchyGradientDuhamelBUC_dist_le
 #print axioms wholeLineCauchyValueDuhamelBUC_dist_le
 
