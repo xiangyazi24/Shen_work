@@ -422,6 +422,94 @@ theorem wholeLineCauchyGradientDuhamelBUC_restart
   rw [← intervalIntegral.integral_add_adjacent_intervals hGold hGrecent]
   rw [hold]
 
+/-- The physical fixed-point flux supplies exactly the bounded `C1` slice
+data consumed by the divergence restart identity. -/
+theorem wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive
+    (p : CMParams) {M T theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M) :
+    let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let F := (wholeLineCauchyFluxSourceTrajectory p hM hT U z.1).1
+    (∀ x, HasDerivAt F (deriv F x) x) ∧
+      Continuous (deriv F) ∧
+      ∃ D : ℝ, ∀ x, |deriv F x| ≤ D := by
+  dsimp only
+  let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F := (wholeLineCauchyFluxSourceTrajectory p hM hT U z.1).1
+  have hhas : ∀ x, HasDerivAt F (deriv F x) x := by
+    intro x
+    have hraw := wholeLineCauchyFluxSourceTrajectory_slice_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz hstrip x
+    simpa [U, F] using hraw.differentiableAt.hasDerivAt
+  rcases wholeLineCauchyFluxSourceTrajectory_slice_deriv_holder_positive
+      p hM hT u₀ hsmall z hz htheta0 htheta1 heta0 heta1 hrel hstrip with
+    ⟨rho, H, hrho0, _hrho1, hH, hholder⟩
+  have hcont : Continuous (deriv F) := by
+    apply wholeLineContinuous_of_holder hrho0 hH
+    simpa [U, F] using hholder
+  let C : ℝ := M ^ p.m * M ^ p.γ
+  have hFbound : ∀ x, |F x| ≤ C := by
+    intro x
+    calc
+      |F x| ≤ ‖wholeLineCauchyFluxSourceTrajectory p hM hT U z.1‖ :=
+        WholeLineBUC.abs_apply_le_norm _ _
+      _ ≤ C := by
+        exact wholeLineCauchyTruncatedFluxBUC_norm_le p hM
+          (wholeLineBUCTrajectoryExtend hT U z.1)
+  have hderivBound : ∀ x, |deriv F x| ≤ H + 2 * C := by
+    apply deriv_abs_le_of_bounded_of_deriv_holder hH hrho0 hFbound
+      (fun x => (hhas x).differentiableAt)
+    simpa [U, F] using hholder
+  exact ⟨hhas, hcont, H + 2 * C, hderivBound⟩
+
+/-- The divergence restart identity specialized to the canonical physical
+fixed point.  All spatial `C1` hypotheses are discharged internally. -/
+theorem wholeLineCauchyGradientDuhamelBUC_restart_fixedPoint
+    (p : CMParams) {M T t h theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (ht : 0 < t) (htT : t ≤ T) (hh : 0 < h)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M) :
+    let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    wholeLineCauchyGradientDuhamelBUC p hM hT U (t + h) =
+      wholeLineCauchyHeatBUCTotal h
+          (wholeLineCauchyGradientDuhamelBUC p hM hT U t) +
+        ∫ s in t..(t + h),
+          wholeLineCauchyGradientBUCIntegrand p hM hT U (t + h) s := by
+  dsimp only
+  let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  apply wholeLineCauchyGradientDuhamelBUC_restart
+    p hM hT U ht hh
+  · intro s hs y
+    let z : Set.Icc (0 : ℝ) T := ⟨s, hs.1.le, hs.2.trans htT⟩
+    exact (wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive
+      p hM hT u₀ hsmall z hs.1 htheta0 htheta1 heta0 heta1 hrel
+        (hstrip z)).1 y
+  · intro s hs
+    let z : Set.Icc (0 : ℝ) T := ⟨s, hs.1.le, hs.2.trans htT⟩
+    exact (wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive
+      p hM hT u₀ hsmall z hs.1 htheta0 htheta1 heta0 heta1 hrel
+        (hstrip z)).2.1
+  · intro s hs
+    let z : Set.Icc (0 : ℝ) T := ⟨s, hs.1.le, hs.2.trans htT⟩
+    exact (wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive
+      p hM hT u₀ hsmall z hs.1 htheta0 htheta1 heta0 heta1 hrel
+        (hstrip z)).2.2
+
 section WholeLineCauchySemigroupRestartAxiomAudit
 
 #print axioms heatKernel_convolution_add
@@ -433,6 +521,8 @@ section WholeLineCauchySemigroupRestartAxiomAudit
 #print axioms wholeLineCauchyHeatBUCTotal_comp_heatGradientBUCTotal
 #print axioms wholeLineCauchyValueDuhamelBUC_restart
 #print axioms wholeLineCauchyGradientDuhamelBUC_restart
+#print axioms wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive
+#print axioms wholeLineCauchyGradientDuhamelBUC_restart_fixedPoint
 
 end WholeLineCauchySemigroupRestartAxiomAudit
 
