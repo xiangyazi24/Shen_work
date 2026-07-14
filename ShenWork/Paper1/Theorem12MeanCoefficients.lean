@@ -694,6 +694,50 @@ theorem paper5CoefficientBounds_of_barrier_speed_corrected_wave
   exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu
     zero_le_one hu hU (hTW.U_pos x) hv hUx hlog
 
+/-- The speed-independent coefficient producer with the common population
+bound left explicit.  This is the form used in the paper after choosing
+`M > MChi` from the eventual limsup estimate. -/
+theorem paper5CoefficientBounds_of_barrier_speed_common_bound
+    (p : CMParams) {M c sigma t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hbarrierSpeed : paper52MonotoneBarrierSpeed p < c)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hMChiM : MChi p ≤ M)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) M)
+    (hv : |deriv (v t) x| ≤ M ^ p.γ) :
+    let Lu := remark51MPrime p / remark5ChiSigma p sigma
+    |paper5B1 p u v t x| ≤ paper520B1 p M ∧
+      |paper5B2 p u v U t x| ≤
+        paper5B2BoundFromDerivativeData p M Lu 1 ∧
+      |paper5B3 p U x| ≤ p.m * M ^ (p.m - 1) * Lu ∧
+      |paper5B4 p U x| ≤ M ^ p.m := by
+  let Lu := remark51MPrime p / remark5ChiSigma p sigma
+  have hMChiPos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hM : 0 ≤ M := hMChiPos.le.trans hMChiM
+  have hLu : 0 ≤ Lu := by
+    dsimp [Lu]
+    exact div_nonneg (remark51MPrime_nonneg_of_MChi_pos p hMChiPos)
+      (remark5ChiSigma_nonneg p sigma)
+  have hU : U x ∈ Set.Icc (0 : ℝ) M :=
+    ⟨(hTW.U_pos x).le, (hbound.le_MChi x).trans hMChiM⟩
+  have hUx : |deriv U x| ≤ Lu := by
+    dsimp [Lu]
+    exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V
+      hTW hbound hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont
+      hreg.deriv_U_diff hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound x
+  have hlog : 1 < p.m → p.m < 2 →
+      |deriv U x / U x| ≤ (1 : ℝ) := by
+    intro _ _
+    exact abs_waveLogDerivative_le_one_of_barrier_speed p hbarrierSpeed
+      hTW hreg hbound x
+  exact paper5CoefficientBounds_of_derivative_data p hM hLu
+    zero_le_one hu hU (hTW.U_pos x) hv hUx hlog
+
 /-- Compatibility wrapper for the monotone Theorem 1.1(1) branch. -/
 theorem paper5CoefficientBounds_of_monotone_corrected_wave
     (p : CMParams) {c sigma t x : ℝ}
@@ -738,6 +782,7 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5CoefficientBounds_of_derivative_data
 #print axioms paper5CoefficientBounds_of_corrected_wave
 #print axioms paper5CoefficientBounds_of_barrier_speed_corrected_wave
+#print axioms paper5CoefficientBounds_of_barrier_speed_common_bound
 #print axioms paper5CoefficientBounds_of_monotone_corrected_wave
 end Theorem12MeanCoefficientsAxiomAudit
 

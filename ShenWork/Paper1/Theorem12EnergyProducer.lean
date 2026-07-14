@@ -338,10 +338,203 @@ theorem paper5WeightedSignal_resolver_data
     hu hU huM hUM hvEq hVEq hvDiff hVDiff hclose
   exact ⟨hVint, hVxint, hbounds.1, hbounds.2⟩
 
-/-- Fixed-positive-time corrected energy inequality for the actual Cauchy
-solution.  The only remaining inputs are the time-Leibniz identity and the
-standard whole-line integrability/decay conditions needed for integration by
-parts.  Coefficient and signal estimates are produced internally. -/
+/-- Fixed-positive-time corrected energy inequality at an arbitrary common
+population bound `M`.  This is the paper-faithful form used after choosing
+`M > MChi` from the eventual limsup estimate. -/
+theorem paper5WeightedHalfEnergy_deriv_le_common_of_timeLeibniz
+    (p : CMParams) {M T η c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hχ : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (hη : 0 < η) (hηcap : η < stabilityWeightCap p)
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hMChiM : MChi p ≤ M)
+    (hu2 : ContDiff ℝ 2 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU2 : ContDiff ℝ 2 U) (hV2 : ContDiff ℝ 2 V)
+    (huM : ∀ x, coMovingPath c u t x ∈ Set.Icc (0 : ℝ) M)
+    (hvEq : coMovingPath c v t =
+      frozenElliptic p (coMovingPath c u t))
+    (hclose : Integrable (fun x =>
+      Real.exp (2 * η * x) *
+        |coMovingPath c u t x - U x| ^ 2))
+    (htime : deriv (paper5WeightedHalfEnergy η c u U) t =
+      ∫ x, paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationT η
+          (paper5CoMovingMaterialTime c u) t x)
+    (hdiff_int : Integrable (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationXX η (coMovingPath c u) U t x))
+    (hWx2 : Integrable (fun x =>
+      (paper5WeightedPopulationX η (coMovingPath c u) U t x) ^ 2))
+    (hdrift_int : Integrable (fun x =>
+      paper5WeightedPopulationX η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x))
+    (hrem_int : Integrable
+      (paper5CorrectedRemainderDensity p η c
+        (coMovingPath c u) (coMovingPath c v) U
+        (paper5WeightedPopulation η (coMovingPath c u) U t)
+        (paper5WeightedPopulationX η (coMovingPath c u) U t)
+        (paper5WeightedSignal η (coMovingPath c v) V t)
+        (paper5WeightedSignalX η (coMovingPath c v) V t) t))
+    (hdiff_decay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationX η (coMovingPath c u) U t x)
+      atBot (𝓝 0))
+    (hdiff_decay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationX η (coMovingPath c u) U t x)
+      atTop (𝓝 0))
+    (hdrift_decay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x)
+      atBot (𝓝 0))
+    (hdrift_decay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x)
+      atTop (𝓝 0)) :
+    deriv (paper5WeightedHalfEnergy η c u U) t ≤
+      paper531Quadratic c (paper531CommonA p M) (paper531CommonB p M) η *
+        ∫ x, (paper5WeightedPopulation η
+          (coMovingPath c u) U t x) ^ 2 := by
+  have hMChi1 : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hMChiPos : 0 < MChi p := zero_lt_one.trans_le hMChi1
+  have hM1 : 1 ≤ M := hMChi1.trans hMChiM
+  have hM0 : 0 ≤ M := zero_le_one.trans hM1
+  have huC : IsCUnifBdd (coMovingPath c u t) := by
+    refine ⟨hu2.continuous, ⟨M, fun x => ?_⟩⟩
+    rw [abs_of_nonneg (huM x).1]
+    exact (huM x).2
+  have hUC : IsCUnifBdd U :=
+    U_isCUnifBdd_of_continuous hbound hreg.U_cont
+  have hUM : ∀ x, U x ∈ Set.Icc (0 : ℝ) M :=
+    fun x => ⟨(hTW.U_pos x).le, (hbound.le_MChi x).trans hMChiM⟩
+  have hVEq : V = frozenElliptic p U :=
+    IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg
+  have hγ0 : 0 ≤ p.γ := zero_le_one.trans p.hγ
+  have huγ : ∀ x, (coMovingPath c u t x) ^ p.γ ≤ M ^ p.γ :=
+    fun x => Real.rpow_le_rpow (huM x).1 (huM x).2 hγ0
+  have hvUpper : ∀ x,
+      coMovingPath c v t x ≤ M ^ p.γ := by
+    intro x
+    rw [hvEq]
+    exact frozenElliptic_le_of_rpow_le p (Real.rpow_nonneg hM0 _)
+      hu2.continuous (fun y => (huM y).1) huγ x
+  have hvM : ∀ x,
+      coMovingPath c v t x ∈ Set.Icc (0 : ℝ) (M ^ p.γ) := by
+    intro x
+    constructor
+    · rw [hvEq]
+      exact frozenElliptic_nonneg p (fun y => (huM y).1) x
+    · exact hvUpper x
+  have hvDeriv : ∀ x,
+      |deriv (coMovingPath c v t) x| ≤ M ^ p.γ := by
+    intro x
+    have hvUpper' := hvUpper x
+    rw [hvEq] at hvUpper'
+    rw [hvEq]
+    exact (frozenElliptic_deriv_abs_le p huC (fun y => (huM y).1) x).trans
+      hvUpper'
+  have hspeed := remark5SpeedCondition_of_correctedCStarStar_lt p hc
+  have hbarrier := barrierSpeed_lt_of_correctedCStarStar_lt p hc
+  have hcoeff : ∀ x,
+      |paper5B1 p (coMovingPath c u) (coMovingPath c v) t x| ≤
+          paper5CommonB1 p M ∧
+        |paper5B2 p (coMovingPath c u) (coMovingPath c v) U t x| ≤
+          paper5CommonB2 p M ∧
+        |paper5B3 p U x| ≤ paper5CommonB3 p M ∧
+        |paper5B4 p U x| ≤ paper5CommonB4 p M := by
+    intro x
+    have hx := paper5CoefficientBounds_of_barrier_speed_common_bound p
+      (sigma := paper5Sigma) (t := t) (x := x)
+      (by norm_num [paper5Sigma]) hχ hspeed hbarrier hTW hreg hbound
+      hMChiM (huM x) (hvDeriv x)
+    simpa only [paper5CommonB1, paper5CommonB2, paper5CommonB3,
+      paper5CommonB4, paper5ConcreteLu] using hx
+  have hη1 : η < 1 := by
+    have hcap1 : stabilityWeightCap p ≤ 1 := by
+      unfold stabilityWeightCap
+      rw [div_le_one (by positivity)]
+      exact le_add_of_nonneg_right (Real.rpow_nonneg (abs_nonneg _) _)
+    exact hηcap.trans_le hcap1
+  have hsignal := paper5WeightedSignal_resolver_data p hM1 hη hη1
+    huC hUC huM hUM hvEq hVEq
+    (hv2.differentiable (by norm_num))
+    (hV2.differentiable (by norm_num)) hclose
+  have hW2 : Integrable (fun x =>
+      (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2) := by
+    refine hclose.congr (Filter.Eventually.of_forall fun x => ?_)
+    change Real.exp (2 * η * x) *
+        |coMovingPath c u t x - U x| ^ 2 =
+      (Real.exp (η * x) * (coMovingPath c u t x - U x)) ^ 2
+    rw [mul_pow, sq_abs,
+      show Real.exp (η * x) ^ 2 = Real.exp (2 * η * x) by
+        rw [pow_two, ← Real.exp_add]
+        congr 1
+        ring]
+  have hpoint := paper5CorrectedWeightedDensity_identity_of_classical p
+    (η := η)
+    hsol ht0 htT hTW (fun x => (huM x).1)
+    (hu2.of_le (by norm_num)) hv2
+    (hU2.of_le (by norm_num)) hV2
+  have hpde := paper5CorrectedWeightedTimeIntegral_eq p hpoint
+    hdiff_int hdrift_int hrem_int
+  have hgrad_int : Integrable (fun x =>
+      paper5WeightedPopulationX η (coMovingPath c u) U t x *
+        paper5WeightedPopulationX η (coMovingPath c u) U t x) := by
+    simpa only [pow_two] using hWx2
+  have hdiff := paper5WeightedPopulation_diffusion_ibp hu2 hU2
+    hdiff_int hgrad_int hdiff_decay_bot hdiff_decay_top
+  have hdrift := paper5WeightedPopulation_driftIntegral_eq_zero
+    (hu2.of_le (by norm_num)) (hU2.of_le (by norm_num)) hdrift_int
+    hdrift_decay_bot hdrift_decay_top
+  obtain ⟨hB1, hB2, hB3, hB4, hK⟩ :=
+    paper5CommonBounds_nonneg p hM0 hMChiPos
+  have hraw0 := paper5CorrectedRemainderIntegral_le p hη.le hM0
+    hB3 hB4 huM hUM hvM
+    (fun x => (hcoeff x).1) (fun x => (hcoeff x).2.1)
+    (fun x => (hcoeff x).2.2.1) (fun x => (hcoeff x).2.2.2)
+    hrem_int hWx2 hW2 hsignal.2.1 hsignal.1
+  have hresolved := paper5CorrectedRemainderIntegral_le_of_resolver p
+    hη.le hB3 hB4 hraw0 hsignal.2.2.2 hsignal.2.2.1
+  have hraw :
+      (∫ x, paper5CorrectedRemainderDensity p η c
+        (coMovingPath c u) (coMovingPath c v) U
+        (paper5WeightedPopulation η (coMovingPath c u) U t)
+        (paper5WeightedPopulationX η (coMovingPath c u) U t)
+        (paper5WeightedSignal η (coMovingPath c v) V t)
+        (paper5WeightedSignalX η (coMovingPath c v) V t) t x) ≤
+      (1 / 2 : ℝ) * (∫ x,
+        (paper5WeightedPopulationX η (coMovingPath c u) U t x) ^ 2) +
+      paper5RawW2Coefficient p η c M
+        (paper5CommonB1 p M) (paper5CommonB2 p M)
+        (paper5CommonB3 p M) (paper5CommonB4 p M) *
+          (∫ x, (paper5WeightedPopulation η
+            (coMovingPath c u) U t x) ^ 2) +
+      (|p.χ| * paper5CommonB3 p M / 2) *
+        paper5WeightedResolverVxFactor p M η *
+          (∫ x, (paper5WeightedPopulation η
+            (coMovingPath c u) U t x) ^ 2) +
+      (|p.χ| * (η * paper5CommonB3 p M + paper5CommonB4 p M) / 2) *
+        paper5WeightedResolverVFactor p M η *
+          (∫ x, (paper5WeightedPopulation η
+            (coMovingPath c u) U t x) ^ 2) := by
+    unfold paper5ResolvedW2Coefficient at hresolved
+    convert hresolved using 1 <;> ring
+  have hcaps := paper5WeightedResolverFactors_le_cap p hχ hM0 hη.le hηcap
+  have hfinal := paper5CorrectedHalfEnergy_deriv_le_corrected531 p
+    hη.le hB3 hB4 htime hpde hdiff hdrift hraw
+    paper5WeightedPopulation_gradientIntegral_nonneg
+    (integral_nonneg fun _ => sq_nonneg _)
+    hcaps.1 hcaps.2
+  simpa only [paper531CommonA, paper531CommonB,
+    paper5CommonResolverK] using hfinal
+
+/-- Compatibility specialization of the common-bound inequality at `MChi`.
+The paper-faithful global argument uses the theorem above with `M > MChi`. -/
 theorem paper5WeightedHalfEnergy_deriv_le_concrete_of_timeLeibniz
     (p : CMParams) {T η c t : ℝ}
     {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
@@ -400,143 +593,85 @@ theorem paper5WeightedHalfEnergy_deriv_le_concrete_of_timeLeibniz
       paper531Quadratic c (paper531ConcreteA p) (paper531ConcreteB p) η *
         ∫ x, (paper5WeightedPopulation η
           (coMovingPath c u) U t x) ^ 2 := by
-  have hM1 : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
-  have hM0 : 0 ≤ MChi p := zero_le_one.trans hM1
-  have hMpos : 0 < MChi p := zero_lt_one.trans_le hM1
-  have huC : IsCUnifBdd (coMovingPath c u t) := by
-    refine ⟨hu2.continuous, ⟨MChi p, fun x => ?_⟩⟩
-    rw [abs_of_nonneg (huM x).1]
-    exact (huM x).2
-  have hUC : IsCUnifBdd U :=
-    U_isCUnifBdd_of_continuous hbound hreg.U_cont
-  have hUM : ∀ x, U x ∈ Set.Icc (0 : ℝ) (MChi p) :=
-    fun x => ⟨(hTW.U_pos x).le, hbound.le_MChi x⟩
-  have hVEq : V = frozenElliptic p U :=
-    IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg
-  have hγ0 : 0 ≤ p.γ := zero_le_one.trans p.hγ
-  have huγ : ∀ x, (coMovingPath c u t x) ^ p.γ ≤ (MChi p) ^ p.γ :=
-    fun x => Real.rpow_le_rpow (huM x).1 (huM x).2 hγ0
-  have hvUpper : ∀ x,
-      coMovingPath c v t x ≤ (MChi p) ^ p.γ := by
-    intro x
-    rw [hvEq]
-    exact frozenElliptic_le_of_rpow_le p (Real.rpow_nonneg hM0 _)
-      hu2.continuous (fun y => (huM y).1) huγ x
-  have hvM : ∀ x,
-      coMovingPath c v t x ∈ Set.Icc (0 : ℝ) ((MChi p) ^ p.γ) := by
-    intro x
-    constructor
-    · rw [hvEq]
-      exact frozenElliptic_nonneg p (fun y => (huM y).1) x
-    · exact hvUpper x
-  have hvDeriv : ∀ x,
-      |deriv (coMovingPath c v t) x| ≤ (MChi p) ^ p.γ := by
-    intro x
-    have hvUpper' := hvUpper x
-    rw [hvEq] at hvUpper'
-    rw [hvEq]
-    exact (frozenElliptic_deriv_abs_le p huC (fun y => (huM y).1) x).trans
-      hvUpper'
-  have hspeed := remark5SpeedCondition_of_correctedCStarStar_lt p hc
-  have hbarrier := barrierSpeed_lt_of_correctedCStarStar_lt p hc
-  have hcoeff : ∀ x,
-      |paper5B1 p (coMovingPath c u) (coMovingPath c v) t x| ≤
-          paper5ConcreteB1 p ∧
-        |paper5B2 p (coMovingPath c u) (coMovingPath c v) U t x| ≤
-          paper5ConcreteB2 p ∧
-        |paper5B3 p U x| ≤ paper5ConcreteB3 p ∧
-        |paper5B4 p U x| ≤ paper5ConcreteB4 p := by
-    intro x
-    have hx := paper5CoefficientBounds_of_barrier_speed_corrected_wave p
-      (sigma := paper5Sigma) (t := t) (x := x)
-      (by norm_num [paper5Sigma]) hχ hspeed hbarrier hTW hreg hbound
-      (huM x) (hvDeriv x)
-    simpa only [paper5ConcreteB1, paper5ConcreteB2, paper5ConcreteB3,
-      paper5ConcreteB4, paper5ConcreteLu] using hx
-  have hη1 : η < 1 := by
-    have hcap1 : stabilityWeightCap p ≤ 1 := by
-      unfold stabilityWeightCap
-      rw [div_le_one (by positivity)]
-      exact le_add_of_nonneg_right (Real.rpow_nonneg (abs_nonneg _) _)
-    exact hηcap.trans_le hcap1
-  have hsignal := paper5WeightedSignal_resolver_data p hM1 hη hη1
-    huC hUC huM hUM hvEq hVEq
-    (hv2.differentiable (by norm_num))
-    (hV2.differentiable (by norm_num)) hclose
-  have hW2 : Integrable (fun x =>
-      (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2) := by
-    refine hclose.congr (Filter.Eventually.of_forall fun x => ?_)
-    change Real.exp (2 * η * x) *
-        |coMovingPath c u t x - U x| ^ 2 =
-      (Real.exp (η * x) * (coMovingPath c u t x - U x)) ^ 2
-    rw [mul_pow, sq_abs,
-      show Real.exp (η * x) ^ 2 = Real.exp (2 * η * x) by
-        rw [pow_two, ← Real.exp_add]
-        congr 1
-        ring]
-  have hpoint := paper5CorrectedWeightedDensity_identity_of_classical p
-    (η := η)
-    hsol ht0 htT hTW (fun x => (huM x).1)
-    (hu2.of_le (by norm_num)) hv2
-    (hU2.of_le (by norm_num)) hV2
-  have hpde := paper5CorrectedWeightedTimeIntegral_eq p hpoint
-    hdiff_int hdrift_int hrem_int
-  have hgrad_int : Integrable (fun x =>
-      paper5WeightedPopulationX η (coMovingPath c u) U t x *
-        paper5WeightedPopulationX η (coMovingPath c u) U t x) := by
-    simpa only [pow_two] using hWx2
-  have hdiff := paper5WeightedPopulation_diffusion_ibp hu2 hU2
-    hdiff_int hgrad_int hdiff_decay_bot hdiff_decay_top
-  have hdrift := paper5WeightedPopulation_driftIntegral_eq_zero
-    (hu2.of_le (by norm_num)) (hU2.of_le (by norm_num)) hdrift_int
-    hdrift_decay_bot hdrift_decay_top
-  obtain ⟨hB1, hB2, hB3, hB4, hK⟩ :=
-    paper5ConcreteBounds_nonneg p hMpos
-  have hraw0 := paper5CorrectedRemainderIntegral_le p hη.le hM0
-    hB3 hB4 huM hUM hvM
-    (fun x => (hcoeff x).1) (fun x => (hcoeff x).2.1)
-    (fun x => (hcoeff x).2.2.1) (fun x => (hcoeff x).2.2.2)
-    hrem_int hWx2 hW2 hsignal.2.1 hsignal.1
-  have hresolved := paper5CorrectedRemainderIntegral_le_of_resolver p
-    hη.le hB3 hB4 hraw0 hsignal.2.2.2 hsignal.2.2.1
-  have hraw :
-      (∫ x, paper5CorrectedRemainderDensity p η c
-        (coMovingPath c u) (coMovingPath c v) U
-        (paper5WeightedPopulation η (coMovingPath c u) U t)
-        (paper5WeightedPopulationX η (coMovingPath c u) U t)
-        (paper5WeightedSignal η (coMovingPath c v) V t)
-        (paper5WeightedSignalX η (coMovingPath c v) V t) t x) ≤
-      (1 / 2 : ℝ) * (∫ x,
-        (paper5WeightedPopulationX η (coMovingPath c u) U t x) ^ 2) +
-      paper5RawW2Coefficient p η c (MChi p)
-        (paper5ConcreteB1 p) (paper5ConcreteB2 p)
-        (paper5ConcreteB3 p) (paper5ConcreteB4 p) *
-          (∫ x, (paper5WeightedPopulation η
-            (coMovingPath c u) U t x) ^ 2) +
-      (|p.χ| * paper5ConcreteB3 p / 2) *
-        paper5WeightedResolverVxFactor p (MChi p) η *
-          (∫ x, (paper5WeightedPopulation η
-            (coMovingPath c u) U t x) ^ 2) +
-      (|p.χ| * (η * paper5ConcreteB3 p + paper5ConcreteB4 p) / 2) *
-        paper5WeightedResolverVFactor p (MChi p) η *
-          (∫ x, (paper5WeightedPopulation η
-            (coMovingPath c u) U t x) ^ 2) := by
-    unfold paper5ResolvedW2Coefficient at hresolved
-    convert hresolved using 1 <;> ring
-  have hcaps := paper5WeightedResolverFactors_le_cap p hχ hM0 hη.le hηcap
-  have hfinal := paper5CorrectedHalfEnergy_deriv_le_corrected531 p
-    hη.le hB3 hB4 htime hpde hdiff hdrift hraw
-    paper5WeightedPopulation_gradientIntegral_nonneg
-    (integral_nonneg fun _ => sq_nonneg _)
-    hcaps.1 hcaps.2
-  simpa only [paper531ConcreteA, paper531ConcreteB,
-    paper5ConcreteResolverK] using hfinal
+  simpa using
+    (paper5WeightedHalfEnergy_deriv_le_common_of_timeLeibniz
+      (M := MChi p) p hχ hc hη hηcap hsol ht0 htT hTW hreg hbound
+      le_rfl hu2 hv2 hU2 hV2 huM hvEq hclose htime hdiff_int hWx2
+      hdrift_int hrem_int hdiff_decay_bot hdiff_decay_top
+      hdrift_decay_bot hdrift_decay_top)
 
 /-- Fixed-positive-time corrected inequality for the full energy.  Unlike the
 equality-only interface above, this version retains the actual
 `HasDerivAt` witness produced by dominated time differentiation, so the
 doubling from half-energy to the headline energy is justified at the
 derivative level. -/
+theorem paper5WeightedEnergy_deriv_le_common_of_halfDerivative
+    (p : CMParams) {M T η c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hχ : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (hη : 0 < η) (hηcap : η < stabilityWeightCap p)
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hMChiM : MChi p ≤ M)
+    (hu2 : ContDiff ℝ 2 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU2 : ContDiff ℝ 2 U) (hV2 : ContDiff ℝ 2 V)
+    (huM : ∀ x, coMovingPath c u t x ∈ Set.Icc (0 : ℝ) M)
+    (hvEq : coMovingPath c v t =
+      frozenElliptic p (coMovingPath c u t))
+    (hclose : Integrable (fun x =>
+      Real.exp (2 * η * x) *
+        |coMovingPath c u t x - U x| ^ 2))
+    (hhalf : HasDerivAt (paper5WeightedHalfEnergy η c u U)
+      (∫ x, paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationT η
+          (paper5CoMovingMaterialTime c u) t x) t)
+    (hdiff_int : Integrable (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationXX η (coMovingPath c u) U t x))
+    (hWx2 : Integrable (fun x =>
+      (paper5WeightedPopulationX η (coMovingPath c u) U t x) ^ 2))
+    (hdrift_int : Integrable (fun x =>
+      paper5WeightedPopulationX η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x))
+    (hrem_int : Integrable
+      (paper5CorrectedRemainderDensity p η c
+        (coMovingPath c u) (coMovingPath c v) U
+        (paper5WeightedPopulation η (coMovingPath c u) U t)
+        (paper5WeightedPopulationX η (coMovingPath c u) U t)
+        (paper5WeightedSignal η (coMovingPath c v) V t)
+        (paper5WeightedSignalX η (coMovingPath c v) V t) t))
+    (hdiff_decay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationX η (coMovingPath c u) U t x)
+      atBot (𝓝 0))
+    (hdiff_decay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationX η (coMovingPath c u) U t x)
+      atTop (𝓝 0))
+    (hdrift_decay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x)
+      atBot (𝓝 0))
+    (hdrift_decay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulation η (coMovingPath c u) U t x)
+      atTop (𝓝 0)) :
+    deriv (paper5WeightedEnergy η c u U) t ≤
+      2 * paper531Quadratic c (paper531CommonA p M)
+        (paper531CommonB p M) η * paper5WeightedEnergy η c u U t := by
+  have hhalf_le :=
+    paper5WeightedHalfEnergy_deriv_le_common_of_timeLeibniz p hχ hc
+      hη hηcap hsol ht0 htT hTW hreg hbound hMChiM hu2 hv2 hU2 hV2 huM
+      hvEq hclose hhalf.deriv hdiff_int hWx2 hdrift_int hrem_int
+      hdiff_decay_bot hdiff_decay_top hdrift_decay_bot hdrift_decay_top
+  apply paper5WeightedEnergy_deriv_le_of_half hhalf
+  rw [← hhalf.deriv]
+  exact hhalf_le
+
 theorem paper5WeightedEnergy_deriv_le_concrete_of_halfDerivative
     (p : CMParams) {T η c t : ℝ}
     {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
@@ -594,19 +729,76 @@ theorem paper5WeightedEnergy_deriv_le_concrete_of_halfDerivative
     deriv (paper5WeightedEnergy η c u U) t ≤
       2 * paper531Quadratic c (paper531ConcreteA p)
         (paper531ConcreteB p) η * paper5WeightedEnergy η c u U t := by
-  have hhalf_le :=
-    paper5WeightedHalfEnergy_deriv_le_concrete_of_timeLeibniz p hχ hc
-      hη hηcap hsol ht0 htT hTW hreg hbound hu2 hv2 hU2 hV2 huM
-      hvEq hclose hhalf.deriv hdiff_int hWx2 hdrift_int hrem_int
-      hdiff_decay_bot hdiff_decay_top hdrift_decay_bot hdrift_decay_top
-  apply paper5WeightedEnergy_deriv_le_of_half hhalf
-  rw [← hhalf.deriv]
-  exact hhalf_le
+  simpa using
+    (paper5WeightedEnergy_deriv_le_common_of_halfDerivative
+      (M := MChi p) p hχ hc hη hηcap hsol ht0 htT hTW hreg hbound
+      le_rfl hu2 hv2 hU2 hV2 huM hvEq hclose hhalf hdiff_int hWx2
+      hdrift_int hrem_int hdiff_decay_bot hdiff_decay_top
+      hdrift_decay_bot hdrift_decay_top)
 
 /-- Reduced full-energy producer.  The drift product and all four endpoint
 limits are derived from the weighted `H²` data, leaving only the three genuine
 whole-line integrability inputs: `W·Wxx`, `Wx²`, and the nonlinear
 remainder. -/
+theorem paper5WeightedEnergy_deriv_le_common_of_coreIntegrability
+    (p : CMParams) {M T η c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hχ : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (hη : 0 < η) (hηcap : η < stabilityWeightCap p)
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hMChiM : MChi p ≤ M)
+    (hu2 : ContDiff ℝ 2 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU2 : ContDiff ℝ 2 U) (hV2 : ContDiff ℝ 2 V)
+    (huM : ∀ x, coMovingPath c u t x ∈ Set.Icc (0 : ℝ) M)
+    (hvEq : coMovingPath c v t =
+      frozenElliptic p (coMovingPath c u t))
+    (hclose : Integrable (fun x =>
+      Real.exp (2 * η * x) *
+        |coMovingPath c u t x - U x| ^ 2))
+    (hhalf : HasDerivAt (paper5WeightedHalfEnergy η c u U)
+      (∫ x, paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationT η
+          (paper5CoMovingMaterialTime c u) t x) t)
+    (hdiff_int : Integrable (fun x =>
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationXX η (coMovingPath c u) U t x))
+    (hWx2 : Integrable (fun x =>
+      (paper5WeightedPopulationX η (coMovingPath c u) U t x) ^ 2))
+    (hrem_int : Integrable
+      (paper5CorrectedRemainderDensity p η c
+        (coMovingPath c u) (coMovingPath c v) U
+        (paper5WeightedPopulation η (coMovingPath c u) U t)
+        (paper5WeightedPopulationX η (coMovingPath c u) U t)
+        (paper5WeightedSignal η (coMovingPath c v) V t)
+        (paper5WeightedSignalX η (coMovingPath c v) V t) t)) :
+    deriv (paper5WeightedEnergy η c u U) t ≤
+      2 * paper531Quadratic c (paper531CommonA p M)
+        (paper531CommonB p M) η * paper5WeightedEnergy η c u U t := by
+  have hW2 : Integrable (fun x =>
+      (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2) := by
+    refine hclose.congr (Filter.Eventually.of_forall fun x => ?_)
+    change Real.exp (2 * η * x) *
+        |coMovingPath c u t x - U x| ^ 2 =
+      (Real.exp (η * x) * (coMovingPath c u t x - U x)) ^ 2
+    rw [mul_pow, sq_abs,
+      show Real.exp (η * x) ^ 2 = Real.exp (2 * η * x) by
+        rw [pow_two, ← Real.exp_add]
+        congr 1
+        ring]
+  obtain ⟨hdrift_int, hdiff_decay_bot, hdiff_decay_top,
+      hdrift_decay_bot, hdrift_decay_top⟩ :=
+    paper5WeightedPopulation_spatial_product_data hu2 hU2
+      hW2 hWx2 hdiff_int
+  exact paper5WeightedEnergy_deriv_le_common_of_halfDerivative p hχ hc
+    hη hηcap hsol ht0 htT hTW hreg hbound hMChiM hu2 hv2 hU2 hV2 huM
+    hvEq hclose hhalf hdiff_int hWx2 hdrift_int hrem_int
+    hdiff_decay_bot hdiff_decay_top hdrift_decay_bot hdrift_decay_top
+
 theorem paper5WeightedEnergy_deriv_le_concrete_of_coreIntegrability
     (p : CMParams) {T η c t : ℝ}
     {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
@@ -645,25 +837,10 @@ theorem paper5WeightedEnergy_deriv_le_concrete_of_coreIntegrability
     deriv (paper5WeightedEnergy η c u U) t ≤
       2 * paper531Quadratic c (paper531ConcreteA p)
         (paper531ConcreteB p) η * paper5WeightedEnergy η c u U t := by
-  have hW2 : Integrable (fun x =>
-      (paper5WeightedPopulation η (coMovingPath c u) U t x) ^ 2) := by
-    refine hclose.congr (Filter.Eventually.of_forall fun x => ?_)
-    change Real.exp (2 * η * x) *
-        |coMovingPath c u t x - U x| ^ 2 =
-      (Real.exp (η * x) * (coMovingPath c u t x - U x)) ^ 2
-    rw [mul_pow, sq_abs,
-      show Real.exp (η * x) ^ 2 = Real.exp (2 * η * x) by
-        rw [pow_two, ← Real.exp_add]
-        congr 1
-        ring]
-  obtain ⟨hdrift_int, hdiff_decay_bot, hdiff_decay_top,
-      hdrift_decay_bot, hdrift_decay_top⟩ :=
-    paper5WeightedPopulation_spatial_product_data hu2 hU2
-      hW2 hWx2 hdiff_int
-  exact paper5WeightedEnergy_deriv_le_concrete_of_halfDerivative p hχ hc
-    hη hηcap hsol ht0 htT hTW hreg hbound hu2 hv2 hU2 hV2 huM
-    hvEq hclose hhalf hdiff_int hWx2 hdrift_int hrem_int
-    hdiff_decay_bot hdiff_decay_top hdrift_decay_bot hdrift_decay_top
+  simpa using
+    (paper5WeightedEnergy_deriv_le_common_of_coreIntegrability
+      (M := MChi p) p hχ hc hη hηcap hsol ht0 htT hTW hreg hbound
+      le_rfl hu2 hv2 hU2 hV2 huM hvEq hclose hhalf hdiff_int hWx2 hrem_int)
 
 section Theorem12EnergyProducerAxiomAudit
 
@@ -677,8 +854,11 @@ section Theorem12EnergyProducerAxiomAudit
 #print axioms paper5WeightedPopulation_spatial_product_data
 #print axioms paper5WeightedSignal_resolver_bounds
 #print axioms paper5WeightedSignal_resolver_data
+#print axioms paper5WeightedHalfEnergy_deriv_le_common_of_timeLeibniz
 #print axioms paper5WeightedHalfEnergy_deriv_le_concrete_of_timeLeibniz
+#print axioms paper5WeightedEnergy_deriv_le_common_of_halfDerivative
 #print axioms paper5WeightedEnergy_deriv_le_concrete_of_halfDerivative
+#print axioms paper5WeightedEnergy_deriv_le_common_of_coreIntegrability
 #print axioms paper5WeightedEnergy_deriv_le_concrete_of_coreIntegrability
 
 end Theorem12EnergyProducerAxiomAudit
