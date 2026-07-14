@@ -5185,3 +5185,20 @@ passes with 9566 jobs and all ten declarations are clean-3.  The immediate
 next step is to add the homogeneous heat generator, combine the three right
 derivatives through the fixed-point identity, and identify the result with
 the already-proved positive-time spatial second derivative.
+
+`WholeLineCauchyTimeRegularity.lean` closes the two-sided time-regularity gap.
+Positive-lag Hessian heat flow is factored through two BUC gradient
+semigroups, giving time continuity without a new Gaussian kernel calculation.
+For the moving reaction-Hessian and chemotaxis-third histories, an
+old/recent split combines dominated convergence at fixed positive lag with
+the already proved spatial Holder cancellation on the short terminal window.
+Consequently the full generator right-hand side is continuous at every
+`0 < t < T`.  A reusable real-analysis lemma compares a continuous function
+having that continuous right derivative with its interval-integral primitive;
+right-derivative fencing then gives equality on a compact neighborhood and
+therefore the ordinary two-sided derivative.  Applied to the canonical fixed
+point, this proves `wholeLineCauchyBUCMildFixedPoint_physical_pde_hasDerivAt`:
+the original parabolic PDE holds pointwise with `HasDerivAt`, not merely as a
+right derivative or almost everywhere.  The next interface task is to pair
+this result with the frozen elliptic resolver and package an
+`IsClassicalSolution` on the whole local horizon.
