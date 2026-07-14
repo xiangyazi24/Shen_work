@@ -4777,3 +4777,11 @@ BUC subspace.  Consequently the canonical fixed point has a scalar Duhamel
 identity at every space-time point.  This is the interface needed to split the
 history before a negative point and prove the local homogeneous equation on a
 neighborhood where both clamped nonlinear sources vanish.
+
+That neighborhood is now formal: strict negativity persists on a product
+metric ball, and both clamped source trajectories vanish there.  The Gaussian
+side now includes a clean third-spatial-derivative formula, a half-rate tail
+bound, bounded-source third convolution differentiation, and exponentially
+small second/third convolution bounds when the source vanishes on a spatial
+ball.  These are the exact recent-history estimates required for local `C²`
+regularity on the negative set.
