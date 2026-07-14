@@ -4859,3 +4859,17 @@ eventual equality with the real-time trajectory extension; combining the
 homogeneous heat generator with both actual-source history derivatives gives
 an actual `HasDerivAt` theorem for the fixed point at every strict-negative
 interior point.  The remaining half is the twice-spatial derivative identity.
+
+The spatial half and the cancellation are now complete.  A formerly private
+local first-derivative fact for the flux gradient history is exported, allowing
+the pointwise mild identity to be differentiated twice as a sum.  The resulting
+second spatial derivative contains the homogeneous Hessian, flux third-kernel
+history, and reaction Hessian history.  A separate integrability bundle proves
+all four generator histories genuinely interval-integrable; only then are the
+two integral-of-a-difference terms split.  Algebraic cancellation with the
+scalar-history mild identity yields the actual negative-set equation
+`u_t = u_xx - u` for every strict-negative point with `0 < t < T`.
+
+The next obligation is the comparison step: use this homogeneous equation and
+the nonnegative initial trace to rule out a first negative value, hence prove
+the canonical clamped fixed point is nonnegative and the lower clamp inactive.
