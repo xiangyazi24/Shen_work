@@ -208,11 +208,94 @@ theorem wholeLineCauchyHeatOp_add_time
   congr 2
   ring
 
+/-- The modified heat flow satisfies the addition law in the actual BUC phase
+space. -/
+theorem wholeLineCauchyHeatBUCTotal_add_time
+    {t s : ℝ} (ht : 0 < t) (hs : 0 < s) (u : WholeLineBUC) :
+    wholeLineCauchyHeatBUCTotal t
+        (wholeLineCauchyHeatBUCTotal s u) =
+      wholeLineCauchyHeatBUCTotal (t + s) u := by
+  apply Subtype.ext
+  apply BoundedContinuousFunction.ext
+  intro x
+  simp only [wholeLineCauchyHeatBUCTotal, dif_pos ht, dif_pos hs,
+    dif_pos (add_pos ht hs), wholeLineCauchyHeatBUC_apply]
+  have hsfun :
+      ((wholeLineCauchyHeatBUC s hs u).1 : ℝ → ℝ) =
+        wholeLineCauchyHeatOp s u.1 := by
+    funext z
+    exact wholeLineCauchyHeatBUC_apply s hs u z
+  rw [hsfun]
+  exact wholeLineCauchyHeatOp_add_time ht hs u.1.continuous
+    (fun z => by
+      simpa [Real.norm_eq_abs] using u.1.norm_coe_le_norm z)
+
+/-- Applying the modified heat flow after a gradient flow adds the two
+positive times.  The integration-by-parts input is stated explicitly because
+the source need not be globally integrable. -/
+theorem wholeLineCauchyHeatOp_comp_heatGradOp
+    {f : ℝ → ℝ} {t s x C D : ℝ}
+    (ht : 0 < t) (hs : 0 < s)
+    (hf : ∀ y, |f y| ≤ C)
+    (hfd : ∀ y, |deriv f y| ≤ D)
+    (hfderiv : ∀ y, HasDerivAt f (deriv f y) y)
+    (hfdcont : Continuous (deriv f)) :
+    wholeLineCauchyHeatOp t
+        (fun y => wholeLineCauchyHeatGradOp s f y) x =
+      wholeLineCauchyHeatGradOp (t + s) f x := by
+  have hsfun :
+      (fun y => wholeLineCauchyHeatGradOp s f y) =
+        wholeLineCauchyHeatOp s (deriv f) := by
+    funext y
+    exact wholeLineCauchyHeatGradOp_eq_heatOp_deriv
+      hs hf hfd hfderiv hfdcont
+  rw [hsfun, wholeLineCauchyHeatOp_add_time ht hs hfdcont hfd]
+  exact (wholeLineCauchyHeatGradOp_eq_heatOp_deriv
+    (add_pos ht hs) hf hfd hfderiv hfdcont).symm
+
+/-- The positive-time modified heat flow as a continuous linear operator on
+the BUC phase space. -/
+def wholeLineCauchyHeatBUCCLM (t : ℝ) (ht : 0 < t) :
+    WholeLineBUC →L[ℝ] WholeLineBUC :=
+  kernelConvBUCCLM (wholeLineModifiedHeatKernel_continuous ht)
+    (wholeLineModifiedHeatKernel_integrable ht)
+
+@[simp] theorem wholeLineCauchyHeatBUCCLM_apply
+    (t : ℝ) (ht : 0 < t) (u : WholeLineBUC) :
+    wholeLineCauchyHeatBUCCLM t ht u = wholeLineCauchyHeatBUC t ht u := by
+  rfl
+
+/-- Positive modified heat flow commutes with BUC-valued interval
+integration. -/
+theorem wholeLineCauchyHeatBUCTotal_intervalIntegral
+    {t a b : ℝ} (ht : 0 < t) {F : ℝ → WholeLineBUC}
+    (hF : IntervalIntegrable F volume a b) :
+    wholeLineCauchyHeatBUCTotal t (∫ s in a..b, F s) =
+      ∫ s in a..b, wholeLineCauchyHeatBUCTotal t (F s) := by
+  simp only [wholeLineCauchyHeatBUCTotal, dif_pos ht]
+  change wholeLineCauchyHeatBUCCLM t ht (∫ s in a..b, F s) =
+    ∫ s in a..b, wholeLineCauchyHeatBUCCLM t ht (F s)
+  have hcomm :
+      (∫ s in a..b, wholeLineCauchyHeatBUCCLM t ht (F s)) =
+        wholeLineCauchyHeatBUCCLM t ht (∫ s in a..b, F s) :=
+    @ContinuousLinearMap.intervalIntegral_comp_comm
+      ℝ WholeLineBUC WholeLineBUC
+      WholeLineBUC.normedAddCommGroup inferInstance
+      a b volume F
+      inferInstance inferInstance WholeLineBUC.normedAddCommGroup
+      inferInstance inferInstance
+      wholeLineBUCMetricCompleteSpace wholeLineBUCMetricCompleteSpace
+      (wholeLineCauchyHeatBUCCLM t ht) hF
+  exact hcomm.symm
+
 section WholeLineCauchySemigroupRestartAxiomAudit
 
 #print axioms heatKernel_convolution_add
 #print axioms heatSemigroup_add_time
 #print axioms wholeLineCauchyHeatOp_add_time
+#print axioms wholeLineCauchyHeatBUCTotal_add_time
+#print axioms wholeLineCauchyHeatOp_comp_heatGradOp
+#print axioms wholeLineCauchyHeatBUCTotal_intervalIntegral
 
 end WholeLineCauchySemigroupRestartAxiomAudit
 

@@ -177,6 +177,16 @@ Duhamel histories; its short terminal interval will use the BUC approximate
 identity together with the established uniform time continuity of the
 physical flux derivative.
 
+The semigroup module now also exposes the BUC-level cocycle and the actual
+continuous-linear-map realization of positive modified heat flow.  This
+operator commutes with BUC-valued interval integration.  For the divergence
+leg, `wholeLineCauchyHeatOp_comp_heatGradOp` proves the corresponding
+heat-after-gradient identity under bounded `C1` source data by transferring
+the gradient to the source and applying the scalar cocycle.  This is exactly
+the compatibility needed for the old pieces of both Duhamel histories.  A
+second local full root build passes with 9564 jobs; all new declarations remain
+on the standard three axioms.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
