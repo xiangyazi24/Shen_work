@@ -1,0 +1,23 @@
+name: Q4917 macOS recurrence probe
+
+on:
+  pull_request:
+    branches: [q4917-krecurrence]
+    paths:
+      - scratch/q4917_trigger.txt
+      - scratch/q4917_fast.py
+      - .github/workflows/q4917-macos.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4917-krecurrence
+      - run: python3 scratch/q4917_fast.py
