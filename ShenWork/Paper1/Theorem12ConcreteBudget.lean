@@ -33,6 +33,55 @@ def paper5ConcreteB4 (p : CMParams) : ℝ :=
 def paper5ConcreteResolverK (p : CMParams) : ℝ :=
   paper5CorrectedResolverCapFactor p (MChi p)
 
+/-! ## Common-bound variants
+
+Section 5 does not obtain the exact pointwise bound `u <= MChi`.  It first
+chooses an arbitrary common bound `M > MChi` from the eventual limsup estimate.
+The following constants retain that common bound instead of prematurely
+specializing it to `MChi`.
+-/
+
+def paper5CommonB1 (p : CMParams) (M : ℝ) : ℝ :=
+  paper520B1 p M
+
+def paper5CommonB2 (p : CMParams) (M : ℝ) : ℝ :=
+  paper5B2BoundFromDerivativeData p M (paper5ConcreteLu p) 1
+
+def paper5CommonB3 (p : CMParams) (M : ℝ) : ℝ :=
+  p.m * M ^ (p.m - 1) * paper5ConcreteLu p
+
+def paper5CommonB4 (p : CMParams) (M : ℝ) : ℝ :=
+  M ^ p.m
+
+def paper5CommonResolverK (p : CMParams) (M : ℝ) : ℝ :=
+  paper5CorrectedResolverCapFactor p M
+
+def paper531CommonA (p : CMParams) (M : ℝ) : ℝ :=
+  paper531CorrectedAFromBounds p
+    (paper5CommonB1 p M) (paper5CommonB3 p M)
+    (paper5CommonResolverK p M)
+
+def paper531CommonB (p : CMParams) (M : ℝ) : ℝ :=
+  paper531CorrectedBFromBounds p M
+    (paper5CommonB1 p M) (paper5CommonB2 p M)
+    (paper5CommonB3 p M) (paper5CommonB4 p M)
+    (paper5CommonResolverK p M)
+
+@[simp] theorem paper5CommonB1_MChi (p : CMParams) :
+    paper5CommonB1 p (MChi p) = paper5ConcreteB1 p := rfl
+
+@[simp] theorem paper5CommonB2_MChi (p : CMParams) :
+    paper5CommonB2 p (MChi p) = paper5ConcreteB2 p := rfl
+
+@[simp] theorem paper5CommonB3_MChi (p : CMParams) :
+    paper5CommonB3 p (MChi p) = paper5ConcreteB3 p := rfl
+
+@[simp] theorem paper5CommonB4_MChi (p : CMParams) :
+    paper5CommonB4 p (MChi p) = paper5ConcreteB4 p := rfl
+
+@[simp] theorem paper5CommonResolverK_MChi (p : CMParams) :
+    paper5CommonResolverK p (MChi p) = paper5ConcreteResolverK p := rfl
+
 def paper531ConcreteA (p : CMParams) : ℝ :=
   paper531CorrectedAFromBounds p
     (paper5ConcreteB1 p) (paper5ConcreteB3 p)
@@ -43,6 +92,12 @@ def paper531ConcreteB (p : CMParams) : ℝ :=
     (paper5ConcreteB1 p) (paper5ConcreteB2 p)
     (paper5ConcreteB3 p) (paper5ConcreteB4 p)
     (paper5ConcreteResolverK p)
+
+@[simp] theorem paper531CommonA_MChi (p : CMParams) :
+    paper531CommonA p (MChi p) = paper531ConcreteA p := rfl
+
+@[simp] theorem paper531CommonB_MChi (p : CMParams) :
+    paper531CommonB p (MChi p) = paper531ConcreteB p := rfl
 
 /-- The right-hand side in the paper's strengthened derivative speed
 condition, at `sigma = 1/6`. -/
@@ -104,6 +159,43 @@ theorem paper5ConcreteBounds_nonneg
     dsimp only
     positivity
   exact ⟨hB1, hB2, hB3, hB4, hK⟩
+
+theorem paper5CommonBounds_nonneg
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) (hMChi : 0 < MChi p) :
+    0 ≤ paper5CommonB1 p M ∧ 0 ≤ paper5CommonB2 p M ∧
+      0 ≤ paper5CommonB3 p M ∧ 0 ≤ paper5CommonB4 p M ∧
+      0 ≤ paper5CommonResolverK p M := by
+  have hLu := paper5ConcreteLu_nonneg p hMChi
+  have hB1 : 0 ≤ paper5CommonB1 p M :=
+    paper520B1_nonneg p hM
+  have hB2 : 0 ≤ paper5CommonB2 p M :=
+    paper5B2BoundFromDerivativeData_nonneg p M (paper5ConcreteLu p) 1
+  have hB3 : 0 ≤ paper5CommonB3 p M := by
+    unfold paper5CommonB3
+    exact mul_nonneg
+      (mul_nonneg (le_trans zero_le_one p.hm)
+        (Real.rpow_nonneg hM _)) hLu
+  have hB4 : 0 ≤ paper5CommonB4 p M := by
+    exact Real.rpow_nonneg hM _
+  have hK : 0 ≤ paper5CommonResolverK p M := by
+    unfold paper5CommonResolverK paper5CorrectedResolverCapFactor
+    positivity
+  exact ⟨hB1, hB2, hB3, hB4, hK⟩
+
+theorem paper531CommonAB_nonneg
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) (hMChi : 0 < MChi p) :
+    0 ≤ paper531CommonA p M ∧ 0 ≤ paper531CommonB p M := by
+  obtain ⟨hB1, hB2, hB3, hB4, hK⟩ :=
+    paper5CommonBounds_nonneg p hM hMChi
+  constructor
+  · unfold paper531CommonA paper531CorrectedAFromBounds
+    positivity
+  · unfold paper531CommonB paper531CorrectedBFromBounds
+    have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+    have hg0 : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+    have hpow : 0 ≤ M ^ (p.m + p.γ - 1) :=
+      Real.rpow_nonneg hM _
+    positivity
 
 theorem paper531ConcreteAB_nonneg
     (p : CMParams) (hM : 0 < MChi p) :
@@ -284,6 +376,8 @@ theorem paper1_Theorem_1_2_amended_of_concrete_wholeLineCauchyEnergyStep4
 
 section Theorem12ConcreteBudgetAxiomAudit
 
+#print axioms paper5CommonBounds_nonneg
+#print axioms paper531CommonAB_nonneg
 #print axioms paper531ConcreteAB_nonneg
 #print axioms paper5CorrectedCStarStar_asymptotic
 #print axioms paper531ConcreteStabilityBudget
