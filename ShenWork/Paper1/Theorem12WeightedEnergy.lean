@@ -401,6 +401,130 @@ def paper5WeightedPopulationT
     (η : ℝ) (ut : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
   Real.exp (η * x) * ut t x
 
+/-- The formal weighted first population derivative is the actual spatial
+derivative. -/
+theorem paper5WeightedPopulation_space_hasDerivAt
+    {η t x : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hu : DifferentiableAt ℝ (u t) x) (hU : DifferentiableAt ℝ U x) :
+    HasDerivAt (paper5WeightedPopulation η u U t)
+      (paper5WeightedPopulationX η u U t x) x := by
+  have hexp : HasDerivAt (fun y : ℝ => Real.exp (η * y))
+      (η * Real.exp (η * x)) x := by
+    simpa only [id_eq, mul_one, one_mul, mul_comm] using
+      (((hasDerivAt_id x).const_mul η).exp)
+  have hsub := hu.hasDerivAt.sub hU.hasDerivAt
+  have hprod := hexp.mul hsub
+  change HasDerivAt (fun y => Real.exp (η * y) * (u t y - U y))
+    (η * (Real.exp (η * x) * (u t x - U x)) +
+      Real.exp (η * x) * (deriv (u t) x - deriv U x)) x
+  convert hprod using 1 <;> simp [Pi.mul_apply, Pi.sub_apply] <;> ring
+
+/-- The formal weighted signal derivative is the actual spatial derivative. -/
+theorem paper5WeightedSignal_space_hasDerivAt
+    {η t x : ℝ} {v : ℝ → ℝ → ℝ} {V : ℝ → ℝ}
+    (hv : DifferentiableAt ℝ (v t) x) (hV : DifferentiableAt ℝ V x) :
+    HasDerivAt (paper5WeightedSignal η v V t)
+      (paper5WeightedSignalX η v V t x) x := by
+  have hexp : HasDerivAt (fun y : ℝ => Real.exp (η * y))
+      (η * Real.exp (η * x)) x := by
+    simpa only [id_eq, mul_one, one_mul, mul_comm] using
+      (((hasDerivAt_id x).const_mul η).exp)
+  have hsub := hv.hasDerivAt.sub hV.hasDerivAt
+  have hprod := hexp.mul hsub
+  change HasDerivAt (fun y => Real.exp (η * y) * (v t y - V y))
+    (η * (Real.exp (η * x) * (v t x - V x)) +
+      Real.exp (η * x) * (deriv (v t) x - deriv V x)) x
+  convert hprod using 1 <;> simp [Pi.mul_apply, Pi.sub_apply] <;> ring
+
+/-- The formal weighted second population derivative is the derivative of the
+formal first derivative under explicit `C²` regularity. -/
+theorem paper5WeightedPopulationX_space_hasDerivAt
+    {η t x : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hu2 : ContDiff ℝ 2 (u t)) (hU2 : ContDiff ℝ 2 U) :
+    HasDerivAt (paper5WeightedPopulationX η u U t)
+      (paper5WeightedPopulationXX η u U t x) x := by
+  have hu1 : ContDiff ℝ 1 (u t) := hu2.of_le (by norm_num)
+  have hU1 : ContDiff ℝ 1 U := hU2.of_le (by norm_num)
+  have hW := paper5WeightedPopulation_space_hasDerivAt
+    (η := η) (t := t) (x := x)
+    ((contDiff_one_iff_deriv.mp hu1).1 x)
+    ((contDiff_one_iff_deriv.mp hU1).1 x)
+  have hu2' : ContDiff ℝ ((1 : WithTop ℕ∞) + 1) (u t) := by
+    simpa using hu2
+  have hU2' : ContDiff ℝ ((1 : WithTop ℕ∞) + 1) U := by
+    simpa using hU2
+  have hud1 : ContDiff ℝ 1 (deriv (u t)) :=
+    (contDiff_succ_iff_deriv.mp hu2').2.2
+  have hUd1 : ContDiff ℝ 1 (deriv U) :=
+    (contDiff_succ_iff_deriv.mp hU2').2.2
+  have hdsub :=
+    ((contDiff_one_iff_deriv.mp hud1).1 x).hasDerivAt.sub
+      ((contDiff_one_iff_deriv.mp hUd1).1 x).hasDerivAt
+  have hexp : HasDerivAt (fun y : ℝ => Real.exp (η * y))
+      (η * Real.exp (η * x)) x := by
+    simpa only [id_eq, mul_one, one_mul, mul_comm] using
+      (((hasDerivAt_id x).const_mul η).exp)
+  have hsum := hW.const_mul η |>.add (hexp.mul hdsub)
+  have huiter : iteratedDeriv 2 (u t) x = deriv (deriv (u t)) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+      iteratedDeriv_one]
+  have hUiter : iteratedDeriv 2 U x = deriv (deriv U) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+      iteratedDeriv_one]
+  convert hsum using 1
+  · simp [paper5WeightedPopulationXX, paper5WeightedPopulationX,
+      paper5WeightedPopulation, huiter, hUiter]
+    ring
+
+/-- Whole-line diffusion IBP for the actual weighted population perturbation,
+with its formal first and second derivative fields now realized. -/
+theorem paper5WeightedPopulation_diffusion_ibp
+    {η t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hu2 : ContDiff ℝ 2 (u t)) (hU2 : ContDiff ℝ 2 U)
+    (hlhs : Integrable (fun x =>
+      paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulationXX η u U t x))
+    (hgrad : Integrable (fun x =>
+      paper5WeightedPopulationX η u U t x *
+        paper5WeightedPopulationX η u U t x))
+    (hdecay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulationX η u U t x) atBot (𝓝 0))
+    (hdecay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulationX η u U t x) atTop (𝓝 0)) :
+    (∫ x, paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulationXX η u U t x) =
+      -∫ x, (paper5WeightedPopulationX η u U t x) ^ 2 := by
+  have hu1 : ContDiff ℝ 1 (u t) := hu2.of_le (by norm_num)
+  have hU1 : ContDiff ℝ 1 U := hU2.of_le (by norm_num)
+  have hfirst : ∀ x,
+      HasDerivAt (paper5WeightedPopulation η u U t)
+        (paper5WeightedPopulationX η u U t x) x := by
+    intro x
+    exact paper5WeightedPopulation_space_hasDerivAt
+      ((contDiff_one_iff_deriv.mp hu1).1 x)
+      ((contDiff_one_iff_deriv.mp hU1).1 x)
+  have hsecond : ∀ x,
+      HasDerivAt (paper5WeightedPopulationX η u U t)
+        (paper5WeightedPopulationXX η u U t x) x := by
+    intro x
+    exact paper5WeightedPopulationX_space_hasDerivAt hu2 hU2
+  have hIBP :=
+    _root_.ShenWork.PaperOne.wholeLine_diffusion_ibp_decay_with_derivatives
+      (paper5WeightedPopulation η u U t)
+      (paper5WeightedPopulationX η u U t)
+      (paper5WeightedPopulationXX η u U t)
+      (fun x _ => hfirst x) (fun x _ => hsecond x)
+      hlhs hgrad hdecay_bot hdecay_top
+  simpa [pow_two] using hIBP
+
+/-- Nonnegativity of the realized weighted gradient energy. -/
+theorem paper5WeightedPopulation_gradientIntegral_nonneg
+    {η t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} :
+    0 ≤ ∫ x, (paper5WeightedPopulationX η u U t x) ^ 2 :=
+  integral_nonneg fun _ => sq_nonneg _
+
 /-- The formal weighted material-time density is the genuine time derivative
 of the weighted moving-frame perturbation under joint differentiability. -/
 theorem paper5WeightedPopulation_time_hasDerivAt_of_joint
@@ -535,6 +659,122 @@ theorem paper5WeightedPerturbationEquation_corrected_of_classical
       p hsol ht0 htT hu1 hv2
   · exact paper5WaveFluxDerivative_realization p hTW hU1 hV2
 
+/-! ## From the pointwise equation to the scalar energy inequality -/
+
+/-- Multiplying the corrected pointwise equation by `W` produces exactly the
+diffusion, drift, and corrected remainder densities used below. -/
+theorem paper5CorrectedWeightedDensity_identity
+    (p : CMParams) {η c t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U W Wx Wxx Z Zx WT : ℝ → ℝ}
+    (heq : WT x =
+      Wxx x + (c - 2 * η) * Wx x +
+        paper5CorrectedJ2Coefficient p η c u v U t x * W x -
+        p.χ * paper5B1 p u v t x * Wx x -
+        p.χ * paper5B3 p U x * Zx x +
+        p.χ * (η * paper5B3 p U x - paper5B4 p U x) * Z x) :
+    W x * WT x =
+      W x * Wxx x + (c - 2 * η) * (Wx x * W x) +
+        paper5CorrectedRemainderDensity
+          p η c u v U W Wx Z Zx t x := by
+  rw [heq]
+  unfold paper5CorrectedRemainderDensity
+  ring
+
+/-- Classical-solution specialization of the multiplied density identity. -/
+theorem paper5CorrectedWeightedDensity_identity_of_classical
+    (p : CMParams) {T η c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hu : ∀ x, 0 ≤ coMovingPath c u t x)
+    (hu1 : ContDiff ℝ 1 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU1 : ContDiff ℝ 1 U) (hV2 : ContDiff ℝ 2 V) :
+    ∀ x,
+      paper5WeightedPopulation η (coMovingPath c u) U t x *
+          paper5WeightedPopulationT η
+            (paper5CoMovingMaterialTime c u) t x =
+        paper5WeightedPopulation η (coMovingPath c u) U t x *
+            paper5WeightedPopulationXX η (coMovingPath c u) U t x +
+          (c - 2 * η) *
+            (paper5WeightedPopulationX η (coMovingPath c u) U t x *
+              paper5WeightedPopulation η (coMovingPath c u) U t x) +
+          paper5CorrectedRemainderDensity p η c
+            (coMovingPath c u) (coMovingPath c v) U
+            (paper5WeightedPopulation η (coMovingPath c u) U t)
+            (paper5WeightedPopulationX η (coMovingPath c u) U t)
+            (paper5WeightedSignal η (coMovingPath c v) V t)
+            (paper5WeightedSignalX η (coMovingPath c v) V t) t x := by
+  intro x
+  apply paper5CorrectedWeightedDensity_identity p
+  exact paper5WeightedPerturbationEquation_corrected_of_classical
+    p hsol ht0 htT hTW (hu x) hu1 hv2 hU1 hV2
+
+/-- Integrate the corrected weighted equation after multiplication by the
+population perturbation.  Every integrability input is explicit, so no
+Bochner integral can collapse to zero by convention. -/
+theorem paper5CorrectedWeightedTimeIntegral_eq
+    (p : CMParams) {η c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U W Wx Wxx Z Zx WT : ℝ → ℝ}
+    (hpoint : ∀ x,
+      W x * WT x =
+        W x * Wxx x + (c - 2 * η) * (Wx x * W x) +
+          paper5CorrectedRemainderDensity
+            p η c u v U W Wx Z Zx t x)
+    (hdiff : Integrable (fun x => W x * Wxx x))
+    (hdrift : Integrable (fun x => Wx x * W x))
+    (hrem : Integrable
+      (paper5CorrectedRemainderDensity p η c u v U W Wx Z Zx t)) :
+    (∫ x, W x * WT x) =
+      (∫ x, W x * Wxx x) +
+        (c - 2 * η) * (∫ x, Wx x * W x) +
+        ∫ x, paper5CorrectedRemainderDensity
+          p η c u v U W Wx Z Zx t x := by
+  calc
+    (∫ x, W x * WT x) =
+        ∫ x, (W x * Wxx x + (c - 2 * η) * (Wx x * W x)) +
+          paper5CorrectedRemainderDensity
+            p η c u v U W Wx Z Zx t x := by
+      apply integral_congr_ae
+      exact Filter.Eventually.of_forall hpoint
+    _ = (∫ x, W x * Wxx x) +
+          (c - 2 * η) * (∫ x, Wx x * W x) +
+          ∫ x, paper5CorrectedRemainderDensity
+            p η c u v U W Wx Z Zx t x := by
+      have hdrift' : Integrable
+          (fun x => (c - 2 * η) * (Wx x * W x)) :=
+        hdrift.const_mul (c - 2 * η)
+      rw [← MeasureTheory.integral_const_mul,
+        ← integral_add hdiff hdrift']
+      simpa only [Pi.add_apply] using
+        (integral_add (hdiff.add hdrift') hrem)
+
+/-- The corrected scalar energy inequality after diffusion IBP, drift
+cancellation, and resolver substitution.  This is the analytic shape of
+(5.31), with the corrected coefficient. -/
+theorem paper5CorrectedHalfEnergy_deriv_le_of_remainder
+    {c η C t : ℝ}
+    {E W Wx Wxx WT : ℝ → ℝ} {IR : ℝ}
+    (htime : deriv E t = ∫ x, W x * WT x)
+    (hpde : (∫ x, W x * WT x) =
+      (∫ x, W x * Wxx x) +
+        (c - 2 * η) * (∫ x, Wx x * W x) + IR)
+    (hdiff : (∫ x, W x * Wxx x) = -∫ x, (Wx x) ^ 2)
+    (hdrift : (∫ x, Wx x * W x) = 0)
+    (hrem : IR ≤
+      (1 / 2 : ℝ) * (∫ x, (Wx x) ^ 2) +
+        C * (∫ x, (W x) ^ 2))
+    (hgrad_nonneg : 0 ≤ ∫ x, (Wx x) ^ 2) :
+    deriv E t ≤ C * ∫ x, (W x) ^ 2 := by
+  rw [htime, hpde, hdiff, hdrift]
+  have hhalf :
+      -(∫ x, (Wx x) ^ 2) +
+          ((1 / 2 : ℝ) * (∫ x, (Wx x) ^ 2) +
+            C * (∫ x, (W x) ^ 2)) ≤
+        C * (∫ x, (W x) ^ 2) := by
+    linarith
+  linarith
+
 /-! ## Whole-line integration of the corrected remainder -/
 
 /-- Integrating the corrected pointwise remainder.  All four square-density
@@ -644,6 +884,32 @@ theorem wholeLine_weightedDriftIntegral_eq_zero
     ring
   rw [hsame] at hIBP
   linarith
+
+/-- Drift cancellation for the realized weighted population derivative. -/
+theorem paper5WeightedPopulation_driftIntegral_eq_zero
+    {η t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hu1 : ContDiff ℝ 1 (u t)) (hU1 : ContDiff ℝ 1 U)
+    (hcross : Integrable (fun x =>
+      paper5WeightedPopulationX η u U t x *
+        paper5WeightedPopulation η u U t x))
+    (hdecay_bot : Tendsto (fun x =>
+      paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulation η u U t x) atBot (𝓝 0))
+    (hdecay_top : Tendsto (fun x =>
+      paper5WeightedPopulation η u U t x *
+        paper5WeightedPopulation η u U t x) atTop (𝓝 0)) :
+    (∫ x, paper5WeightedPopulationX η u U t x *
+        paper5WeightedPopulation η u U t x) = 0 := by
+  apply wholeLine_weightedDriftIntegral_eq_zero
+    (paper5WeightedPopulation η u U t)
+    (paper5WeightedPopulationX η u U t)
+  · intro x _
+    exact paper5WeightedPopulation_space_hasDerivAt
+      ((contDiff_one_iff_deriv.mp hu1).1 x)
+      ((contDiff_one_iff_deriv.mp hU1).1 x)
+  · exact hcross
+  · exact hdecay_bot
+  · exact hdecay_top
 
 /-- The scalar coefficient after substituting abstract weighted `L²` bounds
 for the signal perturbation and its first derivative. -/
@@ -805,13 +1071,65 @@ theorem paper5CorrectedEnergyRHS_le_resolved
       paper5ResolvedW2Coefficient p η c M B1 B2 B3 B4 RV RVx * IW := by
   linarith
 
+/-- Complete corrected (5.31) scalar closure: time Leibniz, the integrated
+pointwise equation, diffusion IBP, drift cancellation, the two resolver
+estimates, and the corrected coefficient grouping. -/
+theorem paper5CorrectedHalfEnergy_deriv_le_corrected531
+    (p : CMParams) {η c M B1 B2 B3 B4 RV RVx K t IR : ℝ}
+    {E W Wx Wxx WT : ℝ → ℝ}
+    (hη : 0 ≤ η) (hB3 : 0 ≤ B3) (hB4 : 0 ≤ B4)
+    (htime : deriv E t = ∫ x, W x * WT x)
+    (hpde : (∫ x, W x * WT x) =
+      (∫ x, W x * Wxx x) +
+        (c - 2 * η) * (∫ x, Wx x * W x) + IR)
+    (hdiff : (∫ x, W x * Wxx x) = -∫ x, (Wx x) ^ 2)
+    (hdrift : (∫ x, Wx x * W x) = 0)
+    (hraw : IR ≤
+      (1 / 2 : ℝ) * (∫ x, (Wx x) ^ 2) +
+        paper5RawW2Coefficient p η c M B1 B2 B3 B4 *
+          (∫ x, (W x) ^ 2) +
+        (|p.χ| * B3 / 2) * RVx * (∫ x, (W x) ^ 2) +
+        (|p.χ| * (η * B3 + B4) / 2) * RV *
+          (∫ x, (W x) ^ 2))
+    (hgrad : 0 ≤ ∫ x, (Wx x) ^ 2)
+    (hW : 0 ≤ ∫ x, (W x) ^ 2)
+    (hRV : 1 + RV ≤ K) (hRVx : 1 + RVx ≤ K) :
+    deriv E t ≤
+      paper531Quadratic c
+        (paper531CorrectedAFromBounds p B1 B3 K)
+        (paper531CorrectedBFromBounds p M B1 B2 B3 B4 K) η *
+        ∫ x, (W x) ^ 2 := by
+  have hresolved : IR ≤
+      (1 / 2 : ℝ) * (∫ x, (Wx x) ^ 2) +
+        paper5ResolvedW2Coefficient p η c M B1 B2 B3 B4 RV RVx *
+          (∫ x, (W x) ^ 2) := by
+    unfold paper5ResolvedW2Coefficient
+    linarith
+  have henergy := paper5CorrectedHalfEnergy_deriv_le_of_remainder
+    (c := c) (η := η)
+    (C := paper5ResolvedW2Coefficient p η c M B1 B2 B3 B4 RV RVx)
+    htime hpde hdiff hdrift hresolved hgrad
+  have hcoef := paper5ResolvedW2Coefficient_le_corrected531 p
+    (η := η) (c := c) (M := M) (B1 := B1) (B2 := B2)
+    (B3 := B3) (B4 := B4) (RV := RV) (RVx := RVx) (K := K)
+    hη hB3 hB4 hRV hRVx
+  exact henergy.trans (mul_le_mul_of_nonneg_right hcoef hW)
+
 section Theorem12WeightedEnergyAxiomAudit
 #print axioms paper5CoMovingMaterialPDE_of_classical
 #print axioms paper5CoMovingPath_hasDerivAt_of_joint
 #print axioms paper5WeightedPopulation_time_hasDerivAt_of_joint
 #print axioms paper5FluxDerivative_realization
+#print axioms paper5WeightedPopulation_space_hasDerivAt
+#print axioms paper5WeightedSignal_space_hasDerivAt
+#print axioms paper5WeightedPopulationX_space_hasDerivAt
+#print axioms paper5WeightedPopulation_diffusion_ibp
+#print axioms paper5WeightedPopulation_gradientIntegral_nonneg
 #print axioms paper5WeightedPerturbationEquation_corrected
 #print axioms paper5WeightedPerturbationEquation_corrected_of_classical
+#print axioms paper5CorrectedWeightedDensity_identity_of_classical
+#print axioms paper5CorrectedWeightedTimeIntegral_eq
+#print axioms paper5CorrectedHalfEnergy_deriv_le_of_remainder
 #print axioms paper5J1VariableDensity_le
 #print axioms paper5CorrectedJ2Coefficient_le
 #print axioms paper5J3Density_le
@@ -819,10 +1137,12 @@ section Theorem12WeightedEnergyAxiomAudit
 #print axioms paper5CorrectedRemainderDensity_le
 #print axioms paper5CorrectedRemainderIntegral_le
 #print axioms wholeLine_weightedDriftIntegral_eq_zero
+#print axioms paper5WeightedPopulation_driftIntegral_eq_zero
 #print axioms paper5CorrectedRemainderIntegral_le_of_resolver
 #print axioms paper5CorrectedEnergyRHS_le_resolved
 #print axioms paper5ResolvedW2Coefficient_le_corrected531
 #print axioms paper5WeightedResolverFactors_le_cap
+#print axioms paper5CorrectedHalfEnergy_deriv_le_corrected531
 end Theorem12WeightedEnergyAxiomAudit
 
 end ShenWork.Paper1
