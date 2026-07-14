@@ -197,6 +197,33 @@ theorem intervalDomainM_globalBounded_eventual_right_time_equi
     _ < ε / 2 + ε / 2 := add_lt_add hsem_abs (hcorr.trans_lt hcorr_small)
     _ = ε := by ring
 
+/-- Symmetric two-time form of the tail modulus. -/
+theorem intervalDomainM_globalBounded_eventual_time_equi
+    (p : CM2Params)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomainM p u v) :
+    ∃ T > 0, ∀ ε > 0, ∃ δ > 0,
+      ∀ s t, T ≤ s → T ≤ t → |t - s| < δ →
+        ∀ x : intervalDomainPoint, |u t x - u s x| < ε := by
+  obtain ⟨T, hT, hright⟩ :=
+    intervalDomainM_globalBounded_eventual_right_time_equi p huv
+  refine ⟨T, hT, ?_⟩
+  intro ε hε
+  obtain ⟨δ, hδ, hmod⟩ := hright ε hε
+  refine ⟨δ, hδ, ?_⟩
+  intro s t hs ht hst x
+  rcases lt_trichotomy s t with hlt | heq | hgt
+  · have hr : 0 < t - s := sub_pos.mpr hlt
+    have hraw := hmod s (t - s) hs hr (by simpa [abs_of_pos hr] using hst) x
+    simpa [sub_add_cancel] using hraw
+  · subst t
+    simpa using hε
+  · have hr : 0 < s - t := sub_pos.mpr hgt
+    have hraw := hmod t (s - t) ht hr (by
+      rw [abs_sub_comm, abs_of_pos hr] at hst
+      exact hst) x
+    simpa [sub_add_cancel, abs_sub_comm] using hraw
+
 end
 
 
@@ -204,3 +231,5 @@ end ShenWork.Paper3
 
 #print axioms
   ShenWork.Paper3.intervalDomainM_globalBounded_eventual_right_time_equi
+#print axioms
+  ShenWork.Paper3.intervalDomainM_globalBounded_eventual_time_equi
