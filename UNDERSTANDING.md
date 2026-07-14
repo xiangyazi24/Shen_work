@@ -5009,3 +5009,16 @@ capstone.  Thus every positive-time canonical mild slice has a globally
 the declaration is clean-3.  This supplies the missing input for proving that
 the nonlinear chemotaxis flux is `C^{1,eta}` and differentiating its Duhamel
 leg one final time.
+
+The next C1 bridge is now established without differentiating the global
+clamp.  A bounded differentiable function whose derivative has a global
+Holder modulus has a globally bounded derivative; the proof applies the mean
+value theorem on each unit interval.  Applied to the physical positive-time
+slice, this gives a uniform spatial bound for `u_x`.  After removing the clamp
+by the strip hypothesis, the actual chemotaxis source has the genuine product
+rule derivative
+`m*u^(m-1)*u_x*v_x + u^m*(v-u^gamma)`, using the elliptic resolver identity.
+The new root-imported file passes the local 9562-job build and all four audited
+declarations are clean-3.  The remaining step in this rung is a quantitative
+positive Holder modulus for that displayed flux derivative, including the
+fractional `1 < m < 2` behavior at `u=0`.
