@@ -1,0 +1,44 @@
+name: q4894 self-hosted factor audit
+on:
+  push:
+    branches: [q4894-selfhosted]
+    paths:
+      - q4894_factor_audit.py
+      - .github/workflows/q4894-selfhosted.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - q4894_factor_audit.py
+      - .github/workflows/q4894-selfhosted.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: q4894-selfhosted
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: self-hosted
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4894-selfhosted
+      - name: Ensure SymPy
+        run: python3 -m pip install --user --upgrade sympy
+      - name: Run audit
+        shell: bash
+        run: |
+          set +e
+          python3 -u q4894_factor_audit.py 2>&1 | tee q4894_result.txt
+          status=${PIPESTATUS[0]}
+          echo "PROCESS_EXIT_STATUS=$status" | tee -a q4894_result.txt
+          exit 0
+      - name: Commit certificate
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add q4894_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4894 factor audit result'
+          git push origin HEAD:q4894-selfhosted
