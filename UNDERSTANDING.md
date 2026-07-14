@@ -1,5 +1,30 @@
 # UNDERSTANDING.md — Shen_work
 
+## Paper 1 Theorems 1.2--1.3 statement repair (2026-07-13)
+
+The original Section 5 proof has three independently certified statement
+defects: the comparison in (5.35) has the wrong direction, (1.21) uses the
+laboratory-coordinate weight although the proof works in the moving frame,
+and the exponential factor following (5.35) has the wrong sign.  The faithful
+global-(5.31) weight interval starts above `paper531RootMinus`, not merely
+above `kappa`.  `Theorem_1_2_amended`, its bounded-solution form, and
+`Theorem_1_3_amended` now expose an existential `Paper531StabilityBudget` and
+use that perturbed lower root.  The uniqueness hypothesis correspondingly
+requires the common wave-tail exponent to exceed the perturbed root.
+
+`CoMovingWeightedL2Convergence.of_paper531_energy_inequality` closes the
+scalar part in the native coefficient of (5.31): once the PDE calculation
+gives `E' <= 2*q(eta)*E`, root-window negativity supplies the positive decay
+rate internally.  This is a real reduction, not a stability proof.  The
+general-data whole-line Cauchy construction, the actual (5.31) energy/IBP
+identity, and the Step 4 compactness/left-tail inputs remain open.
+
+There is a separate fidelity defect in the older Remark 5.1/5.2 block of
+`Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
+`|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
+currently encode products `|chi|*sigma` and `|chi|^2*sigma`.  Those constants
+must not be reused for the corrected stability budgets until repaired.
+
 ## Paper 2 Lemma 2.6 / Corollary 2.1 statement repair (2026-07-13)
 
 The raw `Lemma_2_6` interface in `Statements.lean` is deliberately not claimed
