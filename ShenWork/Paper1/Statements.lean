@@ -12006,57 +12006,94 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_co
 def remark51MPrime (p : CMParams) : ℝ :=
   |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α)
 
+/-- The quantity `|χ|^σ` used throughout Paper1 Remarks 5.1--5.2.
+
+This is a real power.  In particular, it is not the product `|χ| * σ`.
+The distinction is essential in Section 5, where the paper later sets
+`σ = 1/6`. -/
+noncomputable def remark5ChiSigma (p : CMParams) (sigma : ℝ) : ℝ :=
+  |p.χ| ^ sigma
+
+/-- The paper's `|χ|^(2σ)`, represented as the square of `|χ|^σ` so that
+the algebraic relation between the two denominators is definitionally
+available. -/
+noncomputable def remark5ChiTwoSigma (p : CMParams) (sigma : ℝ) : ℝ :=
+  (remark5ChiSigma p sigma) ^ 2
+
+theorem remark5ChiSigma_nonneg (p : CMParams) (sigma : ℝ) :
+    0 ≤ remark5ChiSigma p sigma := by
+  exact Real.rpow_nonneg (abs_nonneg p.χ) sigma
+
+theorem remark5ChiSigma_pos {p : CMParams} (sigma : ℝ) (hχ : p.χ ≠ 0) :
+    0 < remark5ChiSigma p sigma := by
+  exact Real.rpow_pos_of_pos (abs_pos.mpr hχ) sigma
+
+theorem remark5ChiTwoSigma_nonneg (p : CMParams) (sigma : ℝ) :
+    0 ≤ remark5ChiTwoSigma p sigma := by
+  exact sq_nonneg _
+
+theorem remark5ChiTwoSigma_pos {p : CMParams} (sigma : ℝ) (hχ : p.χ ≠ 0) :
+    0 < remark5ChiTwoSigma p sigma := by
+  exact sq_pos_of_pos (remark5ChiSigma_pos sigma hχ)
+
+theorem remark5ChiTwoSigma_eq_rpow (p : CMParams) (sigma : ℝ) :
+    remark5ChiTwoSigma p sigma = |p.χ| ^ (2 * sigma) := by
+  rw [show (2 : ℝ) * sigma = sigma * 2 by ring]
+  simp [remark5ChiTwoSigma, remark5ChiSigma, Real.rpow_mul (abs_nonneg p.χ)]
+
 /-- The constant `M''_{\chi,m,\alpha,\gamma,\sigma}` from Paper1 Remark 5.1.
-The paper writes `|χ|2σ`; here it is represented as `|χ|^2 * σ`. -/
+The paper writes the real power `|χ|^(2σ)`. -/
 def remark51MDoublePrime (p : CMParams) (sigma : ℝ) : ℝ :=
   2 *
     (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-      (|p.χ| ^ 2 * sigma +
+      (remark5ChiTwoSigma p sigma +
         |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
           (|p.χ| * (MChi p) ^ (p.m + p.γ) +
             (MChi p) ^ (p.α + 1)) *
-          (p.γ + |p.χ| * sigma))
+          (p.γ + remark5ChiSigma p sigma))
 
 /-- The stronger speed hypothesis used in Paper1 Remarks 5.1 and 5.2. -/
 def remark5SpeedCondition (p : CMParams) (c sigma : ℝ) : Prop :=
   c >
     max
-      (p.γ + |p.χ| * sigma + (p.γ + |p.χ|) / sigma)
+      (p.γ + remark5ChiSigma p sigma + 1 / (p.γ + remark5ChiSigma p sigma))
       (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
-        |p.χ| * sigma)
+        remark5ChiSigma p sigma)
 
 theorem remark5SpeedCondition.gt_first
     {p : CMParams} {c sigma : ℝ}
     (h : remark5SpeedCondition p c sigma) :
-    p.γ + |p.χ| * sigma + (p.γ + |p.χ|) / sigma < c :=
+    p.γ + remark5ChiSigma p sigma + 1 / (p.γ + remark5ChiSigma p sigma) < c :=
   lt_of_le_of_lt (le_max_left _ _) h
 
 theorem remark5SpeedCondition.gt_second
     {p : CMParams} {c sigma : ℝ}
     (h : remark5SpeedCondition p c sigma) :
     p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
-        |p.χ| * sigma < c :=
+        remark5ChiSigma p sigma < c :=
   lt_of_le_of_lt (le_max_right _ _) h
 
 theorem remark5SpeedCondition.gt_waveDerivativeSpeed
     {p : CMParams} {c sigma : ℝ}
     (h : remark5SpeedCondition p c sigma) (hsigma : 0 ≤ sigma) :
     p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) < c := by
-  have hnonneg : 0 ≤ |p.χ| * sigma :=
-    mul_nonneg (abs_nonneg p.χ) hsigma
+  have hnonneg : 0 ≤ remark5ChiSigma p sigma :=
+    remark5ChiSigma_nonneg p sigma
   exact lt_of_le_of_lt (by linarith) h.gt_second
 
 /-- When |χ|σ ≥ 1, the first speed bound gives c > γ + |χ|σ ≥ γ + 1 ≥ 2. -/
 theorem remark5SpeedCondition.gt_two_of_chiSigma_ge_one
     {p : CMParams} {c sigma : ℝ}
     (h : remark5SpeedCondition p c sigma) (hsigma : 0 < sigma)
-    (hχσ : 1 ≤ |p.χ| * sigma) :
+    (hχσ : 1 ≤ remark5ChiSigma p sigma) :
     2 < c := by
   have h1 := h.gt_first
   have hγ : 1 ≤ p.γ := p.hγ
-  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
-  have hχ_pos : 0 ≤ p.γ + |p.χ| := by linarith
-  have hdiv_pos : 0 ≤ (p.γ + |p.χ|) / sigma := div_nonneg hχ_pos hsigma.le
+  have hden_pos : 0 < p.γ + remark5ChiSigma p sigma := by
+    have := remark5ChiSigma_nonneg p sigma
+    linarith
+  have hdiv_pos : 0 ≤ 1 / (p.γ + remark5ChiSigma p sigma) :=
+    div_nonneg zero_le_one hden_pos.le
   linarith
 
 /-- When |χ|σ ≥ 1, the first speed bound gives c > γ + γ⁻¹.
@@ -12064,7 +12101,7 @@ This uses γ⁻¹ ≤ 1 ≤ |χ|σ (so γ + |χ|σ ≥ γ + γ⁻¹). -/
 theorem remark5SpeedCondition.gt_gamma_inv_of_chiSigma_ge_one
     {p : CMParams} {c sigma : ℝ}
     (h : remark5SpeedCondition p c sigma) (hsigma : 0 < sigma)
-    (hχσ : 1 ≤ |p.χ| * sigma) :
+    (hχσ : 1 ≤ remark5ChiSigma p sigma) :
     p.γ + p.γ⁻¹ < c := by
   have h1 := h.gt_first
   have hγ : 1 ≤ p.γ := p.hγ
@@ -12072,9 +12109,11 @@ theorem remark5SpeedCondition.gt_gamma_inv_of_chiSigma_ge_one
   have hγ_inv_le_one : p.γ⁻¹ ≤ 1 := by
     rw [show p.γ⁻¹ = 1 / p.γ from by ring]
     rw [div_le_one hγ_pos]; exact hγ
-  have hχ_pos : 0 ≤ p.γ + |p.χ| := by
-    have := abs_nonneg p.χ; linarith
-  have hdiv_pos : 0 ≤ (p.γ + |p.χ|) / sigma := div_nonneg hχ_pos hsigma.le
+  have hden_pos : 0 < p.γ + remark5ChiSigma p sigma := by
+    have := remark5ChiSigma_nonneg p sigma
+    linarith
+  have hdiv_pos : 0 ≤ 1 / (p.γ + remark5ChiSigma p sigma) :=
+    div_nonneg zero_le_one hden_pos.le
   linarith
 
 /-- κ(c) < 1 when c > 2: kappa(c) = (c - √(c²-4))/2.
@@ -12093,8 +12132,8 @@ theorem kappa_lt_one_of_gt_two {c : ℝ} (hc : 2 < c) : kappa c < 1 := by
 /-- κ(c) < |χ|σ when c > 2 and |χ|σ ≥ 1: κ < 1 ≤ |χ|σ. -/
 theorem kappa_lt_chiSigma_of_gt_two_and_chiSigma_ge_one
     {p : CMParams} {c sigma : ℝ}
-    (hc : 2 < c) (hχσ : 1 ≤ |p.χ| * sigma) :
-    kappa c < |p.χ| * sigma := by
+    (hc : 2 < c) (hχσ : 1 ≤ remark5ChiSigma p sigma) :
+    kappa c < remark5ChiSigma p sigma := by
   exact lt_of_lt_of_le (kappa_lt_one_of_gt_two hc) hχσ
 
 /-- Paper1 Remark 5.1: under the stronger `sigma` speed condition, the
@@ -12107,10 +12146,10 @@ def Remark_5_1 : Prop :=
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
           (∀ x : ℝ,
-            |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma)) ∧
+            |deriv U x| ≤ remark51MPrime p / (remark5ChiSigma p sigma)) ∧
           ∀ x : ℝ, 0 ≤ x →
             |deriv U x| ≤
-              remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+              remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
                 Real.exp (-(kappa c) * x)
 
 
@@ -12248,7 +12287,7 @@ theorem wave_drift_lower_bound
     (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
     (hMChi_pos : 0 < MChi p)
     (hV'_abs : ∀ x, |deriv V x| ≤ (MChi p) ^ p.γ) (x : ℝ) :
-    |p.χ| * sigma ≤
+    remark5ChiSigma p sigma ≤
       c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x := by
   have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
   have hUm_nn : 0 ≤ (U x) ^ (p.m - 1) := Real.rpow_nonneg (hU_nn x) _
@@ -12276,7 +12315,7 @@ theorem wave_drift_lower_bound
             mul_le_mul_of_nonneg_left hkey
               (mul_nonneg (abs_nonneg _) hm_pos.le)
       _ = p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) := by ring
-  have hspeed2 : p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + |p.χ| * sigma < c :=
+  have hspeed2 : p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + remark5ChiSigma p sigma < c :=
     hspeed.gt_second
   have hX_le_abs : p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x ≤
       |p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x| := le_abs_self _
@@ -12368,10 +12407,10 @@ theorem remark_5_1_smooth_part1
     (hV_nn : ∀ x, 0 ≤ V x)
     (hV_bound : ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧
         |deriv V x| ≤ (MChi p) ^ p.γ) :
-    ∀ x, |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) := by
+    ∀ x, |deriv U x| ≤ remark51MPrime p / (remark5ChiSigma p sigma) := by
   have hMChi_pos : 0 < MChi p :=
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := remark5ChiSigma_pos sigma hχ
   have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
   have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
   have hU_le : ∀ x, U x ≤ MChi p := fun x => hbound.le_MChi x
@@ -12380,7 +12419,7 @@ theorem remark_5_1_smooth_part1
   set g : ℝ → ℝ := fun x =>
     p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) - U x * (1 - (U x) ^ p.α)
     with hg_def
-  have ha_lb : ∀ x, |p.χ| * sigma ≤ a x := fun x =>
+  have ha_lb : ∀ x, remark5ChiSigma p sigma ≤ a x := fun x =>
     wave_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
       (fun y => (hV_bound y).2) x
   have hg_ub : ∀ x, |g x| ≤ remark51MPrime p := fun x =>
@@ -12750,7 +12789,7 @@ theorem wave_weighted_drift_lower_bound
     (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
     (hMChi_pos : 0 < MChi p)
     (hV'_abs : ∀ x, |deriv V x| ≤ (MChi p) ^ p.γ) (x : ℝ) :
-    |p.χ| * sigma - kappa c ≤
+    remark5ChiSigma p sigma - kappa c ≤
       c - kappa c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x := by
   have hdrift := wave_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
     hV'_abs x
@@ -12977,7 +13016,7 @@ theorem remark_5_1_smooth_part2_via_duhamel
     (p : CMParams) (c sigma : ℝ)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
     (hspeed : remark5SpeedCondition p c sigma)
-    (hκ_pos : 0 < kappa c) (hκσ : kappa c < |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c) (hκσ : kappa c < remark5ChiSigma p sigma)
     (U V : ℝ → ℝ)
     (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
     (hreg : TravelingWaveRegularity p c U V)
@@ -12990,10 +13029,10 @@ theorem remark_5_1_smooth_part2_via_duhamel
         (|deriv U 0| +
           max (remark51MPrime p) (max 0
             (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) /
-              (|p.χ| * sigma - kappa c)) *
+              (remark5ChiSigma p sigma - kappa c)) *
           Real.exp (-(kappa c) * x) := by
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
-  have ha₀_pos : 0 < |p.χ| * sigma - kappa c := by linarith
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := remark5ChiSigma_pos sigma hχ
+  have ha₀_pos : 0 < remark5ChiSigma p sigma - kappa c := by linarith
   have hMChi_pos : 0 < MChi p :=
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
   have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
@@ -13016,7 +13055,7 @@ theorem remark_5_1_smooth_part2_via_duhamel
         U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)
     exact this
   -- Drift lower bound: a_w ≥ |χ|σ - κ
-  have ha_lb : ∀ x, |p.χ| * sigma - kappa c ≤ a_w x := fun x =>
+  have ha_lb : ∀ x, remark5ChiSigma p sigma - kappa c ≤ a_w x := fun x =>
     wave_weighted_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
       (fun y => (hreg.V_bound y).2) x
   -- Source bound: |g_w| ≤ G with explicit value
@@ -13047,32 +13086,32 @@ theorem remark_5_1_smooth_part2_via_duhamel
     exact h1.mul h2
   -- Apply Duhamel for each x ≥ 0
   intro x hx_nn
-  have hduh := first_order_ode_duhamel_bound (a := a_w) (g := g_w) (a₀ := |p.χ| * sigma - kappa c)
+  have hduh := first_order_ode_duhamel_bound (a := a_w) (g := g_w) (a₀ := remark5ChiSigma p sigma - kappa c)
     (G := G) 0 x ha₀_pos hG_nn ha_lb hG_bound hw_ode hw_diff hx_nn
   -- hduh : |w x| ≤ |w 0| · exp(-(|χ|σ-κ)(x - 0)) + G/(|χ|σ-κ)·(1 - exp(-(|χ|σ-κ)(x-0)))
   -- Convert |w x| bound to |deriv U x| bound
-  have hexp_neg_le : Real.exp (-(|p.χ| * sigma - kappa c) * (x - 0)) ≤ 1 := by
+  have hexp_neg_le : Real.exp (-(remark5ChiSigma p sigma - kappa c) * (x - 0)) ≤ 1 := by
     rw [Real.exp_le_one_iff]
-    have : (|p.χ| * sigma - kappa c) * (x - 0) ≥ 0 := by
+    have : (remark5ChiSigma p sigma - kappa c) * (x - 0) ≥ 0 := by
       apply mul_nonneg ha₀_pos.le; linarith
     linarith
-  have hduh' : |w x| ≤ |w 0| + G / (|p.χ| * sigma - kappa c) := by
+  have hduh' : |w x| ≤ |w 0| + G / (remark5ChiSigma p sigma - kappa c) := by
     have hsub_zero : x - 0 = x := by ring
     rw [hsub_zero] at hduh
-    have h1 : |w 0| * Real.exp (-(|p.χ| * sigma - kappa c) * x) ≤ |w 0| := by
-      have hexp_le_one : Real.exp (-(|p.χ| * sigma - kappa c) * x) ≤ 1 :=
+    have h1 : |w 0| * Real.exp (-(remark5ChiSigma p sigma - kappa c) * x) ≤ |w 0| := by
+      have hexp_le_one : Real.exp (-(remark5ChiSigma p sigma - kappa c) * x) ≤ 1 :=
         Real.exp_le_one_iff.mpr
-          (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(|p.χ| * sigma - kappa c) ≤ 0) hx_nn)
+          (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(remark5ChiSigma p sigma - kappa c) ≤ 0) hx_nn)
       exact mul_le_of_le_one_right (abs_nonneg _) hexp_le_one
-    have h2 : G / (|p.χ| * sigma - kappa c) *
-        (1 - Real.exp (-(|p.χ| * sigma - kappa c) * x)) ≤
-        G / (|p.χ| * sigma - kappa c) := by
-      have hG_div_nn : 0 ≤ G / (|p.χ| * sigma - kappa c) :=
+    have h2 : G / (remark5ChiSigma p sigma - kappa c) *
+        (1 - Real.exp (-(remark5ChiSigma p sigma - kappa c) * x)) ≤
+        G / (remark5ChiSigma p sigma - kappa c) := by
+      have hG_div_nn : 0 ≤ G / (remark5ChiSigma p sigma - kappa c) :=
         div_nonneg hG_nn ha₀_pos.le
-      have hexp_nn : 0 ≤ Real.exp (-(|p.χ| * sigma - kappa c) * x) :=
+      have hexp_nn : 0 ≤ Real.exp (-(remark5ChiSigma p sigma - kappa c) * x) :=
         (Real.exp_pos _).le
       nlinarith [Real.exp_le_one_iff.mpr
-        (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(|p.χ| * sigma - kappa c) ≤ 0) hx_nn)]
+        (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(remark5ChiSigma p sigma - kappa c) ≤ 0) hx_nn)]
     linarith
   -- |w x| = |deriv U x| · exp(κx), so |deriv U x| = |w x| · exp(-κx)
   have hw_eq : |w x| = |deriv U x| * Real.exp (kappa c * x) := by
@@ -13087,9 +13126,9 @@ theorem remark_5_1_smooth_part2_via_duhamel
         rw [hexp_inv]
     _ = (|deriv U x| * Real.exp (kappa c * x)) * Real.exp (-(kappa c) * x) := by ring
     _ = |w x| * Real.exp (-(kappa c) * x) := by rw [← hw_eq]
-    _ ≤ (|w 0| + G / (|p.χ| * sigma - kappa c)) * Real.exp (-(kappa c) * x) :=
+    _ ≤ (|w 0| + G / (remark5ChiSigma p sigma - kappa c)) * Real.exp (-(kappa c) * x) :=
         mul_le_mul_of_nonneg_right hduh' (Real.exp_pos _).le
-    _ = (|deriv U 0| + G / (|p.χ| * sigma - kappa c)) * Real.exp (-(kappa c) * x) := by
+    _ = (|deriv U 0| + G / (remark5ChiSigma p sigma - kappa c)) * Real.exp (-(kappa c) * x) := by
         have hw0 : w 0 = deriv U 0 := by
           show deriv U 0 * Real.exp (kappa c * 0) = deriv U 0
           rw [mul_zero, Real.exp_zero, mul_one]
@@ -13118,7 +13157,7 @@ theorem Remark_5_1.of_regularity_and_constant_bound
         HasWaveUpperTailBound p c U →
         ∀ x, 0 ≤ x →
           |deriv U x| ≤
-            remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+            remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
               Real.exp (-(kappa c) * x)) :
     Remark_5_1 := by
   intro p c sigma hsigma hχ hspeed U V hTW hbound
@@ -13137,7 +13176,7 @@ theorem wave_derivative_constant_bound_via_smooth_part1_and_duhamel
     (p : CMParams) (c sigma : ℝ)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
     (hspeed : remark5SpeedCondition p c sigma)
-    (hκ_pos : 0 < kappa c) (hκσ : kappa c < |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c) (hκσ : kappa c < remark5ChiSigma p sigma)
     (U V : ℝ → ℝ)
     (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
     (hreg : TravelingWaveRegularity p c U V)
@@ -13158,9 +13197,9 @@ theorem wave_derivative_constant_bound_via_smooth_part1_and_duhamel
   set C₂ : ℝ := |deriv U 0| +
     max (remark51MPrime p) (max 0
       (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) /
-        (|p.χ| * sigma - kappa c) with hC₂_def
+        (remark5ChiSigma p sigma - kappa c) with hC₂_def
   -- Combined: C := max(M'/(|χ|σ), C₂)
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := remark5ChiSigma_pos sigma hχ
   have hM'_nn : 0 ≤ remark51MPrime p := by
     have hMChi_pos : 0 < MChi p :=
       lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
@@ -13168,36 +13207,37 @@ theorem wave_derivative_constant_bound_via_smooth_part1_and_duhamel
     exact add_nonneg (mul_nonneg (abs_nonneg _)
       (Real.rpow_nonneg hMChi_pos.le _))
       (Real.rpow_nonneg hMChi_pos.le _)
-  have hC₁_nn : 0 ≤ remark51MPrime p / (|p.χ| * sigma) :=
+  have hC₁_nn : 0 ≤ remark51MPrime p / (remark5ChiSigma p sigma) :=
     div_nonneg hM'_nn hχσ_pos.le
   -- Use max of the two
-  refine ⟨max (remark51MPrime p / (|p.χ| * sigma)) C₂,
+  refine ⟨max (remark51MPrime p / (remark5ChiSigma p sigma)) C₂,
     le_max_of_le_left hC₁_nn, ?_, ?_⟩
   · intro x
     calc |deriv U x|
-        ≤ remark51MPrime p / (|p.χ| * sigma) := hpart1 x
-      _ ≤ max (remark51MPrime p / (|p.χ| * sigma)) C₂ := le_max_left _ _
+        ≤ remark51MPrime p / (remark5ChiSigma p sigma) := hpart1 x
+      _ ≤ max (remark51MPrime p / (remark5ChiSigma p sigma)) C₂ := le_max_left _ _
   · intro x hx_nn
     calc |deriv U x|
         ≤ C₂ * Real.exp (-(kappa c) * x) := hpart2 x hx_nn
-      _ ≤ max (remark51MPrime p / (|p.χ| * sigma)) C₂ *
+      _ ≤ max (remark51MPrime p / (remark5ChiSigma p sigma)) C₂ *
             Real.exp (-(kappa c) * x) :=
           mul_le_mul_of_nonneg_right (le_max_right _ _) (Real.exp_pos _).le
 
-/-- First piece of M'' constant tracking: M'·|χ| ≤ M''/2.
-Uses A·B = M''/2 where A = 1 + 2|χ|MChi^{m+γ-1} + MChi^α ≥ 1
-and B = |χ|²σ + |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ |χ|·M'·γ.
-Hence A·B ≥ 1·|χ|·M'·γ ≥ |χ|·M' for γ ≥ 1. -/
-theorem remark51MPrime_chi_le_MDoublePrime_half
+/-- First piece of the `M''` constant tracking in the large-power branch:
+`|χ|^σ M' ≤ M''/2` when `|χ|^σ ≥ 1`.
+
+The positive exponent is important: from `σ > 0` and `|χ|^σ ≥ 1` we get
+`|χ| ≥ 1`, and the second summand in `M''` then dominates
+`|χ|^σ M'`. -/
+theorem remark51MPrime_chiSigma_le_MDoublePrime_half
     (p : CMParams) {sigma : ℝ}
     (hMChi_pos : 0 < MChi p)
     (hMChi_ge_one : 1 ≤ MChi p)
-    (hsigma : 0 ≤ sigma) :
-    remark51MPrime p * |p.χ| ≤ remark51MDoublePrime p sigma / 2 := by
+    (hsigma : 0 < sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma) :
+    2 * (remark51MPrime p * remark5ChiSigma p sigma) ≤
+      remark51MDoublePrime p sigma / 2 := by
   unfold remark51MPrime remark51MDoublePrime
-  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
-  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
-  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
   have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
   set M' := |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α) with hM'_def
   have hM'_nn : 0 ≤ M' := by
@@ -13207,80 +13247,87 @@ theorem remark51MPrime_chi_le_MDoublePrime_half
       Real.rpow_nonneg hMChi_pos.le _
     linarith
   -- A ≥ 1
-  have hA_ge_one : 1 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+  have hA_ge_two : 2 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
       (MChi p) ^ p.α := by
     have h1 : 0 ≤ 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) :=
       mul_nonneg (mul_nonneg (by norm_num) hχ_nn) (Real.rpow_nonneg hMChi_pos.le _)
-    have h2 : 0 ≤ (MChi p) ^ p.α := Real.rpow_nonneg hMChi_pos.le _
+    have h2 : 1 ≤ (MChi p) ^ p.α :=
+      Real.one_le_rpow hMChi_ge_one (le_trans zero_le_one p.hα)
     linarith
   have hMChi_m_minus_one_ge_one : 1 ≤ (MChi p) ^ (p.m - 1) := by
     have : 0 ≤ p.m - 1 := by linarith [p.hm]
     exact Real.one_le_rpow hMChi_ge_one this
-  -- B ≥ |χ| · m · MChi^{m-1} · M' · γ ≥ |χ| · M' (since m, γ ≥ 1, MChi^{m-1} ≥ 1)
-  have hB_term : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
-      |p.χ| * M' := by
-    have hγ_pos_le : 1 ≤ p.γ + |p.χ| * sigma := by
-      have h_chi_sigma_nn : 0 ≤ |p.χ| * sigma := mul_nonneg hχ_nn hsigma
+  have hχ_ge_one : 1 ≤ |p.χ| := by
+    by_contra hnot
+    have hχ_lt_one : |p.χ| < 1 := lt_of_not_ge hnot
+    have hp_lt_one : remark5ChiSigma p sigma < 1 := by
+      exact (Real.rpow_lt_one_iff' (abs_nonneg p.χ) hsigma).2 hχ_lt_one
+    linarith
+  have hχmM_ge_one :
+      1 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) := by
+    calc
+      (1 : ℝ) = 1 * 1 * 1 := by ring
+      _ ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) := by
+        exact mul_le_mul
+          (mul_le_mul hχ_ge_one p.hm zero_le_one (abs_nonneg p.χ))
+          hMChi_m_minus_one_ge_one zero_le_one
+          (mul_nonneg (abs_nonneg p.χ) (le_trans zero_le_one p.hm))
+  -- The chemotactic summand in B dominates |χ|^σ M'.
+  have hB_term : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + remark5ChiSigma p sigma) ≥
+      remark5ChiSigma p sigma * M' := by
+    have hs_le :
+        remark5ChiSigma p sigma ≤ p.γ + remark5ChiSigma p sigma := by
       linarith [p.hγ]
-    have hm_ge_one : 1 ≤ p.m := p.hm
-    -- |χ|·m·MChi^{m-1}·M' ≥ |χ|·M' (using m·MChi^{m-1} ≥ 1)
-    have h_mid : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' ≥ |p.χ| * M' := by
-      have hmMpow_ge : p.m * (MChi p) ^ (p.m - 1) ≥ 1 := by
-        calc p.m * (MChi p) ^ (p.m - 1)
-            ≥ 1 * 1 := by
-              apply mul_le_mul <;> [exact hm_ge_one; exact hMChi_m_minus_one_ge_one;
-                linarith; linarith [hm_ge_one]]
-          _ = 1 := by ring
-      have : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' =
-          |p.χ| * (p.m * (MChi p) ^ (p.m - 1)) * M' := by ring
-      rw [this]
-      have := mul_le_mul_of_nonneg_right hmMpow_ge hM'_nn
-      have h_lhs : |p.χ| * (p.m * (MChi p) ^ (p.m - 1)) * M' =
-          |p.χ| * ((p.m * (MChi p) ^ (p.m - 1)) * M') := by ring
-      have h_rhs : |p.χ| * M' = |p.χ| * (1 * M') := by ring
-      rw [h_lhs, h_rhs]
-      exact mul_le_mul_of_nonneg_left this hχ_nn
-    -- Then · (γ + |χ|σ) ≥ · 1
-    calc |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)
-        ≥ |p.χ| * M' * (p.γ + |p.χ| * sigma) := by
-          have : 0 ≤ p.γ + |p.χ| * sigma := by
-            have := mul_nonneg hχ_nn hsigma; linarith [p.hγ]
-          exact mul_le_mul_of_nonneg_right h_mid this
-      _ ≥ |p.χ| * M' * 1 := by
-          apply mul_le_mul_of_nonneg_left hγ_pos_le
-          exact mul_nonneg hχ_nn hM'_nn
-      _ = |p.χ| * M' := by ring
-  -- B ≥ |χ| · M'
-  have hB_ge : |p.χ| ^ 2 * sigma +
-      |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
-      |p.χ| * M' := by
-    have h_chisq : 0 ≤ |p.χ| ^ 2 * sigma := mul_nonneg (sq_nonneg _) hsigma
+    have hM's_nn : 0 ≤ M' * remark5ChiSigma p sigma :=
+      mul_nonneg hM'_nn (remark5ChiSigma_nonneg p sigma)
+    calc
+      remark5ChiSigma p sigma * M'
+          = 1 * (M' * remark5ChiSigma p sigma) := by ring
+      _ ≤ (|p.χ| * p.m * (MChi p) ^ (p.m - 1)) *
+            (M' * remark5ChiSigma p sigma) :=
+        mul_le_mul_of_nonneg_right hχmM_ge_one hM's_nn
+      _ ≤ (|p.χ| * p.m * (MChi p) ^ (p.m - 1)) *
+            (M' * (p.γ + remark5ChiSigma p sigma)) := by
+        apply mul_le_mul_of_nonneg_left
+        · exact mul_le_mul_of_nonneg_left hs_le hM'_nn
+        · exact mul_nonneg
+            (mul_nonneg (abs_nonneg p.χ) (le_trans zero_le_one p.hm))
+            (Real.rpow_nonneg hMChi_pos.le _)
+      _ = |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+            (p.γ + remark5ChiSigma p sigma) := by ring
+  -- Hence B ≥ |χ|^σ M'.
+  have hB_ge : remark5ChiTwoSigma p sigma +
+      |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + remark5ChiSigma p sigma) ≥
+      remark5ChiSigma p sigma * M' := by
+    have h_chisq : 0 ≤ remark5ChiTwoSigma p sigma :=
+      remark5ChiTwoSigma_nonneg p sigma
     linarith [hB_term]
-  -- A·B ≥ 1 · |χ| · M' = |χ| · M' = M' · |χ|
+  -- A·B ≥ |χ|^σ M'.
   have hAB_ge : (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
       (MChi p) ^ p.α) *
-        (|p.χ| ^ 2 * sigma +
-          |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)) ≥
-      M' * |p.χ| := by
-    have h_chi_M_nn : 0 ≤ |p.χ| * M' := mul_nonneg hχ_nn hM'_nn
-    calc M' * |p.χ|
-        = 1 * (|p.χ| * M') := by ring
+        (remark5ChiTwoSigma p sigma +
+          |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + remark5ChiSigma p sigma)) ≥
+      2 * (M' * remark5ChiSigma p sigma) := by
+    have hs_M_nn : 0 ≤ remark5ChiSigma p sigma * M' :=
+      mul_nonneg (remark5ChiSigma_nonneg p sigma) hM'_nn
+    calc 2 * (M' * remark5ChiSigma p sigma)
+        = 2 * (remark5ChiSigma p sigma * M') := by ring
       _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
-              (MChi p) ^ p.α) * (|p.χ| * M') := by
-            apply mul_le_mul_of_nonneg_right _ h_chi_M_nn
-            linarith [hA_ge_one]
+              (MChi p) ^ p.α) * (remark5ChiSigma p sigma * M') := by
+            apply mul_le_mul_of_nonneg_right _ hs_M_nn
+            exact hA_ge_two
       _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
               (MChi p) ^ p.α) *
-            (|p.χ| ^ 2 * sigma +
-              |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)) := by
+            (remark5ChiTwoSigma p sigma +
+              |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + remark5ChiSigma p sigma)) := by
             apply mul_le_mul_of_nonneg_left hB_ge
-            linarith [hA_ge_one]
+            linarith [hA_ge_two]
   -- M''/2 = A·B
-  show M' * |p.χ| ≤ 2 *
+  show 2 * (M' * remark5ChiSigma p sigma) ≤ 2 *
     (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-    (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
+    (remark5ChiTwoSigma p sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
       (|p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1)) *
-      (p.γ + |p.χ| * sigma)) / 2
+      (p.γ + remark5ChiSigma p sigma)) / 2
   -- Need to identify M' inside the M'' formula
   have h_M'_match : |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1) = M' := by
     rw [hM'_def]
@@ -13288,20 +13335,19 @@ theorem remark51MPrime_chi_le_MDoublePrime_half
     rw [show p.α + 1 = 1 + p.α from by ring]
   rw [h_M'_match]
   have h_div : 2 * ((1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
-        (p.γ + |p.χ| * sigma))) / 2 =
+      (remark5ChiTwoSigma p sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + remark5ChiSigma p sigma))) / 2 =
       (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
-        (p.γ + |p.χ| * sigma)) := by ring
+      (remark5ChiTwoSigma p sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + remark5ChiSigma p sigma)) := by ring
   linarith [hAB_ge]
 
-/-- Strengthened Part 1 of Remark_5_1: under regularity, |U'(x)| ≤ M''/(2·|χ|²σ).
-This is a tighter bound than the M'/(|χ|σ) from smooth_part1, obtained via
-remark51MPrime_chi_le_MDoublePrime_half. Useful for matching Remark_5_1's
-M''/(|χ|²σ) bound at boundary points (x = 0). -/
+/-- In the large-power branch `|χ|^σ ≥ 1`, Part 1 also gives
+`|U'(x)| ≤ M''/(2 |χ|^(2σ))`. -/
 theorem remark_5_1_smooth_part1_strong
     (p : CMParams) (c sigma : ℝ)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hspeed : remark5SpeedCondition p c sigma)
     (U V : ℝ → ℝ)
     (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
@@ -13315,33 +13361,44 @@ theorem remark_5_1_smooth_part1_strong
     (hV_bound : ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧
       |deriv V x| ≤ (MChi p) ^ p.γ) :
     ∀ x, |deriv U x| ≤
-      remark51MDoublePrime p sigma / (2 * (|p.χ| ^ 2 * sigma)) := by
-  have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
-  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma := by
-    have : 0 < |p.χ| ^ 2 := sq_pos_of_pos hχ_pos
-    exact mul_pos this hsigma
+      remark51MDoublePrime p sigma / (2 * (remark5ChiTwoSigma p sigma)) := by
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := remark5ChiSigma_pos sigma hχ
+  have hχ2σ_pos : 0 < remark5ChiTwoSigma p sigma :=
+    remark5ChiTwoSigma_pos sigma hχ
   have hMChi_pos : 0 < MChi p :=
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
   have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
-  have hM'_chi := remark51MPrime_chi_le_MDoublePrime_half p (sigma := sigma)
-    hMChi_pos hMChi_ge_one hsigma.le
+  have hM'_chi := remark51MPrime_chiSigma_le_MDoublePrime_half p (sigma := sigma)
+    hMChi_pos hMChi_ge_one hsigma hχσ_ge_one
   have hpart1 := remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
     hU_diff hV_deriv_diff hderiv_U_cont hderiv_U_diff hderiv_U_tendszero hV_nn hV_bound
   intro x
-  have hχ_ne : |p.χ| ≠ 0 := ne_of_gt hχ_pos
-  have hχσ_ne : |p.χ| * sigma ≠ 0 := ne_of_gt hχσ_pos
-  have hχ2σ_ne : |p.χ| ^ 2 * sigma ≠ 0 := ne_of_gt hχ2σ_pos
+  have hχσ_ne : remark5ChiSigma p sigma ≠ 0 := ne_of_gt hχσ_pos
   have hpart1_x := hpart1 x
-  have h_eq : remark51MPrime p / (|p.χ| * sigma) =
-      remark51MPrime p * |p.χ| / (|p.χ| ^ 2 * sigma) := by
+  have h_eq : remark51MPrime p / (remark5ChiSigma p sigma) =
+      remark51MPrime p * remark5ChiSigma p sigma /
+        (remark5ChiTwoSigma p sigma) := by
+    unfold remark5ChiTwoSigma
     field_simp
   rw [h_eq] at hpart1_x
-  have h_le : remark51MPrime p * |p.χ| / (|p.χ| ^ 2 * sigma) ≤
-      remark51MDoublePrime p sigma / 2 / (|p.χ| ^ 2 * sigma) := by
-    apply div_le_div_of_nonneg_right hM'_chi hχ2σ_pos.le
-  have h_combine : remark51MDoublePrime p sigma / 2 / (|p.χ| ^ 2 * sigma) =
-      remark51MDoublePrime p sigma / (2 * (|p.χ| ^ 2 * sigma)) := by
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg p.χ) (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hM'_chi_nn :
+      0 ≤ remark51MPrime p * remark5ChiSigma p sigma :=
+    mul_nonneg hM'_nn (remark5ChiSigma_nonneg p sigma)
+  have hM'_chi_weak :
+      remark51MPrime p * remark5ChiSigma p sigma ≤
+        remark51MDoublePrime p sigma / 2 := by
+    linarith [hM'_chi]
+  have h_le : remark51MPrime p * remark5ChiSigma p sigma /
+      (remark5ChiTwoSigma p sigma) ≤
+      remark51MDoublePrime p sigma / 2 / (remark5ChiTwoSigma p sigma) := by
+    exact div_le_div_of_nonneg_right hM'_chi_weak hχ2σ_pos.le
+  have h_combine : remark51MDoublePrime p sigma / 2 / (remark5ChiTwoSigma p sigma) =
+      remark51MDoublePrime p sigma / (2 * (remark5ChiTwoSigma p sigma)) := by
     rw [div_div]
   linarith
 
@@ -13355,127 +13412,40 @@ theorem remark51_chi_sq_sigma_M_prime_div_drift_le_M_dprime_half
     (p : CMParams) {c sigma : ℝ}
     (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
     (hsigma : 0 < sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hκ_pos : 0 < kappa c)
-    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
-    |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+    (hκ_le_half : kappa c ≤ remark5ChiSigma p sigma / 2) :
+    remark5ChiTwoSigma p sigma * remark51MPrime p / (remark5ChiSigma p sigma - kappa c) ≤
       remark51MDoublePrime p sigma / 2 := by
-  unfold remark51MPrime remark51MDoublePrime
-  set M' := |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α) with hM'_def
-  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
-  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
-  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
-  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
-  have hM'_nn : 0 ≤ M' := by
-    have h1 : 0 ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) :=
-      mul_nonneg hχ_nn (Real.rpow_nonneg hMChi_pos.le _)
-    have h2 : 0 ≤ (MChi p) ^ (1 + p.α) :=
-      Real.rpow_nonneg hMChi_pos.le _
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg p.χ) (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := by
     linarith
-  have hχ_pos : 0 < |p.χ| := by
-    have : 0 < |p.χ| * sigma := by linarith
-    exact (mul_pos_iff.mp this).resolve_right (fun h => absurd h.2 (not_lt.mpr hsigma.le)) |>.1
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
-  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by linarith
-  have hdrift_ge_half : |p.χ| * sigma - kappa c ≥ |p.χ| * sigma / 2 := by linarith
-  -- Step 1: |χ|σ/(|χ|σ - κ) ≤ 2
-  have h_drift_ratio : |p.χ| * sigma / (|p.χ| * sigma - kappa c) ≤ 2 := by
+  have hdrift_pos : 0 < remark5ChiSigma p sigma - kappa c := by
+    have hhalf_lt :
+        remark5ChiSigma p sigma / 2 < remark5ChiSigma p sigma := by
+      linarith
+    linarith
+  have hratio :
+      remark5ChiTwoSigma p sigma * remark51MPrime p /
+          (remark5ChiSigma p sigma - kappa c) ≤
+        2 * (remark51MPrime p * remark5ChiSigma p sigma) := by
     rw [div_le_iff₀ hdrift_pos]
-    linarith
-  -- Step 2: A ≥ 1
-  have hA_ge_one : 1 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
-      (MChi p) ^ p.α := by
-    have h1 : 0 ≤ 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) :=
-      mul_nonneg (mul_nonneg (by norm_num) hχ_nn) (Real.rpow_nonneg hMChi_pos.le _)
-    have h2 : 0 ≤ (MChi p) ^ p.α := Real.rpow_nonneg hMChi_pos.le _
-    linarith
-  -- Step 3: m · MChi^{m-1} ≥ 1
-  have hMChi_m_minus_one_ge_one : 1 ≤ (MChi p) ^ (p.m - 1) := by
-    have : 0 ≤ p.m - 1 := by linarith [p.hm]
-    exact Real.one_le_rpow hMChi_ge_one this
-  have hmMpow_ge_one : 1 ≤ p.m * (MChi p) ^ (p.m - 1) := by
-    calc (1 : ℝ) = 1 * 1 := by ring
-      _ ≤ p.m * (MChi p) ^ (p.m - 1) := by
-        apply mul_le_mul p.hm hMChi_m_minus_one_ge_one (by linarith) (by linarith [p.hm])
-  -- Step 4: γ + |χ|σ ≥ 2 (under hγ ≥ 1 and |χ|σ ≥ 1)
-  have hγpχσ_ge_two : 2 ≤ p.γ + |p.χ| * sigma := by linarith [p.hγ]
-  -- Step 5: m·MChi^{m-1}·(γ + |χ|σ) ≥ 2 ≥ |χ|σ/(|χ|σ-κ)
-  have h_mMpow_γ : 2 ≤ p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma) := by
-    calc (2 : ℝ) = 1 * 2 := by ring
-      _ ≤ p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma) := by
-        apply mul_le_mul hmMpow_ge_one hγpχσ_ge_two (by linarith) (by linarith)
-  -- Step 6: B-term: |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ 2|χ|·M' ≥ |χ|²σ·M'/(|χ|σ-κ)
-  have h_B_term_lb : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
-      |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
-    -- |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ |χ|·2·M' = 2|χ|·M'
-    have h1 : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
-        |p.χ| * 2 * M' := by
-      have h_lhs_eq : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) =
-          |p.χ| * M' * (p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma)) := by ring
-      rw [h_lhs_eq]
-      have h_rhs_eq : |p.χ| * 2 * M' = |p.χ| * M' * 2 := by ring
-      rw [h_rhs_eq]
-      apply mul_le_mul_of_nonneg_left h_mMpow_γ
-      exact mul_nonneg hχ_nn hM'_nn
-    -- 2|χ|·M' ≥ |χ|²σ·M'/(|χ|σ - κ)
-    -- ⟺ 2·(|χ|σ - κ) ≥ |χ|σ (multiply both sides by (|χ|σ-κ)/|χ|/M', assuming positive)
-    -- ⟺ 2|χ|σ - 2κ ≥ |χ|σ ⟺ |χ|σ ≥ 2κ ⟺ κ ≤ |χ|σ/2 (our hyp)
-    have h2 : |p.χ| * 2 * M' ≥ |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
-      rw [ge_iff_le, div_le_iff₀ hdrift_pos]
-      have hineq : |p.χ| * sigma ≤ 2 * (|p.χ| * sigma - kappa c) := by linarith
-      have hM'χ_nn : 0 ≤ M' * |p.χ| := mul_nonneg hM'_nn hχ_nn
-      have h_step1 : M' * |p.χ| * (|p.χ| * sigma) ≤
-          M' * |p.χ| * (2 * (|p.χ| * sigma - kappa c)) :=
-        mul_le_mul_of_nonneg_left hineq hM'χ_nn
-      have h_lhs_eq : |p.χ| ^ 2 * sigma * M' = M' * |p.χ| * (|p.χ| * sigma) := by
-        rw [sq]; ring
-      have h_rhs_eq : |p.χ| * 2 * M' * (|p.χ| * sigma - kappa c) =
-          M' * |p.χ| * (2 * (|p.χ| * sigma - kappa c)) := by ring
-      rw [h_lhs_eq, h_rhs_eq]
-      exact h_step1
-    linarith
-  -- Step 7: A·B ≥ 1·(|χ|·m·MChi^{m-1}·M'·(γ+|χ|σ)) ≥ |χ|²σ·M'/(|χ|σ-κ)
-  have h_AB_ge : (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
-        (p.γ + |p.χ| * sigma)) ≥
-      |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
-    have hχsq_σ_nn : 0 ≤ |p.χ| ^ 2 * sigma := mul_nonneg (sq_nonneg _) hsigma.le
-    have hBterm_nn : 0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) := by
-      have : 0 ≤ p.γ + |p.χ| * sigma := by linarith
-      have h_chi_nn : 0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' :=
-        mul_nonneg (mul_nonneg (mul_nonneg hχ_nn hm_pos.le) (Real.rpow_nonneg hMChi_pos.le _)) hM'_nn
-      exact mul_nonneg h_chi_nn this
-    have hB_ge : |p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
-        (p.γ + |p.χ| * sigma) ≥
-        |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
-      linarith [h_B_term_lb]
-    have hB_div_nn : 0 ≤ |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
-      apply div_nonneg
-      · exact mul_nonneg hχsq_σ_nn hM'_nn
-      · exact hdrift_pos.le
-    calc |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)
-        = 1 * (|p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)) := by ring
-      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-            (|p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)) := by
-          apply mul_le_mul_of_nonneg_right _ hB_div_nn
-          linarith [hA_ge_one]
-      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-            (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
-              (p.γ + |p.χ| * sigma)) := by
-          apply mul_le_mul_of_nonneg_left hB_ge
-          linarith [hA_ge_one]
-  -- Step 8: M''/2 = A·B
-  show |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) ≤
-    2 * (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
-    (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
-      (|p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1)) *
-      (p.γ + |p.χ| * sigma)) / 2
-  have h_M'_match : |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1) = M' := by
-    rw [hM'_def]
-    congr 1
-    rw [show p.α + 1 = 1 + p.α from by ring]
-  rw [h_M'_match]
-  linarith [h_AB_ge]
+    have hscale :
+        remark5ChiSigma p sigma ≤
+          2 * (remark5ChiSigma p sigma - kappa c) := by
+      linarith
+    have hmul := mul_le_mul_of_nonneg_left hscale
+      (mul_nonneg hM'_nn (remark5ChiSigma_nonneg p sigma))
+    unfold remark5ChiTwoSigma
+    nlinarith
+  have hstrong :=
+    remark51MPrime_chiSigma_le_MDoublePrime_half
+      p hMChi_pos hMChi_ge_one hsigma hχσ_ge_one
+  exact le_trans hratio hstrong
 
 /-- G_pos (the x ≥ 0 source bound) is nonneg under K_V ≥ 0. -/
 theorem remark51_G_pos_nonneg
@@ -13488,8 +13458,8 @@ theorem remark51_G_pos_nonneg
   linarith
 
 /-- Combined M'' algebra in the case max(M', G_pos) = M' (i.e., G_pos ≤ M').
-Under |χ|σ ≥ 1 and κ ≤ |χ|σ/2:
-  M'·|χ| + |χ|²σ·M'/(|χ|σ - κ) ≤ M''
+Under `|χ|^σ ≥ 1` and `κ ≤ |χ|^σ/2`:
+  `M' |χ|^σ + |χ|^(2σ) M'/(|χ|^σ - κ) ≤ M''`.
 Equivalently:
   M'/(|χ|σ) + M'/(|χ|σ - κ) ≤ M''/(|χ|²σ)
 
@@ -13501,15 +13471,24 @@ theorem remark51_M_dprime_dominates_M_prime_case
     (p : CMParams) {c sigma : ℝ}
     (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
     (hsigma : 0 < sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hκ_pos : 0 < kappa c)
-    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
-    remark51MPrime p * |p.χ| +
-      |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+    (hκ_le_half : kappa c ≤ remark5ChiSigma p sigma / 2) :
+    remark51MPrime p * remark5ChiSigma p sigma +
+      remark5ChiTwoSigma p sigma * remark51MPrime p / (remark5ChiSigma p sigma - kappa c) ≤
       remark51MDoublePrime p sigma := by
-  have h1 := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma.le
+  have h1 := remark51MPrime_chiSigma_le_MDoublePrime_half p hMChi_pos
+    hMChi_ge_one hsigma hχσ_ge_one
   have h2 := remark51_chi_sq_sigma_M_prime_div_drift_le_M_dprime_half p hMChi_pos
     hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg p.χ) (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hfirst_nn :
+      0 ≤ remark51MPrime p * remark5ChiSigma p sigma :=
+    mul_nonneg hM'_nn (remark5ChiSigma_nonneg p sigma)
   linarith
 
 /-- Useful inequality: under M' case algebra hypotheses, the Duhamel constant
@@ -13521,58 +13500,42 @@ theorem remark51_Duhamel_constant_le_M_dprime_div_M_prime_case
     (p : CMParams) {c sigma : ℝ}
     (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
     (hsigma : 0 < sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hκ_pos : 0 < kappa c)
-    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
-    remark51MPrime p / (|p.χ| * sigma) +
-      remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
-  have h_combined := remark51_M_dprime_dominates_M_prime_case p hMChi_pos
-    hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
-  have hχ_pos : 0 < |p.χ| := by
-    rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
-    · exact h
-    · exfalso; rw [← h] at hχσ_ge_one; linarith
-  have hχ_sq_σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
-  have hχσ_pos : 0 < |p.χ| * sigma := by linarith
-  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by
-    have h_half_lt : |p.χ| * sigma / 2 < |p.χ| * sigma := by linarith
+    (hκ_le_half : kappa c ≤ remark5ChiSigma p sigma / 2) :
+    remark51MPrime p / (remark5ChiSigma p sigma) +
+      remark51MPrime p / (remark5ChiSigma p sigma - kappa c) ≤
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by
+  have hcombined :=
+    remark51_M_dprime_dominates_M_prime_case p hMChi_pos hMChi_ge_one
+      hsigma hχσ_ge_one hκ_pos hκ_le_half
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := by
     linarith
-  -- From h_combined (mult by (|χ|σ - κ)):
-  -- M'·|χ|·(|χ|σ-κ) + |χ|²σ·M' ≤ M''·(|χ|σ-κ)
-  -- ⟺ M'·|χ|·(2|χ|σ - κ) ≤ M''·(|χ|σ-κ)  (using |χ|²σ = |χ|·|χ|σ)
-  have h_mult : remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
-      |p.χ| ^ 2 * sigma * remark51MPrime p ≤
-      remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) := by
-    have h_step : (remark51MPrime p * |p.χ| +
-        |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c)) *
-        (|p.χ| * sigma - kappa c) ≤
-        remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) :=
-      mul_le_mul_of_nonneg_right h_combined hdrift_pos.le
-    have h_expand : (remark51MPrime p * |p.χ| +
-        |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c)) *
-        (|p.χ| * sigma - kappa c) =
-        remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
-        |p.χ| ^ 2 * sigma * remark51MPrime p := by
-      field_simp
-    linarith [h_step, h_expand.le, h_expand.symm.le]
-  -- After rw: goal becomes (M' · (|χ|σ-κ) + M' · |χ|σ) · |χ|²σ ≤ M'' · |χ|σ · (|χ|σ-κ)
+  have hdrift_pos : 0 < remark5ChiSigma p sigma - kappa c := by
+    have hhalf_lt :
+        remark5ChiSigma p sigma / 2 < remark5ChiSigma p sigma := by
+      linarith
+    linarith
+  have hχ2σ_pos : 0 < remark5ChiTwoSigma p sigma := by
+    unfold remark5ChiTwoSigma
+    exact sq_pos_of_pos hχσ_pos
   rw [div_add_div _ _ (ne_of_gt hχσ_pos) (ne_of_gt hdrift_pos)]
-  rw [div_le_div_iff₀ (mul_pos hχσ_pos hdrift_pos) hχ_sq_σ_pos]
-  -- Goal: (M' · (|χ|σ-κ) + M' · |χ|σ) · |χ|²σ ≤ M'' · (|χ|σ · (|χ|σ-κ))
-  -- LHS = M' · (2|χ|σ - κ) · |χ|²σ = |χ|²σ · M' · (2|χ|σ - κ)
-  -- |χ|²σ = |χ| · |χ|σ. So LHS = |χ| · |χ|σ · M' · (2|χ|σ - κ).
-  -- From h_mult: M'·|χ|·(2|χ|σ-κ) ≤ M''·(|χ|σ-κ).
-  -- Multiply both sides by |χ|σ: |χ|σ · M' · |χ| · (2|χ|σ-κ) ≤ |χ|σ · M'' · (|χ|σ-κ).
-  -- So LHS = |χ|σ · M' · |χ| · (2|χ|σ-κ) ≤ |χ|σ · M'' · (|χ|σ-κ) = RHS. ✓
-  have h_use : remark51MPrime p * |p.χ| * (2 * (|p.χ| * sigma) - kappa c) ≤
-      remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) := by
-    have h_eq : remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
-        |p.χ| ^ 2 * sigma * remark51MPrime p =
-        remark51MPrime p * |p.χ| * (2 * (|p.χ| * sigma) - kappa c) := by
-      rw [sq]; ring
-    linarith [h_mult, h_eq.le, h_eq.symm.le]
-  nlinarith [h_use, mul_pos hχσ_pos hdrift_pos]
+  rw [div_le_div_iff₀ (mul_pos hχσ_pos hdrift_pos) hχ2σ_pos]
+  have hmul := mul_le_mul_of_nonneg_right hcombined
+    (mul_nonneg hχσ_pos.le hdrift_pos.le)
+  have hleft :
+      (remark51MPrime p * remark5ChiSigma p sigma +
+          remark5ChiTwoSigma p sigma * remark51MPrime p /
+            (remark5ChiSigma p sigma - kappa c)) *
+          (remark5ChiSigma p sigma *
+            (remark5ChiSigma p sigma - kappa c)) =
+        (remark51MPrime p * (remark5ChiSigma p sigma - kappa c) +
+            remark51MPrime p * remark5ChiSigma p sigma) *
+          remark5ChiTwoSigma p sigma := by
+    unfold remark5ChiTwoSigma
+    field_simp
+  rw [hleft] at hmul
+  simpa [mul_comm, mul_left_comm, mul_assoc] using hmul
 
 /-- Full Remark_5_1 in the M'-dominant case: under regularity + signal bound +
 the algebraic conditions (|χ|σ ≥ 1, κ ≤ |χ|σ/2, G_pos ≤ M') discharged,
@@ -13591,10 +13554,10 @@ theorem Remark_5_1.of_M_prime_case_complete
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      1 ≤ |p.χ| * sigma)
+      1 ≤ remark5ChiSigma p sigma)
     (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      kappa c ≤ |p.χ| * sigma / 2)
+      kappa c ≤ remark5ChiSigma p sigma / 2)
     (h_part2_M_prime_match : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       ∀ U V : ℝ → ℝ,
@@ -13602,7 +13565,7 @@ theorem Remark_5_1.of_M_prime_case_complete
         HasWaveUpperTailBound p c U →
         ∀ x, 0 ≤ x →
           |deriv U x| ≤
-            remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+            remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
               Real.exp (-(kappa c) * x)) :
     Remark_5_1 := by
   intro p c sigma hsigma hχ hspeed U V hTW hbound
@@ -13626,9 +13589,9 @@ theorem remark_5_1_smooth_part2_M_prime_case_complete
     (p : CMParams) (c sigma : ℝ)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
     (hspeed : remark5SpeedCondition p c sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hκ_pos : 0 < kappa c)
-    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2)
+    (hκ_le_half : kappa c ≤ remark5ChiSigma p sigma / 2)
     (U V : ℝ → ℝ)
     (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
     (hreg : TravelingWaveRegularity p c U V)
@@ -13639,13 +13602,13 @@ theorem remark_5_1_smooth_part2_M_prime_case_complete
     (hG_pos_le_M_prime : |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
       remark51MPrime p) :
     ∀ x, 0 ≤ x →
-      |deriv U x| ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+      |deriv U x| ≤ remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
         Real.exp (-(kappa c) * x) := by
-  have hχσ_pos : 0 < |p.χ| * sigma := by linarith
-  have hκσ : kappa c < |p.χ| * sigma := by
-    have h_half_lt : |p.χ| * sigma / 2 < |p.χ| * sigma := by linarith
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := by linarith
+  have hκσ : kappa c < remark5ChiSigma p sigma := by
+    have h_half_lt : remark5ChiSigma p sigma / 2 < remark5ChiSigma p sigma := by linarith
     linarith
-  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by linarith
+  have hdrift_pos : 0 < remark5ChiSigma p sigma - kappa c := by linarith
   have hMChi_pos : 0 < MChi p :=
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
   have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
@@ -13654,11 +13617,9 @@ theorem remark_5_1_smooth_part2_M_prime_case_complete
     exact add_nonneg (mul_nonneg (abs_nonneg _)
       (Real.rpow_nonneg hMChi_pos.le _))
       (Real.rpow_nonneg hMChi_pos.le _)
-  have hχ_pos : 0 < |p.χ| := by
-    rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
-    · exact h
-    · exfalso; rw [← h] at hχσ_ge_one; linarith
-  have hχ_sq_σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
+  have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
+  have hχ_sq_σ_pos : 0 < remark5ChiTwoSigma p sigma :=
+    remark5ChiTwoSigma_pos sigma hχ
   -- Apply explicit smooth_part2
   have hpart2 := remark_5_1_smooth_part2_via_duhamel p c sigma hsigma hχ hspeed
     hκ_pos hκσ U V hTW hbound hreg hV_exp
@@ -13666,7 +13627,7 @@ theorem remark_5_1_smooth_part2_M_prime_case_complete
   have hpart1 := remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
     hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
     hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
-  have h_U_0 : |deriv U 0| ≤ remark51MPrime p / (|p.χ| * sigma) := hpart1 0
+  have h_U_0 : |deriv U 0| ≤ remark51MPrime p / (remark5ChiSigma p sigma) := hpart1 0
   -- M' case: max(M', max(0, G_pos)) = M' (since M' ≥ G_pos and M' ≥ 0)
   have hmax_M_prime : max (remark51MPrime p)
       (max 0 (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) =
@@ -13682,22 +13643,22 @@ theorem remark_5_1_smooth_part2_M_prime_case_complete
   -- hp2_x : |deriv U x| ≤ (|deriv U 0| + M'/(|χ|σ-κ)) * exp(-κx)
   -- Want: |deriv U x| ≤ M''/(|χ|²σ) * exp(-κx)
   -- Need: |deriv U 0| + M'/(|χ|σ-κ) ≤ M''/(|χ|²σ)
-  have h_bound_C : |deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+  have h_bound_C : |deriv U 0| + remark51MPrime p / (remark5ChiSigma p sigma - kappa c) ≤
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by
     have h_duh_ineq := remark51_Duhamel_constant_le_M_dprime_div_M_prime_case p
       hMChi_pos hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
     -- h_duh_ineq : M'/(|χ|σ) + M'/(|χ|σ-κ) ≤ M''/(|χ|²σ)
     -- We have h_U_0 : |U'(0)| ≤ M'/(|χ|σ)
-    have : |deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
-        remark51MPrime p / (|p.χ| * sigma) +
-        remark51MPrime p / (|p.χ| * sigma - kappa c) := by
+    have : |deriv U 0| + remark51MPrime p / (remark5ChiSigma p sigma - kappa c) ≤
+        remark51MPrime p / (remark5ChiSigma p sigma) +
+        remark51MPrime p / (remark5ChiSigma p sigma - kappa c) := by
       linarith
     linarith
   have hexp_nn : 0 ≤ Real.exp (-(kappa c) * x) := (Real.exp_pos _).le
   calc |deriv U x|
-      ≤ (|deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c)) *
+      ≤ (|deriv U 0| + remark51MPrime p / (remark5ChiSigma p sigma - kappa c)) *
           Real.exp (-(kappa c) * x) := hp2_x
-    _ ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+    _ ≤ remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
           Real.exp (-(kappa c) * x) :=
         mul_le_mul_of_nonneg_right h_bound_C hexp_nn
 
@@ -13719,10 +13680,10 @@ theorem Remark_5_1.of_full_M_prime_case
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      1 ≤ |p.χ| * sigma)
+      1 ≤ remark5ChiSigma p sigma)
     (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      kappa c ≤ |p.χ| * sigma / 2)
+      kappa c ≤ remark5ChiSigma p sigma / 2)
     (h_signal : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       ∀ U V : ℝ → ℝ,
@@ -13762,24 +13723,43 @@ theorem remark51MDoublePrime_nonneg_of_MChi_ge_one
     (hMChi_ge_one : 1 ≤ MChi p)
     (hsigma : 0 ≤ sigma) :
     0 ≤ remark51MDoublePrime p sigma := by
-  have hM'_chi_nn : 0 ≤ remark51MPrime p * |p.χ| := by
-    have hM'_nn : 0 ≤ remark51MPrime p := by
-      unfold remark51MPrime
-      exact add_nonneg (mul_nonneg (abs_nonneg _)
-        (Real.rpow_nonneg hMChi_pos.le _))
-        (Real.rpow_nonneg hMChi_pos.le _)
-    exact mul_nonneg hM'_nn (abs_nonneg _)
-  have := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma
-  linarith
+  have hm_nn : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hγ_nn : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+  have hM'_nn :
+      0 ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) +
+        (MChi p) ^ (p.α + 1) :=
+    add_nonneg
+      (mul_nonneg (abs_nonneg p.χ) (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hA :
+      0 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+        (MChi p) ^ p.α := by
+    positivity
+  have hchem :
+      0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
+        (|p.χ| * (MChi p) ^ (p.m + p.γ) +
+          (MChi p) ^ (p.α + 1)) *
+        (p.γ + remark5ChiSigma p sigma) := by
+    exact mul_nonneg
+      (mul_nonneg
+        (mul_nonneg
+          (mul_nonneg (abs_nonneg p.χ) hm_nn)
+          (Real.rpow_nonneg hMChi_pos.le _))
+        hM'_nn)
+      (add_nonneg hγ_nn (remark5ChiSigma_nonneg p sigma))
+  unfold remark51MDoublePrime
+  exact mul_nonneg
+    (mul_nonneg zero_le_two hA)
+    (add_nonneg (remark5ChiTwoSigma_nonneg p sigma) hchem)
 
 /-- The Duhamel constant from smooth_part2_via_duhamel, parametrized.
 This is the explicit constant C such that |U'(x)| ≤ C·exp(-κx) for x ≥ 0,
 where C = |U'(0)| + G/(|χ|σ - κ) with G the global g_w bound. The full
 M''/(|χ|²σ) match requires showing this C ≤ M''/(|χ|²σ) by paper algebra. -/
 def remark51DuhamelConstantBound (p : CMParams) (c sigma : ℝ) (K_V : ℝ) : ℝ :=
-  remark51MPrime p / (|p.χ| * sigma) +
+  remark51MPrime p / (remark5ChiSigma p sigma) +
     max (remark51MPrime p) (max 0 (|p.χ| * (K_V + 1) + 2)) /
-      (|p.χ| * sigma - kappa c)
+      (remark5ChiSigma p sigma - kappa c)
 
 /-- Uniqueness of bounded solutions of W'' = W on ℝ.
 
@@ -14063,10 +14043,10 @@ theorem Remark_5_1.of_M_prime_case_with_speed_conditions
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      1 ≤ |p.χ| * sigma)
+      1 ≤ remark5ChiSigma p sigma)
     (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      kappa c ≤ |p.χ| * sigma / 2)
+      kappa c ≤ remark5ChiSigma p sigma / 2)
     (h_c_gt_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       2 < c)
@@ -14104,10 +14084,10 @@ theorem Remark_5_1.of_M_prime_case_under_chi_sigma_ge_one
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      1 ≤ |p.χ| * sigma)
+      1 ≤ remark5ChiSigma p sigma)
     (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      kappa c ≤ |p.χ| * sigma / 2)
+      kappa c ≤ remark5ChiSigma p sigma / 2)
     (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
@@ -14138,7 +14118,7 @@ theorem Remark_5_1.of_M_prime_case_under_chi_sigma_ge_two
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
@@ -14151,7 +14131,7 @@ theorem Remark_5_1.of_M_prime_case_under_chi_sigma_ge_two
   · -- h_kappa_le_half: κ < 1 ≤ |χ|σ/2 under |χ|σ ≥ 2
     intro p c sigma hsigma hχ hspeed
     have hχσ_ge_two := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
-    have hχσ_ge_one : 1 ≤ |p.χ| * sigma := by linarith
+    have hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma := by linarith
     have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
       hspeed hsigma hχσ_ge_one
     have hκ_lt_one : kappa c < 1 := kappa_lt_one_of_gt_two hc_gt_two
@@ -14192,7 +14172,7 @@ theorem Remark_5_1.of_MChi_and_chi_sigma_bounds
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_MChi_pos : ∀ p : CMParams, 0 < MChi p)
     (h_MChi_pow_mgamma : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
@@ -14293,7 +14273,7 @@ theorem Remark_5_1.of_concrete_numerical_conditions
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       kappa c * p.γ ≤ 1 / 2)
@@ -14307,13 +14287,9 @@ theorem Remark_5_1.of_concrete_numerical_conditions
     have hMChi_pow_ge : 4 ≤ (MChi p) ^ (p.m + p.γ) :=
       MChi_pow_mgamma_ge_four_of_MChi_ge_two p hMChi
     have hκ_pos : 0 < kappa c := by
-      have hχ_pos : 0 < |p.χ| := by
-        have hχσ := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
-        rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
-        · exact h
-        · exfalso; rw [← h] at hχσ; linarith
+      have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
       have hχσ_ge_two := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
-      have hχσ_ge_one : 1 ≤ |p.χ| * sigma := by linarith
+      have hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma := by linarith
       have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
         hspeed hsigma hχσ_ge_one
       unfold kappa
@@ -14697,7 +14673,7 @@ theorem Remark_5_1_composed_M_prime_case
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       kappa c * p.γ ≤ 1 / 2)
@@ -14886,7 +14862,7 @@ theorem Remark_5_1_and_V_eq_FE
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       kappa c * p.γ ≤ 1 / 2)
@@ -15111,7 +15087,7 @@ theorem Remark_5_1_under_V_C2_and_bounded
         TravelingWaveRegularity p c U V)
     (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      2 ≤ |p.χ| * sigma)
+      2 ≤ remark5ChiSigma p sigma)
     (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       kappa c * p.γ ≤ 1 / 2)
@@ -15180,9 +15156,9 @@ theorem Remark_5_1_deriv_bound_at_zero
     (U V : ℝ → ℝ)
     (hTW : IsTravelingWave p c U V)
     (hbound : HasWaveUpperTailBound p c U) :
-    |deriv U 0| ≤ remark51MPrime p / (|p.χ| * sigma) ∧
+    |deriv U 0| ≤ remark51MPrime p / (remark5ChiSigma p sigma) ∧
     |deriv U 0| ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by
   obtain ⟨h_part1, h_part2⟩ :=
     h_R51 p c sigma hsigma hχ hspeed U V hTW hbound
   refine ⟨h_part1 0, ?_⟩
@@ -15192,42 +15168,46 @@ theorem Remark_5_1_deriv_bound_at_zero
   rw [this, mul_one] at h
   exact h
 
-/-- Comparison: M'/(|χ|σ) ≤ M''/(|χ|²σ) iff |χ|·M' ≤ M''. -/
+/-- Comparison after clearing the paper's real-power denominators. -/
 theorem M_prime_bound_le_M_dprime_bound_iff
     (p : CMParams) (sigma : ℝ)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
-    remark51MPrime p / (|p.χ| * sigma) ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) ↔
-    |p.χ| * remark51MPrime p ≤ remark51MDoublePrime p sigma := by
-  have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
-  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
-  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
+    remark51MPrime p / (remark5ChiSigma p sigma) ≤
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) ↔
+    remark5ChiSigma p sigma * remark51MPrime p ≤
+      remark51MDoublePrime p sigma := by
+  have hχσ_pos : 0 < remark5ChiSigma p sigma := remark5ChiSigma_pos sigma hχ
+  have hχ2σ_pos : 0 < remark5ChiTwoSigma p sigma :=
+    remark5ChiTwoSigma_pos sigma hχ
   rw [div_le_div_iff₀ hχσ_pos hχ2σ_pos]
   constructor
   · intro h
-    have h_eq : remark51MPrime p * (|p.χ| ^ 2 * sigma) =
-        (|p.χ| * remark51MPrime p) * (|p.χ| * sigma) := by ring
-    rw [h_eq] at h
-    exact le_of_mul_le_mul_right (by linarith) hχσ_pos
+    apply le_of_mul_le_mul_right _ hχσ_pos
+    simpa [remark5ChiTwoSigma, pow_two, mul_comm, mul_left_comm, mul_assoc] using h
   · intro h
-    have h_eq : remark51MPrime p * (|p.χ| ^ 2 * sigma) =
-        (|p.χ| * remark51MPrime p) * (|p.χ| * sigma) := by ring
-    rw [h_eq]
-    exact mul_le_mul_of_nonneg_right h hχσ_pos.le
+    have hmul := mul_le_mul_of_nonneg_right h hχσ_pos.le
+    simpa [remark5ChiTwoSigma, pow_two, mul_comm, mul_left_comm, mul_assoc] using hmul
 
 /-- The M' bound is automatically dominated by the M'' bound at x=0, under
 the M' case condition. -/
 theorem M_prime_bound_le_M_dprime_bound_under_M_prime_case
     (p : CMParams) {sigma : ℝ}
     (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
-    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
-    remark51MPrime p / (|p.χ| * sigma) ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma) :
+    remark51MPrime p / (remark5ChiSigma p sigma) ≤
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by
   rw [M_prime_bound_le_M_dprime_bound_iff p sigma hsigma hχ]
-  have h := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma.le
-  have h_M''_nn := remark51MDoublePrime_nonneg_of_MChi_ge_one p hMChi_pos hMChi_ge_one hsigma.le
-  have h_mul : |p.χ| * remark51MPrime p = remark51MPrime p * |p.χ| := by ring
-  rw [h_mul]
+  have h := remark51MPrime_chiSigma_le_MDoublePrime_half p hMChi_pos
+    hMChi_ge_one hsigma hχσ_ge_one
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg p.χ) (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hprod_nn :
+      0 ≤ remark5ChiSigma p sigma * remark51MPrime p :=
+    mul_nonneg (remark5ChiSigma_nonneg p sigma) hM'_nn
   linarith
 
 /-- The Remark_5_1 Part 2 exp(-κx) factor is ≤ 1 for x ≥ 0 + κ ≥ 0. -/
@@ -15251,7 +15231,7 @@ theorem Remark_5_1_part2_loose_form
     (hbound : HasWaveUpperTailBound p c U)
     (x : ℝ) (hx_nn : 0 ≤ x) :
     |deriv U x| ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by
   obtain ⟨_, h_part2⟩ := h_R51 p c sigma hsigma hχ hspeed U V hTW hbound
   have h := h_part2 x hx_nn
   have hexp_le := exp_neg_kappa_le_one hκ_nn hx_nn
@@ -15261,16 +15241,16 @@ theorem Remark_5_1_part2_loose_form
   have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
   have h_M''_nn : 0 ≤ remark51MDoublePrime p sigma :=
     remark51MDoublePrime_nonneg_of_MChi_ge_one p hMChi_pos hMChi_ge_one hsigma.le
-  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma :=
-    mul_pos (sq_pos_of_pos (abs_pos.mpr hχ)) hsigma
-  have h_M''_div_nn : 0 ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) :=
+  have hχ2σ_pos : 0 < remark5ChiTwoSigma p sigma :=
+    remark5ChiTwoSigma_pos sigma hχ
+  have h_M''_div_nn : 0 ≤ remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) :=
     div_nonneg h_M''_nn hχ2σ_pos.le
   calc |deriv U x|
-      ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+      ≤ remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
           Real.exp (-(kappa c) * x) := h
-    _ ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) * 1 :=
+    _ ≤ remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) * 1 :=
         mul_le_mul_of_nonneg_left hexp_le h_M''_div_nn
-    _ = remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by ring
+    _ = remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) := by ring
 
 /-- Combined Remark_5_1: maximum bound (best of M' and M'' applied tightly). -/
 theorem Remark_5_1_max_bound
@@ -15282,7 +15262,7 @@ theorem Remark_5_1_max_bound
     (hTW : IsTravelingWave p c U V)
     (hbound : HasWaveUpperTailBound p c U)
     (x : ℝ) :
-    |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) := by
+    |deriv U x| ≤ remark51MPrime p / (remark5ChiSigma p sigma) := by
   exact (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).1 x
 
 /-- Combined Remark_5_1: exp-decayed bound for x ≥ 0. -/
@@ -15296,7 +15276,7 @@ theorem Remark_5_1_exp_bound
     (hbound : HasWaveUpperTailBound p c U)
     (x : ℝ) (hx_nn : 0 ≤ x) :
     |deriv U x| ≤
-      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+      remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma) *
         Real.exp (-(kappa c) * x) :=
   (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).2 x hx_nn
 
@@ -15486,7 +15466,7 @@ theorem K_V_pos_in_Remark_5_1_context
     (p : CMParams) {c sigma : ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
     (hspeed : remark5SpeedCondition p c sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma)
     (hκγ_le_half : kappa c * p.γ ≤ 1 / 2) :
     0 < 1 / (1 - kappa c ^ 2 * p.γ ^ 2) := by
   have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
@@ -15505,7 +15485,7 @@ theorem kappa_pos_under_chi_sigma_ge_one
     {p : CMParams} {c sigma : ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
     (hspeed : remark5SpeedCondition p c sigma)
-    (hχσ_ge_one : 1 ≤ |p.χ| * sigma) :
+    (hχσ_ge_one : 1 ≤ remark5ChiSigma p sigma) :
     0 < kappa c := by
   have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
     hspeed hsigma hχσ_ge_one
@@ -15601,7 +15581,7 @@ Paper1 Remark 5.2.  The branch at `c ≤ 5/2` comes from Lemma 5.2; the branch a
 `5/2 < c` comes from Remark 4.1 and Remark 5.1. -/
 def remark52MTriplePrime (p : CMParams) (c sigma : ℝ) : ℝ :=
   if c ≤ (5 / 2 : ℝ) then
-    |p.χ| ^ 2 * sigma / 2 *
+    remark5ChiTwoSigma p sigma / 2 *
       (5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
         Real.sqrt
           ((5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
@@ -15610,13 +15590,13 @@ def remark52MTriplePrime (p : CMParams) (c sigma : ℝ) : ℝ :=
   else
     max
       (8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
-        (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p)
+        (p.γ + remark5ChiSigma p sigma) / (1 + p.γ) * remark51MPrime p)
       (2 * remark51MDoublePrime p sigma)
 
 theorem remark52MTriplePrime_eq_of_le
     {p : CMParams} {c sigma : ℝ} (hc : c ≤ (5 / 2 : ℝ)) :
     remark52MTriplePrime p c sigma =
-      |p.χ| ^ 2 * sigma / 2 *
+      remark5ChiTwoSigma p sigma / 2 *
         (5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
           Real.sqrt
             ((5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
@@ -15629,14 +15609,14 @@ theorem remark52MTriplePrime_eq_of_gt
     remark52MTriplePrime p c sigma =
       max
         (8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
-          (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p)
+          (p.γ + remark5ChiSigma p sigma) / (1 + p.γ) * remark51MPrime p)
         (2 * remark51MDoublePrime p sigma) := by
   simp [remark52MTriplePrime, not_le.mpr hc]
 
 theorem remark52MTriplePrime.first_branch_le_of_gt
     {p : CMParams} {c sigma : ℝ} (hc : (5 / 2 : ℝ) < c) :
     8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
-        (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p ≤
+        (p.γ + remark5ChiSigma p sigma) / (1 + p.γ) * remark51MPrime p ≤
       remark52MTriplePrime p c sigma := by
   rw [remark52MTriplePrime_eq_of_gt hc]
   exact le_max_left _ _
@@ -15649,8 +15629,8 @@ theorem remark52MTriplePrime.doublePrime_branch_le_of_gt
 
 theorem remark5Denominator_pos
     {p : CMParams} {sigma : ℝ} (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
-    0 < |p.χ| ^ 2 * sigma := by
-  exact mul_pos (pow_pos (abs_pos.mpr hχ) 2) hsigma
+    0 < remark5ChiTwoSigma p sigma := by
+  exact remark5ChiTwoSigma_pos sigma hχ
 
 theorem remark51MPrime_nonneg_of_MChi_pos
     (p : CMParams) (hM : 0 < MChi p) :
@@ -15667,7 +15647,8 @@ theorem remark52MTriplePrime_nonneg_of_MChi_pos
   by_cases hc : c ≤ (5 / 2 : ℝ)
   · rw [remark52MTriplePrime_eq_of_le hc]
     have hfactor :
-        0 ≤ |p.χ| ^ 2 * sigma / 2 := by positivity
+        0 ≤ remark5ChiTwoSigma p sigma / 2 :=
+      div_nonneg (remark5ChiTwoSigma_nonneg p sigma) zero_le_two
     have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
     have hpow :
         0 ≤ (MChi p) ^ (p.m + p.γ - 1) :=
@@ -15692,15 +15673,15 @@ theorem remark52MTriplePrime_nonneg_of_MChi_pos
     have hparen :
         0 ≤ 1 + |p.χ| + 2 * p.m * |p.χ| := by
       nlinarith [abs_nonneg p.χ, hpmul]
-    have hsigma_term : 0 ≤ |p.χ| * sigma :=
-      mul_nonneg (abs_nonneg p.χ) hsigma.le
-    have hgamma_sigma : 0 ≤ p.γ + |p.χ| * sigma := by
+    have hsigma_term : 0 ≤ remark5ChiSigma p sigma :=
+      remark5ChiSigma_nonneg p sigma
+    have hgamma_sigma : 0 ≤ p.γ + remark5ChiSigma p sigma := by
       nlinarith [p.hγ, hsigma_term]
     have hden : 0 ≤ 1 + p.γ := by nlinarith [p.hγ]
     have hcoef :
         0 ≤
           8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
-              (p.γ + |p.χ| * sigma) /
+              (p.γ + remark5ChiSigma p sigma) /
             (1 + p.γ) := by
       exact div_nonneg
         (mul_nonneg
@@ -15710,7 +15691,7 @@ theorem remark52MTriplePrime_nonneg_of_MChi_pos
     have hbranch :
         0 ≤
           8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
-              (p.γ + |p.χ| * sigma) /
+              (p.γ + remark5ChiSigma p sigma) /
             (1 + p.γ) * remark51MPrime p :=
       mul_nonneg hcoef (remark51MPrime_nonneg_of_MChi_pos p hM)
     exact le_trans hbranch (le_max_left _ _)
@@ -15725,7 +15706,7 @@ def Remark_5_2 : Prop :=
         HasWaveUpperTailBound p c U →
           ∀ x : ℝ,
             deriv U x / U x ≤
-              remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+              remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma)
 
 /-- Remark_5_2 holds trivially when U is monotone decreasing AND
 M''' is nonneg: U' ≤ 0 + U > 0 → U'/U ≤ 0 ≤ M'''/(|χ|²σ). -/
@@ -15744,9 +15725,9 @@ theorem Remark_5_2_under_monotone_U
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
   have h_M_dprime_nn :=
     remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
-  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma :=
+  have hχ2σ_pos : 0 < remark5ChiTwoSigma p sigma :=
     remark5Denominator_pos hsigma hχ
-  have h_ratio_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+  have h_ratio_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) :=
     div_nonneg h_M_dprime_nn hχ2σ_pos.le
   have h_div_nonpos : deriv U x / U x ≤ 0 :=
     div_nonpos_of_nonpos_of_nonneg h_mono hU_pos.le
@@ -15764,7 +15745,7 @@ theorem Remark_5_2_under_bounded_with_lower_bound
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
         ∀ x, deriv U x ≤
-          remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U x) :
+          remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) * U x) :
     Remark_5_2 := by
   intro p c sigma hsigma hχ hspeed U V hTW hbound x
   have hU_pos : 0 < U x := hTW.U_pos x
@@ -15789,8 +15770,8 @@ theorem Remark_5_2_from_Remark_5_1_and_lower_bound
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
         ∀ U_low : ℝ, 0 < U_low →
-          remark51MPrime p / (|p.χ| * sigma * U_low) ≤
-            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)) :
+          remark51MPrime p / (remark5ChiSigma p sigma * U_low) ≤
+            remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma)) :
     Remark_5_2 := by
   intro p c sigma hsigma hχ hspeed U V hTW hbound x
   obtain ⟨U_low, hU_low_pos, hU_low⟩ :=
@@ -15798,23 +15779,23 @@ theorem Remark_5_2_from_Remark_5_1_and_lower_bound
   have h_const := h_const_compare p c sigma hsigma hχ hspeed U V hTW hbound U_low hU_low_pos
   have h_R51_x := (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).1 x
   -- |deriv U x| ≤ M'/(|χ|σ). Hence deriv U x ≤ M'/(|χ|σ).
-  have h_deriv_le : deriv U x ≤ remark51MPrime p / (|p.χ| * sigma) :=
+  have h_deriv_le : deriv U x ≤ remark51MPrime p / (remark5ChiSigma p sigma) :=
     le_trans (le_abs_self _) h_R51_x
   have hU_pos : 0 < U x := hTW.U_pos x
   have hU_low_le_U : U_low ≤ U x := hU_low x
   -- deriv U x / U x ≤ M'/(|χ|σ) / U_low ≤ M'/(|χ|σ * U_low) ≤ M'''/(|χ|²σ).
   rw [div_le_iff₀ hU_pos]
-  have h_chain : remark51MPrime p / (|p.χ| * sigma * U_low) * U_low =
-      remark51MPrime p / (|p.χ| * sigma) := by
+  have h_chain : remark51MPrime p / (remark5ChiSigma p sigma * U_low) * U_low =
+      remark51MPrime p / (remark5ChiSigma p sigma) := by
     have hU_low_ne : U_low ≠ 0 := ne_of_gt hU_low_pos
     field_simp
   calc deriv U x
-      ≤ remark51MPrime p / (|p.χ| * sigma) := h_deriv_le
-    _ = remark51MPrime p / (|p.χ| * sigma * U_low) * U_low := h_chain.symm
-    _ ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U_low :=
+      ≤ remark51MPrime p / (remark5ChiSigma p sigma) := h_deriv_le
+    _ = remark51MPrime p / (remark5ChiSigma p sigma * U_low) * U_low := h_chain.symm
+    _ ≤ remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) * U_low :=
         mul_le_mul_of_nonneg_right h_const hU_low_pos.le
-    _ ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U x := by
-        have hM'''_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+    _ ≤ remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) * U x := by
+        have hM'''_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
           have hMChi_pos : 0 < MChi p :=
             lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
           have hM_nn := remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
@@ -15851,12 +15832,12 @@ theorem M_tprime_div_dominates_M_dprime_div_gt
     {p : CMParams} {c sigma : ℝ}
     (hc : (5 / 2 : ℝ) < c)
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
-    2 * (remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma)) ≤
-      remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+    2 * (remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma)) ≤
+      remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   have h := M_dprime_two_le_M_tprime_gt (p := p) (sigma := sigma) hc
   have hχ2σ_pos := remark5Denominator_pos hsigma hχ
-  have h_mul_div : 2 * (remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma)) =
-      (2 * remark51MDoublePrime p sigma) / (|p.χ| ^ 2 * sigma) := by ring
+  have h_mul_div : 2 * (remark51MDoublePrime p sigma / (remark5ChiTwoSigma p sigma)) =
+      (2 * remark51MDoublePrime p sigma) / (remark5ChiTwoSigma p sigma) := by ring
   rw [h_mul_div]
   exact div_le_div_of_nonneg_right h hχ2σ_pos.le
 
@@ -15876,8 +15857,8 @@ theorem Remark_5_2_via_Remark_5_1_full
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
         ∀ U_low : ℝ, 0 < U_low →
-          remark51MPrime p / (|p.χ| * sigma * U_low) ≤
-            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)) :
+          remark51MPrime p / (remark5ChiSigma p sigma * U_low) ≤
+            remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma)) :
     Remark_5_2 :=
   Remark_5_2_from_Remark_5_1_and_lower_bound h_R51 h_U_lower h_const_compare
 
@@ -15887,54 +15868,48 @@ def Remark52LogDerivativeAlgebra : Prop :=
       c > max (p.γ + p.γ⁻¹)
         (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) ∧
       logDerivativeBoundFormula p c ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma)
 
 def Remark52GammaSpeedAlgebra : Prop :=
   ∀ p : CMParams, ∀ c sigma : ℝ,
     0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
       p.γ + p.γ⁻¹ < c
 
-theorem not_Remark52GammaSpeedAlgebra :
-    ¬ Remark52GammaSpeedAlgebra := by
-  intro h
-  let p : CMParams :=
-    { m := 1
-      α := 1
-      γ := 1
-      χ := (1 / 10000 : ℝ)
-      hm := le_rfl
-      hα := le_rfl
-      hγ := le_rfl }
-  have hsigma : 0 < (100 : ℝ) := by norm_num
-  have hχ : p.χ ≠ 0 := by norm_num [p]
-  have hspeed : remark5SpeedCondition p (3 / 2 : ℝ) 100 := by
-    unfold remark5SpeedCondition
-    apply max_lt
-    · norm_num [p]
-    · have hM : MChi p = (10000 / 9999 : ℝ) := by
-        simp [p, MChi]
-        norm_num
-      norm_num [p, hM]
-  have hbad := h p (3 / 2 : ℝ) 100 hsigma hχ hspeed
-  norm_num [p] at hbad
+/-- The corrected real-power speed condition implies the first speed
+inequality used in Lemma 5.2.  The former product transcription
+`|chi| * sigma` made this true paper implication appear to fail. -/
+theorem remark5SpeedCondition_implies_gammaSpeed :
+    Remark52GammaSpeedAlgebra := by
+  intro p c sigma _hsigma _hχ hspeed
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hs_nn : 0 ≤ remark5ChiSigma p sigma :=
+    remark5ChiSigma_nonneg p sigma
+  have hsum_pos : 0 < p.γ + remark5ChiSigma p sigma :=
+    add_pos_of_pos_of_nonneg hγ_pos hs_nn
+  have hprod :
+      1 ≤ p.γ * (p.γ + remark5ChiSigma p sigma) := by
+    nlinarith [p.hγ]
+  have halg :
+      p.γ + p.γ⁻¹ ≤
+        p.γ + remark5ChiSigma p sigma +
+          (p.γ + remark5ChiSigma p sigma)⁻¹ := by
+    apply le_of_mul_le_mul_right _ (mul_pos hγ_pos hsum_pos)
+    field_simp
+    nlinarith
+  exact lt_of_le_of_lt halg (by simpa [one_div] using hspeed.gt_first)
 
-theorem not_remark5SpeedCondition_implies_Lemma_5_2_speed :
-    ¬ (∀ p : CMParams, ∀ c sigma : ℝ,
+theorem remark5SpeedCondition_implies_Lemma_5_2_speed :
+    ∀ p : CMParams, ∀ c sigma : ℝ,
       0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
         c > max (p.γ + p.γ⁻¹)
-          (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1))) := by
-  intro h
-  apply not_Remark52GammaSpeedAlgebra
+          (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) := by
   intro p c sigma hsigma hχ hspeed
-  exact lt_of_le_of_lt (le_max_left _ _) (h p c sigma hsigma hχ hspeed)
-
-theorem not_Remark52LogDerivativeAlgebra :
-    ¬ Remark52LogDerivativeAlgebra := by
-  intro h
-  apply not_Remark52GammaSpeedAlgebra
-  intro p c sigma hsigma hχ hspeed
-  exact lt_of_le_of_lt (le_max_left _ _)
-    (h p c sigma hsigma hχ hspeed).1
+  apply max_lt
+  · exact remark5SpeedCondition_implies_gammaSpeed
+      p c sigma hsigma hχ hspeed
+  · have hs_nn : 0 ≤ remark5ChiSigma p sigma :=
+      remark5ChiSigma_nonneg p sigma
+    linarith [hspeed.gt_second]
 
 theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
@@ -15945,16 +15920,16 @@ theorem Remark_5_2.nonincreasing_positive_profile_branch
     (hmono : ∀ x, deriv U x ≤ 0) :
     ∀ x : ℝ,
       deriv U x / U x ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   have hM : 0 < MChi p :=
     lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
   have hnum :
       0 ≤ remark52MTriplePrime p c sigma :=
     remark52MTriplePrime_nonneg_of_MChi_pos p hsigma hM
-  have hden : 0 < |p.χ| ^ 2 * sigma :=
+  have hden : 0 < remark5ChiTwoSigma p sigma :=
     remark5Denominator_pos hsigma hχ
   have hrhs_nonneg :
-      0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+      0 ≤ remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) :=
     div_nonneg hnum hden.le
   intro x
   have hratio_nonpos : deriv U x / U x ≤ 0 :=
@@ -15971,7 +15946,7 @@ theorem Remark_5_2.nonincreasing_branch
     (hmono : ∀ x, deriv U x ≤ 0) :
     ∀ x : ℝ,
       deriv U x / U x ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   exact Remark_5_2.nonincreasing_positive_profile_branch
     hsigma hχ hTW.U_pos hbound hmono
 
@@ -15984,7 +15959,7 @@ theorem Remark_5_2.monotoneTravelingWave_branch
     (hbound : HasWaveUpperTailBound p c U) :
     ∀ x : ℝ,
       deriv U x / U x ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) :=
   Remark_5_2.nonincreasing_branch hsigma hχ hspeed hTW.1 hbound hTW.2.1
 
 theorem Remark_5_2_frozen_monotone_trap_direct
@@ -15996,7 +15971,7 @@ theorem Remark_5_2_frozen_monotone_trap_direct
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
     ∀ x : ℝ,
       deriv U x / U x ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   exact Remark_5_2.nonincreasing_branch hsigma hχ hspeed
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
@@ -16018,7 +15993,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_re
           (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
         ∀ x : ℝ,
           deriv U x / U x ≤
-            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+            remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   rcases h.exists_fixed_limit with ⟨U, hU, haux⟩
   have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
   have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
@@ -16060,7 +16035,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
                   Real.exp (-(kappa c) * p.γ * x))) ∧
         ∀ x : ℝ,
           deriv U x / U x ≤
-            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+            remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   rcases h.exists_fixed_limit_with_signal_statement hc hupper with
     ⟨U, hU, haux, hsignal, hexpSignal⟩
   have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
@@ -16072,7 +16047,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
   have hlog :
       ∀ x : ℝ,
         deriv U x / U x ≤
-          remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+          remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) :=
     Remark_5_2.nonincreasing_positive_profile_branch
       hsigma hχ_ne hupperU.pos hbound hU.deriv_nonpos
   exact ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
@@ -16108,7 +16083,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_co
                   Real.exp (-(kappa c) * p.γ * x))) ∧
         ∀ x : ℝ,
           deriv U x / U x ≤
-            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+            remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma) := by
   rcases h.exists_fixed_limit_with_signal_and_remark52_log_derivative
       hc hsigma hupper with
     ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
