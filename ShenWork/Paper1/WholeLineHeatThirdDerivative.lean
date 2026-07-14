@@ -1,4 +1,5 @@
 import ShenWork.PaperOne.WholeLineConvolutionDifferentiation
+import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 
 open Filter Topology MeasureTheory Real Set
 open ShenWork.IntervalNeumannFullKernel
@@ -53,6 +54,64 @@ theorem deriv_deriv_deriv_heatKernel
       (3 * x / (4 * t ^ 2) - x ^ 3 / (8 * t ^ 3)) * heatKernel t x :=
   (heatKernel_thirdDeriv_hasDerivAt ht x).deriv
 
+theorem deriv_deriv_heatKernel_global (t x : ℝ) :
+    deriv (fun u : ℝ => deriv (fun z : ℝ => heatKernel t z) u) x =
+      (1 / (2 * t)) * (x ^ 2 / (2 * t) - 1) * heatKernel t x := by
+  rcases lt_or_ge 0 t with ht | ht
+  · exact deriv_deriv_heatKernel ht x
+  · have hzero : (fun z : ℝ => heatKernel t z) = fun _ : ℝ => (0 : ℝ) := by
+      funext z
+      exact heatKernel_of_nonpos ht z
+    simp [hzero, deriv_const, heatKernel_of_nonpos ht x]
+
+theorem deriv_deriv_deriv_heatKernel_global (t x : ℝ) :
+    deriv
+        (fun z : ℝ => deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z)
+        x =
+      (3 * x / (4 * t ^ 2) - x ^ 3 / (8 * t ^ 3)) * heatKernel t x := by
+  rcases lt_or_ge 0 t with ht | ht
+  · exact deriv_deriv_deriv_heatKernel ht x
+  · have hzero : (fun z : ℝ => heatKernel t z) = fun _ : ℝ => (0 : ℝ) := by
+      funext z
+      exact heatKernel_of_nonpos ht z
+    simp [hzero, deriv_const, heatKernel_of_nonpos ht x]
+
+theorem measurable_secondDeriv_heatKernel_comp
+    {τ p : ℝ × ℝ → ℝ} (hτ : Measurable τ) (hp : Measurable p) :
+    Measurable (fun q : ℝ × ℝ =>
+      deriv (fun u : ℝ => deriv (fun z : ℝ => heatKernel (τ q) z) u) (p q)) := by
+  have heq :
+      (fun q : ℝ × ℝ =>
+        deriv (fun u : ℝ => deriv (fun z : ℝ => heatKernel (τ q) z) u) (p q)) =
+      fun q : ℝ × ℝ =>
+        (1 / (2 * τ q)) * ((p q) ^ 2 / (2 * τ q) - 1) *
+          heatKernel (τ q) (p q) := by
+    funext q
+    exact deriv_deriv_heatKernel_global (τ q) (p q)
+  rw [heq]
+  unfold heatKernel
+  fun_prop
+
+theorem measurable_thirdDeriv_heatKernel_comp
+    {τ p : ℝ × ℝ → ℝ} (hτ : Measurable τ) (hp : Measurable p) :
+    Measurable (fun q : ℝ × ℝ =>
+      deriv
+        (fun z : ℝ => deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel (τ q) w) u) z)
+        (p q)) := by
+  have heq :
+      (fun q : ℝ × ℝ =>
+        deriv
+          (fun z : ℝ => deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel (τ q) w) u) z)
+          (p q)) =
+      fun q : ℝ × ℝ =>
+        (3 * p q / (4 * (τ q) ^ 2) - (p q) ^ 3 / (8 * (τ q) ^ 3)) *
+          heatKernel (τ q) (p q) := by
+    funext q
+    exact deriv_deriv_deriv_heatKernel_global (τ q) (p q)
+  rw [heq]
+  unfold heatKernel
+  fun_prop
+
 /-- A convenient positive coefficient for the third-kernel Gaussian bound. -/
 noncomputable def heatThirdPointwiseBound (t : ℝ) : ℝ :=
   ((3 / (4 * t ^ 2)) * Real.sqrt (8 * t) +
@@ -64,6 +123,85 @@ theorem heatThirdPointwiseBound_nonneg
     0 ≤ heatThirdPointwiseBound t := by
   unfold heatThirdPointwiseBound
   positivity
+
+theorem heatHessPointwiseBound_mul_tailGaussianScale
+    {t : ℝ} (ht : 0 < t) :
+    heatHessPointwiseBound t *
+        Real.sqrt (Real.pi / (1 / (16 * t))) = 5 / t := by
+  have ht0 : t ≠ 0 := ne_of_gt ht
+  have hsπ : Real.sqrt Real.pi ≠ 0 := by positivity
+  have hst : Real.sqrt t ≠ 0 := by positivity
+  have hscale : Real.sqrt (Real.pi / (1 / (16 * t))) =
+      4 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show Real.pi / (1 / (16 * t)) = 16 * (Real.pi * t) by
+      field_simp [ht0]]
+    rw [show (16 : ℝ) = (4 : ℝ) ^ 2 by norm_num,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have hden : Real.sqrt (4 * Real.pi * t) =
+      2 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show (4 * Real.pi * t : ℝ) = (2 : ℝ) ^ 2 * (Real.pi * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  rw [hscale]
+  unfold heatHessPointwiseBound
+  rw [hden]
+  field_simp [ht0, hsπ, hst]
+  ring
+
+noncomputable def heatThirdTailConstant : ℝ :=
+  3 * Real.sqrt 2 + 2 * (Real.sqrt 6) ^ 3
+
+theorem heatThirdTailConstant_nonneg : 0 ≤ heatThirdTailConstant := by
+  unfold heatThirdTailConstant
+  positivity
+
+theorem heatThirdPointwiseBound_mul_tailGaussianScale
+    {t : ℝ} (ht : 0 < t) :
+    heatThirdPointwiseBound t *
+        Real.sqrt (Real.pi / (1 / (16 * t))) =
+      heatThirdTailConstant / (t * Real.sqrt t) := by
+  have ht0 : t ≠ 0 := ne_of_gt ht
+  have hsπ : Real.sqrt Real.pi ≠ 0 := by positivity
+  have hst : Real.sqrt t ≠ 0 := by positivity
+  have hscale : Real.sqrt (Real.pi / (1 / (16 * t))) =
+      4 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show Real.pi / (1 / (16 * t)) = 16 * (Real.pi * t) by
+      field_simp [ht0]]
+    rw [show (16 : ℝ) = (4 : ℝ) ^ 2 by norm_num,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have hden : Real.sqrt (4 * Real.pi * t) =
+      2 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show (4 * Real.pi * t : ℝ) = (2 : ℝ) ^ 2 * (Real.pi * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have h8 : Real.sqrt (8 * t) = 2 * Real.sqrt 2 * Real.sqrt t := by
+    rw [show (8 * t : ℝ) = (2 : ℝ) ^ 2 * (2 * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+    ring
+  have h24 : Real.sqrt (24 * t) = 2 * Real.sqrt 6 * Real.sqrt t := by
+    rw [show (24 * t : ℝ) = (2 : ℝ) ^ 2 * (6 * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 6)]
+    ring
+  have hsq : (Real.sqrt t) ^ 2 = t := Real.sq_sqrt ht.le
+  have hpow4 : (Real.sqrt t) ^ 4 = t ^ 2 := by
+    calc
+      (Real.sqrt t) ^ 4 = ((Real.sqrt t) ^ 2) ^ 2 := by ring
+      _ = t ^ 2 := by rw [hsq]
+  rw [hscale]
+  unfold heatThirdPointwiseBound heatThirdTailConstant
+  rw [hden, h8, h24]
+  field_simp [ht0, hsπ, hst]
+  ring_nf at *
+  rw [hsq, hpow4]
+  ring
 
 private theorem abs_mul_exp_eighth_le_sqrt
     {t : ℝ} (ht : 0 < t) (x : ℝ) :
@@ -218,6 +356,47 @@ theorem thirdDeriv_heatKernel_abs_integrable
   · filter_upwards with x
     rw [Real.norm_eq_abs, abs_abs]
     convert abs_thirdDeriv_heatKernel_le ht x using 1 <;> ring
+
+/-- A convenient global `L¹` mass bound for the third Gaussian derivative.
+The half-rate majorant is weakened once more so that the same explicit scale
+used by the off-support estimate applies. -/
+theorem thirdDeriv_heatKernel_abs_integral_le
+    {t : ℝ} (ht : 0 < t) :
+    (∫ x : ℝ,
+      |deriv
+        (fun z : ℝ => deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z)
+        x|) ≤ heatThirdTailConstant / (t * Real.sqrt t) := by
+  have hb : 0 < 1 / (16 * t) := by positivity
+  have hmajor : Integrable
+      (fun x : ℝ => heatThirdPointwiseBound t *
+        Real.exp (-(1 / (16 * t)) * x ^ 2)) :=
+    (integrable_exp_neg_mul_sq hb).const_mul _
+  calc
+    (∫ x : ℝ,
+        |deriv
+          (fun z : ℝ => deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z)
+          x|) ≤
+        ∫ x : ℝ, heatThirdPointwiseBound t *
+          Real.exp (-(1 / (16 * t)) * x ^ 2) := by
+      refine integral_mono (thirdDeriv_heatKernel_abs_integrable ht) hmajor (fun x => ?_)
+      calc
+        |deriv
+            (fun z : ℝ => deriv
+              (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z)
+            x| ≤ heatThirdPointwiseBound t * Real.exp (-x ^ 2 / (8 * t)) :=
+          abs_thirdDeriv_heatKernel_le ht x
+        _ ≤ heatThirdPointwiseBound t *
+            Real.exp (-(1 / (16 * t)) * x ^ 2) := by
+          apply mul_le_mul_of_nonneg_left _ (heatThirdPointwiseBound_nonneg ht)
+          apply Real.exp_le_exp.mpr
+          have ht0 : t ≠ 0 := ne_of_gt ht
+          field_simp [ht0]
+          nlinarith [sq_nonneg x]
+    _ = heatThirdPointwiseBound t *
+          Real.sqrt (Real.pi / (1 / (16 * t))) := by
+      rw [integral_const_mul, integral_gaussian (1 / (16 * t))]
+    _ = heatThirdTailConstant / (t * Real.sqrt t) :=
+      heatThirdPointwiseBound_mul_tailGaussianScale ht
 
 theorem thirdDeriv_heatKernel_translated_integrable
     {t : ℝ} (ht : 0 < t) (x : ℝ) :
