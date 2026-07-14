@@ -1,0 +1,1 @@
+Run the exact Q4890 Jacobi/Christoffel-Darboux contiguous-band search.
