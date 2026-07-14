@@ -6,6 +6,11 @@ on:
     paths:
       - scratch/q4917_krec.sage
       - .github/workflows/q4917-krec.yml
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - scratch/q4917_krec.sage
+      - .github/workflows/q4917-krec.yml
   workflow_dispatch:
 
 permissions:
