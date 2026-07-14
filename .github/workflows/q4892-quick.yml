@@ -8,6 +8,10 @@ on:
       - 'scratch/q4892_quick_trigger.txt'
   workflow_dispatch:
 
+concurrency:
+  group: q4892-quick-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
