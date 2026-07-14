@@ -1,0 +1,31 @@
+name: Q4890 Fraction band search macOS
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4890_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  q4890-fraction-macos:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt-scratch
+      - name: Run exact Fraction search
+        run: python3 scratch/q4890_fraction.py > scratch/q4890_fraction_macos.txt 2>&1
+      - name: Print exact output
+        if: always()
+        run: cat scratch/q4890_fraction_macos.txt || true
+      - name: Upload exact output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q4890-fraction-macos
+          path: scratch/q4890_fraction_macos.txt
