@@ -47,6 +47,7 @@ import ShenWork.Paper1.WholeLineCauchyFluxHolderBootstrap
 import ShenWork.Paper1.WholeLineCauchyC1HolderBootstrap
 import ShenWork.Paper1.WholeLineCauchyFluxC1Bootstrap
 import ShenWork.Paper1.WholeLineCauchyC2Bootstrap
+import ShenWork.Paper1.WholeLineCauchySemigroupRestart
 import ShenWork.Paper1.WholeLineCauchyGlobalBounds
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket

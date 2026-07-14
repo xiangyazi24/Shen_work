@@ -165,6 +165,18 @@ the gradient Duhamel average.  The next step is to combine it with the BUC
 approximate identity and the value-source endpoint average, then establish
 the full time derivative.
 
+`WholeLineCauchySemigroupRestart.lean` now proves the Gaussian convolution
+law directly from the implemented kernel, including the completed-square
+coefficient calculation and the Fubini justification for bounded continuous
+data.  Consequently both the ordinary heat semigroup and the modified
+`Delta-I` semigroup satisfy their positive-time addition laws without an
+abstract semigroup assumption.  The authorized local full root build passes
+with 9564 jobs, and all three new capstones have exactly the standard three
+axioms.  The next producer is the positive-time restart identity for the two
+Duhamel histories; its short terminal interval will use the BUC approximate
+identity together with the established uniform time continuity of the
+physical flux derivative.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
