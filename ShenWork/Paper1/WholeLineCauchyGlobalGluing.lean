@@ -691,10 +691,9 @@ theorem wholeLineCauchyGlobal_isBoundedGlobal
   exact wholeLineCauchyGlobal_le_stableCeiling p hregime u₀ hu₀ ht x
 
 /-- Every paper-admissible nonnegative BUC datum has a genuine global
-classical Cauchy solution when the chemotactic sensitivity is nonpositive.
-No relation between `alpha` and `m + gamma - 1` is required. -/
-theorem exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
-    (p : CMParams) (hχ : p.χ ≤ 0)
+classical Cauchy solution whenever the scalar ceiling regime holds. -/
+theorem exists_wholeLineGlobalNonnegativeCauchySolution_of_ceilingRegime
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
@@ -703,13 +702,25 @@ theorem exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
   have hw0 : ∀ x, 0 ≤ w.1 x := by
     intro x
     simpa [w] using hu₀.2 x
-  let hregime : WholeLineCauchyCeilingRegime p :=
-    WholeLineCauchyCeilingRegime.of_nonpositive hχ
   refine ⟨wholeLineCauchyGlobalU p w, wholeLineCauchyGlobalV p w, ?_,
     wholeLineCauchyGlobal_isBoundedGlobal p hregime w hw0⟩
   simpa [w] using
     wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
       p hregime w hw0
+
+/-- Every paper-admissible nonnegative BUC datum has a genuine global
+classical Cauchy solution when the chemotactic sensitivity is nonpositive.
+No relation between `alpha` and `m + gamma - 1` is required. -/
+theorem exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
+    (p : CMParams) (hχ : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
+        IsBoundedGlobal u := by
+  let hregime : WholeLineCauchyCeilingRegime p :=
+    WholeLineCauchyCeilingRegime.of_nonpositive hχ
+  exact exists_wholeLineGlobalNonnegativeCauchySolution_of_ceilingRegime
+    p hregime u₀ hu₀
 
 section WholeLineCauchyGlobalGluingAxiomAudit
 
@@ -733,6 +744,7 @@ section WholeLineCauchyGlobalGluingAxiomAudit
 #print axioms wholeLineCauchyGlobal_le_stableCeiling
 #print axioms wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
 #print axioms wholeLineCauchyGlobal_isBoundedGlobal
+#print axioms exists_wholeLineGlobalNonnegativeCauchySolution_of_ceilingRegime
 #print axioms exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
 
 end WholeLineCauchyGlobalGluingAxiomAudit
