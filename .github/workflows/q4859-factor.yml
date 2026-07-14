@@ -6,7 +6,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  factor:
+  sympy-hosted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install current SymPy
+        run: python3 -m pip install --upgrade sympy
+      - name: Run exact Petkovsek audit
+        run: python3 -u q4859_factor_sympy.py
+
+  sympy-self-hosted:
+    runs-on: self-hosted
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install current SymPy
+        run: python3 -m pip install --user --upgrade sympy
+      - name: Run exact Petkovsek audit
+        run: python3 -u q4859_factor_sympy.py
+
+  sage-factor:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container:
