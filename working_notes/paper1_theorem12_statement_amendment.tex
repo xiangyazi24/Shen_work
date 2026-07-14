@@ -1,0 +1,198 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  pdftitle={Paper 1, Theorems 1.2--1.3: Statement Amendment},
+  pdfauthor={ShenWork formalization project}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\setlength{\emergencystretch}{2em}
+
+\title{Paper 1, Theorems 1.2--1.3: Statement Amendment}
+\author{Internal research note for the \texttt{ShenWork} formalization}
+\date{13 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The stability proof in Section~5 of Shen's traveling-wave paper has three
+independent statement-level defects.  The perturbed quadratic in (5.31) is
+positive at the unperturbed tail exponent, so the root comparison in (5.35)
+has the wrong direction; the weighted norm in (1.21) is written in laboratory
+rather than moving coordinates; and the exponential factor following (5.35)
+has the wrong sign.  This note gives the direct amendment supported by the
+written proof, explains the corresponding change to the uniqueness theorem,
+and records the exact Lean certificates and remaining analytic boundary.
+\end{abstract}
+
+\section{Source checked}
+
+The source examined is the original submission, not a repository paraphrase:
+\begin{quote}
+Wenxian Shen, \emph{Existence, uniqueness, stability, and monotonicity of
+traveling waves for repulsion/attraction chemotaxis models with logistic type
+source}, arXiv:2605.04401v1, 6 May 2026.
+\end{quote}
+The archived local copy is \path{paper1.pdf}.  Theorem~1.2 claims weighted
+stability for every
+\[
+  \kappa<\eta<\frac{1}{1+\abs{\chi}^{1/6}},
+\]
+where $\kappa=(c-\sqrt{c^{2}-4})/2$, and writes the weighted conclusion in
+laboratory coordinates.
+
+\section{The root comparison in (5.35)}
+
+The energy coefficient obtained in (5.31) is
+\begin{equation}
+ q(\eta)=\eta^{2}-(c-A)\eta+(1+B),
+ \label{eq:q}
+\end{equation}
+where, in the notation of (5.32)--(5.33),
+\[
+ A=\abs{\chi}^{1-3\sigma}D',
+ \qquad
+ B=\abs{\chi}^{1-3\sigma}D''.
+\]
+The displayed formulas give $A\geq0$ and, when $\chi\neq0$, $B>0$.
+The unperturbed tail exponent satisfies
+\[
+  \kappa^{2}-c\kappa+1=0.
+\]
+Substitution into \eqref{eq:q} therefore gives the exact identity
+\begin{equation}
+  q(\kappa)=A\kappa+B>0.
+  \label{eq:q-kappa}
+\end{equation}
+Consequently $\kappa$ cannot lie between the two roots of $q$.  Under the
+paper's speed inequality it lies strictly below the perturbed lower root:
+\[
+  \kappa<\kappa^{-}_{c,\chi,m,\alpha,\gamma}.
+\]
+By continuity, \eqref{eq:q-kappa} also produces weights strictly above
+$\kappa$ for which $q(\eta)>0$.  Thus excluding only the endpoint
+$\eta=\kappa$ does not repair (5.35).  The global energy estimate proves
+decay only above the perturbed lower root.
+
+\section{The coordinate mismatch in (1.21)}
+
+Section~5 changes to the moving coordinate $z=x-ct$ and estimates
+\begin{equation}
+ E_{\rm move}(t)=\int_{\R}e^{2\eta z}
+   \abs{u(t,z+ct)-U(z)}^{2}\,dz.
+ \label{eq:move}
+\end{equation}
+The printed formula (1.21) instead uses
+\begin{equation}
+ E_{\rm lab}(t)=\int_{\R}e^{2\eta x}
+   \abs{u(t,x)-U(x-ct)}^{2}\,dx.
+ \label{eq:lab}
+\end{equation}
+The substitution $x=z+ct$ gives
+\begin{equation}
+ E_{\rm lab}(t)=e^{2\eta ct}E_{\rm move}(t).
+ \label{eq:change}
+\end{equation}
+Hence decay of \eqref{eq:move} does not imply decay of \eqref{eq:lab} without
+an additional rate stronger than $2\eta c$, which the proof does not supply.
+The natural correction is to use \eqref{eq:move}, equivalently the weight
+$e^{2\eta(x-ct)}$ in laboratory coordinates.
+
+\section{The sign after (5.35)}
+
+The paper defines the value $\lambda=q(\eta)$ to be negative and then writes
+an upper bound with $e^{-\lambda t}$, claiming that it tends to zero.  For
+$\lambda<0$, however, $-\lambda>0$ and this factor grows.  With the displayed
+definition the decaying factor is $e^{\lambda t}$.  Equivalently, define the
+positive rate $\rho=-\lambda$ and write $e^{-\rho t}$.
+
+\section{Recommended amended statement}
+
+Let $A_{\chi}$ and $B_{\chi}$ be the limiting error budgets in
+(5.32)--(5.33), evaluated at the asymptotic bound $M_{\chi}$, and set
+\begin{align*}
+ \Delta&=(c-A_{\chi})^{2}-4(1+B_{\chi}),\\
+ \kappa^-&=\frac{(c-A_{\chi})-\sqrt{\Delta}}{2},\\
+ \kappa^+&=\frac{(c-A_{\chi})+\sqrt{\Delta}}{2}.
+\end{align*}
+Choose the speed threshold so that $\Delta>0$ and
+\[
+ \kappa^-<\frac{1}{1+\abs{\chi}^{1/6}}<\kappa^+.
+\]
+
+\medskip
+\noindent
+\fbox{%
+\begin{minipage}{0.92\textwidth}
+\textbf{Recommended amendment to Theorem 1.2.}
+Replace the condition $\kappa<\eta$ by
+\[
+ \kappa^-_{c,\chi,m,\alpha,\gamma}<\eta
+   <\frac{1}{1+\abs{\chi}^{1/6}},
+\]
+and replace (1.21) by
+\[
+ \lim_{t\to\infty}\int_{\R}e^{2\eta z}
+   \abs{u(t,z+ct;u_{0})-U^{*}(z)}^{2}\,dz=0.
+\]
+Retain the uniform conclusion (1.22), subject to the compactness and
+far-left rigidity argument in Step~4.  Write the energy decay as
+$e^{\lambda t}$ for $\lambda<0$, or as $e^{-\rho t}$ for
+$\rho=-\lambda>0$.
+\end{minipage}}
+
+\medskip
+Theorem~1.3 uses Theorem~1.2 with the second wave as initial data.  Its common
+tail exponent must therefore leave room for the corrected stability weight:
+the hypothesis should require $\kappa_{1}>\kappa^-$, not merely
+$\kappa_{1}>\kappa$.  The waves constructed in Theorem~1.1 satisfy a family
+of tail estimates, so such a rate can be selected once $\kappa^-$ lies below
+the construction's tail cap.
+
+\section{What would be needed to retain the original interval}
+
+Equation \eqref{eq:q-kappa} obstructs only the \emph{global coefficient}
+estimate used in (5.31); it is not a counterexample to stability itself.
+The perturbation coefficients may decay in the right tail.  Retaining every
+$\eta>\kappa$ would require a new spatially localized coercivity or weighted
+spectral argument.  No such argument appears in Section~5.  It would be a new
+theorem, not a formalization of the written proof.
+
+\section{Lean certificates and current boundary}
+
+The repository contains zero-\texttt{sorry}, standard-axiom certificates.
+The algebraic root certificates in
+\path{ShenWork/Paper1/Theorem12RootObstruction.lean} are
+\begin{itemize}[leftmargin=2em]
+\item \path{paper531_kappa_not_between_perturbed_roots};
+\item \path{paper531_kappa_lt_rootMinus};
+\item \path{paper531_positive_inside_stated_weight_window}.
+\end{itemize}
+The coordinate certificate
+\path{laboratoryWeightedL2Energy_eq_exp_mul_coMoving}, together with a
+non-vacuous coordinate witness, is in
+\path{ShenWork/Paper1/Theorem12CoordinateAudit.lean}.  The two sign
+certificates
+\path{paper531_printed_decay_factor_tendsto_atTop} and
+\path{paper531_corrected_decay_factor_tendsto_zero} are in
+\path{ShenWork/Paper1/Theorem12RootObstruction.lean}.
+
+\path{ShenWork/Paper1/Theorem12Corrected.lean} proves the scalar Gronwall and
+moving-frame localization wiring, but keeps the general-data whole-line PDE
+energy and compactness input explicit.  The full amended stability theorem is
+therefore not yet claimed as proved.  The corrected structural reduction for
+Theorem~1.3 is in
+\path{ShenWork/Paper1/Theorem13Corrected.lean}; its remaining analytic input
+is the same bounded-solution stability theorem.
+
+\end{document}
