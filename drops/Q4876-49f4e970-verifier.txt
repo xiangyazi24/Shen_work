@@ -1,0 +1,1 @@
+The complete runnable verifier is embedded in drops/Q4876-49f4e970.md. Exact result: same-index proportionality fails, and the constant rational width-two band has residual (3649464345/784)G - 6317734012675/1481760 at n=2.
