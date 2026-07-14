@@ -20,8 +20,8 @@ private theorem lift_eq_interior (f : intervalDomainPoint → ℝ)
   rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hy)]
 
 /-- Interior minimum estimate projected from a faithful general-`m` classical
-solution. -/
-theorem interior_min_point_of_solution_M_allChi
+solution, retaining its positive linear growth. -/
+theorem interior_min_point_of_solution_M_allChi_with_growth
     {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
     {x : intervalDomainPoint} {M : ℝ}
     (hm : 1 ≤ p.m)
@@ -31,7 +31,7 @@ theorem interior_min_point_of_solution_M_allChi
     (hmin : ∀ y, u t x ≤ u t y)
     (hM : 0 ≤ M)
     (hu_bd : ∀ y, |intervalDomainLift (u t) y| ≤ M) :
-    -generalMMinSlopeConst p M * u t x ≤ intervalDomain.timeDeriv u t x := by
+    generalMMinGrowthRate p M * u t x ≤ intervalDomain.timeDeriv u t x := by
   have htmem : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
   obtain ⟨h3, _, _, h6, h7, _, _⟩ := hsol.regularity
   have hu_c2 : ContDiffOn ℝ 2 (intervalDomainLift (u t))
@@ -95,7 +95,7 @@ theorem interior_min_point_of_solution_M_allChi
           (p.a - p.b * intervalDomainLift (u t) x.1 ^ p.α) := by
     rw [hux_lift]
     exact hpde
-  have hmain := min_point_estimate_interior_M_allChi
+  have hmain := min_point_estimate_interior_M_allChi_with_growth
     (p := p) (u := u t) (v := v t) (x := x)
     (M := M) (uT := intervalDomain.timeDeriv u t x)
     hm hux hvpair.1 hvpair.2 hv_nn hM
@@ -104,8 +104,26 @@ theorem interior_min_point_of_solution_M_allChi
     huxx hpde'
   rwa [hux_lift] at hmain
 
+/-- Historical interior minimum estimate with the nonnegative linear reaction
+discarded. -/
+theorem interior_min_point_of_solution_M_allChi
+    {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    {x : intervalDomainPoint} {M : ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hint : x.1 ∈ Set.Ioo (0 : ℝ) 1)
+    (hmin : ∀ y, u t x ≤ u t y)
+    (hM : 0 ≤ M)
+    (hu_bd : ∀ y, |intervalDomainLift (u t) y| ≤ M) :
+    -generalMMinSlopeConst p M * u t x ≤ intervalDomain.timeDeriv u t x := by
+  have hgrowth := interior_min_point_of_solution_M_allChi_with_growth
+    hm hsol ht0 htT hint hmin hM hu_bd
+  unfold generalMMinGrowthRate at hgrowth
+  nlinarith [mul_nonneg p.ha (hsol.u_pos' ht0 htT (x := x)).le]
+
 /-- Interior minimum estimate in the exact Hamilton-bound shape. -/
-theorem hbound_interior_M_allChi
+theorem hbound_interior_M_allChi_with_growth
     {p : CM2Params} {T s M : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hm : 1 ≤ p.m)
@@ -115,7 +133,7 @@ theorem hbound_interior_M_allChi
     {ys : ℝ} (hys_int : ys ∈ Set.Ioo (0 : ℝ) 1)
     (hargmin : intervalDomainLift (u s) ys =
       sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
-    -generalMMinSlopeConst p M *
+    generalMMinGrowthRate p M *
         sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
       deriv (fun r => intervalDomainLift (u r) ys) s := by
   let x : intervalDomainPoint := ⟨ys, Set.Ioo_subset_Icc_self hys_int⟩
@@ -138,7 +156,7 @@ theorem hbound_interior_M_allChi
       exact dif_pos z.2
     rw [husx_eq, ← hz_lift]
     exact csInf_le hbdd (Set.mem_image_of_mem _ z.2)
-  have hmp := interior_min_point_of_solution_M_allChi
+  have hmp := interior_min_point_of_solution_M_allChi_with_growth
     hm hsol hs0 hsT hys_int hmin hM hu_bd
   have htd_eq : intervalDomain.timeDeriv u s x =
       deriv (fun r => intervalDomainLift (u r) ys) s := by
@@ -151,9 +169,38 @@ theorem hbound_interior_M_allChi
   rw [htd_eq, husx_eq] at hmp
   exact hmp
 
+/-- Historical interior Hamilton bound with the nonnegative linear reaction
+discarded. -/
+theorem hbound_interior_M_allChi
+    {p : CM2Params} {T s M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_bd : ∀ y, |intervalDomainLift (u s) y| ≤ M)
+    {ys : ℝ} (hys_int : ys ∈ Set.Ioo (0 : ℝ) 1)
+    (hargmin : intervalDomainLift (u s) ys =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
+    -generalMMinSlopeConst p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) ys) s := by
+  have hgrowth := hbound_interior_M_allChi_with_growth hm hsol hs0 hsT hM
+    hu_bd hys_int hargmin
+  have hmin_nonneg : 0 ≤
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) := by
+    rw [← hargmin]
+    have hysIcc : ys ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hys_int
+    simpa [intervalDomainLift, hysIcc] using
+      (hsol.u_pos'
+        (x := (⟨ys, hysIcc⟩ : intervalDomainPoint)) hs0 hsT).le
+  unfold generalMMinGrowthRate at hgrowth
+  nlinarith [mul_nonneg p.ha hmin_nonneg]
+
 section AxiomAudit
 
+#print axioms interior_min_point_of_solution_M_allChi_with_growth
 #print axioms interior_min_point_of_solution_M_allChi
+#print axioms hbound_interior_M_allChi_with_growth
 #print axioms hbound_interior_M_allChi
 
 end AxiomAudit

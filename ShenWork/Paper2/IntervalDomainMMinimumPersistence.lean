@@ -35,6 +35,38 @@ private theorem abs_lift_le_supNorm_M
     le_csSup hbdd ⟨⟨y, hy⟩, rfl⟩
   simpa [intervalDomainLift, hy] using hle
 
+/-- At any closed-interval spatial minimizer, a faithful general-`m`
+classical solution retains the positive linear reaction after the remaining
+terms are bounded by a common slice ceiling. -/
+theorem hbound_closed_M_allChi_with_growth
+    {p : CM2Params} {T s M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_bd : ∀ y, |intervalDomainLift (u s) y| ≤ M)
+    {ys : ℝ} (hys : ys ∈ Set.Icc (0 : ℝ) 1)
+    (hargmin : intervalDomainLift (u s) ys =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
+    generalMMinGrowthRate p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) ys) s := by
+  have hu_le : ∀ x : intervalDomainPoint, u s x ≤ M := by
+    intro x
+    have hx : |u s x| ≤ M := by
+      simpa [intervalDomainLift, x.property] using hu_bd x.1
+    exact (le_abs_self _).trans hx
+  rcases eq_or_lt_of_le hys.1 with hy0 | hy0
+  · subst ys
+    exact hbdry_left_M_of_classicalSolution_with_growth
+      hm hsol hs0 hsT hM hu_le hargmin
+  · rcases eq_or_lt_of_le hys.2 with hy1 | hy1
+    · subst ys
+      exact hbdry_right_M_of_classicalSolution_with_growth
+        hm hsol hs0 hsT hM hu_le hargmin
+    · exact hbound_interior_M_allChi_with_growth
+        hm hsol hs0 hsT hM hu_bd ⟨hy0, hy1⟩ hargmin
+
 /-- Hamilton persistence from the regularity conjuncts of a faithful
 general-`m` classical solution. -/
 theorem solution_minPersist_M_of_conjuncts
@@ -197,6 +229,7 @@ section AxiomAudit
 
 #print axioms solution_minPersist_M_of_conjuncts
 #print axioms sliceMin_M_pos_of_solution
+#print axioms hbound_closed_M_allChi_with_growth
 #print axioms minimumPersistenceM_of_bounded
 
 end AxiomAudit
