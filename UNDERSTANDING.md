@@ -5308,8 +5308,14 @@ statement explicitly quantifies over every nonnegative BUC datum, including
 the zero datum.  The old Lean statement was therefore too strong because it
 reused `IsGlobalCauchySolutionFrom`, whose final field demands strict
 positive-time positivity.  `Statements.lean` now separates the faithful
-`IsGlobalNonnegativeCauchySolutionFrom`; Proposition 1.1 uses that predicate,
-while the strict predicate remains available for the positive-data stability
-and traveling-wave arguments.  The next Cauchy step is to package the glued
-pair into the new predicate and then remove the stable-wave-regime restriction
-from the negative-sensitivity ceiling, which Proposition 1.1 does not assume.
+`IsGlobalNonnegativeCauchySolutionFrom`; Proposition 1.1 uses that predicate
+and now also quantifies over the paper's actual bounded uniformly continuous
+phase space, rather than the weaker historical bounded-continuous predicate.
+The Cauchy ceiling has been split from `StableWaveParameterRegime` into
+`WholeLineCauchyCeilingRegime`.  Its nonpositive branch assumes only `χ ≤ 0`;
+the exponent equality remains confined to the attractive branch.  This weaker
+regime propagates through the canonical segments and global gluing, yielding
+`exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos` for every
+paper-admissible nonnegative BUC datum, with a uniform-in-time boundedness
+witness.  The remaining Proposition 1.1(1) work is the sharp maximum bound
+`max {1, sup u₀}` and the uniform long-time limsup `≤ 1`.

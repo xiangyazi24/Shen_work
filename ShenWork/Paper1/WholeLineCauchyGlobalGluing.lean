@@ -168,7 +168,7 @@ theorem wholeLineCauchyGlobalIndex_eq_pred_of_mem_cell
 
 /-- Pointwise form of the half-window overlap between consecutive segments. -/
 theorem wholeLineCauchyGlobalSegment_overlap_apply
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) (n : ℕ)
     {r : ℝ} (hr0 : 0 ≤ r)
     (hrδ : r ≤ wholeLineCauchyGlobalStep p u₀) :
@@ -209,7 +209,7 @@ theorem wholeLineCauchyGlobalBUC_eq_preferred_on_cell
 read in the next segment.  This is the left-hand chart at the following
 restart seam. -/
 theorem wholeLineCauchyGlobalBUC_eq_next_on_cell
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) (n : ℕ) {t : ℝ}
     (ht : t ∈ Set.Ico ((n : ℝ) * wholeLineCauchyGlobalStep p u₀)
       (((n : ℝ) + 1) * wholeLineCauchyGlobalStep p u₀)) :
@@ -297,7 +297,7 @@ theorem wholeLineCauchyGlobalBUC_eq_next_on_cell
 which the glued BUC orbit is a translate of one preferred canonical segment.
 At a restart seam the left half is rewritten with the overlap theorem. -/
 theorem wholeLineCauchyGlobalBUC_eventuallyEq_preferred
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {t : ℝ} (ht : 0 < t) :
     (fun s => wholeLineCauchyGlobalBUC p u₀ s) =ᶠ[nhds t]
@@ -374,7 +374,7 @@ theorem wholeLineCauchyGlobalBUC_eventuallyEq_preferred
     simpa [hidxt, δ] using hdirect
 
 theorem wholeLineCauchyGlobalSegment_isClassicalSolution
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) (n : ℕ) :
     IsClassicalSolution p (wholeLineCauchyGlobalSegmentTime p u₀)
       (wholeLineCauchyGlobalSegmentU p u₀ n)
@@ -398,7 +398,7 @@ theorem wholeLineCauchyGlobalSegment_isClassicalSolution
       (by norm_num) hstrip)
 
 theorem wholeLineCauchyGlobalU_eventuallyEq_segment
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {t : ℝ} (ht : 0 < t) (x : ℝ) :
     (fun s => wholeLineCauchyGlobalU p u₀ s x) =ᶠ[nhds t]
@@ -412,7 +412,7 @@ theorem wholeLineCauchyGlobalU_eventuallyEq_segment
     wholeLineCauchyGlobalSegmentU] using h
 
 theorem wholeLineCauchyGlobalV_eventuallyEq_segment
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {t : ℝ} (ht : 0 < t) (x : ℝ) :
     (fun s => wholeLineCauchyGlobalV p u₀ s x) =ᶠ[nhds t]
@@ -433,7 +433,7 @@ theorem wholeLineCauchyGlobalV_eventuallyEq_segment
   rw [hslice]
 
 theorem wholeLineCauchyGlobal_isGlobalClassicalSolution
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
     IsGlobalClassicalSolution p
       (wholeLineCauchyGlobalU p u₀) (wholeLineCauchyGlobalV p u₀) := by
@@ -623,7 +623,7 @@ theorem wholeLineCauchyGlobal_hasUniformInitialTrace
   exact hclose t x ht (htd.trans_le (min_le_left _ _))
 
 theorem wholeLineCauchyGlobal_nonnegative
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {t : ℝ} (ht : 0 ≤ t) (x : ℝ) :
     0 ≤ wholeLineCauchyGlobalU p u₀ t x := by
@@ -644,7 +644,7 @@ theorem wholeLineCauchyGlobal_nonnegative
   exact hbound.1
 
 theorem wholeLineCauchyGlobal_le_stableCeiling
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {t : ℝ} (ht : 0 ≤ t) (x : ℝ) :
     wholeLineCauchyGlobalU p u₀ t x ≤
@@ -670,7 +670,7 @@ theorem wholeLineCauchyGlobal_le_stableCeiling
 solution.  This deliberately does not assert strict positivity, so it also
 covers the identically-zero initial datum from Proposition 1.1. -/
 theorem wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
     IsGlobalNonnegativeCauchySolutionFrom p u₀.1
       (wholeLineCauchyGlobalU p u₀) (wholeLineCauchyGlobalV p u₀) := by
@@ -681,7 +681,7 @@ theorem wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
   exact wholeLineCauchyGlobal_nonnegative p hregime u₀ hu₀ ht x
 
 theorem wholeLineCauchyGlobal_isBoundedGlobal
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
     IsBoundedGlobal (wholeLineCauchyGlobalU p u₀) := by
   refine ⟨wholeLineCauchyStableCeiling p u₀, ?_⟩
@@ -689,6 +689,27 @@ theorem wholeLineCauchyGlobal_isBoundedGlobal
   rw [abs_of_nonneg
     (wholeLineCauchyGlobal_nonnegative p hregime u₀ hu₀ ht x)]
   exact wholeLineCauchyGlobal_le_stableCeiling p hregime u₀ hu₀ ht x
+
+/-- Every paper-admissible nonnegative BUC datum has a genuine global
+classical Cauchy solution when the chemotactic sensitivity is nonpositive.
+No relation between `alpha` and `m + gamma - 1` is required. -/
+theorem exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
+    (p : CMParams) (hχ : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
+        IsBoundedGlobal u := by
+  let w : WholeLineBUC := wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1
+  have hw0 : ∀ x, 0 ≤ w.1 x := by
+    intro x
+    simpa [w] using hu₀.2 x
+  let hregime : WholeLineCauchyCeilingRegime p :=
+    WholeLineCauchyCeilingRegime.of_nonpositive hχ
+  refine ⟨wholeLineCauchyGlobalU p w, wholeLineCauchyGlobalV p w, ?_,
+    wholeLineCauchyGlobal_isBoundedGlobal p hregime w hw0⟩
+  simpa [w] using
+    wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
+      p hregime w hw0
 
 section WholeLineCauchyGlobalGluingAxiomAudit
 
@@ -712,6 +733,7 @@ section WholeLineCauchyGlobalGluingAxiomAudit
 #print axioms wholeLineCauchyGlobal_le_stableCeiling
 #print axioms wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
 #print axioms wholeLineCauchyGlobal_isBoundedGlobal
+#print axioms exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos
 
 end WholeLineCauchyGlobalGluingAxiomAudit
 

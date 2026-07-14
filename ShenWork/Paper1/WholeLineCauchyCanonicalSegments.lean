@@ -117,7 +117,7 @@ def wholeLineCauchyGlobalSegment
 /-- Any datum in the original stable box generates one physical canonical
 segment which stays in both the clamp box and the sharper stable box. -/
 theorem wholeLineCauchyCanonicalSegment_bounds_of_datum
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ w : WholeLineBUC)
     (hw0 : ∀ x, 0 ≤ w.1 x)
     (hwC : ∀ x, w.1 x ≤ wholeLineCauchyStableCeiling p u₀) :
@@ -197,7 +197,7 @@ theorem wholeLineCauchyCanonicalSegment_bounds_of_datum
 /-- Every recursively generated datum and segment remains in the same stable
 box. -/
 theorem wholeLineCauchyGlobalDatum_segment_bounds
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
     ∀ n,
       ((∀ x, 0 ≤ (wholeLineCauchyGlobalDatum p u₀ n).1 x) ∧
@@ -249,7 +249,7 @@ theorem wholeLineCauchyGlobalDatum_segment_bounds
 
 /-- Consecutive canonical segments agree on their common half-window. -/
 theorem wholeLineCauchyGlobalSegment_overlap
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) (n : ℕ) :
     let H := wholeLineCauchyGlobalSegmentTime p u₀
     let δ := wholeLineCauchyGlobalStep p u₀
