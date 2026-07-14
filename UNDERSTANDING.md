@@ -151,6 +151,20 @@ root build passes with 9563 jobs and all capstones have exactly the standard
 three axioms.  The next analytic step is positive-time differentiation in
 time and identification with the physical PDE.
 
+The active time-endpoint route no longer assumes an unavailable temporal
+Holder rate.  `wholeLineCauchyHeatGradOp_eq_heatOp_deriv` transfers the
+gradient kernel onto the spatial derivative of a bounded `C1` source.
+`deriv_sub_abs_le_of_common_holder` is the quantitative one-dimensional
+interpolation estimate between uniform convergence of functions and a common
+Holder modulus of their derivatives.  Applied to the BUC-continuous physical
+flux trajectory, it proves
+`wholeLineCauchyFluxSourceTrajectory_deriv_uniformContinuousAt_positive`:
+the flux derivatives converge uniformly in space as time approaches any
+strictly interior positive time.  This is precisely the terminal control for
+the gradient Duhamel average.  The next step is to combine it with the BUC
+approximate identity and the value-source endpoint average, then establish
+the full time derivative.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions

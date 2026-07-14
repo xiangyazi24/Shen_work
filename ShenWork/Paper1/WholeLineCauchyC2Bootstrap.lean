@@ -94,6 +94,75 @@ theorem wholeLineCauchyHeatHessOp_eq_gradOp_deriv
     rw [deriv_heatKernel ht]
   rw [hgrad, hbase]
 
+/-- Whole-line Gaussian integration by parts at first order: for a bounded
+`C1` source with bounded continuous derivative, the gradient heat operator is
+the value heat operator applied to the source derivative. -/
+theorem wholeLineCauchyHeatGradOp_eq_heatOp_deriv
+    {f : ℝ → ℝ} {t x C D : ℝ}
+    (ht : 0 < t)
+    (hf : ∀ y, |f y| ≤ C)
+    (hfd : ∀ y, |deriv f y| ≤ D)
+    (hfderiv : ∀ y, HasDerivAt f (deriv f y) y)
+    (hfdcont : Continuous (deriv f)) :
+    wholeLineCauchyHeatGradOp t f x =
+      wholeLineCauchyHeatOp t (deriv f) x := by
+  let k : ℝ → ℝ := fun y => heatKernel t (x - y)
+  let k' : ℝ → ℝ := fun y =>
+    -deriv (fun z : ℝ => heatKernel t z) (x - y)
+  have hkderiv : ∀ y, HasDerivAt k (k' y) y := by
+    intro y
+    have hinner : HasDerivAt (fun q : ℝ => x - q) (-1) y := by
+      simpa using (hasDerivAt_const y x).sub (hasDerivAt_id y)
+    have hcomp := (heatKernel_hasDerivAt ht (x - y)).comp y hinner
+    change HasDerivAt
+      (fun q : ℝ => heatKernel t (x - q))
+      (-deriv (fun z : ℝ => heatKernel t z) (x - y)) y
+    convert hcomp using 1
+    rw [deriv_heatKernel ht]
+    ring
+  have hkfd : Integrable (fun y => k y * deriv f y) := by
+    simpa [k] using heatKernel_mul_bounded_integrable ht x hfd
+      hfdcont.aestronglyMeasurable
+  have hk'f : Integrable (fun y => k' y * f y) := by
+    have hbase := heatKernel_deriv_mul_bounded_integrable ht x hf
+      (continuous_iff_continuousAt.2
+        (fun y => (hfderiv y).continuousAt)).aestronglyMeasurable
+    exact hbase.neg.congr (Filter.Eventually.of_forall fun y => by
+      dsimp [k']
+      rw [deriv_heatKernel_translated_left ht]
+      rw [deriv_heatKernel ht]
+      ring)
+  have hkf : Integrable (fun y => k y * f y) := by
+    simpa [k] using heatKernel_mul_bounded_integrable ht x hf
+      (continuous_iff_continuousAt.2
+        (fun y => (hfderiv y).continuousAt)).aestronglyMeasurable
+  have hibp := MeasureTheory.integral_mul_deriv_eq_deriv_mul_of_integrable
+    (u := k) (v := f) (u' := k') (v' := deriv f)
+    (fun y _ => hkderiv y) (fun y _ => hfderiv y) hkfd hk'f hkf
+  have hbase :
+      (∫ y : ℝ, k y * deriv f y) =
+        ∫ y : ℝ, deriv (fun z : ℝ => heatKernel t z) (x - y) * f y := by
+    rw [hibp]
+    rw [show (fun y : ℝ => k' y * f y) = fun y =>
+        -(deriv (fun z : ℝ => heatKernel t z) (x - y) * f y) by
+      funext y
+      dsimp [k']
+      ring]
+    rw [integral_neg, neg_neg]
+  unfold wholeLineCauchyHeatGradOp wholeLineCauchyHeatOp modifiedSemigroup
+    heatSemigroup
+  rw [integral_const_mul]
+  congr 1
+  calc
+    (∫ a : ℝ, deriv (fun z : ℝ => heatKernel t (z - a)) x * f a) =
+        ∫ a : ℝ, deriv (fun z : ℝ => heatKernel t z) (x - a) * f a := by
+      apply integral_congr_ae
+      filter_upwards with a
+      rw [deriv_heatKernel_translated_left ht]
+      rw [deriv_heatKernel ht]
+    _ = ∫ y : ℝ, heatKernel t (x - y) * deriv f y := by
+      simpa [k] using hbase.symm
+
 /-- Differentiating the Gaussian integration-by-parts identity transfers the
 third kernel derivative to a Hessian acting on the source derivative. -/
 theorem wholeLineCauchyHeatThirdOp_eq_hessOp_deriv
@@ -1215,6 +1284,203 @@ theorem wholeLineContinuous_of_holder
       rw [mul_div_assoc', div_lt_iff₀ (by positivity)]
       nlinarith [mul_nonneg hH heps.le]
 
+/-- Quantitative one-dimensional interpolation between uniform convergence of
+functions and a common Holder modulus of their derivatives. -/
+theorem deriv_sub_abs_le_of_common_holder
+    {f g : ℝ → ℝ} {H rho D r : ℝ}
+    (hH : 0 ≤ H) (hrho : 0 < rho) (hr : 0 < r)
+    (hf : ∀ x, HasDerivAt f (deriv f x) x)
+    (hg : ∀ x, HasDerivAt g (deriv g x) x)
+    (hfholder : ∀ x y, |deriv f x - deriv f y| ≤ H * |x - y| ^ rho)
+    (hgholder : ∀ x y, |deriv g x - deriv g y| ≤ H * |x - y| ^ rho)
+    (hval : ∀ x, |f x - g x| ≤ D) (x : ℝ) :
+    |deriv f x - deriv g x| ≤
+      2 * H * r ^ rho + 2 * D / r := by
+  let e : ℝ → ℝ := fun y => f y - g y
+  have hcont : Continuous e := by
+    exact continuous_iff_continuousAt.2 fun y =>
+      ((hf y).sub (hg y)).continuousAt
+  have hderiv : ∀ y ∈ Set.Ioo x (x + r),
+      HasDerivAt e (deriv f y - deriv g y) y := by
+    intro y _hy
+    exact (hf y).sub (hg y)
+  obtain ⟨xi, hxi, hxiEq⟩ :=
+    exists_hasDerivAt_eq_slope e (fun y => deriv f y - deriv g y)
+      (by linarith : x < x + r) hcont.continuousOn hderiv
+  have hxXi : |x - xi| ≤ r := by
+    rw [abs_of_nonpos (sub_nonpos.mpr hxi.1.le)]
+    linarith [hxi.2]
+  have hpow : |x - xi| ^ rho ≤ r ^ rho :=
+    Real.rpow_le_rpow (abs_nonneg _) hxXi hrho.le
+  have hres :
+      |(deriv f x - deriv g x) - (deriv f xi - deriv g xi)| ≤
+        2 * H * r ^ rho := by
+    calc
+      |(deriv f x - deriv g x) - (deriv f xi - deriv g xi)| ≤
+          |deriv f x - deriv f xi| + |deriv g x - deriv g xi| := by
+        calc
+          |(deriv f x - deriv g x) - (deriv f xi - deriv g xi)| =
+              |(deriv f x - deriv f xi) -
+                (deriv g x - deriv g xi)| := by ring_nf
+          _ ≤ |deriv f x - deriv f xi| +
+              |deriv g x - deriv g xi| := abs_sub _ _
+      _ ≤ H * |x - xi| ^ rho + H * |x - xi| ^ rho :=
+        add_le_add (hfholder x xi) (hgholder x xi)
+      _ ≤ H * r ^ rho + H * r ^ rho :=
+        add_le_add (mul_le_mul_of_nonneg_left hpow hH)
+          (mul_le_mul_of_nonneg_left hpow hH)
+      _ = 2 * H * r ^ rho := by ring
+  have hxiEq' : deriv f xi - deriv g xi =
+      ((f (x + r) - g (x + r)) - (f x - g x)) / r := by
+    simpa [e, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hxiEq
+  have hslope : |deriv f xi - deriv g xi| ≤ 2 * D / r := by
+    rw [hxiEq', abs_div, abs_of_pos hr]
+    apply div_le_div_of_nonneg_right _ hr.le
+    calc
+      |(f (x + r) - g (x + r)) - (f x - g x)| ≤
+          |f (x + r) - g (x + r)| + |f x - g x| := abs_sub _ _
+      _ ≤ D + D := add_le_add (hval _) (hval _)
+      _ = 2 * D := by ring
+  calc
+    |deriv f x - deriv g x| =
+        |((deriv f x - deriv g x) - (deriv f xi - deriv g xi)) +
+          (deriv f xi - deriv g xi)| := by ring_nf
+    _ ≤ |(deriv f x - deriv g x) - (deriv f xi - deriv g xi)| +
+        |deriv f xi - deriv g xi| := abs_add_le _ _
+    _ ≤ 2 * H * r ^ rho + 2 * D / r := add_le_add hres hslope
+
+/-- On a physical positive-time window, continuity of the flux in BUC and a
+common Holder modulus of its derivative upgrade to uniform convergence of the
+spatial derivatives. -/
+theorem wholeLineCauchyFluxSourceTrajectory_deriv_uniformContinuousAt_positive
+    (p : CMParams) {M T theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1) (hzT : z.1 < T)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ w : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall w).1 x ∈
+        Set.Icc (0 : ℝ) M) :
+    ∀ eps > 0, ∃ delta > 0, ∀ s,
+      |s - z.1| < delta → ∀ x,
+      |deriv
+          (wholeLineCauchyFluxSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x -
+        deriv
+          (wholeLineCauchyFluxSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) z.1).1 x| < eps := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let a : ℝ := z.1 / 2
+  let b : ℝ := (z.1 + T) / 2
+  have ha : 0 < a := by dsimp [a]; positivity
+  have hab : a ≤ b := by dsimp [a, b]; linarith [z.2.2]
+  have hbT : b ≤ T := by dsimp [b]; linarith
+  have hztWindow : z.1 ∈ Set.Icc a b := by
+    dsimp [a, b]
+    constructor <;> linarith
+  have hstripWindow : ∀ s ∈ Set.Icc a b, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT U s).1 x ∈ Set.Icc (0 : ℝ) M := by
+    intro s hs x
+    have hsT : s ∈ Set.Icc (0 : ℝ) T :=
+      ⟨ha.le.trans hs.1, hs.2.trans hbT⟩
+    have hext : wholeLineBUCTrajectoryExtend hT U s = U ⟨s, hsT⟩ :=
+      wholeLineBUCTrajectoryExtend_eq hT U hsT
+    rw [hext]
+    exact hstrip ⟨s, hsT⟩ x
+  rcases wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window
+      p hM hT ha hab hbT u₀ hsmall
+        htheta0 htheta1 heta0 heta1 hrel hstripWindow with
+    ⟨rho, H, hrho0, _hrho1, hH, hholder⟩
+  have hFcont : Continuous F := by
+    simpa [F] using wholeLineCauchyFluxSourceTrajectory_continuous p hM hT U
+  intro eps heps
+  let r : ℝ := (eps / (8 * (H + 1))) ^ (1 / rho)
+  have hden : 0 < 8 * (H + 1) := by positivity
+  have hr : 0 < r := by
+    dsimp [r]
+    exact Real.rpow_pos_of_pos (div_pos heps hden) _
+  have hrpow : r ^ rho = eps / (8 * (H + 1)) := by
+    dsimp [r]
+    rw [← Real.rpow_mul (div_pos heps hden).le, one_div,
+      inv_mul_cancel₀ (ne_of_gt hrho0), Real.rpow_one]
+  let d : ℝ := eps * r / 8
+  have hd : 0 < d := by dsimp [d]; positivity
+  have hFAt : ContinuousAt F z.1 := hFcont.continuousAt
+  rw [Metric.continuousAt_iff] at hFAt
+  obtain ⟨deltaF, hdeltaF, hclose⟩ := hFAt d hd
+  let delta : ℝ := min deltaF (min (z.1 - a) (b - z.1))
+  have hza : 0 < z.1 - a := by dsimp [a]; linarith
+  have hbz : 0 < b - z.1 := by dsimp [b]; linarith
+  have hdelta : 0 < delta := by
+    dsimp [delta]
+    exact lt_min hdeltaF (lt_min hza hbz)
+  refine ⟨delta, hdelta, ?_⟩
+  intro s hs x
+  have hsF : dist s z.1 < deltaF := by
+    rw [Real.dist_eq]
+    exact hs.trans_le (min_le_left _ _)
+  have hsWindow : s ∈ Set.Icc a b := by
+    have hsInner : |s - z.1| < min (z.1 - a) (b - z.1) :=
+      hs.trans_le (min_le_right deltaF _)
+    have hsa : |s - z.1| < z.1 - a :=
+      hsInner.trans_le (min_le_left _ _)
+    have hsb : |s - z.1| < b - z.1 :=
+      hsInner.trans_le (min_le_right _ _)
+    constructor
+    · have := neg_abs_le (s - z.1)
+      linarith
+    · have := le_abs_self (s - z.1)
+      linarith
+  have hspos : 0 < s := ha.trans_le hsWindow.1
+  have hsT : s ≤ T := hsWindow.2.trans hbT
+  let zs : Set.Icc (0 : ℝ) T := ⟨s, hspos.le, hsT⟩
+  have hsStrip : ∀ y, (U zs).1 y ∈ Set.Icc (0 : ℝ) M := hstrip zs
+  have hzStrip : ∀ y, (U z).1 y ∈ Set.Icc (0 : ℝ) M := hstrip z
+  have hFs : ∀ y, HasDerivAt (F s).1 (deriv (F s).1 y) y := by
+    intro y
+    have h := wholeLineCauchyFluxSourceTrajectory_slice_hasDerivAt_positive
+      p hM hT u₀ hsmall zs hspos hsStrip y
+    simpa [F, U] using h.differentiableAt.hasDerivAt
+  have hFz : ∀ y, HasDerivAt (F z.1).1 (deriv (F z.1).1 y) y := by
+    intro y
+    have h := wholeLineCauchyFluxSourceTrajectory_slice_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz hzStrip y
+    simpa [F, U] using h.differentiableAt.hasDerivAt
+  have hdist : dist (F s) (F z.1) < d := hclose hsF
+  have hval : ∀ y, |(F s).1 y - (F z.1).1 y| ≤ dist (F s) (F z.1) := by
+    intro y
+    calc
+      |(F s).1 y - (F z.1).1 y| = |(F s - F z.1).1 y| := rfl
+      _ ≤ ‖F s - F z.1‖ := WholeLineBUC.abs_apply_le_norm (F s - F z.1) y
+      _ = dist (F s) (F z.1) :=
+        (WholeLineBUC.dist_eq_norm_sub (F s) (F z.1)).symm
+  have hinterp := deriv_sub_abs_le_of_common_holder
+    hH hrho0 hr hFs hFz (hholder s hsWindow) (hholder z.1 hztWindow)
+      hval x
+  have hfirst : 2 * H * r ^ rho < eps / 2 := by
+    rw [hrpow]
+    have hfrac : H / (H + 1) < 1 := by
+      rw [div_lt_one (by positivity)]
+      linarith
+    calc
+      2 * H * (eps / (8 * (H + 1))) =
+          eps / 4 * (H / (H + 1)) := by field_simp; ring
+      _ < eps / 4 * 1 :=
+        mul_lt_mul_of_pos_left hfrac (by positivity)
+      _ < eps / 2 := by linarith
+  have hsecond : 2 * dist (F s) (F z.1) / r < eps / 2 := by
+    have hnum : 2 * dist (F s) (F z.1) < eps * r / 4 := by
+      dsimp [d] at hdist
+      linarith
+    rw [div_lt_iff₀ hr]
+    nlinarith
+  exact hinterp.trans_lt (by linarith)
+
 /-- The chemotaxis gradient history has a second spatial derivative at every
 positive physical point.  On the recent half-window, Gaussian integration by
 parts replaces the third-kernel singularity by the cancellative Hessian of the
@@ -1685,6 +1951,7 @@ theorem wholeLineCauchyBUCMildFixedPoint_spatial_second_hasDerivAt_positive
 section WholeLineCauchyC2BootstrapAxiomAudit
 
 #print axioms wholeLineCauchyHeatHessOp_eq_gradOp_deriv
+#print axioms wholeLineCauchyHeatGradOp_eq_heatOp_deriv
 #print axioms wholeLineCauchyHeatThirdOp_eq_hessOp_deriv
 #print axioms wholeLineCauchyFluxHessianHistory_intervalIntegrable_positive
 #print axioms integral_sub_rpow_hess_Ctheta_to_Ceta
@@ -1696,6 +1963,9 @@ section WholeLineCauchyC2BootstrapAxiomAudit
 #print axioms
   wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window
 #print axioms wholeLineContinuous_of_holder
+#print axioms deriv_sub_abs_le_of_common_holder
+#print axioms
+  wholeLineCauchyFluxSourceTrajectory_deriv_uniformContinuousAt_positive
 #print axioms
   wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive
 #print axioms wholeLineCauchyValueHistory_second_hasDerivAt_of_window_Ctheta
