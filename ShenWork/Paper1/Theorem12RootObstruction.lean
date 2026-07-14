@@ -40,6 +40,11 @@ paper's fixed exponent `sigma = 1 / 6`. -/
 def stabilityWeightCap (p : CMParams) : ℝ :=
   1 / (1 + |p.χ| ^ (1 / 6 : ℝ))
 
+theorem stabilityWeightCap_pos (p : CMParams) :
+    0 < stabilityWeightCap p := by
+  unfold stabilityWeightCap
+  positivity
+
 /-- Explicit algebraic data for the corrected (5.31) weight window.
 
 The budgets are conclusions to be produced by the Section 5 estimates, not
@@ -112,6 +117,106 @@ theorem paper531Quadratic_neg_between_roots
     paper531Quadratic c A B η < 0 := by
   rw [paper531Quadratic_factor hdisc.le]
   exact mul_neg_of_pos_of_neg (sub_pos.mpr hminus) (sub_neg.mpr hplus)
+
+/-- A positive cap lies strictly between the two roots once the speed exceeds
+the exact value obtained by evaluating the quadratic at that cap.
+
+This is stronger than the discriminant-only threshold
+`A + 2 * sqrt (1 + B)`: the latter merely creates two real roots and does not
+by itself put a prescribed weight cap between them. -/
+theorem paper531_cap_between_roots_of_speed
+    {c A B cap : ℝ}
+    (hB : 0 ≤ B) (hcap : 0 < cap)
+    (hspeed : A + cap + (1 + B) / cap < c) :
+    paper531RootMinus c A B < cap ∧
+      cap < paper531RootPlus c A B := by
+  have hbase : 0 ≤ 1 + B := by linarith
+  have hsqrt_nn : 0 ≤ Real.sqrt (1 + B) := Real.sqrt_nonneg _
+  have hsqrt_sq : Real.sqrt (1 + B) ^ 2 = 1 + B :=
+    Real.sq_sqrt hbase
+  have hamgm :
+      2 * Real.sqrt (1 + B) ≤ cap + (1 + B) / cap := by
+    have htmp :
+        2 * Real.sqrt (1 + B) - cap ≤ (1 + B) / cap := by
+      rw [le_div_iff₀ hcap]
+      nlinarith [sq_nonneg (cap - Real.sqrt (1 + B))]
+    linarith
+
+  have hdisc : 0 < paper531Discriminant c A B :=
+    paper531Discriminant_pos_of_speed hB (by linarith)
+  have hroots :
+      paper531RootMinus c A B < paper531RootPlus c A B :=
+    paper531RootMinus_lt_rootPlus hdisc
+  have hq : paper531Quadratic c A B cap < 0 := by
+    have hdiv : (1 + B) / cap < c - A - cap := by linarith
+    have hscaled := (div_lt_iff₀ hcap).mp hdiv
+    unfold paper531Quadratic
+    nlinarith
+  have hfactor :
+      (cap - paper531RootMinus c A B) *
+          (cap - paper531RootPlus c A B) < 0 := by
+    rw [← paper531Quadratic_factor hdisc.le]
+    exact hq
+  constructor
+  · by_contra hnot
+    have hleft : cap - paper531RootMinus c A B ≤ 0 :=
+      sub_nonpos.mpr (le_of_not_gt hnot)
+    have hright : cap - paper531RootPlus c A B ≤ 0 := by
+      have : cap < paper531RootPlus c A B :=
+        (le_of_not_gt hnot).trans_lt hroots
+      linarith
+    have : 0 ≤
+        (cap - paper531RootMinus c A B) *
+          (cap - paper531RootPlus c A B) :=
+      mul_nonneg_of_nonpos_of_nonpos hleft hright
+    linarith
+  · by_contra hnot
+    have hright : 0 ≤ cap - paper531RootPlus c A B :=
+      sub_nonneg.mpr (le_of_not_gt hnot)
+    have hleft : 0 ≤ cap - paper531RootMinus c A B := by
+      have : paper531RootMinus c A B < cap :=
+        hroots.trans_le (le_of_not_gt hnot)
+      linarith
+    have : 0 ≤
+        (cap - paper531RootMinus c A B) *
+          (cap - paper531RootPlus c A B) :=
+      mul_nonneg hleft hright
+    linarith
+
+/-- The exact cap-evaluation threshold constructs the scalar stability
+budget.  Consequently, the corrected root window is not an extra analytic
+assumption: after concrete nonnegative budgets `A,B` are supplied, it reduces
+to this one scalar lower bound on the speed threshold. -/
+def paper531StabilityBudget_of_cap_threshold
+    {p : CMParams} {cStarStar : ℝ → ℝ} {A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hthreshold :
+      A + stabilityWeightCap p +
+          (1 + B) / stabilityWeightCap p ≤ cStarStar p.χ) :
+    Paper531StabilityBudget p cStarStar := by
+  have hcap : 0 < stabilityWeightCap p := stabilityWeightCap_pos p
+  have hbase : 0 ≤ 1 + B := by linarith
+  have hsqrt_sq : Real.sqrt (1 + B) ^ 2 = 1 + B :=
+    Real.sq_sqrt hbase
+  have hamgm :
+      2 * Real.sqrt (1 + B) ≤
+        stabilityWeightCap p + (1 + B) / stabilityWeightCap p := by
+    have htmp :
+        2 * Real.sqrt (1 + B) - stabilityWeightCap p ≤
+          (1 + B) / stabilityWeightCap p := by
+      rw [le_div_iff₀ hcap]
+      nlinarith [sq_nonneg (stabilityWeightCap p - Real.sqrt (1 + B))]
+    linarith
+  refine
+    { A := A
+      B := B
+      A_nonneg := hA
+      B_nonneg := hB
+      speed_le := by linarith
+      cap_between := ?_ }
+  intro c hc
+  exact paper531_cap_between_roots_of_speed hB hcap
+    (lt_of_le_of_lt hthreshold hc)
 
 theorem paper531Quadratic_at_unperturbed_root
     {c A B k : ℝ} (hk : k ^ 2 - c * k + 1 = 0) :
@@ -393,10 +498,13 @@ theorem paper531_corrected_decay_factor_tendsto_zero
   exact Real.tendsto_exp_atBot.comp hlin
 
 section Theorem12RootObstructionAxiomAudit
+#print axioms stabilityWeightCap_pos
 #print axioms paper531Quadratic_factor
 #print axioms paper531Discriminant_pos_of_speed
 #print axioms paper531RootMinus_pos
 #print axioms paper531Quadratic_neg_between_roots
+#print axioms paper531_cap_between_roots_of_speed
+#print axioms paper531StabilityBudget_of_cap_threshold
 #print axioms paper531_kappa_lt_rootMinus
 #print axioms paper531_kappa_le_rootMinus
 #print axioms Paper531StabilityBudget.quadratic_neg
