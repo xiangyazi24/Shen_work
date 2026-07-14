@@ -7,6 +7,12 @@ on:
     paths:
       - 'scratch/q4911_markov.sage'
       - '.github/workflows/q4911-markov.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'scratch/q4911_markov.sage'
+      - '.github/workflows/q4911-markov.yml'
   workflow_dispatch:
 
 permissions:
