@@ -26,7 +26,7 @@ def delta_H(n):
 
 
 def A_bal(n):
-    H = M_raw(n) / delta_H(n)
+    H = M_raw(n) * (1 / delta_H(n))
     dn = [mp.mpf(1), mp.mpf(n+1), mp.mpf(n+1)**2]
     dnp = [mp.mpf(1), mp.mpf(n+2), mp.mpf(n+2)**2]
     return mp.matrix(3, 3, lambda i, j: H[i,j]*dnp[j]/dn[i])
@@ -43,8 +43,8 @@ def projective_V(N, seed):
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
         scale = max(abs(v[i]) for i in range(3))
-        v = v / scale
-    return v / v[2]
+        v = v * (1 / scale)
+    return v * (1 / v[2])
 
 
 def dot(a,v):
