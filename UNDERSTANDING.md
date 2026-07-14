@@ -4941,3 +4941,14 @@ mild fixed point, continue it globally under the stable ceiling, produce the
 eventual common-bound energy data, and formalize the paper's genuine Step 4
 left-tail compactness/translation-rigidity argument.  The exponential weight
 still cannot replace that left-tail argument.
+
+The first positive-time regularity rung is now explicit.  A bounded
+whole-line gradient heat operator has the expected `t^-1/2` sup bound and a
+`t^-1` spatial Lipschitz bound; interpolation yields a `C^theta` modulus with
+the integrable singularity `t^{-(1+theta)/2}` for every `0 < theta < 1`.
+Together with the easier value-history estimate, this proves that every
+positive-time slice of the canonical BUC mild fixed point is globally
+`C^theta`.  This is deliberately only the first rung: bounded flux alone does
+not justify two spatial derivatives of the divergence Duhamel term.  The next
+step must use this Holder gain in the elliptic resolver, obtain a Holder flux,
+and then perform the cancellation-based second regularity bootstrap.
