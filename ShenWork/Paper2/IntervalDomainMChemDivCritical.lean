@@ -137,6 +137,20 @@ theorem generalMMinSlopeConst_tendsto_zero_nhdsGT
     simpa using tendsto_const_nhds.mul hpow_alpha
   simpa [generalMMinSlopeConst] using hchem.add hlogistic
 
+/-- Positive linear growth dominates the faithful all-sign minimum loss under
+a sufficiently small positive slice ceiling. -/
+theorem exists_pos_generalMMinGrowthRate
+    (p : CM2Params) (hm : 1 ≤ p.m) (ha : 0 < p.a) :
+    ∃ M : ℝ, 0 < M ∧ 0 < generalMMinGrowthRate p M := by
+  have hloss : ∀ᶠ M : ℝ in nhdsWithin (0 : ℝ) (Set.Ioi 0),
+      generalMMinSlopeConst p M < p.a :=
+    (generalMMinSlopeConst_tendsto_zero_nhdsGT p hm).eventually
+      (Iio_mem_nhds ha)
+  have hpos : ∀ᶠ M : ℝ in nhdsWithin (0 : ℝ) (Set.Ioi 0), 0 < M :=
+    self_mem_nhdsWithin
+  rcases (hloss.and hpos).exists with ⟨M, hlossM, hM⟩
+  exact ⟨M, hM, by simp only [generalMMinGrowthRate]; linarith⟩
+
 /-- Interior critical-point Hamilton estimate for the faithful general-`m`
 flux, retaining the positive linear reaction. -/
 theorem min_point_estimate_interior_M_allChi_with_growth
@@ -219,6 +233,7 @@ section AxiomAudit
 #print axioms chemDivM_at_critical
 #print axioms rpow_eq_rpow_sub_one_mul
 #print axioms generalMMinSlopeConst_tendsto_zero_nhdsGT
+#print axioms exists_pos_generalMMinGrowthRate
 #print axioms min_point_estimate_interior_M_allChi_with_growth
 #print axioms min_point_estimate_interior_M_allChi
 
