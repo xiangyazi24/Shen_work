@@ -25,7 +25,7 @@
 \maketitle
 
 \begin{abstract}
-The stability proof in Section~5 of Shen's traveling-wave paper has six
+The stability proof in Section~5 of Shen's traveling-wave paper has seven
 independent statement-level defects.  The perturbed quadratic in (5.31) is
 positive at the unperturbed tail exponent, so the root comparison in (5.35)
 has the wrong direction; the weighted norm in (1.21) is written in laboratory
@@ -33,7 +33,8 @@ rather than moving coordinates; and the exponential factor following (5.35)
 has the wrong sign.  In addition, the chemotactic flux difference in (5.18)
 has two reversed signs.  Finally, (5.27) loses one factor of $b_1$ in
 Young's inequality and (5.29)--(5.30) drop the
-$M^{2(\gamma-1)}$ factor from Lemma~5.3.  This note gives the direct amendment supported by
+$M^{2(\gamma-1)}$ factor from Lemma~5.3.  Finally, Lemma~5.2 is
+one-sided in $U_x/U$, whereas (5.23) uses it as an absolute bound.  This note gives the direct amendment supported by
 the corrected calculation, explains the corresponding change to the
 uniqueness theorem, and records the exact Lean certificates and remaining
 analytic boundary.
@@ -185,6 +186,31 @@ Whenever $0\leq\eta<1/(1+x)$, this $K$ bounds both $1+R_V(\eta)$
 and $1+R_{V_x}(\eta)$.  The case $\chi=0$ is separate and all
 chemotactic corrections vanish.
 
+\section{The one-sided logarithmic-derivative bound used in (5.23)}
+
+Lemma~5.2 proves only
+\[
+  \frac{U_x(x)}{U(x)}\leq C.
+\]
+Case ii.3 then estimates $\abs{b_2}$ by using the stronger statement
+$\abs{U_x/U}\leq C$.  This implication is false.  For a decreasing wave,
+$U_x/U\leq0$ makes the conclusion of Lemma~5.2 automatic, while its negative
+part is precisely what the absolute value retains.
+
+On the monotone negative-sensitivity branch of Theorem~1.1(1), there is a
+direct repair.  Strengthen the speed threshold so that the logarithmic
+Riccati vector field points inward at $-1$.  A right-derivative fencing
+argument, starting from $U_x/U\to0$ at the left end, then gives
+\[
+  -1\leq \frac{U_x}{U}\leq0,
+  \qquad \text{hence}\qquad
+  \abs{U_x/U}\leq1.
+\]
+This bound is independent of the wave speed.  For a general nonmonotone wave,
+including the positive-sensitivity branch as currently stated, an absolute
+logarithmic-derivative bound must instead remain an explicit input to the
+$B_2$ budget; the one-sided Lemma~5.2 does not provide it.
+
 \section{Recommended amended statement}
 
 Let $B_i$ bound $\abs{b_i}$ and use the corrected common resolver factor
@@ -195,6 +221,9 @@ $K$ above.  The valid replacements for (5.32)--(5.33) are
    +\frac{\abs{\chi}^2B_1^2}{2}
    +\frac{\abs{\chi}(B_3+B_4)}{2}K.
 \end{align*}
+Here $B_2$ must be supplied by an absolute logarithmic-derivative estimate.
+The monotone branch may use the fixed Riccati barrier above.  Outside that
+branch, the genuine speed dependence of the absolute bound must be retained.
 Set
 \begin{align*}
  \Delta&=(c-A_{\chi})^{2}-4(1+B_{\chi}),\\
@@ -272,6 +301,12 @@ The corrected Young, resolver-cap, and scalar-budget certificates
 \path{paper5WeightedResolverFactors_le_cap}, and
 \path{paper5ResolvedW2Coefficient_le_corrected531} are in
 \path{ShenWork/Paper1/Theorem12WeightedEnergy.lean}.
+The fencing and monotone-wave absolute logarithmic-derivative certificates
+\path{lower_barrier_of_tendsto_atBot} and
+\path{abs_waveLogDerivative_le_one_of_monotone} are in
+\path{ShenWork/Paper1/Theorem12LogDerivative.lean}.  Their fixed coefficient
+bundle \path{paper5CoefficientBounds_of_monotone_corrected_wave} is in
+\path{ShenWork/Paper1/Theorem12MeanCoefficients.lean}.
 
 \path{ShenWork/Paper1/Theorem12Corrected.lean} proves the scalar Gronwall and
 moving-frame localization wiring, but keeps the general-data whole-line PDE

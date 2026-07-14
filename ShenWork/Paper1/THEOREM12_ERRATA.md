@@ -1,6 +1,6 @@
 # Paper 1 Theorem 1.2 stability audit (2026-07-13)
 
-Four independent issues block a faithful proof of the literal headline as
+Seven independent issues block a faithful proof of the literal headline as
 currently stated.
 
 ## 1. The root comparison in (5.35) has the wrong direction
@@ -136,6 +136,34 @@ Lean certificates:
 - `paper531_corrected_decay_factor_tendsto_zero`
 
 in `Theorem12RootObstruction.lean`.
+
+## 5. The `J_1` Young estimate loses a square
+
+Young's inequality produces `|chi|^2 B_1^2/2`, not the unsquared `b_1`
+contribution printed in (5.27) and propagated into (5.33).  The corrected
+certificate is `paper5J1VariableDensity_le` in
+`Theorem12WeightedEnergy.lean`.
+
+## 6. The resolver factor is dropped in (5.29)--(5.30)
+
+Lemma 5.3 contributes `M^(2(gamma-1))` to both signal estimates.  This is not
+identically one on the positive-sensitivity branch.  The common corrected
+cap is certified by `paper5WeightedResolverFactors_le_cap` in
+`Theorem12WeightedEnergy.lean`.
+
+## 7. Lemma 5.2 is one-sided but (5.23) uses it in absolute value
+
+Lemma 5.2 proves only `U_x/U <= C`; Case ii.3 needs
+`|U_x/U| <= C` to bound `|b_2|`.  The former does not imply the latter.  On
+the monotone negative-sensitivity branch, the stronger explicit speed
+condition `paper52MonotoneBarrierSpeed p < c` makes `[-1,0]` invariant for
+the logarithmic Riccati equation and gives the speed-independent repair
+`|U_x/U| <= 1`.  This is proved by
+`abs_waveLogDerivative_le_one_of_monotone`.  The corresponding fixed
+coefficient bundle is
+`paper5CoefficientBounds_of_monotone_corrected_wave`.  For nonmonotone waves
+an absolute logarithmic-derivative estimate must remain explicit; the
+one-sided Lemma 5.2 cannot supply it.
 
 ## Formalization consequence
 
