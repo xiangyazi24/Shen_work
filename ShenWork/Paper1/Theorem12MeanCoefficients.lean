@@ -651,11 +651,11 @@ theorem paper5CoefficientBounds_of_corrected_wave
   exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu hBlog
     hu hU (hTW.U_pos x) hv hUx hlog
 
-/-- Speed-independent coefficient producer on the monotone negative-sensitivity
-branch constructed in Theorem 1.1(1).  The strengthened explicit speed
-condition makes `[-1,0]` invariant for `U'/U`, so the singular `b₂` branch
-uses the fixed budget `Blog = 1` rather than a quantity growing with `c`. -/
-theorem paper5CoefficientBounds_of_monotone_corrected_wave
+/-- Speed-independent coefficient producer at the strengthened explicit speed
+threshold.  The interval `[-1,1]` is invariant for `U'/U`, so the singular
+`b₂` branch uses the fixed budget `Blog = 1` rather than a quantity growing
+with `c`.  This applies to both sensitivity signs and needs no monotonicity. -/
+theorem paper5CoefficientBounds_of_barrier_speed_corrected_wave
     (p : CMParams) {c sigma t x : ℝ}
     {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
@@ -664,7 +664,6 @@ theorem paper5CoefficientBounds_of_monotone_corrected_wave
     (hTW : IsTravelingWave p c U V)
     (hreg : TravelingWaveRegularity p c U V)
     (hbound : HasWaveUpperTailBound p c U)
-    (hmono : Antitone U)
     (hu : u t x ∈ Set.Icc (0 : ℝ) (MChi p))
     (hv : |deriv (v t) x| ≤ (MChi p) ^ p.γ) :
     let Lu := remark51MPrime p / remark5ChiSigma p sigma
@@ -690,10 +689,32 @@ theorem paper5CoefficientBounds_of_monotone_corrected_wave
   have hlog : 1 < p.m → p.m < 2 →
       |deriv U x / U x| ≤ (1 : ℝ) := by
     intro _ _
-    exact abs_waveLogDerivative_le_one_of_monotone p hbarrierSpeed
-      hTW hreg hbound hmono x
+    exact abs_waveLogDerivative_le_one_of_barrier_speed p hbarrierSpeed
+      hTW hreg hbound x
   exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu
     zero_le_one hu hU (hTW.U_pos x) hv hUx hlog
+
+/-- Compatibility wrapper for the monotone Theorem 1.1(1) branch. -/
+theorem paper5CoefficientBounds_of_monotone_corrected_wave
+    (p : CMParams) {c sigma t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hbarrierSpeed : paper52MonotoneBarrierSpeed p < c)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (_hmono : Antitone U)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) (MChi p))
+    (hv : |deriv (v t) x| ≤ (MChi p) ^ p.γ) :
+    let Lu := remark51MPrime p / remark5ChiSigma p sigma
+    |paper5B1 p u v t x| ≤ paper520B1 p (MChi p) ∧
+      |paper5B2 p u v U t x| ≤
+        paper5B2BoundFromDerivativeData p (MChi p) Lu 1 ∧
+      |paper5B3 p U x| ≤ p.m * (MChi p) ^ (p.m - 1) * Lu ∧
+      |paper5B4 p U x| ≤ (MChi p) ^ p.m :=
+  paper5CoefficientBounds_of_barrier_speed_corrected_wave p hsigma hχ
+    hspeed hbarrierSpeed hTW hreg hbound hu hv
 
 section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5MeanCoefficient_mul_sub
@@ -716,6 +737,7 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5B2_abs_le_of_derivative_data
 #print axioms paper5CoefficientBounds_of_derivative_data
 #print axioms paper5CoefficientBounds_of_corrected_wave
+#print axioms paper5CoefficientBounds_of_barrier_speed_corrected_wave
 #print axioms paper5CoefficientBounds_of_monotone_corrected_wave
 end Theorem12MeanCoefficientsAxiomAudit
 

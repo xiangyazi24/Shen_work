@@ -197,19 +197,20 @@ $\abs{U_x/U}\leq C$.  This implication is false.  For a decreasing wave,
 $U_x/U\leq0$ makes the conclusion of Lemma~5.2 automatic, while its negative
 part is precisely what the absolute value retains.
 
-On the monotone negative-sensitivity branch of Theorem~1.1(1), there is a
-direct repair.  Strengthen the speed threshold so that the logarithmic
-Riccati vector field points inward at $-1$.  A right-derivative fencing
-argument, starting from $U_x/U\to0$ at the left end, then gives
+There is a direct repair.  Strengthen the speed threshold so that the
+logarithmic Riccati vector field points inward at both $-1$ and $1$.
+Two applications of the right-derivative fencing theorem, starting from
+$U_x/U\to0$ at the left end, then give
 \[
-  -1\leq \frac{U_x}{U}\leq0,
-  \qquad \text{hence}\qquad
+  -1\leq \frac{U_x}{U}\leq1,
+  \qquad \text{and hence}\qquad
   \abs{U_x/U}\leq1.
 \]
-This bound is independent of the wave speed.  For a general nonmonotone wave,
-including the positive-sensitivity branch as currently stated, an absolute
-logarithmic-derivative bound must instead remain an explicit input to the
-$B_2$ budget; the one-sided Lemma~5.2 does not provide it.
+This bound is independent of the wave speed and requires no monotonicity, so
+it applies to both sensitivity signs.  Without the stronger barrier-speed
+condition, an absolute logarithmic-derivative bound must instead remain an
+explicit input to the $B_2$ budget; the one-sided Lemma~5.2 does not provide
+it.
 
 \section{Recommended amended statement}
 
@@ -222,8 +223,9 @@ $K$ above.  The valid replacements for (5.32)--(5.33) are
    +\frac{\abs{\chi}(B_3+B_4)}{2}K.
 \end{align*}
 Here $B_2$ must be supplied by an absolute logarithmic-derivative estimate.
-The monotone branch may use the fixed Riccati barrier above.  Outside that
-branch, the genuine speed dependence of the absolute bound must be retained.
+At the stronger two-sided Riccati barrier speed, any wave may use the fixed
+bound above.  Without that condition, the genuine speed dependence of an
+absolute bound must be retained.
 Set
 \begin{align*}
  \Delta&=(c-A_{\chi})^{2}-4(1+B_{\chi}),\\
@@ -301,11 +303,11 @@ The corrected Young, resolver-cap, and scalar-budget certificates
 \path{paper5WeightedResolverFactors_le_cap}, and
 \path{paper5ResolvedW2Coefficient_le_corrected531} are in
 \path{ShenWork/Paper1/Theorem12WeightedEnergy.lean}.
-The fencing and monotone-wave absolute logarithmic-derivative certificates
+The fencing and absolute logarithmic-derivative certificates
 \path{lower_barrier_of_tendsto_atBot} and
-\path{abs_waveLogDerivative_le_one_of_monotone} are in
+\path{abs_waveLogDerivative_le_one_of_barrier_speed} are in
 \path{ShenWork/Paper1/Theorem12LogDerivative.lean}.  Their fixed coefficient
-bundle \path{paper5CoefficientBounds_of_monotone_corrected_wave} is in
+bundle \path{paper5CoefficientBounds_of_barrier_speed_corrected_wave} is in
 \path{ShenWork/Paper1/Theorem12MeanCoefficients.lean}.
 
 \path{ShenWork/Paper1/Theorem12Corrected.lean} proves the scalar Gronwall and

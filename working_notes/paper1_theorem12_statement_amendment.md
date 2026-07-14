@@ -142,14 +142,14 @@ positive part of the logarithmic derivative and gives no lower bound. This
 is especially visible for a decreasing wave, where `U_x/U <= 0` makes the
 lemma automatic while `|U_x/U|` is exactly the uncontrolled negative part.
 
-There are two honest repairs. On the monotone negative-sensitivity branch of
-Theorem 1.1(1), strengthen the speed threshold so that the logarithmic
-Riccati vector field points inward at `-1`. A right-derivative fencing
-argument then proves the speed-independent bound `|U_x/U| <= 1`. For a
-general, possibly nonmonotone wave (including the positive-sensitivity
-branch as currently stated), retain an explicit absolute logarithmic-
-derivative bound in `B_2`; the threshold may then depend on its genuine
-speed dependence. The one-sided Lemma 5.2 cannot discharge that input.
+The direct repair is to strengthen the speed threshold so that the
+logarithmic Riccati vector field points inward at both `-1` and `1`. Two
+applications of Mathlib's right-derivative fencing theorem, starting from
+`U_x/U -> 0` at the left end, prove the speed-independent bound
+`|U_x/U| <= 1`. This argument needs no monotonicity and therefore covers both
+sensitivity signs. Without the stronger barrier-speed condition, an
+explicit absolute logarithmic-derivative bound must remain in `B_2`; the
+one-sided Lemma 5.2 cannot discharge it.
 
 ## Recommended amended statement
 
@@ -164,10 +164,10 @@ B_chi = |chi| ((2m+gamma) M^(m+gamma-1) + B_2)
 ```
 
 These replace, rather than merely rename, the printed budgets (5.32)–(5.33).
-Here `B_2` must come from an absolute logarithmic-derivative estimate.  On
-the monotone branch it can use the fixed Riccati barrier above; outside that
-branch it must remain an explicit absolute bound rather than the conclusion
-of Lemma 5.2.
+Here `B_2` must come from an absolute logarithmic-derivative estimate. Under
+the stronger two-sided Riccati barrier speed it can use the fixed bound above
+for any wave; otherwise it must remain an explicit absolute bound rather
+than the conclusion of Lemma 5.2.
 Define
 
 ```text
@@ -240,10 +240,10 @@ seven defects:
   `paper5ResolvedW2Coefficient_le_corrected531` in
   `ShenWork/Paper1/Theorem12WeightedEnergy.lean`.
 - `lower_barrier_of_tendsto_atBot` and
-  `abs_waveLogDerivative_le_one_of_monotone` in
+  `abs_waveLogDerivative_le_one_of_barrier_speed` in
   `ShenWork/Paper1/Theorem12LogDerivative.lean`, together with the fixed
   coefficient bundle
-  `paper5CoefficientBounds_of_monotone_corrected_wave` in
+  `paper5CoefficientBounds_of_barrier_speed_corrected_wave` in
   `ShenWork/Paper1/Theorem12MeanCoefficients.lean`.
 
 `ShenWork/Paper1/Theorem12Corrected.lean` currently proves the scalar

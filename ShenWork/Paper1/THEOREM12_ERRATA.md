@@ -154,16 +154,15 @@ cap is certified by `paper5WeightedResolverFactors_le_cap` in
 ## 7. Lemma 5.2 is one-sided but (5.23) uses it in absolute value
 
 Lemma 5.2 proves only `U_x/U <= C`; Case ii.3 needs
-`|U_x/U| <= C` to bound `|b_2|`.  The former does not imply the latter.  On
-the monotone negative-sensitivity branch, the stronger explicit speed
-condition `paper52MonotoneBarrierSpeed p < c` makes `[-1,0]` invariant for
-the logarithmic Riccati equation and gives the speed-independent repair
-`|U_x/U| <= 1`.  This is proved by
-`abs_waveLogDerivative_le_one_of_monotone`.  The corresponding fixed
-coefficient bundle is
-`paper5CoefficientBounds_of_monotone_corrected_wave`.  For nonmonotone waves
-an absolute logarithmic-derivative estimate must remain explicit; the
-one-sided Lemma 5.2 cannot supply it.
+`|U_x/U| <= C` to bound `|b_2|`.  The former does not imply the latter.  The
+stronger explicit speed condition `paper52MonotoneBarrierSpeed p < c` makes
+`[-1,1]` invariant for the logarithmic Riccati equation and gives the
+speed-independent repair `|U_x/U| <= 1` without assuming monotonicity.  This
+is proved by `abs_waveLogDerivative_le_one_of_barrier_speed`.  The
+corresponding fixed coefficient bundle is
+`paper5CoefficientBounds_of_barrier_speed_corrected_wave`.  Without the
+stronger speed condition an absolute logarithmic-derivative estimate must
+remain explicit; the one-sided Lemma 5.2 cannot supply it.
 
 ## Formalization consequence
 
