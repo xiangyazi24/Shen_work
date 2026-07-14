@@ -1,4 +1,4 @@
-import ShenWork.Paper1.Lemma53Full
+import ShenWork.Paper1.Theorem12WeightedResolver
 import ShenWork.Paper1.CStarStarSpecSatisfiable
 import ShenWork.Paper1.Theorem12CoordinateAudit
 import ShenWork.Paper1.Theorem12RootObstruction
