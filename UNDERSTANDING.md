@@ -5273,3 +5273,12 @@ endpoint.  The resulting
 local trajectory by `wholeLineCauchyStableCeiling p u0`; it assumes neither a
 tail limit nor the conclusion itself.  This is the uniform a priori input for
 the remaining restart/gluing construction.
+
+`WholeLineCauchyCanonicalRestart.lean` proves the compatibility needed for
+that construction.  A translated subwindow is made into an honest compact
+BUC trajectory.  Change of variables identifies its two Duhamel histories
+with the recent histories of the original trajectory, while the Gaussian
+semigroup restart identities account for the old histories.  Hence the
+translated trajectory is a fixed point of the short restarted mild map; the
+short-map contraction makes it equal to the canonical restarted fixed point.
+This removes a potential seam ambiguity before discrete global gluing.
