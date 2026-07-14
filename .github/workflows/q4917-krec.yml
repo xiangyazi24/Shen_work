@@ -1,0 +1,44 @@
+name: Q4917 Delannoy coefficient recurrence search
+
+on:
+  push:
+    branches: [q4917-krecurrence]
+    paths:
+      - scratch/q4917_krec.sage
+      - .github/workflows/q4917-krec.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: q4917-krecurrence
+  cancel-in-progress: true
+
+jobs:
+  search:
+    runs-on: self-hosted
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4917-krecurrence
+      - name: Run Sage recurrence search
+        shell: bash
+        run: |
+          set -o pipefail
+          if command -v sage >/dev/null 2>&1; then
+            sage scratch/q4917_krec.sage 2>&1 | tee scratch/q4917_krec_result.txt
+          else
+            docker run --rm -v "$PWD:/work" -w /work sagemath/sagemath:latest \
+              sage scratch/q4917_krec.sage 2>&1 | tee scratch/q4917_krec_result.txt
+          fi
+      - name: Commit result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scratch/q4917_krec_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4917 recurrence search result'
+          git push origin HEAD:q4917-krecurrence
