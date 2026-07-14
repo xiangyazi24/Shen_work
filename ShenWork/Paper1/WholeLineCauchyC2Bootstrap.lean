@@ -626,6 +626,420 @@ theorem wholeLineCauchyBUCMildFixedPoint_spatial_deriv_bounded_positive_window
   exact deriv_abs_le_of_bounded_of_deriv_holder
     hH heta0 hbound hdiff hfholder x
 
+/-- A profile-independent coefficient for the Holder modulus of a positive
+real power of a nonnegative bounded Lipschitz function. -/
+def wholeLineCauchyRpowHolderConst (M L q : ℝ) : ℝ :=
+  max (L ^ q + q * M ^ (q - 1) * L) (2 * M ^ q)
+
+/-- Explicit-coefficient form of the bounded-Lipschitz real-power estimate.
+Unlike the existential wrapper used for one slice, this form can be selected
+before quantifying over a compact time window. -/
+theorem wholeLine_rpow_holder_of_nonneg_bounded_lipschitz_explicit
+    {f : ℝ → ℝ} {M L q rho : ℝ}
+    (hM : 0 ≤ M) (hL : 0 ≤ L) (hq : 0 < q)
+    (hrho : 0 < rho) (hrho1 : rho ≤ 1) (hrhoq : rho ≤ q)
+    (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M)
+    (hlip : ∀ x y, |f x - f y| ≤ L * |x - y|) :
+    0 ≤ wholeLineCauchyRpowHolderConst M L q ∧ ∀ x y,
+      |(f x) ^ q - (f y) ^ q| ≤
+        wholeLineCauchyRpowHolderConst M L q * |x - y| ^ rho := by
+  let A : ℝ := L ^ q + q * M ^ (q - 1) * L
+  have hA : 0 ≤ A := by dsimp [A]; positivity
+  have hH : 0 ≤ wholeLineCauchyRpowHolderConst M L q := by
+    exact hA.trans (le_max_left _ _)
+  refine ⟨hH, ?_⟩
+  intro x y
+  let d : ℝ := |x - y|
+  have hd : 0 ≤ d := by dsimp [d]; positivity
+  by_cases hd1 : d ≤ 1
+  · have hpowrho : d ^ q ≤ d ^ rho :=
+      Real.rpow_le_rpow_of_exponent_ge' hd hd1 hrho.le hrhoq
+    rcases le_total q 1 with hq1 | hqge
+    · have hfrac := abs_nonneg_rpow_sub_rpow_le_abs_sub_rpow
+        (hrange x).1 (hrange y).1 hq.le hq1
+      have hbase : |f x - f y| ^ q ≤ (L * d) ^ q :=
+        Real.rpow_le_rpow (abs_nonneg _)
+          (by simpa [d] using hlip x y) hq.le
+      calc
+        |(f x) ^ q - (f y) ^ q| ≤ |f x - f y| ^ q := hfrac
+        _ ≤ (L * d) ^ q := hbase
+        _ = L ^ q * d ^ q := Real.mul_rpow hL hd
+        _ ≤ L ^ q * d ^ rho :=
+          mul_le_mul_of_nonneg_left hpowrho (Real.rpow_nonneg hL _)
+        _ ≤ A * d ^ rho := by
+          exact mul_le_mul_of_nonneg_right
+            (by dsimp [A]; exact le_add_of_nonneg_right (by positivity))
+            (Real.rpow_nonneg hd _)
+        _ ≤ wholeLineCauchyRpowHolderConst M L q * d ^ rho :=
+          mul_le_mul_of_nonneg_right (le_max_left _ _)
+            (Real.rpow_nonneg hd _)
+    · have hpowLip : |(f x) ^ q - (f y) ^ q| ≤
+          q * M ^ (q - 1) * |f x - f y| := by
+        simpa [rpowLip] using
+          abs_rpow_sub_rpow_le_of_mem_Icc hqge hM (hrange x) (hrange y)
+      have hdRho : d ≤ d ^ rho := by
+        simpa [Real.rpow_one] using
+          Real.rpow_le_rpow_of_exponent_ge' hd hd1 hrho.le hrho1
+      calc
+        |(f x) ^ q - (f y) ^ q| ≤
+            q * M ^ (q - 1) * |f x - f y| := hpowLip
+        _ ≤ q * M ^ (q - 1) * (L * d) :=
+          mul_le_mul_of_nonneg_left (by simpa [d] using hlip x y)
+            (mul_nonneg hq.le (Real.rpow_nonneg hM _))
+        _ = (q * M ^ (q - 1) * L) * d := by ring
+        _ ≤ (q * M ^ (q - 1) * L) * d ^ rho :=
+          mul_le_mul_of_nonneg_left hdRho (by positivity)
+        _ ≤ A * d ^ rho := by
+          exact mul_le_mul_of_nonneg_right
+            (by dsimp [A]; exact le_add_of_nonneg_left (by positivity))
+            (Real.rpow_nonneg hd _)
+        _ ≤ wholeLineCauchyRpowHolderConst M L q * d ^ rho :=
+          mul_le_mul_of_nonneg_right (le_max_left _ _)
+            (Real.rpow_nonneg hd _)
+  · have hdge : 1 ≤ d := le_of_not_ge hd1
+    have hdpow : 1 ≤ d ^ rho := by
+      simpa using Real.rpow_le_rpow zero_le_one hdge hrho.le
+    have hpowBound : ∀ z, |(f z) ^ q| ≤ M ^ q := by
+      intro z
+      rw [abs_of_nonneg (Real.rpow_nonneg (hrange z).1 _)]
+      exact Real.rpow_le_rpow (hrange z).1 (hrange z).2 hq.le
+    calc
+      |(f x) ^ q - (f y) ^ q| ≤ |(f x) ^ q| + |(f y) ^ q| :=
+        abs_sub _ _
+      _ ≤ M ^ q + M ^ q := add_le_add (hpowBound x) (hpowBound y)
+      _ = 2 * M ^ q := by ring
+      _ ≤ wholeLineCauchyRpowHolderConst M L q := le_max_right _ _
+      _ = wholeLineCauchyRpowHolderConst M L q * 1 := by ring
+      _ ≤ wholeLineCauchyRpowHolderConst M L q * d ^ rho :=
+        mul_le_mul_of_nonneg_left hdpow hH
+
+/-- The differentiated physical flux has one common positive Holder exponent
+and coefficient on every compact positive-time window contained in the
+physical strip. -/
+theorem wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window
+    (p : CMParams) {M T a b theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ s ∈ Set.Icc a b, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT
+        (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x ∈
+          Set.Icc (0 : ℝ) M) :
+    ∃ rho H : ℝ, 0 < rho ∧ rho < 1 ∧ 0 ≤ H ∧
+      ∀ s ∈ Set.Icc a b, ∀ x y,
+        |deriv
+            (wholeLineCauchyFluxSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x -
+          deriv
+            (wholeLineCauchyFluxSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 y| ≤
+          H * |x - y| ^ rho := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  rcases wholeLineCauchyBUCMildFixedPoint_spatial_deriv_Ceta_window
+      p hM hT ha hab hbT u₀ hsmall htheta0 htheta1
+        heta0 heta1 hrel with
+    ⟨Hux, hHux, huxHolder⟩
+  rcases wholeLineCauchyBUCMildFixedPoint_spatial_deriv_bounded_positive_window
+      p hM hT ha hab hbT u₀ hsmall htheta0 htheta1
+        heta0 heta1 hrel hstrip with
+    ⟨Bux, hBux, huxBound⟩
+  let HU : ℝ := max Bux (2 * M)
+  let Mγ : ℝ := M ^ p.γ
+  let HVx : ℝ := max (2 * Mγ) (2 * Mγ)
+  let HV : ℝ := max Mγ (2 * Mγ)
+  let HUm : ℝ := rpowLip p.m M * HU
+  let HUg : ℝ := rpowLip p.γ M * HU
+  have hHU : 0 ≤ HU := hBux.trans (le_max_left _ _)
+  have hMγ : 0 ≤ Mγ := by dsimp [Mγ]; positivity
+  have hHVx : 0 ≤ HVx := by dsimp [HVx]; positivity
+  have hHV : 0 ≤ HV := by dsimp [HV]; positivity
+  have hHUm : 0 ≤ HUm := by
+    dsimp [HUm]
+    exact mul_nonneg (rpowLip_nonneg p.hm hM) hHU
+  have hHUg : 0 ≤ HUg := by
+    dsimp [HUg]
+    exact mul_nonneg (rpowLip_nonneg p.hγ hM) hHU
+  by_cases hmEq : p.m = 1
+  · let rho : ℝ := eta
+    let HA : ℝ := |p.m| * (Bux * HVx + Mγ * Hux)
+    let HB : ℝ := M ^ p.m * (HV + HUg) +
+      (Mγ + M ^ p.γ) * HUm
+    let H : ℝ := HA + HB
+    have hrho0 : 0 < rho := heta0
+    have hrho1 : rho < 1 := heta1
+    have hHA : 0 ≤ HA := by dsimp [HA]; positivity
+    have hHB : 0 ≤ HB := by dsimp [HB]; positivity
+    have hH : 0 ≤ H := add_nonneg hHA hHB
+    refine ⟨rho, H, hrho0, hrho1, hH, ?_⟩
+    intro s hs x y
+    have hs0 : 0 < s := ha.trans_le hs.1
+    have hsT : s ≤ T := hs.2.trans hbT
+    let z : Set.Icc (0 : ℝ) T := ⟨s, hs0.le, hsT⟩
+    have hext : wholeLineBUCTrajectoryExtend hT U s = U z :=
+      wholeLineBUCTrajectoryExtend_eq hT U z.2
+    let f : ℝ → ℝ :=
+      (wholeLineBUCTrajectoryExtend hT U s).1
+    let V : ℝ → ℝ := frozenElliptic p f
+    let F : ℝ → ℝ :=
+      (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1
+    have hfIs : IsCUnifBdd f :=
+      WholeLineBUC.isCUnifBdd (wholeLineBUCTrajectoryExtend hT U s)
+    have hfM : ∀ q, f q ∈ Set.Icc (0 : ℝ) M := hstrip s hs
+    have hf0 : ∀ q, 0 ≤ f q := fun q => (hfM q).1
+    have hfdiff : ∀ q, DifferentiableAt ℝ f q := by
+      intro q
+      have h := (wholeLineCauchyBUCMildFixedPoint_spatial_hasDerivAt_positive
+        p hM hT u₀ hsmall z hs0 q).differentiableAt
+      simpa [f, U, hext] using h
+    have huxB : ∀ q, |deriv f q| ≤ Bux := by
+      intro q
+      simpa [f, U] using huxBound s hs q
+    have huxH : ∀ q r,
+        |deriv f q - deriv f r| ≤ Hux * |q - r| ^ eta := by
+      intro q r
+      simpa [f, U] using huxHolder s hs q r
+    have hfLip : ∀ q r, |f q - f r| ≤ Bux * |q - r| := by
+      intro q r
+      have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+        (s := Set.univ) (f := f) (C := Bux)
+        (fun w _ => hfdiff w)
+        (fun w _ => by rw [Real.norm_eq_abs]; exact huxB w)
+        convex_univ (Set.mem_univ q) (Set.mem_univ r)
+      simpa [Real.norm_eq_abs, abs_sub_comm] using hmv
+    have hfluxEq : F = wholeLineChemotaxisFlux p f := by
+      funext q
+      simpa [F, f, wholeLineCauchyFluxSourceTrajectory] using congrFun
+        (wholeLineCauchyTruncatedFlux_eq_of_mem_Icc p hM (hstrip s hs)) q
+    let hU : WholeLineCauchyHolderQuant rho f :=
+      wholeLineCauchyHolderQuant_of_lipschitz hM hBux hrho0 hrho1.le
+        (fun q => by rw [abs_of_nonneg (hf0 q)]; exact (hfM q).2) hfLip
+    let hUx : WholeLineCauchyHolderQuant rho (deriv f) :=
+      { C := Bux
+        H := Hux
+        C_nonneg := hBux
+        H_nonneg := hHux
+        bound := huxB
+        holder := huxH }
+    have hV0 : ∀ q, 0 ≤ V q := fun q => frozenElliptic_nonneg p hf0 q
+    have hVM : ∀ q, V q ≤ Mγ := by
+      intro q
+      exact frozenElliptic_le_of_rpow_le p hMγ hfIs.1 hf0
+        (fun w => Real.rpow_le_rpow (hfM w).1 (hfM w).2
+          (zero_le_one.trans p.hγ)) q
+    have hVxB : ∀ q, |deriv V q| ≤ Mγ := by
+      intro q
+      exact frozenElliptic_deriv_abs_le_rpow_of_Icc p hM hfIs hfM q
+    have hVxLip : ∀ q r, |deriv V q - deriv V r| ≤
+        (2 * Mγ) * |q - r| := by
+      intro q r
+      have h := (frozenElliptic_deriv_lipschitz_of_Icc
+        p hM hfIs hfM).dist_le_mul q r
+      rw [Real.dist_eq, Real.dist_eq,
+        Real.coe_toNNReal _ (mul_nonneg (by norm_num) hMγ)] at h
+      exact h
+    let hVx : WholeLineCauchyHolderQuant rho (deriv V) :=
+      wholeLineCauchyHolderQuant_of_lipschitz hMγ
+        (mul_nonneg (by norm_num) hMγ) hrho0 hrho1.le hVxB hVxLip
+    have hVLip : ∀ q r, |V q - V r| ≤ Mγ * |q - r| := by
+      intro q r
+      have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+        (s := Set.univ) (f := V) (C := Mγ)
+        (fun w _ => frozenElliptic_differentiable p hfIs hf0 w)
+        (fun w _ => by rw [Real.norm_eq_abs]; exact hVxB w)
+        convex_univ (Set.mem_univ q) (Set.mem_univ r)
+      simpa [Real.norm_eq_abs, abs_sub_comm] using hmv
+    let hV : WholeLineCauchyHolderQuant rho V :=
+      wholeLineCauchyHolderQuant_of_lipschitz hMγ hMγ hrho0 hrho1.le
+        (fun q => by rw [abs_of_nonneg (hV0 q)]; exact hVM q) hVLip
+    let hUm := hU.rpowOfOneLe p.hm hM hfM
+    let hUg := hU.rpowOfOneLe p.hγ hM hfM
+    let hUq : WholeLineCauchyHolderQuant rho
+        (fun q => (f q) ^ (p.m - 1)) :=
+      { C := 1
+        H := 0
+        C_nonneg := by norm_num
+        H_nonneg := le_rfl
+        bound := by intro q; simp [hmEq]
+        holder := by intro q r; simp [hmEq] }
+    let hA := ((hUq.mul hUx).mul hVx).const_mul (a := p.m)
+    let hB := hUm.mul (hV.sub hUg)
+    let hQ := hA.add hB
+    have hHQ : hQ.H = H := by
+      dsimp [hQ, hA, hB, hUq, hUx, hVx, hV, hUm, hUg, hU, H,
+        HA, HB, HU, HVx, HV, HUm, HUg,
+        WholeLineCauchyHolderQuant.add, WholeLineCauchyHolderQuant.mul,
+        WholeLineCauchyHolderQuant.sub, WholeLineCauchyHolderQuant.neg,
+        WholeLineCauchyHolderQuant.const_mul,
+        WholeLineCauchyHolderQuant.rpowOfOneLe,
+        wholeLineCauchyHolderQuant_of_lipschitz]
+      ring
+    have hformula : ∀ q, deriv F q =
+        p.m * (f q) ^ (p.m - 1) * deriv f q * deriv V q +
+          (f q) ^ p.m * (V q - (f q) ^ p.γ) := by
+      intro q
+      rw [hfluxEq]
+      exact (wholeLineChemotaxisFlux_hasDerivAt p hfIs hf0
+        (hfdiff q).hasDerivAt).deriv
+    rw [hformula x, hformula y, ← hHQ]
+    simpa [hQ, hA, hB, hUq, hUx, hVx, hV, hUm, hUg,
+      hU, f, V, mul_assoc] using hQ.holder x y
+  · have hmgt : 1 < p.m := lt_of_le_of_ne p.hm (Ne.symm hmEq)
+    have hmq : 0 < p.m - 1 := by linarith
+    let rho : ℝ := min eta (p.m - 1) / 2
+    have hmin0 : 0 < min eta (p.m - 1) := lt_min heta0 hmq
+    have hrho0 : 0 < rho := by dsimp [rho]; linarith
+    have hrhoEta : rho ≤ eta := by
+      dsimp [rho]
+      linarith [min_le_left eta (p.m - 1)]
+    have hrhoQ : rho ≤ p.m - 1 := by
+      dsimp [rho]
+      linarith [min_le_right eta (p.m - 1)]
+    have hrho1 : rho < 1 := lt_of_le_of_lt hrhoEta heta1
+    let HuxR : ℝ := max Hux (2 * Bux)
+    let HUq : ℝ := wholeLineCauchyRpowHolderConst M Bux (p.m - 1)
+    let Cq : ℝ := M ^ (p.m - 1)
+    let HA : ℝ := |p.m| *
+      (Cq * Bux * HVx + Mγ * (Cq * HuxR + Bux * HUq))
+    let HB : ℝ := M ^ p.m * (HV + HUg) +
+      (Mγ + M ^ p.γ) * HUm
+    let H : ℝ := HA + HB
+    have hHuxR : 0 ≤ HuxR := hHux.trans (le_max_left _ _)
+    have hHUq : 0 ≤ HUq := by
+      dsimp [HUq, wholeLineCauchyRpowHolderConst]
+      exact (add_nonneg (Real.rpow_nonneg hBux _)
+        (mul_nonneg
+          (mul_nonneg hmq.le (Real.rpow_nonneg hM _)) hBux)).trans
+            (le_max_left _ _)
+    have hCq : 0 ≤ Cq := by dsimp [Cq]; positivity
+    have hHA : 0 ≤ HA := by dsimp [HA]; positivity
+    have hHB : 0 ≤ HB := by dsimp [HB]; positivity
+    have hH : 0 ≤ H := add_nonneg hHA hHB
+    refine ⟨rho, H, hrho0, hrho1, hH, ?_⟩
+    intro s hs x y
+    have hs0 : 0 < s := ha.trans_le hs.1
+    have hsT : s ≤ T := hs.2.trans hbT
+    let z : Set.Icc (0 : ℝ) T := ⟨s, hs0.le, hsT⟩
+    have hext : wholeLineBUCTrajectoryExtend hT U s = U z :=
+      wholeLineBUCTrajectoryExtend_eq hT U z.2
+    let f : ℝ → ℝ :=
+      (wholeLineBUCTrajectoryExtend hT U s).1
+    let V : ℝ → ℝ := frozenElliptic p f
+    let F : ℝ → ℝ :=
+      (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1
+    have hfIs : IsCUnifBdd f :=
+      WholeLineBUC.isCUnifBdd (wholeLineBUCTrajectoryExtend hT U s)
+    have hfM : ∀ q, f q ∈ Set.Icc (0 : ℝ) M := hstrip s hs
+    have hf0 : ∀ q, 0 ≤ f q := fun q => (hfM q).1
+    have hfdiff : ∀ q, DifferentiableAt ℝ f q := by
+      intro q
+      have h := (wholeLineCauchyBUCMildFixedPoint_spatial_hasDerivAt_positive
+        p hM hT u₀ hsmall z hs0 q).differentiableAt
+      simpa [f, U, hext] using h
+    have huxB : ∀ q, |deriv f q| ≤ Bux := by
+      intro q
+      simpa [f, U] using huxBound s hs q
+    have huxHEta : ∀ q r,
+        |deriv f q - deriv f r| ≤ Hux * |q - r| ^ eta := by
+      intro q r
+      simpa [f, U] using huxHolder s hs q r
+    have hfLip : ∀ q r, |f q - f r| ≤ Bux * |q - r| := by
+      intro q r
+      have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+        (s := Set.univ) (f := f) (C := Bux)
+        (fun w _ => hfdiff w)
+        (fun w _ => by rw [Real.norm_eq_abs]; exact huxB w)
+        convex_univ (Set.mem_univ q) (Set.mem_univ r)
+      simpa [Real.norm_eq_abs, abs_sub_comm] using hmv
+    have hfluxEq : F = wholeLineChemotaxisFlux p f := by
+      funext q
+      simpa [F, f, wholeLineCauchyFluxSourceTrajectory] using congrFun
+        (wholeLineCauchyTruncatedFlux_eq_of_mem_Icc p hM (hstrip s hs)) q
+    let hU : WholeLineCauchyHolderQuant rho f :=
+      wholeLineCauchyHolderQuant_of_lipschitz hM hBux hrho0 hrho1.le
+        (fun q => by rw [abs_of_nonneg (hf0 q)]; exact (hfM q).2) hfLip
+    let hUxEta : WholeLineCauchyHolderQuant eta (deriv f) :=
+      { C := Bux
+        H := Hux
+        C_nonneg := hBux
+        H_nonneg := hHux
+        bound := huxB
+        holder := huxHEta }
+    let hUx := hUxEta.lowerExponent hrho0 hrhoEta
+    have hV0 : ∀ q, 0 ≤ V q := fun q => frozenElliptic_nonneg p hf0 q
+    have hVM : ∀ q, V q ≤ Mγ := by
+      intro q
+      exact frozenElliptic_le_of_rpow_le p hMγ hfIs.1 hf0
+        (fun w => Real.rpow_le_rpow (hfM w).1 (hfM w).2
+          (zero_le_one.trans p.hγ)) q
+    have hVxB : ∀ q, |deriv V q| ≤ Mγ := by
+      intro q
+      exact frozenElliptic_deriv_abs_le_rpow_of_Icc p hM hfIs hfM q
+    have hVxLip : ∀ q r, |deriv V q - deriv V r| ≤
+        (2 * Mγ) * |q - r| := by
+      intro q r
+      have h := (frozenElliptic_deriv_lipschitz_of_Icc
+        p hM hfIs hfM).dist_le_mul q r
+      rw [Real.dist_eq, Real.dist_eq,
+        Real.coe_toNNReal _ (mul_nonneg (by norm_num) hMγ)] at h
+      exact h
+    let hVx : WholeLineCauchyHolderQuant rho (deriv V) :=
+      wholeLineCauchyHolderQuant_of_lipschitz hMγ
+        (mul_nonneg (by norm_num) hMγ) hrho0 hrho1.le hVxB hVxLip
+    have hVLip : ∀ q r, |V q - V r| ≤ Mγ * |q - r| := by
+      intro q r
+      have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+        (s := Set.univ) (f := V) (C := Mγ)
+        (fun w _ => frozenElliptic_differentiable p hfIs hf0 w)
+        (fun w _ => by rw [Real.norm_eq_abs]; exact hVxB w)
+        convex_univ (Set.mem_univ q) (Set.mem_univ r)
+      simpa [Real.norm_eq_abs, abs_sub_comm] using hmv
+    let hV : WholeLineCauchyHolderQuant rho V :=
+      wholeLineCauchyHolderQuant_of_lipschitz hMγ hMγ hrho0 hrho1.le
+        (fun q => by rw [abs_of_nonneg (hV0 q)]; exact hVM q) hVLip
+    let hUm := hU.rpowOfOneLe p.hm hM hfM
+    let hUg := hU.rpowOfOneLe p.hγ hM hfM
+    have hUqHolder :=
+      (wholeLine_rpow_holder_of_nonneg_bounded_lipschitz_explicit
+        hM hBux hmq hrho0 hrho1.le hrhoQ hfM hfLip).2
+    let hUq : WholeLineCauchyHolderQuant rho
+        (fun q => (f q) ^ (p.m - 1)) :=
+      { C := Cq
+        H := HUq
+        C_nonneg := hCq
+        H_nonneg := hHUq
+        bound := by
+          intro q
+          rw [abs_of_nonneg (Real.rpow_nonneg (hfM q).1 _)]
+          exact Real.rpow_le_rpow (hfM q).1 (hfM q).2 hmq.le
+        holder := hUqHolder }
+    let hA := ((hUq.mul hUx).mul hVx).const_mul (a := p.m)
+    let hB := hUm.mul (hV.sub hUg)
+    let hQ := hA.add hB
+    have hHQ : hQ.H = H := by
+      dsimp [hQ, hA, hB, hUq, hUx, hUxEta, hVx, hV, hUm, hUg,
+        hU, H, HA, HB, Cq, HUq, HuxR, HU, HVx, HV, HUm, HUg,
+        WholeLineCauchyHolderQuant.add, WholeLineCauchyHolderQuant.mul,
+        WholeLineCauchyHolderQuant.sub, WholeLineCauchyHolderQuant.neg,
+        WholeLineCauchyHolderQuant.const_mul,
+        WholeLineCauchyHolderQuant.rpowOfOneLe,
+        WholeLineCauchyHolderQuant.lowerExponent,
+        wholeLineCauchyHolderQuant_of_lipschitz]
+    have hformula : ∀ q, deriv F q =
+        p.m * (f q) ^ (p.m - 1) * deriv f q * deriv V q +
+          (f q) ^ p.m * (V q - (f q) ^ p.γ) := by
+      intro q
+      rw [hfluxEq]
+      exact (wholeLineChemotaxisFlux_hasDerivAt p hfIs hf0
+        (hfdiff q).hasDerivAt).deriv
+    rw [hformula x, hformula y, ← hHQ]
+    simpa [hQ, hA, hB, hUq, hUx, hUxEta, hVx, hV, hUm, hUg,
+      hU, f, V, mul_assoc] using hQ.holder x y
+
 section WholeLineCauchyC2BootstrapAxiomAudit
 
 #print axioms wholeLineCauchyHeatHessOp_eq_gradOp_deriv
@@ -634,6 +1048,9 @@ section WholeLineCauchyC2BootstrapAxiomAudit
 #print axioms wholeLineCauchyBUCMildFixedPoint_spatial_deriv_Ceta_window
 #print axioms
   wholeLineCauchyBUCMildFixedPoint_spatial_deriv_bounded_positive_window
+#print axioms wholeLine_rpow_holder_of_nonneg_bounded_lipschitz_explicit
+#print axioms
+  wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window
 
 end WholeLineCauchyC2BootstrapAxiomAudit
 
