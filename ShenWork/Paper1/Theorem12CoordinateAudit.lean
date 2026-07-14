@@ -21,6 +21,10 @@ def coMovingWeightedL2Energy
   ∫ z : ℝ,
     Real.exp (2 * η * z) * |u t (z + c * t) - U z| ^ 2
 
+/-- Laboratory solution observed in the coordinate moving at speed `c`. -/
+def coMovingPath (c : ℝ) (u : ℝ → ℝ → ℝ) (t z : ℝ) : ℝ :=
+  u t (z + c * t)
+
 /-- The laboratory-coordinate weighted perturbation energy appearing in the
 current Lean headline and literally printed in (1.21). -/
 def laboratoryWeightedL2Energy

@@ -1,5 +1,6 @@
 import ShenWork.Paper1.Theorem12MeanCoefficients
 import ShenWork.Paper1.Theorem12WeightedResolver
+import ShenWork.Paper1.Theorem12CoordinateAudit
 import ShenWork.PaperOne.WholeLineDiffusionIBPDecay
 import ShenWork.PaperOne.WholeLineEnergyTimeLeibnizPDE
 import ShenWork.PaperOne.WholeLineChemotaxisIBP
@@ -225,6 +226,314 @@ theorem paper5CorrectedRemainderDensity_le
     hη hB3 hB4 hb3 hb4
   unfold paper5CorrectedRemainderDensity paper5RawW2Coefficient
   linarith
+
+/-! ## Exact corrected weighted perturbation equation -/
+
+/-- The material derivative in the frame `z = x - c t`, written as the
+fixed-space laboratory time derivative plus the transport term. -/
+def paper5CoMovingMaterialTime
+    (c : ℝ) (u : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  deriv (fun s => u s (x + c * t)) t +
+    c * deriv (coMovingPath c u t) x
+
+/-- A classical laboratory solution satisfies the population equation in the
+co-moving frame when its time derivative is interpreted as the material
+derivative above.  This step uses only the already-proved fixed-translation
+invariance of `IsClassicalSolution`; the diagonal time chain rule is stated
+separately below. -/
+theorem paper5CoMovingMaterialPDE_of_classical
+    (p : CMParams) {T c t x : ℝ} {u v : ℝ → ℝ → ℝ}
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T) :
+    paper5CoMovingMaterialTime c u t x =
+      iteratedDeriv 2 (coMovingPath c u t) x +
+        c * deriv (coMovingPath c u t) x -
+        p.χ * deriv
+          (fun y => (coMovingPath c u t y) ^ p.m *
+            deriv (coMovingPath c v t) y) x +
+        coMovingPath c u t x *
+          (1 - (coMovingPath c u t x) ^ p.α) := by
+  have hpde := (hsol.shift_space (c * t)).pde_u t x ht0 htT
+  unfold paper5CoMovingMaterialTime coMovingPath
+  linarith
+
+/-- Joint differentiability turns the material field into the genuine time
+derivative of the moving-frame slice.  This is the precise extra regularity
+missing from the minimal `IsClassicalSolution` record. -/
+theorem paper5CoMovingPath_hasDerivAt_of_joint
+    {c t x : ℝ} {u : ℝ → ℝ → ℝ}
+    (hjoint : HasFDerivAt
+      (fun q : ℝ × ℝ => u q.1 q.2)
+      (deriv (fun s => u s (x + c * t)) t •
+          ContinuousLinearMap.fst ℝ ℝ ℝ +
+        deriv (u t) (x + c * t) •
+          ContinuousLinearMap.snd ℝ ℝ ℝ)
+      (t, x + c * t)) :
+    HasDerivAt (fun s => coMovingPath c u s x)
+      (paper5CoMovingMaterialTime c u t x) t := by
+  let A := deriv (fun s => u s (x + c * t)) t
+  let B := deriv (u t) (x + c * t)
+  have hc :
+      HasDerivAt (fun s : ℝ => ((s, x + c * s) : ℝ × ℝ)) (1, c) t := by
+    have h₁ : HasDerivAt (fun s : ℝ => s) 1 t := by
+      simpa using hasDerivAt_id t
+    have h₂ : HasDerivAt (fun s : ℝ => x + c * s) c t := by
+      simpa [add_comm] using (hasDerivAt_id t).const_mul c |>.const_add x
+    exact h₁.prodMk h₂
+  have hcomp := hjoint.comp_hasDerivAt
+    (f := fun s : ℝ => ((s, x + c * s) : ℝ × ℝ)) (x := t) hc
+  have hspace_shift :
+      deriv (coMovingPath c u t) x = B := by
+    exact deriv_comp_add_const (u t) (c * t) x
+  change HasDerivAt (fun s => u s (x + c * s))
+    (deriv (fun s => u s (x + c * t)) t +
+      c * deriv (fun z => u t (z + c * t)) x) t
+  have hspace_shift' :
+      deriv (fun z => u t (z + c * t)) x = B := by
+    simpa [coMovingPath] using hspace_shift
+  rw [hspace_shift']
+  convert hcomp using 1
+  simp [B, ContinuousLinearMap.add_apply,
+    ContinuousLinearMap.smul_apply, ContinuousLinearMap.coe_fst',
+    ContinuousLinearMap.coe_snd']
+  ring
+
+/-- Product differentiation plus the elliptic equation realizes the
+chemotactic flux derivative.  The `C¹/C²` assumptions are explicit because
+the minimal `IsClassicalSolution` structure records only first spatial
+differentiability. -/
+theorem paper5FluxDerivative_realization
+    (p : CMParams) {f g : ℝ → ℝ} {x : ℝ}
+    (hf1 : ContDiff ℝ 1 f) (hg2 : ContDiff ℝ 2 g)
+    (hell : iteratedDeriv 2 g x - g x + (f x) ^ p.γ = 0) :
+    deriv (fun y => (f y) ^ p.m * deriv g y) x =
+      p.m * (f x) ^ (p.m - 1) * deriv f x * deriv g x +
+        (f x) ^ p.m * (g x - (f x) ^ p.γ) := by
+  have hf_diff : Differentiable ℝ f :=
+    (contDiff_one_iff_deriv.mp hf1).1
+  have hg2' : ContDiff ℝ ((1 : WithTop ℕ∞) + 1) g := by
+    simpa using hg2
+  have hgd1 : ContDiff ℝ 1 (deriv g) :=
+    (contDiff_succ_iff_deriv.mp hg2').2.2
+  have hgd_diff : Differentiable ℝ (deriv g) :=
+    (contDiff_one_iff_deriv.mp hgd1).1
+  have hpow :
+      HasDerivAt (fun y => (f y) ^ p.m)
+        (deriv f x * p.m * (f x) ^ (p.m - 1)) x :=
+    (hf_diff x).hasDerivAt.rpow_const (Or.inr p.hm)
+  have hprod := hpow.mul (hgd_diff x).hasDerivAt
+  have hiter : iteratedDeriv 2 g x = deriv (deriv g) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+      iteratedDeriv_one]
+  have hsecond : deriv (deriv g) x = g x - (f x) ^ p.γ := by
+    rw [hiter] at hell
+    linarith
+  have hfun :
+      (fun y => (f y) ^ p.m * deriv g y) =
+        (fun y => (f y) ^ p.m) * deriv g := by
+    funext y
+    rfl
+  rw [hfun, hprod.deriv, hsecond]
+  ring
+
+/-- The dynamic co-moving flux realization supplied by classical elliptic
+regularity at a fixed positive time. -/
+theorem paper5CoMovingFluxDerivative_realization_of_classical
+    (p : CMParams) {T c t x : ℝ} {u v : ℝ → ℝ → ℝ}
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hu1 : ContDiff ℝ 1 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t)) :
+    deriv
+        (fun y => (coMovingPath c u t y) ^ p.m *
+          deriv (coMovingPath c v t) y) x =
+      p.m * (coMovingPath c u t x) ^ (p.m - 1) *
+          deriv (coMovingPath c u t) x * deriv (coMovingPath c v t) x +
+        (coMovingPath c u t x) ^ p.m *
+          (coMovingPath c v t x - (coMovingPath c u t x) ^ p.γ) := by
+  apply paper5FluxDerivative_realization p hu1 hv2
+  exact (hsol.shift_space (c * t)).pde_v t x ht0 htT
+
+/-- The traveling-wave flux realization supplied by profile `C¹/C²`
+regularity. -/
+theorem paper5WaveFluxDerivative_realization
+    (p : CMParams) {c x : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hU1 : ContDiff ℝ 1 U) (hV2 : ContDiff ℝ 2 V) :
+    deriv (fun y => (U y) ^ p.m * deriv V y) x =
+      p.m * (U x) ^ (p.m - 1) * deriv U x * deriv V x +
+        (U x) ^ p.m * (V x - (U x) ^ p.γ) :=
+  paper5FluxDerivative_realization p hU1 hV2 (hTW.ode_V x)
+
+/-- Exponentially weighted population perturbation in an already co-moving
+spatial coordinate. -/
+def paper5WeightedPopulation
+    (η : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  Real.exp (η * x) * (u t x - U x)
+
+/-- Its formal first spatial derivative, written using the derivatives of the
+unweighted fields. -/
+def paper5WeightedPopulationX
+    (η : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  η * paper5WeightedPopulation η u U t x +
+    Real.exp (η * x) * (deriv (u t) x - deriv U x)
+
+/-- Its formal second spatial derivative. -/
+def paper5WeightedPopulationXX
+    (η : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  η ^ 2 * paper5WeightedPopulation η u U t x +
+    2 * η * Real.exp (η * x) * (deriv (u t) x - deriv U x) +
+    Real.exp (η * x) *
+      (iteratedDeriv 2 (u t) x - iteratedDeriv 2 U x)
+
+/-- Exponentially weighted signal perturbation. -/
+def paper5WeightedSignal
+    (η : ℝ) (v : ℝ → ℝ → ℝ) (V : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  Real.exp (η * x) * (v t x - V x)
+
+/-- Its formal first spatial derivative. -/
+def paper5WeightedSignalX
+    (η : ℝ) (v : ℝ → ℝ → ℝ) (V : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  η * paper5WeightedSignal η v V t x +
+    Real.exp (η * x) * (deriv (v t) x - deriv V x)
+
+/-- Weighted material-time density for a supplied co-moving time field
+`ut`. -/
+def paper5WeightedPopulationT
+    (η : ℝ) (ut : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  Real.exp (η * x) * ut t x
+
+/-- The formal weighted material-time density is the genuine time derivative
+of the weighted moving-frame perturbation under joint differentiability. -/
+theorem paper5WeightedPopulation_time_hasDerivAt_of_joint
+    {η c t x : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hjoint : HasFDerivAt
+      (fun q : ℝ × ℝ => u q.1 q.2)
+      (deriv (fun s => u s (x + c * t)) t •
+          ContinuousLinearMap.fst ℝ ℝ ℝ +
+        deriv (u t) (x + c * t) •
+          ContinuousLinearMap.snd ℝ ℝ ℝ)
+      (t, x + c * t)) :
+    HasDerivAt
+      (fun s => paper5WeightedPopulation η (coMovingPath c u) U s x)
+      (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u) t x) t := by
+  have hmove := paper5CoMovingPath_hasDerivAt_of_joint
+    (c := c) (t := t) (x := x) hjoint
+  have hsub := hmove.sub_const (U x)
+  have hmul := hsub.const_mul (Real.exp (η * x))
+  simpa [paper5WeightedPopulation, paper5WeightedPopulationT] using hmul
+
+/-- The corrected pointwise version of (5.19).  The input `hPDE` is the
+population equation after the change to the moving coordinate; no spatial or
+time chain rule is hidden in this algebraic theorem. -/
+theorem paper5WeightedPerturbationEquation_corrected
+    (p : CMParams) {η c t x : ℝ}
+    {u v ut : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hu : 0 ≤ u t x)
+    (hPDE : ut t x =
+      iteratedDeriv 2 (u t) x + c * deriv (u t) x -
+        p.χ * deriv (fun y => (u t y) ^ p.m * deriv (v t) y) x +
+        u t x * (1 - (u t x) ^ p.α))
+    (hflux_u :
+      deriv (fun y => (u t y) ^ p.m * deriv (v t) y) x =
+        p.m * (u t x) ^ (p.m - 1) * deriv (u t) x * deriv (v t) x +
+          (u t x) ^ p.m * (v t x - (u t x) ^ p.γ))
+    (hflux_U :
+      deriv (fun y => (U y) ^ p.m * deriv V y) x =
+        p.m * (U x) ^ (p.m - 1) * deriv U x * deriv V x +
+          (U x) ^ p.m * (V x - (U x) ^ p.γ)) :
+    paper5WeightedPopulationT η ut t x =
+      paper5WeightedPopulationXX η u U t x +
+        (c - 2 * η) * paper5WeightedPopulationX η u U t x +
+        paper5CorrectedJ2Coefficient p η c u v U t x *
+          paper5WeightedPopulation η u U t x -
+        p.χ * paper5B1 p u v t x *
+          paper5WeightedPopulationX η u U t x -
+        p.χ * paper5B3 p U x * paper5WeightedSignalX η v V t x +
+        p.χ * (η * paper5B3 p U x - paper5B4 p U x) *
+          paper5WeightedSignal η v V t x := by
+  have hU0 : 0 ≤ U x := (hTW.U_pos x).le
+  have hpow_u : u t x * (u t x) ^ p.α = (u t x) ^ (1 + p.α) := by
+    rw [Real.rpow_add_of_nonneg hu zero_le_one (zero_le_one.trans p.hα),
+      Real.rpow_one]
+  have hpow_U : U x * (U x) ^ p.α = (U x) ^ (1 + p.α) := by
+    rw [Real.rpow_add_of_nonneg hU0 zero_le_one (zero_le_one.trans p.hα),
+      Real.rpow_one]
+  have hreact :
+      u t x * (1 - (u t x) ^ p.α) -
+          U x * (1 - (U x) ^ p.α) =
+        (1 - paper5A (1 + p.α) u U t x) * (u t x - U x) := by
+    have hA := paper5A_mul_sub (1 + p.α) u U t x
+    rw [show u t x * (1 - (u t x) ^ p.α) =
+        u t x - u t x * (u t x) ^ p.α by ring,
+      show U x * (1 - (U x) ^ p.α) =
+        U x - U x * (U x) ^ p.α by ring,
+      hpow_u, hpow_U]
+    ring_nf at hA ⊢
+    linarith
+  have hflux :=
+    paper5ChemFluxDifference_expansion_corrected p u v U V t x hu hU0
+  have hflux_diff :
+      deriv (fun y => (u t y) ^ p.m * deriv (v t) y) x -
+          deriv (fun y => (U y) ^ p.m * deriv V y) x =
+        paper5B1 p u v t x * (deriv (u t) x - deriv U x) +
+          (paper5B2 p u v U t x +
+              paper5CorrectedChemZeroCoefficient p u v U t x) *
+            (u t x - U x) +
+          paper5B3 p U x * (deriv (v t) x - deriv V x) +
+          paper5B4 p U x * (v t x - V x) := by
+    rw [hflux_u, hflux_U]
+    simpa only [paper5CorrectedChemZeroCoefficient, add_sub_assoc] using hflux
+  have hode := hTW.ode_U x
+  have hdiff :
+      ut t x =
+        (iteratedDeriv 2 (u t) x - iteratedDeriv 2 U x) +
+          c * (deriv (u t) x - deriv U x) -
+          p.χ * (paper5B1 p u v t x *
+              (deriv (u t) x - deriv U x) +
+            (paper5B2 p u v U t x +
+                paper5CorrectedChemZeroCoefficient p u v U t x) *
+              (u t x - U x) +
+            paper5B3 p U x * (deriv (v t) x - deriv V x) +
+            paper5B4 p U x * (v t x - V x)) +
+          (1 - paper5A (1 + p.α) u U t x) * (u t x - U x) := by
+    rw [hPDE]
+    linear_combination hode + hreact - p.χ * hflux_diff
+  unfold paper5WeightedPopulationT paper5WeightedPopulationXX
+    paper5WeightedPopulationX paper5WeightedPopulation
+    paper5WeightedSignalX paper5WeightedSignal
+    paper5CorrectedJ2Coefficient
+  rw [hdiff]
+  ring
+
+/-- The corrected pointwise weighted equation with all PDE and flux-expansion
+inputs produced from a classical solution and explicit spatial regularity. -/
+theorem paper5WeightedPerturbationEquation_corrected_of_classical
+    (p : CMParams) {T η c t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hu : 0 ≤ coMovingPath c u t x)
+    (hu1 : ContDiff ℝ 1 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU1 : ContDiff ℝ 1 U) (hV2 : ContDiff ℝ 2 V) :
+    paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u) t x =
+      paper5WeightedPopulationXX η (coMovingPath c u) U t x +
+        (c - 2 * η) *
+          paper5WeightedPopulationX η (coMovingPath c u) U t x +
+        paper5CorrectedJ2Coefficient p η c
+            (coMovingPath c u) (coMovingPath c v) U t x *
+          paper5WeightedPopulation η (coMovingPath c u) U t x -
+        p.χ * paper5B1 p (coMovingPath c u) (coMovingPath c v) t x *
+          paper5WeightedPopulationX η (coMovingPath c u) U t x -
+        p.χ * paper5B3 p U x *
+          paper5WeightedSignalX η (coMovingPath c v) V t x +
+        p.χ * (η * paper5B3 p U x - paper5B4 p U x) *
+          paper5WeightedSignal η (coMovingPath c v) V t x := by
+  apply paper5WeightedPerturbationEquation_corrected p hTW hu
+  · exact paper5CoMovingMaterialPDE_of_classical p hsol ht0 htT
+  · exact paper5CoMovingFluxDerivative_realization_of_classical
+      p hsol ht0 htT hu1 hv2
+  · exact paper5WaveFluxDerivative_realization p hTW hU1 hV2
 
 /-! ## Whole-line integration of the corrected remainder -/
 
@@ -497,6 +806,12 @@ theorem paper5CorrectedEnergyRHS_le_resolved
   linarith
 
 section Theorem12WeightedEnergyAxiomAudit
+#print axioms paper5CoMovingMaterialPDE_of_classical
+#print axioms paper5CoMovingPath_hasDerivAt_of_joint
+#print axioms paper5WeightedPopulation_time_hasDerivAt_of_joint
+#print axioms paper5FluxDerivative_realization
+#print axioms paper5WeightedPerturbationEquation_corrected
+#print axioms paper5WeightedPerturbationEquation_corrected_of_classical
 #print axioms paper5J1VariableDensity_le
 #print axioms paper5CorrectedJ2Coefficient_le
 #print axioms paper5J3Density_le
