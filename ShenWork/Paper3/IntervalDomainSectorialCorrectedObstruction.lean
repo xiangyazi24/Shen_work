@@ -1,4 +1,5 @@
 import ShenWork.Paper3.IntervalDomainSectorial
+import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.P3MoserEnergyContinuity
 
@@ -334,6 +335,106 @@ not_intervalDomainMinimalEventualEquilibriumWithoutMass_sectorialNorms :
   simp only [abs_of_pos (half_pos heps)] at hlarge_rhs
   linarith
 
+/-! ### Exact obstruction to the original Paper 3 Theorem 2.5
+
+The preceding all-time sectorial counterexample re-anchors the stored `u 0`
+slice and therefore deliberately works through `InitialTrace`.  The original
+`Theorem_2_5` has an even sharper defect: its mass hypothesis constrains only
+`u 0`, while its all-time `C¹` conclusion also reads `v 0`.  Re-anchoring only
+`v 0` leaves the mass exactly correct and does not change the strict-positive-
+time classical solution at all.
+-/
+
+/-- Whenever the paper's minimal stability condition is inhabited, the
+original all-time `Theorem_2_5` target is false for the concrete interval
+`C¹` distance.  The cell density is the genuine constant equilibrium and has
+exact mass `uStar`; only the unused stored chemical slice `v 0` is changed
+after the theorem chooses its supposedly uniform prefactor `A`. -/
+theorem not_intervalDomain_Theorem_2_5_of_stabilityCondition
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (uStar : ℝ) (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition intervalDomain p C uStar) :
+    ¬ Theorem_2_5 intervalDomain p intervalDomainSectorialStabilityNorms C := by
+  intro htheorem
+  rcases (htheorem ha hb hm hβ uStar huStar hcond).2 with
+    ⟨A, hA, rate, hrate, hbound⟩
+  let vStar : ℝ := ellipticV p uStar
+  let vZero : intervalDomain.Point → ℝ := fun _ => vStar + A + 2
+  let u : ℝ → intervalDomain.Point → ℝ := fun _ _ => uStar
+  let v : ℝ → intervalDomain.Point → ℝ :=
+    intervalDomainWithInitialSlice vZero (fun _ _ => vStar)
+  have hraw :
+      IsPaper2GlobalClassicalSolution intervalDomain p
+        (fun _ _ => uStar) (fun _ _ => vStar) := by
+    simpa [vStar] using
+      (zeroReaction_isPaper2ClassicalSolution p ha hb uStar huStar)
+  have hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v := by
+    intro T hT
+    exact
+      (classicalSolutionLocalityUnderIooAgreement_intervalDomain p)
+        hT (hraw.classical hT) (by
+          intro t ht0 _htT x
+          have htne : t ≠ 0 := ne_of_gt ht0
+          simp [u, v, intervalDomainWithInitialSlice, htne])
+  have hbdd : IsPaper2Bounded intervalDomain u := by
+    refine ⟨|uStar|, Eventually.of_forall (fun _t => ?_)⟩
+    change intervalDomainSupNorm (fun _ : intervalDomainPoint => uStar) ≤ |uStar|
+    rw [intervalDomainSupNorm_const]
+  have hpositive : PositiveGlobalBoundedSolution intervalDomain p u v := by
+    exact ⟨hglobal, hbdd, fun _t _x _ht _hx => huStar⟩
+  have hmass : HasInitialMass intervalDomain u uStar := by
+    change intervalDomainIntegral (fun _ : intervalDomainPoint => uStar) = 1 * uStar
+    calc
+      intervalDomainIntegral (fun _ : intervalDomainPoint => uStar) =
+          ∫ _x in (0 : ℝ)..1, uStar := by
+        apply intervalIntegral.integral_congr
+        intro x hx
+        rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx
+        rw [intervalDomainLift, dif_pos hx]
+      _ = uStar := by simp
+      _ = 1 * uStar := by ring
+  have hzero := hbound u v hpositive hmass 0 (le_refl 0)
+  have hu0 : u 0 = fun _ : intervalDomain.Point => uStar := rfl
+  have hv0 : v 0 = fun _ : intervalDomain.Point => vStar + A + 2 := by
+    funext x
+    simp [v, vZero, intervalDomainWithInitialSlice]
+  have heq1 : (minimalEquilibrium p uStar).1 = uStar := rfl
+  have heq2 : (minimalEquilibrium p uStar).2 = vStar := rfl
+  rw [hu0, hv0, heq1, heq2,
+    intervalDomainSectorialStabilityNorms_c1Distance,
+    intervalDomainSectorialC1Distance_const,
+    intervalDomainSectorialStabilityNorms_c1Distance,
+    intervalDomainSectorialC1Distance_const] at hzero
+  norm_num at hzero
+  have habs : |vStar + A + 2 - vStar| = A + 2 := by
+    rw [abs_of_pos (by linarith [hA])]
+    ring
+  rw [habs] at hzero
+  linarith
+
+/-- A fully concrete, non-vacuous instance of the preceding obstruction.
+All parameters are positive where required, the first explicit minimal
+threshold branch is satisfied strictly, and the only contradiction comes from
+the original theorem's all-time quantification over the unconstrained `v 0`
+slice. -/
+theorem not_intervalDomain_Theorem_2_5_original_allTime :
+    ¬ Theorem_2_5 intervalDomain theorem21Part4CounterParams
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainPaper3Constants theorem21Part4CounterParams 0 1 0) := by
+  apply not_intervalDomain_Theorem_2_5_of_stabilityCondition
+      theorem21Part4CounterParams
+      (intervalDomainPaper3Constants theorem21Part4CounterParams 0 1 0)
+      (by norm_num [theorem21Part4CounterParams])
+      (by norm_num [theorem21Part4CounterParams])
+      (by norm_num [theorem21Part4CounterParams])
+      (by norm_num [theorem21Part4CounterParams])
+      1 (by norm_num)
+  apply MinimalGlobalStabilityCondition.of_chiMinimal1
+  · norm_num [theorem21Part4CounterParams]
+  · norm_num [intervalDomainPaper3Constants, chiMinimal1Formula, chiBeta,
+      GammaMinimalFormula, theorem21Part4CounterParams]
+
 #print axioms intervalDomainSectorialC1Distance_const
 #print axioms
   not_intervalDomainSpectralSemigroupOrbitBoundAllTimeExistentialRate_sectorialNorms
@@ -341,6 +442,8 @@ not_intervalDomainMinimalEventualEquilibriumWithoutMass_sectorialNorms :
   not_intervalDomainSpectralSemigroupOrbitBoundEventualWithoutEquilibrium_sectorialNorms
 #print axioms
   not_intervalDomainMinimalEventualEquilibriumWithoutMass_sectorialNorms
+#print axioms not_intervalDomain_Theorem_2_5_of_stabilityCondition
+#print axioms not_intervalDomain_Theorem_2_5_original_allTime
 
 end
 
