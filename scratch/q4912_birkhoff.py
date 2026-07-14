@@ -5,6 +5,14 @@ from mpmath import mp
 mp.dps = 350
 
 
+def col(a, b, c):
+    out = mp.matrix(3, 1)
+    out[0, 0] = a
+    out[1, 0] = b
+    out[2, 0] = c
+    return out
+
+
 def M_raw(n):
     n = mp.mpf(n)
     return mp.matrix([
@@ -36,15 +44,18 @@ def A_bal(n):
 rt2 = mp.sqrt(2)
 lam = 17 + 12*rt2
 rho = 1/lam
-rinf = mp.matrix([2, -rt2, 1])
+rinf = col(mp.mpf(2), -rt2, mp.mpf(1))
 
 
 def scaled_column(v, scale):
-    return mp.matrix([v[i,0]/scale for i in range(3)])
+    out = mp.matrix(3, 1)
+    for i in range(3):
+        out[i, 0] = v[i, 0] / scale
+    return out
 
 
 def projective_V(N, seed):
-    v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix([rinf[i,0] for i in range(3)])
+    v = col(mp.mpf(1), mp.mpf(0), mp.mpf(0)) if seed == "e1" else col(rinf[0,0], rinf[1,0], rinf[2,0])
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
         scale = max(abs(v[i,0]) for i in range(3))
@@ -86,9 +97,16 @@ print("ratio_minus_G",s(ratio-mp.catalan,100))
 print("pV_minus_GqV",s(pV-mp.catalan*qV,100))
 
 
+def pslq_vector(vals):
+    out = mp.matrix(len(vals), 1)
+    for i, value in enumerate(vals):
+        out[i, 0] = value
+    return out
+
+
 def pslq(label, vals, tol_exp, maxcoeff, maxsteps=30000):
     try:
-        rel=mp.pslq(mp.matrix(vals),tol=mp.mpf(10)**(-tol_exp),maxcoeff=maxcoeff,maxsteps=maxsteps)
+        rel=mp.pslq(pslq_vector(vals),tol=mp.mpf(10)**(-tol_exp),maxcoeff=maxcoeff,maxsteps=maxsteps)
     except Exception as e:
         rel="ERROR "+repr(e)
     print("PSLQ",label,rel)
