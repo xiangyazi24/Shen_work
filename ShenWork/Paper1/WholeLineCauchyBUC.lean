@@ -38,15 +38,26 @@ theorem PaperNonnegativeInitialDatum.to_nonnegativeInitialDatum
   ⟨h.1.to_isCUnifBdd, h.2⟩
 
 /-- Bounded continuous functions whose underlying maps are uniformly
-continuous.  The subtype inherits the ambient sup metric. -/
-abbrev WholeLineBUC :=
-  {f : BoundedContinuousFunction ℝ ℝ // UniformContinuous (f : ℝ → ℝ)}
+continuous form a real vector subspace of the ambient sup-norm space. -/
+def wholeLineBUCSubmodule : Submodule ℝ (BoundedContinuousFunction ℝ ℝ) where
+  carrier := {f | UniformContinuous (f : ℝ → ℝ)}
+  zero_mem' := by simpa using (uniformContinuous_const :
+    UniformContinuous (fun _ : ℝ => (0 : ℝ)))
+  add_mem' := by
+    intro f g hf hg
+    simpa using hf.add hg
+  smul_mem' := by
+    intro c f hf
+    simpa using hf.const_smul c
+
+/-- The genuine complete normed phase space `BUC(ℝ)`. -/
+abbrev WholeLineBUC := wholeLineBUCSubmodule
 
 /-- Uniformly continuous bounded functions form a closed subset of the
 complete sup-norm space of bounded continuous functions. -/
 theorem isClosed_wholeLineBUC :
-    IsClosed {f : BoundedContinuousFunction ℝ ℝ |
-      UniformContinuous (f : ℝ → ℝ)} := by
+    IsClosed (wholeLineBUCSubmodule :
+      Set (BoundedContinuousFunction ℝ ℝ)) := by
   apply IsSeqClosed.isClosed
   intro fs f hfs hlim
   have hunif : TendstoUniformly (fun n => (fs n : ℝ → ℝ))

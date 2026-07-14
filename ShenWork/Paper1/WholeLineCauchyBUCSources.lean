@@ -179,6 +179,63 @@ def wholeLineCauchyTruncatedReactionBUC
       wholeLineCauchyTruncatedReaction p M (u.1 : ℝ → ℝ) x :=
   rfl
 
+theorem WholeLineBUC.pointwise_abs_sub_le_dist
+    (u w : WholeLineBUC) (x : ℝ) :
+    |u.1 x - w.1 x| ≤ dist u w := by
+  change dist (u.1 x) (w.1 x) ≤ dist u.1 w.1
+  exact BoundedContinuousFunction.dist_coe_le_dist x
+
+theorem wholeLineCauchyTruncatedFluxBUC_dist_le
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) (u w : WholeLineBUC) :
+    dist (wholeLineCauchyTruncatedFluxBUC p M hM u)
+        (wholeLineCauchyTruncatedFluxBUC p M hM w) ≤
+      wholeLineCauchyFluxLip p M * dist u w := by
+  change dist
+      (wholeLineCauchyTruncatedFluxBUC p M hM u).1
+      (wholeLineCauchyTruncatedFluxBUC p M hM w).1 ≤ _
+  rw [BoundedContinuousFunction.dist_le_iff_of_nonempty]
+  intro x
+  rw [Real.dist_eq, wholeLineCauchyTruncatedFluxBUC_apply,
+    wholeLineCauchyTruncatedFluxBUC_apply]
+  exact wholeLineCauchyTruncatedFlux_diff_abs_le p hM
+    (WholeLineBUC.isCUnifBdd u) (WholeLineBUC.isCUnifBdd w)
+    (fun y => WholeLineBUC.pointwise_abs_sub_le_dist u w y) x
+
+theorem wholeLineCauchyTruncatedReactionBUC_dist_le
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) (u w : WholeLineBUC) :
+    dist (wholeLineCauchyTruncatedReactionBUC p M hM u)
+        (wholeLineCauchyTruncatedReactionBUC p M hM w) ≤
+      (1 + reactionLip p.α M) * dist u w := by
+  change dist
+      (wholeLineCauchyTruncatedReactionBUC p M hM u).1
+      (wholeLineCauchyTruncatedReactionBUC p M hM w).1 ≤ _
+  rw [BoundedContinuousFunction.dist_le_iff_of_nonempty]
+  intro x
+  rw [Real.dist_eq, wholeLineCauchyTruncatedReactionBUC_apply,
+    wholeLineCauchyTruncatedReactionBUC_apply]
+  exact wholeLineCauchyTruncatedReaction_diff_abs_le p hM
+    (fun y => WholeLineBUC.pointwise_abs_sub_le_dist u w y) x
+
+theorem wholeLineCauchyTruncatedFluxBUC_lipschitz
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) :
+    LipschitzWith (Real.toNNReal (wholeLineCauchyFluxLip p M))
+      (wholeLineCauchyTruncatedFluxBUC p M hM) := by
+  refine LipschitzWith.of_dist_le_mul ?_
+  intro u w
+  rw [Real.coe_toNNReal _ (wholeLineCauchyFluxLip_nonneg p hM)]
+  exact wholeLineCauchyTruncatedFluxBUC_dist_le p hM u w
+
+theorem wholeLineCauchyTruncatedReactionBUC_lipschitz
+    (p : CMParams) {M : ℝ} (hM : 0 ≤ M) :
+    LipschitzWith (Real.toNNReal (1 + reactionLip p.α M))
+      (wholeLineCauchyTruncatedReactionBUC p M hM) := by
+  have hL : 0 ≤ 1 + reactionLip p.α M := by
+    linarith [reactionLip_nonneg p.hα hM]
+  refine LipschitzWith.of_dist_le_mul ?_
+  intro u w
+  rw [Real.coe_toNNReal _ hL]
+  exact wholeLineCauchyTruncatedReactionBUC_dist_le p hM u w
+
 section WholeLineCauchyBUCSourcesAxiomAudit
 
 #print axioms uniformContinuous_mul_of_bounded
@@ -188,6 +245,9 @@ section WholeLineCauchyBUCSourcesAxiomAudit
 #print axioms wholeLineCauchyTruncatedReaction_uniformContinuous
 #print axioms wholeLineCauchyTruncatedFluxBUC
 #print axioms wholeLineCauchyTruncatedReactionBUC
+#print axioms WholeLineBUC.pointwise_abs_sub_le_dist
+#print axioms wholeLineCauchyTruncatedFluxBUC_lipschitz
+#print axioms wholeLineCauchyTruncatedReactionBUC_lipschitz
 
 end WholeLineCauchyBUCSourcesAxiomAudit
 

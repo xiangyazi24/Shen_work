@@ -73,6 +73,14 @@ continuous factors is uniformly continuous.  Thus both flux and corrected
 reaction sources are legitimate elements of the complete phase space, not
 merely pointwise functions with assumed regularity.
 
+`WholeLineCauchyBUCConvolution.lean` strengthens the existing bounded-
+continuous convolution engine: every continuous `L¹` kernel acts as a
+Lipschitz self-map of `BUC(ℝ)`, with operator constant `∫|K|`.  The proof
+uses the translated representation and the input's uniform spatial modulus,
+so it applies equally to the Gaussian value and gradient kernels.  The BUC
+phase space is realized as a closed real submodule, hence now carries the
+complete normed-vector-space structure needed for Bochner Duhamel integrals.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions

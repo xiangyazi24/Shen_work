@@ -29,6 +29,8 @@ import ShenWork.Paper1.WholeLineCauchyDuhamel
 import ShenWork.Paper1.WholeLineCauchyTruncation
 import ShenWork.Paper1.WholeLineCauchyBUC
 import ShenWork.Paper1.WholeLineCauchyBUCSources
+import ShenWork.Paper1.WholeLineCauchyBUCConvolution
+import ShenWork.Paper1.WholeLineCauchyBUCHeat
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
