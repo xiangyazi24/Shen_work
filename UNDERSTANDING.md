@@ -141,10 +141,15 @@ a fixed-lag third-kernel bound on the old history and the integrable
 `lag^(-1+rho/2)` Hessian-cancellation bound on the recent history.  Hence
 `wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive` constructs the
 second spatial derivative of the entire divergence Duhamel history.  The
-local full root build passes with 9563 jobs and all capstones have exactly the
-standard three axioms.  The next analytic step is the corresponding reaction
-history second derivative, followed by assembly of the full positive-time
-`u_xx` theorem.
+reaction trajectory has a common positive-window Holder modulus by composing
+the explicit slice modulus with the globally truncated scalar reaction's
+Lipschitz constant.  The same old/recent Hessian argument differentiates its
+value history twice.  Combining both histories with the homogeneous heat term
+proves `wholeLineCauchyBUCMildFixedPoint_spatial_second_hasDerivAt_positive`,
+the full positive-time `u_xx` theorem on a physical strip.  The local full
+root build passes with 9563 jobs and all capstones have exactly the standard
+three axioms.  The next analytic step is positive-time differentiation in
+time and identification with the physical PDE.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
