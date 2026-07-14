@@ -316,7 +316,8 @@ theorem wholeLineSlabSup_le_of_scalar_pde
     (hupper : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x, u t x ≤ A)
     (hinit : ∀ x, u 0 x ≤ C)
     (hGcont : Continuous G)
-    (hGstrict : ∀ L, C < L → L ≤ A → G L < 0)
+    (hGstrict : C < wholeLineSlabSup T u →
+      G (wholeLineSlabSup T u) < 0)
     (htime : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
       HasDerivAt (fun s : ℝ => u s x)
         (deriv (fun s : ℝ => u s x) t) t)
@@ -335,7 +336,7 @@ theorem wholeLineSlabSup_le_of_scalar_pde
   have hLA : L ≤ A := wholeLineSlabSup_le hT.le hupper
   by_contra hnot
   have hCL : C < L := lt_of_not_ge hnot
-  have hGL : G L < 0 := hGstrict L hCL hLA
+  have hGL : G L < 0 := by simpa [L] using hGstrict (by simpa [L] using hCL)
   have hGat : ContinuousAt G L := hGcont.continuousAt
   rw [Metric.continuousAt_iff] at hGat
   obtain ⟨d, hd, hGclose⟩ := hGat (-G L / 2) (by linarith)
