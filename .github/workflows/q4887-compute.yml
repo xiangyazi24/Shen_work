@@ -1,0 +1,32 @@
+name: Q4887 exact Ore computation
+
+on:
+  push:
+    branches: [chatgpt-scratch]
+    paths:
+      - 'tmp/q4887_compute.py'
+      - '.github/workflows/q4887-compute.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt-scratch
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compute exact relations
+        run: python tmp/q4887_compute.py
+      - name: Commit result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tmp/q4887_result.md
+          git diff --cached --quiet || git commit -m 'Record Q4887 exact computation result'
+          git push origin HEAD:chatgpt-scratch
