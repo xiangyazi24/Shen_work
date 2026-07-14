@@ -13,12 +13,12 @@ is available at contacts with the barrier.  The baseline field is used only
 to meet the fencing theorem away from contact points. -/
 theorem positive_constant_barrier_of_contact_RightLowerDiniGE
     {z : ℝ → ℝ} {T0 T c k kbase : ℝ}
-    (hc : 0 < c) (hk : 0 < k) (hT0 : 0 < T0)
+    (hc : 0 < c) (hk : 0 < k)
     (hcont : ContinuousOn z (Set.Icc T0 T))
     (hinit : c ≤ z T0)
-    (hbase : RightLowerDiniGE z (fun y => kbase * y) (Set.Ioi 0))
+    (hbase : RightLowerDiniGE z (fun y => kbase * y) (Set.Ici T0))
     (hcontact : RightLowerDiniGE z (fun y => k * y)
-      {t : ℝ | 0 < t ∧ z t = c}) :
+      {t : ℝ | T0 ≤ t ∧ z t = c}) :
     ∀ t ∈ Set.Icc T0 T, c ≤ z t := by
   let f : ℝ → ℝ := fun t => -z t
   let B : ℝ → ℝ := fun _ => -c
@@ -27,13 +27,12 @@ theorem positive_constant_barrier_of_contact_RightLowerDiniGE
   have hf' : ∀ x ∈ Set.Ico T0 T, ∀ r, f' x < r →
       ∃ᶠ s in nhdsWithin x (Set.Ioi x), slope f x s < r := by
     intro x hx r hr
-    have hxpos : x ∈ Set.Ioi (0 : ℝ) := lt_of_lt_of_le hT0 hx.1
     by_cases hxc : z x = c
-    · have hd := hcontact x ⟨hxpos, hxc⟩ r (by simpa [f', hxc] using hr)
+    · have hd := hcontact x ⟨hx.1, hxc⟩ r (by simpa [f', hxc] using hr)
       exact hd.mono (fun s hs => by
         simpa [f, slope_def_field, div_eq_inv_mul, sub_eq_add_neg,
           add_comm, add_left_comm, add_assoc, mul_comm] using hs)
-    · have hd := hbase x hxpos r (by simpa [f', hxc] using hr)
+    · have hd := hbase x hx.1 r (by simpa [f', hxc] using hr)
       exact hd.mono (fun s hs => by
         simpa [f, slope_def_field, div_eq_inv_mul, sub_eq_add_neg,
           add_comm, add_left_comm, add_assoc, mul_comm] using hs)
