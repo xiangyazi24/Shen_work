@@ -524,6 +524,133 @@ theorem paper5B4_abs_le
   rw [abs_of_nonneg (Real.rpow_nonneg hU.1 _)]
   exact Real.rpow_le_rpow hU.1 hU.2 (le_trans zero_le_one p.hm)
 
+/-! ## A single coefficient producer for the corrected energy estimate -/
+
+/-- A common, honest bound for `b₂` when both a global wave derivative bound
+and an absolute logarithmic derivative bound are available.  The two entries
+of the inner maximum are respectively the `m ≥ 2` and `1 < m < 2` branches.
+Unlike (5.24), this definition is already a bound for `|b₂|`; it does not hide
+an additional power of `|χ|` in the notation. -/
+def paper5B2BoundFromDerivativeData
+    (p : CMParams) (M Lu Blog : ℝ) : ℝ :=
+  max 0 (max
+    (p.m * Lu * (M ^ p.γ) * ((p.m - 1) * M ^ (p.m - 2)))
+    (p.m * M ^ (p.m + p.γ - 1) * Blog))
+
+theorem paper5B2BoundFromDerivativeData_nonneg
+    (p : CMParams) (M Lu Blog : ℝ) :
+    0 ≤ paper5B2BoundFromDerivativeData p M Lu Blog :=
+  le_max_left _ _
+
+/-- The three-case estimate (5.21)--(5.24), stated with its actual analytic
+inputs.  In particular the singular `1 < m < 2` branch explicitly consumes
+an *absolute* logarithmic derivative bound. -/
+theorem paper5B2_abs_le_of_derivative_data
+    (p : CMParams) {M Lu Blog t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hM : 0 ≤ M) (hLu : 0 ≤ Lu) (hBlog : 0 ≤ Blog)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) M)
+    (hU : U x ∈ Set.Icc (0 : ℝ) M)
+    (hUpos : 0 < U x)
+    (hUx : |deriv U x| ≤ Lu)
+    (hv : |deriv (v t) x| ≤ M ^ p.γ)
+    (hlog : 1 < p.m → p.m < 2 → |deriv U x / U x| ≤ Blog) :
+    |paper5B2 p u v U t x| ≤
+      paper5B2BoundFromDerivativeData p M Lu Blog := by
+  by_cases hm1 : p.m = 1
+  · rw [paper5B2_eq_zero_of_m_eq_one p hm1]
+    simpa using paper5B2BoundFromDerivativeData_nonneg p M Lu Blog
+  · have hm1' : 1 < p.m := lt_of_le_of_ne p.hm (Ne.symm hm1)
+    by_cases hm2 : 2 ≤ p.m
+    · have hlarge := paper5B2_abs_le_of_two_le_m p hm2 hM hu hU
+          hLu hUx hv
+      exact hlarge.trans <|
+        le_trans (le_max_left _ _) (le_max_right _ _)
+    · have hm2' : p.m < 2 := lt_of_not_ge hm2
+      have hintermediate := paper5B2_abs_le_of_one_lt_m_of_m_lt_two
+        p hm1' hm2' hM hBlog hu.1 hUpos hU.2 hv (hlog hm1' hm2')
+      exact hintermediate.trans <|
+        le_trans (le_max_right _ _) (le_max_right _ _)
+
+/-- All four coefficient bounds required by the corrected Section 5 energy
+estimate.  This theorem is deliberately chi-agnostic; the only nonlinear
+profile inputs are the two derivative bounds displayed in its hypotheses. -/
+theorem paper5CoefficientBounds_of_derivative_data
+    (p : CMParams) {M Lu Blog t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hM : 0 ≤ M) (hLu : 0 ≤ Lu) (hBlog : 0 ≤ Blog)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) M)
+    (hU : U x ∈ Set.Icc (0 : ℝ) M)
+    (hUpos : 0 < U x)
+    (hv : |deriv (v t) x| ≤ M ^ p.γ)
+    (hUx : |deriv U x| ≤ Lu)
+    (hlog : 1 < p.m → p.m < 2 → |deriv U x / U x| ≤ Blog) :
+    |paper5B1 p u v t x| ≤ paper520B1 p M ∧
+      |paper5B2 p u v U t x| ≤
+        paper5B2BoundFromDerivativeData p M Lu Blog ∧
+      |paper5B3 p U x| ≤ p.m * M ^ (p.m - 1) * Lu ∧
+      |paper5B4 p U x| ≤ M ^ p.m := by
+  exact ⟨paper5B1_abs_le p hM hu hv,
+    paper5B2_abs_le_of_derivative_data p hM hLu hBlog hu hU hUpos hUx hv hlog,
+    paper5B3_abs_le_raw p hM hU hUx,
+    paper5B4_abs_le p hM hU⟩
+
+/-- The coefficient producer specialized to an actual corrected traveling
+wave.  Remark 5.1 supplies the global derivative bound, while the corrected
+absolute version of Lemma 5.2 is used only in the singular `1 < m < 2`
+branch.  The resulting `b₂` budget is allowed to depend on the wave speed;
+turning it into a speed-independent threshold is a separate scalar task. -/
+theorem paper5CoefficientBounds_of_corrected_wave
+    (p : CMParams) {c sigma κ₁ t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hκ₁ : kappa c < κ₁)
+    (htail : HasWaveRightTailAsymptotic c κ₁ U)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) (MChi p))
+    (hv : |deriv (v t) x| ≤ (MChi p) ^ p.γ) :
+    let Lu := remark51MPrime p / remark5ChiSigma p sigma
+    let Blog := logDerivativeBoundFormula p c
+    |paper5B1 p u v t x| ≤ paper520B1 p (MChi p) ∧
+      |paper5B2 p u v U t x| ≤
+        paper5B2BoundFromDerivativeData p (MChi p) Lu Blog ∧
+      |paper5B3 p U x| ≤ p.m * (MChi p) ^ (p.m - 1) * Lu ∧
+      |paper5B4 p U x| ≤ (MChi p) ^ p.m := by
+  let Lu := remark51MPrime p / remark5ChiSigma p sigma
+  let Blog := logDerivativeBoundFormula p c
+  have hMpos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hLu : 0 ≤ Lu := by
+    dsimp [Lu]
+    exact div_nonneg (remark51MPrime_nonneg_of_MChi_pos p hMpos)
+      (remark5ChiSigma_nonneg p sigma)
+  have hspeedLog :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) :=
+    remark5SpeedCondition_implies_Lemma_5_2_speed
+      p c sigma hsigma hχ hspeed
+  have hBlog : 0 ≤ Blog := by
+    dsimp [Blog]
+    exact logDerivativeBoundFormula_nonneg_of_speed p hMpos.le hspeedLog
+  have hU : U x ∈ Set.Icc (0 : ℝ) (MChi p) :=
+    ⟨(hTW.U_pos x).le, hbound.le_MChi x⟩
+  have hUx : |deriv U x| ≤ Lu := by
+    dsimp [Lu]
+    exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V
+      hTW hbound hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont
+      hreg.deriv_U_diff hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound x
+  have hlog : 1 < p.m → p.m < 2 →
+      |deriv U x / U x| ≤ Blog := by
+    intro hm1 _hm2
+    dsimp [Blog]
+    exact abs_waveLogDerivative_le_logDerivativeBoundFormula p hm1 hspeedLog
+      hTW hreg hbound hκ₁ htail x
+  exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu hBlog
+    hu hU (hTW.U_pos x) hv hUx hlog
+
 section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5MeanCoefficient_mul_sub
 #print axioms paper5IntegralMeanCoefficient_eq
@@ -542,6 +669,9 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5B1_abs_le
 #print axioms paper5B3_abs_le_raw
 #print axioms paper5B4_abs_le
+#print axioms paper5B2_abs_le_of_derivative_data
+#print axioms paper5CoefficientBounds_of_derivative_data
+#print axioms paper5CoefficientBounds_of_corrected_wave
 end Theorem12MeanCoefficientsAxiomAudit
 
 end ShenWork.Paper1
