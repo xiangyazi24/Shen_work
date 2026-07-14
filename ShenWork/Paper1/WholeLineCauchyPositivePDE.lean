@@ -798,6 +798,84 @@ theorem wholeLineCauchyFluxGradientHistory_time_hasDerivWithinAt_positive
         wholeLineCauchyGradientBUCIntegrand p hM hT U q s).1 x) - old t)
   ring
 
+/-- The canonical clamped fixed point has the expected right time derivative
+at every strictly interior positive time.  The terminal contributions are the
+current shifted reaction and the current spatial derivative of the flux. -/
+theorem wholeLineCauchyBUCMildFixedPoint_time_hasDerivWithinAt_positive
+    (p : CMParams) {M T theta eta t : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (ht : 0 < t) (htT : t < T)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (x : ℝ) :
+    let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let F := wholeLineCauchyFluxSourceTrajectory p hM hT U
+    let R := wholeLineCauchyReactionSourceTrajectory p hM hT U
+    HasDerivWithinAt
+      (fun q : ℝ => (wholeLineBUCTrajectoryExtend hT U q).1 x)
+      ((wholeLineCauchyHeatHessOp t u₀.1 x -
+          wholeLineCauchyHeatOp t u₀.1 x) +
+        (-p.χ) * ((∫ s in (0 : ℝ)..t,
+          (wholeLineCauchyHeatThirdOp (t - s) (F s).1 x -
+            wholeLineCauchyHeatGradOp (t - s) (F s).1 x)) +
+          deriv (F t).1 x) +
+        ((∫ s in (0 : ℝ)..t,
+          (wholeLineCauchyHeatHessOp (t - s) (R s).1 x -
+            wholeLineCauchyHeatOp (t - s) (R s).1 x)) +
+          (R t).1 x))
+      (Set.Icc t (min (t + 1) T)) t := by
+  dsimp only
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let R : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let S : Set ℝ := Set.Icc t (min (t + 1) T)
+  have hu₀bound : ∀ y, |u₀.1 y| ≤ ‖u₀‖ := fun y =>
+    WholeLineBUC.abs_apply_le_norm u₀ y
+  have hheat := wholeLineCauchyHeatOp_time_hasDerivAt
+    ht (norm_nonneg u₀) u₀.1.continuous.aestronglyMeasurable hu₀bound x
+  have hflux := wholeLineCauchyFluxGradientHistory_time_hasDerivWithinAt_positive
+    p hM hT u₀ hsmall ht htT htheta0 htheta1
+      heta0 heta1 hrel hstrip x
+  have hreaction :=
+    wholeLineCauchyReactionValueHistory_time_hasDerivWithinAt_positive
+      p hM hT u₀ hsmall ht htT htheta0 htheta1 x
+  have hSsub : S ⊆ Set.Icc t (t + 1) := by
+    dsimp [S]
+    exact Set.Icc_subset_Icc le_rfl (min_le_left _ _)
+  have hfluxS := hflux.mono hSsub
+  have hreactionS := hreaction.mono hSsub
+  have hheatS : HasDerivWithinAt
+      (fun q : ℝ => wholeLineCauchyHeatOp q u₀.1 x)
+      (wholeLineCauchyHeatHessOp t u₀.1 x -
+        wholeLineCauchyHeatOp t u₀.1 x) S t :=
+    hheat.hasDerivWithinAt
+  have hrhs :=
+    (hheatS.add (hfluxS.const_mul (-p.χ))).add hreactionS
+  have heq : ∀ q ∈ S,
+      (wholeLineBUCTrajectoryExtend hT U q).1 x =
+        wholeLineCauchyHeatOp q u₀.1 x +
+          (-p.χ) * wholeLineCauchyGradientHistory F q x +
+          wholeLineCauchyValueHistory R q x := by
+    intro q hq
+    have hq0 : 0 < q := ht.trans_le hq.1
+    have hqT : q ≤ T := hq.2.trans (min_le_right _ _)
+    let zq : Set.Icc (0 : ℝ) T := ⟨q, hq0.le, hqT⟩
+    rw [wholeLineBUCTrajectoryExtend_eq hT U zq.2]
+    simpa [U, F, R, zq] using
+      wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+        p hM hT u₀ hsmall zq x hq0
+  change HasDerivWithinAt
+    (fun q : ℝ => (wholeLineBUCTrajectoryExtend hT U q).1 x) _ S t
+  exact hrhs.congr heq (heq t ⟨le_rfl, le_min
+    (le_add_of_nonneg_right zero_le_one) htT.le⟩)
+
 section WholeLineCauchyPositivePDEAxiomAudit
 
 #print axioms wholeLineCauchyValueOld_hasDerivWithinAt
@@ -810,6 +888,7 @@ section WholeLineCauchyPositivePDEAxiomAudit
 #print axioms wholeLineCauchyGradientHistory_eq_old_add_recent
 #print axioms wholeLineCauchyReactionValueHistory_time_hasDerivWithinAt_positive
 #print axioms wholeLineCauchyFluxGradientHistory_time_hasDerivWithinAt_positive
+#print axioms wholeLineCauchyBUCMildFixedPoint_time_hasDerivWithinAt_positive
 
 end WholeLineCauchyPositivePDEAxiomAudit
 
