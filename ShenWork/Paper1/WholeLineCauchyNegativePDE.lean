@@ -1,6 +1,8 @@
 import ShenWork.Paper1.WholeLineCauchyBUCOffSupport
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 open Filter Topology MeasureTheory Real Set
+open ShenWork.IntervalNeumannFullKernel
 
 noncomputable section
 
@@ -574,7 +576,313 @@ theorem wholeLineCauchyHeatGradOp_time_hasDerivAt
   rw [hfun, ← hderiv]
   exact hraw
 
+/-! ## The terminal diagonal at zero lag
+
+At a point separated from the support of the source, the Gaussian tail beats
+every inverse power of the lag.  Thus the value and gradient operators,
+totalized by zero for nonpositive lag, have derivative zero at lag zero. -/
+
+theorem heatKernelPointwiseBound_mul_tailGaussianScale
+    {t : ℝ} (ht : 0 < t) :
+    (1 / Real.sqrt (4 * Real.pi * t)) *
+        Real.sqrt (Real.pi / (1 / (16 * t))) = 2 := by
+  have ht0 : t ≠ 0 := ne_of_gt ht
+  have hsπ : Real.sqrt Real.pi ≠ 0 := by positivity
+  have hst : Real.sqrt t ≠ 0 := by positivity
+  have hscale : Real.sqrt (Real.pi / (1 / (16 * t))) =
+      4 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show Real.pi / (1 / (16 * t)) = 16 * (Real.pi * t) by
+      field_simp [ht0]]
+    rw [show (16 : ℝ) = (4 : ℝ) ^ 2 by norm_num,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have hden : Real.sqrt (4 * Real.pi * t) =
+      2 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show (4 * Real.pi * t : ℝ) = (2 : ℝ) ^ 2 * (Real.pi * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  rw [hscale, hden]
+  field_simp [hsπ, hst]
+  norm_num
+
+theorem heatGradPointwiseBound_mul_tailGaussianScale
+    {t : ℝ} (ht : 0 < t) :
+    heatGradPointwiseBound t *
+        Real.sqrt (Real.pi / (1 / (16 * t))) =
+      2 * Real.sqrt 2 / Real.sqrt t := by
+  have ht0 : t ≠ 0 := ne_of_gt ht
+  have hsπ : Real.sqrt Real.pi ≠ 0 := by positivity
+  have hst : Real.sqrt t ≠ 0 := by positivity
+  have hscale : Real.sqrt (Real.pi / (1 / (16 * t))) =
+      4 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show Real.pi / (1 / (16 * t)) = 16 * (Real.pi * t) by
+      field_simp [ht0]]
+    rw [show (16 : ℝ) = (4 : ℝ) ^ 2 by norm_num,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have hden : Real.sqrt (4 * Real.pi * t) =
+      2 * Real.sqrt Real.pi * Real.sqrt t := by
+    rw [show (4 * Real.pi * t : ℝ) = (2 : ℝ) ^ 2 * (Real.pi * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul Real.pi_pos.le]
+    ring
+  have h8 : Real.sqrt (4 * (2 * t)) = 2 * Real.sqrt 2 * Real.sqrt t := by
+    rw [show (4 * (2 * t) : ℝ) = (2 : ℝ) ^ 2 * (2 * t) by ring,
+      Real.sqrt_mul (by positivity), Real.sqrt_sq (by norm_num),
+      Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+    ring
+  have hsq : (Real.sqrt t) ^ 2 = t := Real.sq_sqrt ht.le
+  rw [hscale]
+  unfold heatGradPointwiseBound
+  rw [hden, h8]
+  field_simp [ht0, hsπ, hst]
+  nlinarith
+
+theorem wholeLineCauchyHeatOp_abs_le_of_zero_ball
+    {f : ℝ → ℝ} {t M r x : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) (hr : 0 < r)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ M)
+    (hzero : ∀ y, dist y x < r → f y = 0) :
+    |wholeLineCauchyHeatOp t f x| ≤
+      2 * Real.exp (-r ^ 2 / (16 * t)) * M := by
+  have hkernel : ∀ z, |wholeLineModifiedHeatKernel t z| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        Real.exp (-z ^ 2 / (8 * t)) := by
+    intro z
+    have hexp_time : Real.exp (-t) ≤ 1 := by
+      simpa using Real.exp_le_one_iff.mpr (neg_nonpos.mpr ht.le)
+    unfold wholeLineModifiedHeatKernel heatKernel
+    rw [abs_mul, abs_mul, abs_of_nonneg (Real.exp_nonneg _),
+      abs_of_nonneg (by positivity : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t)),
+      abs_of_nonneg (Real.exp_nonneg _)]
+    have hexp_space : Real.exp (-z ^ 2 / (4 * t)) ≤
+        Real.exp (-z ^ 2 / (8 * t)) := by
+      apply Real.exp_le_exp.mpr
+      have ht0 : t ≠ 0 := ne_of_gt ht
+      rw [show -z ^ 2 / (4 * t) = (-2 * z ^ 2) / (8 * t) by
+        field_simp [ht0]
+        ring]
+      exact (div_le_div_iff_of_pos_right (by positivity : 0 < 8 * t)).2
+        (by nlinarith [sq_nonneg z])
+    calc
+      Real.exp (-t) *
+            (1 / Real.sqrt (4 * Real.pi * t) *
+              Real.exp (-z ^ 2 / (4 * t))) ≤
+          1 * (1 / Real.sqrt (4 * Real.pi * t) *
+            Real.exp (-z ^ 2 / (8 * t))) := by
+        exact mul_le_mul hexp_time
+          (mul_le_mul_of_nonneg_left hexp_space (by positivity))
+          (by positivity) (by positivity)
+      _ = (1 / Real.sqrt (4 * Real.pi * t)) *
+          Real.exp (-z ^ 2 / (8 * t)) := one_mul _
+  have hint : Integrable
+      (fun y : ℝ => wholeLineModifiedHeatKernel t (x - y) * f y) volume := by
+    have hbase :=
+      (wholeLineModifiedHeatKernel_integrable ht).comp_neg.comp_add_right (-x)
+    have htranslated : Integrable
+        (fun y : ℝ => wholeLineModifiedHeatKernel t (x - y)) volume := by
+      convert hbase using 1
+      ext y
+      congr 1
+      ring
+    exact htranslated.mul_bdd hf_meas
+      (Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y)
+  have hraw := gaussianTailConvolution_abs_le ht
+    (by positivity : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t)) hM hr
+    hkernel hf hzero hint
+  rw [← wholeLineCauchyHeatOp_eq_modifiedKernel_integral] at hraw
+  calc
+    |wholeLineCauchyHeatOp t f x| ≤
+        ((1 / Real.sqrt (4 * Real.pi * t)) *
+          Real.exp (-r ^ 2 / (16 * t)) * M) *
+            Real.sqrt (Real.pi / (1 / (16 * t))) := hraw
+    _ = 2 * Real.exp (-r ^ 2 / (16 * t)) * M := by
+      rw [show
+        ((1 / Real.sqrt (4 * Real.pi * t)) *
+            Real.exp (-r ^ 2 / (16 * t)) * M) *
+              Real.sqrt (Real.pi / (1 / (16 * t))) =
+          ((1 / Real.sqrt (4 * Real.pi * t)) *
+              Real.sqrt (Real.pi / (1 / (16 * t)))) *
+            Real.exp (-r ^ 2 / (16 * t)) * M by ring]
+      rw [heatKernelPointwiseBound_mul_tailGaussianScale ht]
+
+theorem wholeLineCauchyHeatGradOp_abs_le_of_zero_ball
+    {f : ℝ → ℝ} {t M r x : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) (hr : 0 < r)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ M)
+    (hzero : ∀ y, dist y x < r → f y = 0) :
+    |wholeLineCauchyHeatGradOp t f x| ≤
+      (2 * Real.sqrt 2 / Real.sqrt t) *
+        Real.exp (-r ^ 2 / (16 * t)) * M := by
+  have hkernel : ∀ z, |wholeLineModifiedHeatGradientKernel t z| ≤
+      heatGradPointwiseBound t * Real.exp (-z ^ 2 / (8 * t)) := by
+    intro z
+    have hexp_time : Real.exp (-t) ≤ 1 := by
+      simpa using Real.exp_le_one_iff.mpr (neg_nonpos.mpr ht.le)
+    unfold wholeLineModifiedHeatGradientKernel
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+    calc
+      Real.exp (-t) * |deriv (fun w : ℝ => heatKernel t w) z| ≤
+          1 * (heatGradPointwiseBound t *
+            Real.exp (-z ^ 2 / (8 * t))) := by
+        exact mul_le_mul hexp_time
+          (by simpa [show 4 * (2 * t) = 8 * t by ring] using
+            abs_deriv_heatKernel_le ht z)
+          (abs_nonneg _) (by positivity)
+      _ = heatGradPointwiseBound t *
+          Real.exp (-z ^ 2 / (8 * t)) := one_mul _
+  have hint : Integrable
+      (fun y : ℝ => wholeLineModifiedHeatGradientKernel t (x - y) * f y) volume := by
+    have hbase :=
+      (wholeLineModifiedHeatGradientKernel_integrable ht).comp_neg.comp_add_right (-x)
+    have htranslated : Integrable
+        (fun y : ℝ => wholeLineModifiedHeatGradientKernel t (x - y)) volume := by
+      convert hbase using 1
+      ext y
+      congr 1
+      ring
+    exact htranslated.mul_bdd hf_meas
+      (Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y)
+  have hraw := gaussianTailConvolution_abs_le ht
+    (by unfold heatGradPointwiseBound; positivity) hM hr hkernel hf hzero hint
+  rw [← wholeLineCauchyHeatGradOp_eq_modifiedKernel_integral ht] at hraw
+  calc
+    |wholeLineCauchyHeatGradOp t f x| ≤
+        (heatGradPointwiseBound t *
+          Real.exp (-r ^ 2 / (16 * t)) * M) *
+            Real.sqrt (Real.pi / (1 / (16 * t))) := hraw
+    _ = (2 * Real.sqrt 2 / Real.sqrt t) *
+          Real.exp (-r ^ 2 / (16 * t)) * M := by
+      rw [show
+        (heatGradPointwiseBound t *
+            Real.exp (-r ^ 2 / (16 * t)) * M) *
+              Real.sqrt (Real.pi / (1 / (16 * t))) =
+          (heatGradPointwiseBound t *
+              Real.sqrt (Real.pi / (1 / (16 * t)))) *
+            Real.exp (-r ^ 2 / (16 * t)) * M by ring]
+      rw [heatGradPointwiseBound_mul_tailGaussianScale ht]
+
+theorem tendsto_inv_rpow_mul_exp_neg_div_nhdsGT_zero
+    (s : ℝ) {c : ℝ} (hc : 0 < c) :
+    Tendsto (fun t : ℝ => (1 / t) ^ s * Real.exp (-c / t))
+      (𝓝[>] 0) (𝓝 0) := by
+  simpa [one_div, div_eq_mul_inv] using
+    (tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero s c hc).comp
+      tendsto_inv_nhdsGT_zero
+
+theorem wholeLineCauchyHeatOp_eq_zero_of_nonpos
+    {t : ℝ} (ht : t ≤ 0) (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineCauchyHeatOp t f x = 0 := by
+  have hzero : (fun z : ℝ => heatKernel t z) = fun _ => 0 := by
+    funext z
+    exact ShenWork.IntervalNeumannFullKernel.heatKernel_of_nonpos ht z
+  simp [wholeLineCauchyHeatOp, modifiedSemigroup, heatSemigroup, hzero]
+
+theorem wholeLineCauchyHeatGradOp_eq_zero_of_nonpos
+    {t : ℝ} (ht : t ≤ 0) (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineCauchyHeatGradOp t f x = 0 := by
+  have hzero : (fun z : ℝ => heatKernel t z) = fun _ => 0 := by
+    funext z
+    exact ShenWork.IntervalNeumannFullKernel.heatKernel_of_nonpos ht z
+  simp [wholeLineCauchyHeatGradOp, hzero, deriv_const]
+
+theorem wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
+    {f : ℝ → ℝ} {M r x : ℝ}
+    (hM : 0 ≤ M) (hr : 0 < r)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ M)
+    (hzero : ∀ y, dist y x < r → f y = 0) :
+    HasDerivAt (fun t : ℝ => wholeLineCauchyHeatOp t f x) 0 0 := by
+  rw [hasDerivAt_iff_tendsto_slope_zero, ← nhdsLT_sup_nhdsGT, tendsto_sup]
+  constructor
+  · refine tendsto_const_nhds.congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with t ht
+    symm
+    simp [wholeLineCauchyHeatOp_eq_zero_of_nonpos ht.le,
+      wholeLineCauchyHeatOp_eq_zero_of_nonpos le_rfl]
+  · have hc : 0 < r ^ 2 / 16 := by positivity
+    have htail := tendsto_inv_rpow_mul_exp_neg_div_nhdsGT_zero 1 hc
+    have hupper : Tendsto
+        (fun t : ℝ => (2 * M) *
+          ((1 / t) ^ (1 : ℝ) * Real.exp (-(r ^ 2 / 16) / t)))
+        (𝓝[>] 0) (𝓝 0) := by
+      simpa using tendsto_const_nhds.mul htail
+    refine squeeze_zero_norm' ?_ hupper
+    filter_upwards [self_mem_nhdsWithin] with t ht
+    have htpos : 0 < t := ht
+    have hop := wholeLineCauchyHeatOp_abs_le_of_zero_ball
+      htpos hM hr hf_meas hf hzero
+    have hexponent : -r ^ 2 / (16 * t) = -(r ^ 2 / 16) / t := by
+      field_simp [ne_of_gt htpos]
+    rw [hexponent] at hop
+    rw [wholeLineCauchyHeatOp_eq_zero_of_nonpos le_rfl]
+    simp only [zero_add, sub_zero, norm_smul, Real.norm_eq_abs, abs_inv,
+      abs_of_pos htpos]
+    rw [Real.rpow_one]
+    calc
+      t⁻¹ * |wholeLineCauchyHeatOp t f x| ≤
+          t⁻¹ * (2 * Real.exp (-(r ^ 2 / 16) / t) * M) := by
+        gcongr
+      _ = (2 * M) * ((1 / t) * Real.exp (-(r ^ 2 / 16) / t)) := by ring
+
+theorem wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
+    {f : ℝ → ℝ} {M r x : ℝ}
+    (hM : 0 ≤ M) (hr : 0 < r)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ M)
+    (hzero : ∀ y, dist y x < r → f y = 0) :
+    HasDerivAt (fun t : ℝ => wholeLineCauchyHeatGradOp t f x) 0 0 := by
+  rw [hasDerivAt_iff_tendsto_slope_zero, ← nhdsLT_sup_nhdsGT, tendsto_sup]
+  constructor
+  · refine tendsto_const_nhds.congr' ?_
+    filter_upwards [self_mem_nhdsWithin] with t ht
+    symm
+    simp [wholeLineCauchyHeatGradOp_eq_zero_of_nonpos ht.le,
+      wholeLineCauchyHeatGradOp_eq_zero_of_nonpos le_rfl]
+  · have hc : 0 < r ^ 2 / 16 := by positivity
+    have htail := tendsto_inv_rpow_mul_exp_neg_div_nhdsGT_zero ((3 : ℝ) / 2) hc
+    have hupper : Tendsto
+        (fun t : ℝ => (2 * Real.sqrt 2 * M) *
+          ((1 / t) ^ ((3 : ℝ) / 2) * Real.exp (-(r ^ 2 / 16) / t)))
+        (𝓝[>] 0) (𝓝 0) := by
+      simpa using tendsto_const_nhds.mul htail
+    refine squeeze_zero_norm' ?_ hupper
+    filter_upwards [self_mem_nhdsWithin] with t ht
+    have htpos : 0 < t := ht
+    have hop := wholeLineCauchyHeatGradOp_abs_le_of_zero_ball
+      htpos hM hr hf_meas hf hzero
+    have hexponent : -r ^ 2 / (16 * t) = -(r ^ 2 / 16) / t := by
+      field_simp [ne_of_gt htpos]
+    rw [hexponent] at hop
+    have hpow : (1 / t) ^ ((3 : ℝ) / 2) =
+        1 / (t * Real.sqrt t) := by
+      rw [show (3 : ℝ) / 2 = 1 + 1 / 2 by norm_num,
+        Real.rpow_add (by positivity), Real.rpow_one, ← Real.sqrt_eq_rpow]
+      rw [Real.sqrt_div (by positivity), Real.sqrt_one]
+      field_simp
+    rw [wholeLineCauchyHeatGradOp_eq_zero_of_nonpos le_rfl]
+    simp only [zero_add, sub_zero, norm_smul, Real.norm_eq_abs, abs_inv,
+      abs_of_pos htpos]
+    rw [hpow]
+    calc
+      t⁻¹ * |wholeLineCauchyHeatGradOp t f x| ≤
+          t⁻¹ *
+            ((2 * Real.sqrt 2 / Real.sqrt t) *
+              Real.exp (-(r ^ 2 / 16) / t) * M) := by
+        gcongr
+      _ = (2 * Real.sqrt 2 * M) *
+          ((1 / (t * Real.sqrt t)) *
+            Real.exp (-(r ^ 2 / 16) / t)) := by
+        field_simp [ne_of_gt htpos, ne_of_gt (Real.sqrt_pos.mpr htpos)]
+
 #print axioms wholeLineCauchyHeatOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatGradOp_time_hasDerivAt
+#print axioms wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
+#print axioms wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
 
 end ShenWork.Paper1
