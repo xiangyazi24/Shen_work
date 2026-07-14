@@ -38,6 +38,7 @@ import ShenWork.Paper1.WholeLineCauchyBUCDuhamelContinuity
 import ShenWork.Paper1.WholeLineCauchyBUCFixedPoint
 import ShenWork.Paper1.WholeLineCauchyBUCNegativeSet
 import ShenWork.Paper1.WholeLineHeatThirdDerivative
+import ShenWork.Paper1.WholeLineCauchyBUCOffSupport
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
