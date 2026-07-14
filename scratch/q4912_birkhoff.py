@@ -26,10 +26,11 @@ def delta_H(n):
 
 
 def A_bal(n):
-    H = M_raw(n) * (1 / delta_H(n))
+    raw = M_raw(n)
+    dh = delta_H(n)
     dn = [mp.mpf(1), mp.mpf(n+1), mp.mpf(n+1)**2]
     dnp = [mp.mpf(1), mp.mpf(n+2), mp.mpf(n+2)**2]
-    return mp.matrix(3, 3, lambda i, j: H[i,j]*dnp[j]/dn[i])
+    return mp.matrix(3, 3, lambda i, j: (raw[i,j]/dh)*dnp[j]/dn[i])
 
 
 rt2 = mp.sqrt(2)
@@ -38,13 +39,17 @@ rho = 1/lam
 rinf = mp.matrix([2, -rt2, 1])
 
 
+def scaled_column(v, scale):
+    return mp.matrix([v[i]/scale for i in range(3)])
+
+
 def projective_V(N, seed):
-    v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix(rinf)
+    v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix([rinf[i] for i in range(3)])
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
         scale = max(abs(v[i]) for i in range(3))
-        v = v * (1 / scale)
-    return v * (1 / v[2])
+        v = scaled_column(v, scale)
+    return scaled_column(v, v[2])
 
 
 def dot(a,v):
