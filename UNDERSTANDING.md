@@ -5148,3 +5148,17 @@ identified with that derivative.  The local full root build passes 9565 jobs,
 and the new terminal-average declarations are clean-3.  The remaining
 mild-to-classical step is the right generator limit for the homogeneous heat
 term, followed by assembly of the right time derivative and the PDE.
+
+`WholeLineCauchyPositivePDE.lean` now differentiates both active Duhamel
+histories from the right at every strictly interior positive time.  On the
+fixed old interval, the variable-derivative dominated integral theorem is
+applied only for target times `q >= t`; hence every a.e. time slice has
+strictly positive heat lag.  The reaction Hessian and flux third-derivative
+majorants reuse the spatial bootstrap's old/recent split and its integrable
+Holder-cancellation exponents.  Exact interval splitting then adds the short
+terminal averages, producing the current reaction source and current spatial
+flux derivative with no source-time derivative assumption.  The root build
+passes with 9566 jobs and all ten declarations are clean-3.  The immediate
+next step is to add the homogeneous heat generator, combine the three right
+derivatives through the fixed-point identity, and identify the result with
+the already-proved positive-time spatial second derivative.
