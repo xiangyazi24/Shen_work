@@ -1,0 +1,20 @@
+name: Q4868 Ore GCRD
+
+on:
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - 'scripts/q4868_gcrd.sage'
+      - '.github/workflows/q4868-gcrd.yml'
+
+jobs:
+  gcrd:
+    runs-on: ubuntu-latest
+    container:
+      image: sagemath/sagemath:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ore_algebra
+        run: sage -pip install --user ore_algebra
+      - name: Compute exact right GCD
+        run: sage scripts/q4868_gcrd.sage
