@@ -1365,22 +1365,21 @@ stability, and uniqueness theorems are not stated here as Lean theorems yet.
 This section keeps only facts that follow directly from the current definitions.
 -/
 
-theorem IsTravelingWave.to_movingFrame_global_classical_solution (p : CMParams)
+theorem IsTravelingWave.to_movingFrame_global_classical_solution_of_differentiable
+    (p : CMParams)
     {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
-    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    (hU_diff : Differentiable ℝ U) (hV_diff : Differentiable ℝ V) :
     IsGlobalClassicalSolution p
       (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
-  have hU_d : Differentiable ℝ U := hU_diff.differentiable two_ne_zero
-  have hV_d : Differentiable ℝ V := hV_diff.differentiable two_ne_zero
   intro T hT
   exact {
     hT := hT
     u_smooth := fun t x _ _ => ⟨
-      (hU_d _).comp _ ((differentiableAt_const x).sub
+      (hU_diff _).comp _ ((differentiableAt_const x).sub
         ((differentiableAt_const c).mul differentiableAt_id)),
-      (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
+      (hU_diff _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
     v_smooth := fun t x _ _ =>
-      (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
+      (hV_diff _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
     pde_u := fun t x _ _ => by
       -- Time derivative via chain rule.
       have hinner : HasDerivAt (fun t' => x - c * t') (-c) t := by
@@ -1388,7 +1387,7 @@ theorem IsTravelingWave.to_movingFrame_global_classical_solution (p : CMParams)
         simpa using this
       have htime :
           deriv (fun t' => U (x - c * t')) t = deriv U (x - c * t) * (-c) :=
-        ((hU_d _).hasDerivAt.comp t hinner).deriv
+        ((hU_diff _).hasDerivAt.comp t hinner).deriv
       -- Spatial translations.
       have hU2 := congr_fun (iteratedDeriv_comp_sub_const 2 U (c * t)) x
       have hV1 : ∀ y, deriv (fun z => V (z - c * t)) y = deriv V (y - c * t) := by
@@ -1416,6 +1415,18 @@ theorem IsTravelingWave.to_movingFrame_global_classical_solution (p : CMParams)
       rw [h]
       exact hTW.ode_V (x - c * t)
   }
+
+/-- A `C²` wave is, in particular, differentiable; this is the historical
+interface retained for existing callers.  The classical-solution structure
+itself only asks for the first derivatives used above. -/
+theorem IsTravelingWave.to_movingFrame_global_classical_solution (p : CMParams)
+    {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    IsGlobalClassicalSolution p
+      (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) :=
+  hTW.to_movingFrame_global_classical_solution_of_differentiable p
+    (hU_diff.differentiable two_ne_zero)
+    (hV_diff.differentiable two_ne_zero)
 
 theorem IsTravelingWave.to_global_classical_solution (p : CMParams)
     {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
