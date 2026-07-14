@@ -4807,3 +4807,15 @@ bound, bounded-source third convolution differentiation, and exponentially
 small second/third convolution bounds when the source vanishes on a spatial
 ball.  These are the exact recent-history estimates required for local `C²`
 regularity on the negative set.
+
+The terminal-diagonal Gaussian seam is also closed.  For a bounded measurable
+source that vanishes on a spatial ball around the evaluation point, explicit
+value and gradient off-support bounds show that the modified heat value and
+gradient operators are differentiable at lag zero with derivative zero.  The
+proof uses the right-hand Gaussian tail, the standard polynomial-times-
+exponential asymptotic after time inversion, and the identically-zero
+nonpositive-lag branch.  Together with the positive-lag generator identities,
+this supplies every pointwise lag derivative needed to differentiate a fixed-
+upper Duhamel history across its terminal diagonal.  The next step is that
+fixed-upper parameter-integral assembly for the actual two clamped source
+trajectories, followed by the negative-set equation `u_t = u_xx - u`.
