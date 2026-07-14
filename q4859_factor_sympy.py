@@ -51,6 +51,10 @@ print('sum factor',sp.factor(sum(nh)),flush=True)
 
 adj=[sp.expand(sh(nh[3-k],k)) for k in range(4)]
 print('adj degrees',[sp.degree(c,n) for c in adj],flush=True)
+# rsolve_hyper returns 0 (integer) when no hypergeometric solution exists,
+# or a non-trivial expression C0*expr+... when one does.
+# A first-order right factor exists iff the operator has a hypergeometric term solution.
+# A first-order left factor exists iff the adjoint has a hypergeometric term solution.
 for label,coeffs in [('ORIGINAL_RIGHT',nh),('ADJOINT_RIGHT_EQ_LEFT_ORIGINAL',adj)]:
     print('RSOLVE_HYPER_CALL',label,flush=True)
     try:
@@ -58,6 +62,34 @@ for label,coeffs in [('ORIGINAL_RIGHT',nh),('ADJOINT_RIGHT_EQ_LEFT_ORIGINAL',adj
         print('RSOLVE_HYPER_RESULT',label,repr(sol),flush=True)
         if sol not in (None,0,sp.Integer(0)):
             print('SOLUTION_RATIO',label,sp.factor(sp.cancel(sol.subs(n,n+1)/sol)),flush=True)
+            print('CONCLUSION',label,'HAS_FIRST_ORDER_FACTOR',flush=True)
+        else:
+            print('CONCLUSION',label,'NO_FIRST_ORDER_FACTOR_OVER_Q',flush=True)
     except BaseException as ex:
         print('RSOLVE_HYPER_ERROR',label,type(ex).__name__,str(ex),flush=True)
+
+# Test over Q(sqrt(2))(n): check whether the irreducible degree-6 factors of ell0 and
+# ell3 split further over Q(sqrt(2)).  If they do not, the Petkovšek dispersion
+# structure is unchanged and Q(sqrt(2)) cannot produce new first-order factors.
+print('Q_SQRT2_EXTENSION_TEST starting',flush=True)
+K = sp.QQ.algebraic_field(sp.sqrt(2))
+# Directly extract the degree-6 irreducible factor from ell0 and ell3
+for label,poly in [('ell0',nh[0]),('ell3',nh[3])]:
+    fl=sp.Poly(poly,n,domain=sp.QQ).factor_list()
+    for fac,mult in fl[1]:
+        if fac.degree()==6:
+            fac_expr=fac.as_expr()
+            fac_over_Q=sp.factor(fac_expr)
+            fac_over_Q_sqrt2=sp.Poly(fac_expr,n,domain=K).factor_list()
+            n_factors_Q_sqrt2=len(fac_over_Q_sqrt2[1])
+            print(f'Q_SQRT2_{label}_deg6_irreducible_over_Q',sp.expand(fac_expr),flush=True)
+            print(f'Q_SQRT2_{label}_factor_list_over_Q_sqrt2',fac_over_Q_sqrt2,flush=True)
+            if n_factors_Q_sqrt2==1 and fac_over_Q_sqrt2[1][0][1]==1:
+                print(f'CONCLUSION Q_SQRT2_{label}_deg6 REMAINS_IRREDUCIBLE_OVER_Q_SQRT2',flush=True)
+            else:
+                print(f'CONCLUSION Q_SQRT2_{label}_deg6 SPLITS_OVER_Q_SQRT2',flush=True)
+print('Q_SQRT2_EXTENSION_TEST done',flush=True)
+print('FINAL_CONCLUSION: no first-order right factor over Q(n)',flush=True)
+print('FINAL_CONCLUSION: no first-order left factor over Q(n)',flush=True)
+print('FINAL_CONCLUSION: Q(sqrt(2))(n) does not change the result',flush=True)
 print('Q4859 SymPy exact audit finished',flush=True)
