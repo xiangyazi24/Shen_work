@@ -238,6 +238,59 @@ theorem wholeLineCauchyBUCMildFixedPoint_shift_eq
   have huniq := hcontract.fixedPoint_unique hfixed
   simpa [U, V, zt, wholeLineCauchyBUCMildFixedPoint] using huniq
 
+/-- Restricting a canonical fixed point to a shorter initial horizon gives
+the canonical fixed point constructed directly on that horizon. -/
+theorem wholeLineCauchyBUCMildFixedPoint_restrict_eq
+    (p : CMParams) {M T h : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmallT : wholeLineCauchyBUCMildRate p M T < 1)
+    (hh : 0 ≤ h) (hhT : h ≤ T)
+    (hsmallh : wholeLineCauchyBUCMildRate p M h < 1) :
+    let U := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmallT
+    wholeLineBUCTrajectoryShift le_rfl hh (by simpa using hhT) U =
+      wholeLineCauchyBUCMildFixedPoint p hM hh u₀ hsmallh := by
+  dsimp only
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmallT
+  let V : WholeLineBUCTrajectory h :=
+    wholeLineBUCTrajectoryShift le_rfl hh (by simpa using hhT) U
+  have hzeroT : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T := ⟨le_rfl, hT⟩
+  have hU0 : U ⟨0, hzeroT⟩ = u₀ := by
+    simpa [U] using wholeLineCauchyBUCMildFixedPoint_initial
+      p hM hT u₀ hsmallT hzeroT
+  have hfixed : IsFixedPt (wholeLineCauchyBUCMildMap p hM hh u₀) V := by
+    apply ContinuousMap.ext
+    intro z
+    let r : ℝ := z.1
+    have hr : r ∈ Set.Icc (0 : ℝ) h := z.2
+    let zr : Set.Icc (0 : ℝ) T :=
+      ⟨r, hr.1, hr.2.trans hhT⟩
+    have hUr : U zr =
+        wholeLineCauchyHeatBUCTotal r u₀ +
+          (-p.χ) • wholeLineCauchyGradientDuhamelBUC p hM hT U r +
+          wholeLineCauchyValueDuhamelBUC p hM hT U r := by
+      have hfix := congrArg (fun W : WholeLineBUCTrajectory T => W zr)
+        (wholeLineCauchyBUCMildFixedPoint_eq_mildMap
+          p hM hT u₀ hsmallT)
+      simpa [U, zr, wholeLineCauchyBUCMildMap] using hfix
+    have hGshift := wholeLineCauchyGradientDuhamelBUC_shift_eq
+      p hM hT le_rfl hh (by simpa using hhT) U hr
+    have hRshift := wholeLineCauchyValueDuhamelBUC_shift_eq
+      p hM hT le_rfl hh (by simpa using hhT) U hr
+    have hG : wholeLineCauchyGradientDuhamelBUC p hM hh V r =
+        wholeLineCauchyGradientDuhamelBUC p hM hT U r := by
+      simpa [V, wholeLineCauchyGradientDuhamelBUC] using hGshift
+    have hR : wholeLineCauchyValueDuhamelBUC p hM hh V r =
+        wholeLineCauchyValueDuhamelBUC p hM hT U r := by
+      simpa [V, wholeLineCauchyValueDuhamelBUC] using hRshift
+    rw [wholeLineCauchyBUCMildMap_apply, hG, hR, ← hUr]
+    simp [V, zr, r, wholeLineBUCTrajectoryShift]
+  have hcontract := wholeLineCauchyBUCMildMap_contracting
+    p hM hh u₀ hsmallh
+  have huniq := hcontract.fixedPoint_unique hfixed
+  simpa [U, V, wholeLineCauchyBUCMildFixedPoint] using huniq
+
 section WholeLineCauchyCanonicalRestartAxiomAudit
 
 #print axioms wholeLineBUCTrajectoryShift
@@ -245,6 +298,7 @@ section WholeLineCauchyCanonicalRestartAxiomAudit
 #print axioms wholeLineCauchyGradientDuhamelBUC_shift_eq
 #print axioms wholeLineCauchyValueDuhamelBUC_shift_eq
 #print axioms wholeLineCauchyBUCMildFixedPoint_shift_eq
+#print axioms wholeLineCauchyBUCMildFixedPoint_restrict_eq
 
 end WholeLineCauchyCanonicalRestartAxiomAudit
 
