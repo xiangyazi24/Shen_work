@@ -1,0 +1,48 @@
+name: Q4911 Markov orthogonal-polynomial computation
+
+on:
+  push:
+    branches:
+      - q4911-markov-op
+    paths:
+      - 'scratch/q4911_markov.sage'
+      - '.github/workflows/q4911-markov.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: q4911-markov
+  cancel-in-progress: true
+
+jobs:
+  compute:
+    runs-on: self-hosted
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4911-markov-op
+      - name: Run exact Sage computation
+        shell: bash
+        run: |
+          set -o pipefail
+          if command -v sage >/dev/null 2>&1; then
+            sage scratch/q4911_markov.sage 2>&1 | tee scratch/q4911_result.txt
+          else
+            docker run --rm \
+              -v "$PWD:/work" \
+              -w /work \
+              sagemath/sagemath:latest \
+              sage scratch/q4911_markov.sage 2>&1 | tee scratch/q4911_result.txt
+          fi
+      - name: Commit exact output
+        if: always()
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scratch/q4911_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4911 Markov computation result'
+          git push origin HEAD:q4911-markov-op
