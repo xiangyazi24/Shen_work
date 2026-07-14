@@ -187,11 +187,263 @@ theorem intervalIntegrable_sub_rpow_hess_Ctheta_to_Ceta
   have hshift := (hbase.comp_sub_left t).symm
   simpa using hshift
 
+/-- The Hessian history of the canonical chemotaxis flux is spatially
+`C^eta` at every positive target time. -/
+theorem wholeLineCauchyFluxHessianHistory_Ceta
+    (p : CMParams) {M T theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : ℝ,
+      |(∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatHessOp (z.1 - s)
+            (wholeLineCauchyFluxSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x) -
+        (∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatHessOp (z.1 - s)
+            (wholeLineCauchyFluxSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 y)| ≤
+        K * |x - y| ^ eta := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let MF : ℝ := M ^ p.m * M ^ p.γ
+  have hMF : 0 ≤ MF := by
+    dsimp [MF]
+    positivity
+  have hFcont : Continuous F := by
+    simpa [F] using wholeLineCauchyFluxSourceTrajectory_continuous p hM hT U
+  have hFnorm : ∀ s, ‖F s‖ ≤ MF := by
+    intro s
+    simpa [F, MF, wholeLineCauchyFluxSourceTrajectory] using
+      wholeLineCauchyTruncatedFluxBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  have hhalf : 0 < z.1 / 2 := by positivity
+  rcases exists_wholeLineCauchyFluxSourceTrajectory_window_Ctheta
+      p hM hT hhalf z.2.2 u₀ hsmall htheta0 htheta1 with
+    ⟨HF, hHF, hFholder⟩
+  let W : ℝ :=
+    ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst theta
+  let C2 : ℝ := 5 * Real.sqrt 2 / 2
+  let C3 : ℝ := heatThirdTailConstant
+  let aexp : ℝ := -1 + theta / 2
+  let eexp : ℝ := -1 + (theta - eta * (1 + theta)) / 2
+  let A0 : ℝ := C2 * (z.1 / 2) ^ (-(1 : ℝ)) * MF
+  let B0 : ℝ := C3 * (z.1 / 2) ^ (-(3 / 2 : ℝ)) * MF
+  let E0 : ℝ := max B0 (2 * A0)
+  let D : ℝ := (2 * W * HF) ^ (1 - eta) * (C3 * MF) ^ eta
+  let normBound : ℝ → ℝ := fun s =>
+    A0 + W * (z.1 - s) ^ aexp * HF
+  let diffBound : ℝ → ℝ := fun s =>
+    E0 + D * (z.1 - s) ^ eexp
+  have hW : 0 ≤ W := by
+    dsimp [W]
+    exact ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst_nonneg theta
+  have hC2 : 0 ≤ C2 := by dsimp [C2]; positivity
+  have hC3 : 0 ≤ C3 := by
+    dsimp [C3]
+    exact heatThirdTailConstant_nonneg
+  have hA0 : 0 ≤ A0 := by dsimp [A0]; positivity
+  have hB0 : 0 ≤ B0 := by dsimp [B0]; positivity
+  have hE0 : 0 ≤ E0 := le_trans hB0 (le_max_left _ _)
+  have hD : 0 ≤ D := by dsimp [D]; positivity
+  have hNormInt : IntervalIntegrable normBound volume 0 z.1 := by
+    have hk :=
+      ShenWork.IntervalNeumannFullKernel.intervalIntegrable_sub_rpow_hessian
+        (t := z.1) htheta0
+    have hscaled := (hk.const_mul W).mul_const HF
+    have hconst : IntervalIntegrable (fun _ : ℝ => A0) volume 0 z.1 :=
+      intervalIntegrable_const
+    simpa [normBound, aexp, mul_assoc] using hconst.add hscaled
+  have hDiffInt : IntervalIntegrable diffBound volume 0 z.1 := by
+    have hk := intervalIntegrable_sub_rpow_hess_Ctheta_to_Ceta
+      (t := z.1) hrel
+    have hscaled := hk.const_mul D
+    have hconst : IntervalIntegrable (fun _ : ℝ => E0) volume 0 z.1 :=
+      intervalIntegrable_const
+    simpa [diffBound, eexp, mul_assoc] using hconst.add hscaled
+  have hNormPoint : ∀ s, 0 ≤ s → s < z.1 → ∀ q : ℝ,
+      ‖wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q‖ ≤ normBound s := by
+    intro s hs0 hst q
+    have hlag : 0 < z.1 - s := sub_pos.mpr hst
+    by_cases hsHalf : s ≤ z.1 / 2
+    · have hlagHalf : z.1 / 2 ≤ z.1 - s := by linarith
+      have hpow : (z.1 - s) ^ (-(1 : ℝ)) ≤
+          (z.1 / 2) ^ (-(1 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos hhalf hlagHalf (by norm_num)
+      have hglobal := wholeLineCauchyHeatHessOp_abs_le
+        hlag hMF (F s).1.continuous.aestronglyMeasurable
+        (fun r => (WholeLineBUC.abs_apply_le_norm (F s) r).trans (hFnorm s))
+        (x := q)
+      rw [Real.norm_eq_abs]
+      calc
+        |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q| ≤
+            (C2 * (z.1 - s) ^ (-(1 : ℝ))) * MF := by
+          simpa [C2, mul_assoc] using hglobal
+        _ ≤ A0 := by
+          dsimp [A0]
+          gcongr
+        _ ≤ normBound s := by
+          dsimp [normBound]
+          exact le_add_of_nonneg_right
+            (mul_nonneg (mul_nonneg hW
+              (Real.rpow_nonneg hlag.le _)) hHF)
+    · have hsWindow : s ∈ Set.Icc (z.1 / 2) z.1 :=
+        ⟨le_of_not_ge hsHalf, hst.le⟩
+      have hcancel := wholeLineCauchyHeatHessOp_Ctheta_abs_le
+        hlag htheta0 htheta1 hHF
+        (F s).1.continuous.aestronglyMeasurable
+        (fun r => (WholeLineBUC.abs_apply_le_norm (F s) r).trans (hFnorm s))
+        (hFholder s hsWindow) (x := q)
+      rw [Real.norm_eq_abs]
+      calc
+        |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q| ≤
+            W * (z.1 - s) ^ aexp * HF := by
+          simpa [W, aexp] using hcancel
+        _ ≤ normBound s := by
+          dsimp [normBound]
+          linarith
+  have hHessInt : ∀ q : ℝ, IntervalIntegrable
+      (fun s : ℝ => wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q)
+      volume 0 z.1 := by
+    intro q
+    refine IntervalIntegrable.mono_fun'
+      (f := fun s : ℝ => wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q)
+      (g := normBound) hNormInt
+      (wholeLineCauchyHeatHessOp_s_dependent_aestronglyMeasurable
+        hFcont z.1 q).restrict ?_
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
+    filter_upwards with s hs
+    rw [Set.uIoc_of_le hz.le] at hs
+    rcases lt_or_eq_of_le hs.2 with hst | rfl
+    · exact hNormPoint s hs.1.le hst q
+    · rw [sub_self, wholeLineCauchyHeatHessOp_eq_zero_of_nonpos le_rfl]
+      simp only [norm_zero]
+      dsimp [normBound]
+      exact add_nonneg hA0
+        (mul_nonneg (mul_nonneg hW
+          (Real.rpow_nonneg (sub_nonneg.mpr le_rfl) _)) hHF)
+  have hDiffPoint : ∀ s, 0 ≤ s → s < z.1 → ∀ x y : ℝ,
+      |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x -
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y| ≤
+        diffBound s * |x - y| ^ eta := by
+    intro s hs0 hst x y
+    have hlag : 0 < z.1 - s := sub_pos.mpr hst
+    by_cases hsHalf : s ≤ z.1 / 2
+    · have hlagHalf : z.1 / 2 ≤ z.1 - s := by linarith
+      have hpow1 : (z.1 - s) ^ (-(1 : ℝ)) ≤
+          (z.1 / 2) ^ (-(1 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos hhalf hlagHalf (by norm_num)
+      have hpow3 : (z.1 - s) ^ (-(3 / 2 : ℝ)) ≤
+          (z.1 / 2) ^ (-(3 / 2 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos hhalf hlagHalf (by norm_num)
+      have hsBound : ∀ q, |wholeLineCauchyHeatHessOp
+          (z.1 - s) (F s).1 q| ≤ A0 := by
+        intro q
+        have hglobal := wholeLineCauchyHeatHessOp_abs_le
+          hlag hMF (F s).1.continuous.aestronglyMeasurable
+          (fun r => (WholeLineBUC.abs_apply_le_norm (F s) r).trans (hFnorm s))
+          (x := q)
+        calc
+          |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q| ≤
+              (C2 * (z.1 - s) ^ (-(1 : ℝ))) * MF := by
+            simpa [C2, mul_assoc] using hglobal
+          _ ≤ A0 := by
+            dsimp [A0]
+            gcongr
+      have hsLip : ∀ q r, |wholeLineCauchyHeatHessOp
+          (z.1 - s) (F s).1 q -
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 r| ≤
+          B0 * |q - r| := by
+        intro q r
+        have hlip := wholeLineCauchyHeatHessOp_lipschitz
+          hlag hMF (F s).1.continuous.aestronglyMeasurable
+          (fun w => (WholeLineBUC.abs_apply_le_norm (F s) w).trans (hFnorm s)) q r
+        calc
+          |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q -
+              wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 r| ≤
+              (C3 * (z.1 - s) ^ (-(3 / 2 : ℝ)) * MF) * |q - r| := by
+            simpa [C3, mul_assoc] using hlip
+          _ ≤ B0 * |q - r| := by
+            dsimp [B0]
+            gcongr
+      have hearly := holder_of_local_lipschitz_of_bounded_cauchy
+        heta0 heta1.le hB0 hsBound (fun q r _ => hsLip q r) x y
+      exact hearly.trans (mul_le_mul_of_nonneg_right
+        (le_add_of_le_of_nonneg (le_refl E0)
+          (mul_nonneg hD (Real.rpow_nonneg hlag.le _)))
+        (Real.rpow_nonneg (abs_nonneg _) _))
+    · have hsWindow : s ∈ Set.Icc (z.1 / 2) z.1 :=
+        ⟨le_of_not_ge hsHalf, hst.le⟩
+      have hlate := wholeLineCauchyHeatHessOp_Ctheta_to_Ceta
+        hlag hMF hHF htheta0 htheta1 heta0 heta1
+        (F s).1.continuous.aestronglyMeasurable
+        (fun r => (WholeLineBUC.abs_apply_le_norm (F s) r).trans (hFnorm s))
+        (hFholder s hsWindow) x y
+      have hlate' :
+          |wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x -
+              wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y| ≤
+            D * (z.1 - s) ^ eexp * |x - y| ^ eta := by
+        simpa [D, W, C3, eexp, mul_assoc, mul_left_comm, mul_comm] using hlate
+      exact hlate'.trans (mul_le_mul_of_nonneg_right
+        (le_add_of_nonneg_left hE0)
+        (Real.rpow_nonneg (abs_nonneg _) _))
+  let K : ℝ := ∫ s in (0 : ℝ)..z.1, diffBound s
+  have hK : 0 ≤ K := by
+    dsimp [K]
+    apply intervalIntegral.integral_nonneg hz.le
+    intro s hs
+    dsimp [diffBound]
+    exact add_nonneg hE0
+      (mul_nonneg hD (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _))
+  refine ⟨K, hK, ?_⟩
+  intro x y
+  have hsub :
+      (∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x) -
+        (∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y) =
+      ∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x -
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y) := by
+    rw [intervalIntegral.integral_sub (hHessInt x) (hHessInt y)]
+  rw [hsub, ← Real.norm_eq_abs]
+  have hmajor : IntervalIntegrable
+      (fun s : ℝ => diffBound s * |x - y| ^ eta) volume 0 z.1 :=
+    hDiffInt.mul_const _
+  calc
+    ‖∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x -
+          wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y)‖ ≤
+        ∫ s in (0 : ℝ)..z.1, diffBound s * |x - y| ^ eta := by
+      apply intervalIntegral.norm_integral_le_of_norm_le hz.le _ hmajor
+      filter_upwards with s
+      intro hs
+      rcases lt_or_eq_of_le hs.2 with hst | rfl
+      · simpa [Real.norm_eq_abs] using hDiffPoint s hs.1.le hst x y
+      · simp only [sub_self,
+            wholeLineCauchyHeatHessOp_eq_zero_of_nonpos le_rfl, norm_zero]
+        exact mul_nonneg
+          (by
+            dsimp [diffBound]
+            exact add_nonneg hE0
+              (mul_nonneg hD
+                (Real.rpow_nonneg (sub_nonneg.mpr le_rfl) _)))
+          (Real.rpow_nonneg (abs_nonneg _) _)
+    _ = K * |x - y| ^ eta := by
+      dsimp [K]
+      rw [intervalIntegral.integral_mul_const]
+
 section WholeLineCauchyC1HolderBootstrapAxiomAudit
 
 #print axioms wholeLineCauchyHeatHessOp_lipschitz
 #print axioms wholeLineCauchyHeatHessOp_Ctheta_to_Ceta
 #print axioms intervalIntegrable_sub_rpow_hess_Ctheta_to_Ceta
+#print axioms wholeLineCauchyFluxHessianHistory_Ceta
 
 end WholeLineCauchyC1HolderBootstrapAxiomAudit
 
