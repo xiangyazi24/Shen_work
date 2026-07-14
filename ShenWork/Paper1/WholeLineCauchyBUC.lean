@@ -70,6 +70,26 @@ theorem isClosed_wholeLineBUC :
 noncomputable instance wholeLineBUCCompleteSpace : CompleteSpace WholeLineBUC :=
   isClosed_wholeLineBUC.completeSpace_coe
 
+/-- Completeness for the norm-induced uniformity selected by generic Banach
+space theorems.  The subtype uniformity above and this metric uniformity have
+the same distance, but Lean does not identify the two reducible instance paths
+for `WholeLineBUC`. -/
+@[implicit_reducible] noncomputable def wholeLineBUCMetricCompleteSpace :
+    @CompleteSpace WholeLineBUC
+      (@PseudoMetricSpace.toUniformSpace WholeLineBUC inferInstance) := by
+  letI : UniformSpace WholeLineBUC := PseudoMetricSpace.toUniformSpace
+  let f : WholeLineBUC → BoundedContinuousFunction ℝ ℝ := fun u => u.1
+  have hf : Isometry f := by
+    intro u v
+    rfl
+  apply (completeSpace_iff_isComplete_range hf.isUniformInducing).2
+  have hrange : Set.range f =
+      (wholeLineBUCSubmodule : Set (BoundedContinuousFunction ℝ ℝ)) := by
+    ext g
+    simp [f]
+  rw [hrange]
+  exact isClosed_wholeLineBUC.isComplete
+
 /- Mathlib's `NormedAddCommGroup → NormedAddGroup → ENormedAddMonoid`
 instance chain is not synthesized through this reducible submodule alias. -/
 noncomputable instance wholeLineBUCENormedAddMonoid :
@@ -109,6 +129,17 @@ theorem WholeLineBUC.abs_apply_le_norm (u : WholeLineBUC) (x : ℝ) :
 theorem WholeLineBUC.apply_le_norm (u : WholeLineBUC) (x : ℝ) :
     u.1 x ≤ ‖u‖ :=
   (le_abs_self _).trans (WholeLineBUC.abs_apply_le_norm u x)
+
+/-- Point evaluation on the genuine BUC phase space, as a continuous linear
+map.  This is the bridge used to commute pointwise evaluation with BUC-valued
+Bochner integrals. -/
+def wholeLineBUCEvalCLM (x : ℝ) : WholeLineBUC →L[ℝ] ℝ :=
+  (BoundedContinuousFunction.evalCLM ℝ x).comp
+    wholeLineBUCSubmodule.subtypeL
+
+@[simp] theorem wholeLineBUCEvalCLM_apply (x : ℝ) (u : WholeLineBUC) :
+    wholeLineBUCEvalCLM x u = u.1 x :=
+  rfl
 
 /-- Construct a BUC element from an explicit uniform bound. -/
 def wholeLineBUCOfUniformBound
@@ -181,9 +212,11 @@ section WholeLineCauchyBUCAxiomAudit
 #print axioms PaperCUnifBdd.to_isCUnifBdd
 #print axioms PaperNonnegativeInitialDatum.to_nonnegativeInitialDatum
 #print axioms isClosed_wholeLineBUC
+#print axioms wholeLineBUCMetricCompleteSpace
 #print axioms WholeLineBUC.isCUnifBdd
 #print axioms wholeLineBUCOfUniformBound
 #print axioms wholeLineBUCOfPaperCUnifBdd
+#print axioms wholeLineBUCEvalCLM
 #print axioms wholeLineBUCTrajectory_jointContinuous
 #print axioms wholeLineBUCClamp_mem_Icc
 
