@@ -65,6 +65,14 @@ space.  Continuous BUC-valued trajectories on `Icc 0 T` are therefore a real
 complete metric space for the forthcoming Banach contraction; their evaluation
 is jointly continuous in time and space.
 
+`WholeLineCauchyBUCSources.lean` lifts the two clamp-globalized nonlinearities
+to actual self-maps into BUC.  The nontrivial spatial point is now proved:
+the elliptic resolver gradient is globally Lipschitz with constant
+`2*M^gamma` by its elliptic equation, and the product of bounded uniformly
+continuous factors is uniformly continuous.  Thus both flux and corrected
+reaction sources are legitimate elements of the complete phase space, not
+merely pointwise functions with assumed regularity.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
