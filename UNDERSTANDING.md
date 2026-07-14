@@ -207,6 +207,19 @@ interpolation.  Therefore
 available exponent window and physical strip.  The local full root build
 passes with 9564 jobs and both producer and specialized restart are clean-3.
 
+`WholeLineCauchyPositivePDE.lean` now assembles those terminal-average and
+fixed-old-history results with the homogeneous modified-heat generator.
+`wholeLineCauchyBUCMildFixedPoint_time_hasDerivWithinAt_positive` gives the
+canonical fixed point its complete right time derivative at every strictly
+interior positive time.  Its derivative contains exactly the current shifted
+reaction and the current spatial derivative of the chemotactic flux, in
+addition to the two old-history generator integrals.  The theorem is
+root-imported, the authorized local full build passes with 9566 jobs, and its
+axiom audit is the standard three.  The immediate next step is the positive-
+time interval-integrability bundle that rewrites those generator integrals
+against the already-proved spatial second derivative and fixed-point identity,
+thereby producing the physical parabolic PDE.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
