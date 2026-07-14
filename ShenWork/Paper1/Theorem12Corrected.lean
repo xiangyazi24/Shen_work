@@ -205,10 +205,10 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
         stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
-    (hbudget : ∀ p : CMParams,
+    (hbudget : ∀ p : CMParams, StableWaveParameterRegime p →
       Paper531StabilityBudget p (cStarStarFn p))
     (hcore :
-      ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ p : CMParams, ∀ hregime : StableWaveParameterRegime p,
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V u₀ : ℝ → ℝ,
         IsTravelingWave p c U V →
@@ -216,7 +216,8 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
         HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
         ∀ η : ℝ,
-          paper531RootMinus c (hbudget p).A (hbudget p).B < η →
+          paper531RootMinus c (hbudget p hregime).A
+              (hbudget p hregime).B < η →
           η < stabilityWeightCap p →
           NonnegativeInitialDatum u₀ →
           StrictlyPositiveAtLeft u₀ →
@@ -229,14 +230,15 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
             (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
               HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
             (∀ t : ℝ, 0 ≤ t → deriv E t ≤
-              2 * paper531Quadratic c (hbudget p).A (hbudget p).B η * E t) ∧
+              2 * paper531Quadratic c (hbudget p hregime).A
+                (hbudget p hregime).B η * E t) ∧
             EventuallyIntegrableMovingFrameEnergy η 0 (coMovingPath c u) U ∧
             EventuallyUniformMovingFrameSpatialModulus 0 (coMovingPath c u) U ∧
             UniformMovingFrameLeftTailConvergence 0 (coMovingPath c u) U) :
     Theorem_1_2_amended := by
   intro p hregime
   rcases hcStarStar p hregime with ⟨hasymp, hbaseline⟩
-  refine ⟨cStarStarFn p, hbudget p, hasymp, hbaseline, ?_⟩
+  refine ⟨cStarStarFn p, hbudget p hregime, hasymp, hbaseline, ?_⟩
   intro c hc U V hTW hreg hstrict htail η hroot heta u₀ hu₀ hleft hclose
   have hsignal : Section5ProfileInitialSignalBounds p U V u₀ :=
     section5ProfileInitialSignalBounds_proved p hTW hreg
@@ -251,10 +253,10 @@ theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
       coMovingPath] using hint
   have hweighted : CoMovingWeightedL2Convergence η c u U :=
     CoMovingWeightedL2Convergence.of_paper531_energy_inequality
-      ((hbudget p).quadratic_neg hc hroot heta)
+      ((hbudget p hregime).quadratic_neg hc hroot heta)
       hcontrol hint_direct hcont hderiv hdiss
   have hη : 0 < η :=
-    (hbudget p).rootMinus_pos hc |>.trans hroot
+    (hbudget p hregime).rootMinus_pos hc |>.trans hroot
   exact ⟨u, v, hsol, hweighted,
     uniformMovingFrameConvergence_of_coMovingWeightedL2_of_step4
       hη hint hweighted hmod hleftStep4⟩
