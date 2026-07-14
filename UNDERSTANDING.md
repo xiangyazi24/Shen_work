@@ -25,6 +25,18 @@ remaining stability frontiers are the general-data whole-line Cauchy
 construction, its positive-time weighted regularity/dominated time
 differentiation, and the Step 4 spatial-modulus/left-tail producers.
 
+The general-data Cauchy construction has now started with the actual coupled
+nonlinearity, not the older logistic-only `PDE/MildSolution.lean` model.
+`WholeLineCauchyLocalExistence.lean` proves on every nonnegative sup strip that
+the frozen elliptic resolver gradient and the full divergence-form
+chemotaxis flux are uniformly bounded and sup-Lipschitz; it also supplies the
+matching logistic-source bounds.  These are the nonlinear inputs for a BUC
+fixed point.  The next local-existence layer must use the Gaussian derivative
+kernel directly: the existing `deriv_heatSemigroup_*` API assumes global
+`L¹`, which excludes bounded nondecaying Cauchy data even though the kernel
+derivative convolution is well-defined.  Its time singularity is the
+integrable `1 / sqrt(t-s)` factor.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
