@@ -5293,3 +5293,15 @@ then proves that consecutive segments agree on their entire common
 half-window.  The remaining work is now topological bookkeeping: define the
 global time-indexed pair and use these overlaps to identify it locally with an
 interior portion of one classical segment.
+
+`WholeLineCauchyGlobalGluing.lean` performs that bookkeeping without placing
+restart seams at local time zero.  At global time `t` it selects segment
+`floor(t/delta).pred`; thus every `t>0`, including a grid seam, lies strictly
+inside its preferred segment.  The closed half-window overlap rewrites the
+left side of every seam, giving an actual neighborhood equality with a time
+translate of one canonical segment.  Ordinary differentiability and both PDE
+identities therefore transfer locally, producing a genuine global classical
+pair.  The same construction has the exact initial datum, uniform BUC initial
+trace, global nonnegativity, and the datum-dependent stable ceiling.  Strict
+positive-time positivity is the only remaining field of
+`IsGlobalCauchySolutionFrom`.
