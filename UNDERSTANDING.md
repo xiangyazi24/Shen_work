@@ -4997,3 +4997,15 @@ globally `C^eta` in space whenever `eta*(1+theta)<theta`.  The local full root
 build passes 9561 jobs and the new capstone is clean-3.  The remaining assembly
 adds the homogeneous and reaction histories to obtain a Holder modulus for
 the actual first derivative of the mild slice.
+
+The full first-derivative assembly is now proved.  The derivative identity
+from the first differentiation rung is rewritten as the sum of the
+homogeneous heat gradient, the flux Hessian history, and the reaction gradient
+history.  The homogeneous and reaction terms use the earlier fractional
+heat-gradient estimate, while the flux term uses the new split-history
+capstone.  Thus every positive-time canonical mild slice has a globally
+`C^eta` spatial derivative for any exponents satisfying
+`eta*(1+theta)<theta`.  The local full root build again passes 9561 jobs and
+the declaration is clean-3.  This supplies the missing input for proving that
+the nonlinear chemotaxis flux is `C^{1,eta}` and differentiating its Duhamel
+leg one final time.
