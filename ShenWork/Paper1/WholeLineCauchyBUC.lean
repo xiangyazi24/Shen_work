@@ -9,6 +9,8 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
+set_option maxSynthPendingDepth 10
+
 /-!
 # The paper-faithful BUC phase space
 
@@ -97,6 +99,16 @@ theorem WholeLineBUC.dist_zero_eq_norm (u : WholeLineBUC) :
     dist u 0 = ‖u‖ := by
   change dist u.1 0 = ‖u.1‖
   simpa using dist_eq_norm u.1 (0 : BoundedContinuousFunction ℝ ℝ)
+
+theorem WholeLineBUC.abs_apply_le_norm (u : WholeLineBUC) (x : ℝ) :
+    |u.1 x| ≤ ‖u‖ := by
+  change |u.1 x| ≤ ‖u.1‖
+  simpa [Real.norm_eq_abs] using
+    BoundedContinuousFunction.norm_coe_le_norm u.1 x
+
+theorem WholeLineBUC.apply_le_norm (u : WholeLineBUC) (x : ℝ) :
+    u.1 x ≤ ‖u‖ :=
+  (le_abs_self _).trans (WholeLineBUC.abs_apply_le_norm u x)
 
 /-- Construct a BUC element from an explicit uniform bound. -/
 def wholeLineBUCOfUniformBound
