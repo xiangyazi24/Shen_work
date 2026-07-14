@@ -1,4 +1,5 @@
 import ShenWork.Paper1.Theorem12Section5Budgets
+import ShenWork.Paper1.Theorem12LogDerivative
 import ShenWork.Paper1.WaveRotheStep
 
 noncomputable section
@@ -142,6 +143,65 @@ theorem paper5MeanCoefficient_zero (s r : ℝ) :
   · simp [paper5MeanCoefficient, hsr]
   · simp [paper5MeanCoefficient, hsr]
 
+/-- For a sublinear positive power, the singular secant coefficient becomes
+bounded after multiplication by its positive reference point.  This is the
+algebraic cancellation used in Paper 1 (5.23). -/
+theorem paper5MeanCoefficient_abs_mul_right_le_rpow
+    {beta s r : ℝ} (hbeta0 : 0 < beta) (hbeta1 : beta ≤ 1)
+    (hs : 0 ≤ s) (hr : 0 < r) :
+    |paper5MeanCoefficient beta s r| * r ≤ r ^ beta := by
+  have hr0 : 0 ≤ r := hr.le
+  have hrpow_pos : 0 < r ^ beta := Real.rpow_pos_of_pos hr _
+  by_cases hsr : s = r
+  · subst s
+    rw [paper5MeanCoefficient, if_pos rfl, abs_of_nonneg
+      (mul_nonneg hbeta0.le (Real.rpow_nonneg hr0 _))]
+    have hmul : r * r ^ (beta - 1) = r ^ beta := by
+      calc
+        r * r ^ (beta - 1) = r ^ (1 : ℝ) * r ^ (beta - 1) := by
+          rw [Real.rpow_one]
+        _ = r ^ ((1 : ℝ) + (beta - 1)) :=
+          (Real.rpow_add hr 1 (beta - 1)).symm
+        _ = r ^ beta := by ring_nf
+    rw [mul_assoc, mul_comm (r ^ (beta - 1)) r, hmul]
+    simpa using
+      (mul_le_mul_of_nonneg_right hbeta1 (Real.rpow_nonneg hr0 beta))
+  · rw [paper5MeanCoefficient, if_neg hsr]
+    rcases lt_or_gt_of_ne hsr with hlt | hgt
+    · have hpow_le : s ^ beta ≤ r ^ beta :=
+        Real.rpow_le_rpow hs hlt.le hbeta0.le
+      have hrewrite : (s ^ beta - r ^ beta) / (s - r) =
+          (r ^ beta - s ^ beta) / (r - s) := by
+        field_simp [sub_ne_zero.mpr hsr, sub_ne_zero.mpr (Ne.symm hsr)]
+        ring
+      rw [hrewrite]
+      rw [abs_of_nonneg (div_nonneg (sub_nonneg.mpr hpow_le)
+        (sub_nonneg.mpr hlt.le)), div_mul_eq_mul_div]
+      apply (div_le_iff₀ (sub_pos.mpr hlt)).2
+      have hq0 : 0 ≤ s / r := div_nonneg hs hr0
+      have hq1 : s / r ≤ 1 := (div_le_one hr).2 hlt.le
+      have hqpow : s / r ≤ (s / r) ^ beta :=
+        Real.self_le_rpow_of_le_one hq0 hq1 hbeta1
+      rw [Real.div_rpow hs hr0] at hqpow
+      have hcross : s * r ^ beta ≤ s ^ beta * r :=
+        (div_le_div_iff₀ hr hrpow_pos).1 hqpow
+      nlinarith
+    · have hpow_le : r ^ beta ≤ s ^ beta :=
+        Real.rpow_le_rpow hr0 hgt.le hbeta0.le
+      rw [abs_of_nonneg (div_nonneg (sub_nonneg.mpr hpow_le)
+        (sub_nonneg.mpr hgt.le))]
+      rw [div_mul_eq_mul_div]
+      apply (div_le_iff₀ (sub_pos.mpr hgt)).2
+      have hq1 : 1 ≤ s / r := by
+        apply (le_div_iff₀ hr).2
+        simpa using hgt.le
+      have hqpow : (s / r) ^ beta ≤ s / r :=
+        Real.rpow_le_self_of_one_le hq1 hbeta1
+      rw [Real.div_rpow hs hr0] at hqpow
+      have hcross : s ^ beta * r ≤ s * r ^ beta :=
+        (div_le_div_iff₀ hrpow_pos hr).1 hqpow
+      nlinarith
+
 /-- The paper's space-time coefficient `a_beta(t,x)`. -/
 def paper5A (beta : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ)
     (t x : ℝ) : ℝ :=
@@ -222,6 +282,94 @@ theorem paper5B2_abs_le_of_two_le_m
   change |paper5MeanCoefficient (p.m - 1) (u t x) (U x)| ≤ _
   convert ha using 1 <;> ring
 
+/-- The `1 < m < 2` branch of Paper 1 (5.23).  The apparently singular
+coefficient `a_{m-1}` is paired with `U'`; its singularity cancels against
+the positive wave value and leaves only the absolute logarithmic derivative.
+-/
+theorem paper5B2_abs_le_of_one_lt_m_of_m_lt_two
+    (p : CMParams) {M B t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hm1 : 1 < p.m) (hm2 : p.m < 2)
+    (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (hu : 0 ≤ u t x) (hUpos : 0 < U x) (hUle : U x ≤ M)
+    (hv : |deriv (v t) x| ≤ M ^ p.γ)
+    (hlog : |deriv U x / U x| ≤ B) :
+    |paper5B2 p u v U t x| ≤
+      p.m * M ^ (p.m + p.γ - 1) * B := by
+  have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hMg0 : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM _
+  have hU0 : 0 ≤ U x := hUpos.le
+  have hcoef := paper5MeanCoefficient_abs_mul_right_le_rpow
+    (beta := p.m - 1) (s := u t x) (r := U x)
+    (by linarith) (by linarith) hu hUpos
+  have hderiv_eq : |deriv U x| = |deriv U x / U x| * U x := by
+    rw [abs_div, abs_of_pos hUpos]
+    field_simp [ne_of_gt hUpos]
+  have hpaired :
+      |deriv U x| * |paper5A (p.m - 1) u U t x| ≤
+        B * (U x) ^ (p.m - 1) := by
+    change |deriv U x| *
+        |paper5MeanCoefficient (p.m - 1) (u t x) (U x)| ≤ _
+    rw [hderiv_eq]
+    calc
+      (|deriv U x / U x| * U x) *
+          |paper5MeanCoefficient (p.m - 1) (u t x) (U x)| =
+          |deriv U x / U x| *
+            (|paper5MeanCoefficient (p.m - 1) (u t x) (U x)| * U x) := by
+              ring
+      _ ≤ B * (U x) ^ (p.m - 1) :=
+        mul_le_mul hlog hcoef
+          (mul_nonneg (abs_nonneg _) hU0) hB
+  have hUpow_le : (U x) ^ (p.m - 1) ≤ M ^ (p.m - 1) :=
+    Real.rpow_le_rpow hU0 hUle (by linarith)
+  unfold paper5B2
+  rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg hm0]
+  calc
+    p.m * |deriv U x| * |deriv (v t) x| *
+        |paper5A (p.m - 1) u U t x| =
+        p.m * |deriv (v t) x| *
+          (|deriv U x| * |paper5A (p.m - 1) u U t x|) := by ring
+    _ ≤ p.m * (M ^ p.γ) * (B * (U x) ^ (p.m - 1)) := by
+      exact mul_le_mul
+        (mul_le_mul_of_nonneg_left hv hm0) hpaired
+        (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+        (mul_nonneg hm0 hMg0)
+    _ ≤ p.m * (M ^ p.γ) * (B * M ^ (p.m - 1)) := by
+      exact mul_le_mul_of_nonneg_left
+        (mul_le_mul_of_nonneg_left hUpow_le hB)
+        (mul_nonneg hm0 hMg0)
+    _ = p.m * M ^ (p.m + p.γ - 1) * B := by
+      rw [show p.m + p.γ - 1 = p.γ + (p.m - 1) by ring,
+        Real.rpow_add_of_nonneg hM (le_trans zero_le_one p.hγ)
+          (by linarith)]
+      ring
+
+/-- The nonmonotone corrected-wave producer for the singular `b₂` branch.
+This is (5.23) with the absolute Lemma 5.2 constant supplied internally. -/
+theorem paper5B2_abs_le_of_corrected_wave_one_lt_m_lt_two
+    (p : CMParams) {c κ₁ M t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hm1 : 1 < p.m) (hm2 : p.m < 2)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hκ₁ : kappa c < κ₁)
+    (htail : HasWaveRightTailAsymptotic c κ₁ U)
+    (hM : 0 ≤ M) (hu : 0 ≤ u t x) (hUle : U x ≤ M)
+    (hv : |deriv (v t) x| ≤ M ^ p.γ) :
+    |paper5B2 p u v U t x| ≤
+      p.m * M ^ (p.m + p.γ - 1) *
+        logDerivativeBoundFormula p c := by
+  apply paper5B2_abs_le_of_one_lt_m_of_m_lt_two p hm1 hm2 hM
+    (logDerivativeBoundFormula_nonneg_of_speed p
+      (le_trans (hbound.pos 0).le (hbound.le_MChi 0)) hspeed)
+    hu (hTW.U_pos x) hUle hv
+  exact abs_waveLogDerivative_le_logDerivativeBoundFormula
+    p hm1 hspeed hTW hreg hbound hκ₁ htail x
+
 theorem paper5B1_abs_le
     (p : CMParams) {M t x : ℝ} {u v : ℝ → ℝ → ℝ}
     (hM : 0 ≤ M) (hu : u t x ∈ Set.Icc (0 : ℝ) M)
@@ -287,10 +435,13 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5MeanCoefficient_nonneg
 #print axioms paper5MeanCoefficient_abs_le
 #print axioms paper5MeanCoefficient_zero
+#print axioms paper5MeanCoefficient_abs_mul_right_le_rpow
 #print axioms paper5A_mul_sub
 #print axioms paper5B2_eq_zero_of_m_eq_one
 #print axioms paper5B2_abs_le_raw
 #print axioms paper5B2_abs_le_of_two_le_m
+#print axioms paper5B2_abs_le_of_one_lt_m_of_m_lt_two
+#print axioms paper5B2_abs_le_of_corrected_wave_one_lt_m_lt_two
 #print axioms paper5B1_abs_le
 #print axioms paper5B3_abs_le_raw
 #print axioms paper5B4_abs_le
