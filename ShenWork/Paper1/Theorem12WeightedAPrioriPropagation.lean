@@ -83,6 +83,83 @@ theorem scalarEnergy_crude_exponential_bound
   rw [hformula] at hgronwall
   simpa using hgronwall
 
+/-- A homogeneous scalar growth estimate cannot create energy from a zero
+initial value.  This is the obstruction met by a genuinely compact spatial
+cutoff: a perturbation initially outside the cutoff may enter it at positive
+time, whereas `E' \le C E` would force the localized energy to stay zero. -/
+theorem scalarEnergy_eq_zero_of_zero_initial
+    {E : ℝ → ℝ} {C t : ℝ} (ht : 0 ≤ t)
+    (hzero : E 0 = 0) (hnonneg : ∀ s, 0 ≤ E s)
+    (hcont : ContinuousOn E (Set.Icc 0 t))
+    (hderiv : ∀ s ∈ Set.Ico (0 : ℝ) t,
+      HasDerivWithinAt E (deriv E s) (Set.Ici s) s)
+    (hgrowth : ∀ s ∈ Set.Ico (0 : ℝ) t,
+      deriv E s ≤ C * E s) :
+    E t = 0 := by
+  have hle := scalarEnergy_crude_exponential_bound ht hcont hderiv hgrowth
+  rw [hzero, zero_mul] at hle
+  exact le_antisymm hle (hnonneg t)
+
+/-- A nonnegative cutoff which vanishes to the right cannot have its spatial
+derivative bounded by a fixed multiple of itself unless it is identically
+zero.  Thus the boundary term from integration by parts for a nontrivial
+compact cutoff cannot be absorbed into that same cutoff energy with a
+cutoff-radius-uniform constant.
+
+This is a purely scalar consequence of Grönwall, recorded here because it is
+the exact obstruction to replacing the positive-time whole-line resolver
+estimate by a compactly supported homogeneous estimate. -/
+theorem compactCutoff_eq_zero_of_logDerivative_bound
+    {chi : ℝ → ℝ} {K R : ℝ}
+    (hchi_nonneg : ∀ x, 0 ≤ chi x)
+    (hchi_cont : Continuous chi)
+    (hchi_deriv : ∀ x, HasDerivAt chi (deriv chi x) x)
+    (hlog : ∀ x, |deriv chi x| ≤ K * chi x)
+    (hsupport : ∀ x, R ≤ x → chi x = 0) :
+    chi = 0 := by
+  funext x
+  by_cases hx : R ≤ x
+  · simpa using hsupport x hx
+  · let E : ℝ → ℝ := fun s => chi (R - s)
+    let T : ℝ := R - x
+    have hxR : x ≤ R := (lt_of_not_ge hx).le
+    have hT : 0 ≤ T := by
+      simpa [T] using sub_nonneg.mpr hxR
+    have hcont : ContinuousOn E (Set.Icc 0 T) :=
+      (hchi_cont.comp (continuous_const.sub continuous_id)).continuousOn
+    have hEat (s : ℝ) :
+        HasDerivAt E (-deriv chi (R - s)) s := by
+      have hinner : HasDerivAt (fun r : ℝ => R - r) (-1) s := by
+        simpa using (hasDerivAt_const s R).sub (hasDerivAt_id s)
+      dsimp only [E]
+      simpa using (hchi_deriv (R - s)).comp s hinner
+    have hderiv : ∀ s ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt E (deriv E s) (Set.Ici s) s := by
+      intro s _hs
+      have hs := hEat s
+      rw [hs.deriv]
+      exact hs.hasDerivWithinAt
+    have hgrowth : ∀ s ∈ Set.Ico (0 : ℝ) T,
+        deriv E s ≤ K * E s := by
+      intro s _hs
+      have hs := hEat s
+      rw [hs.deriv]
+      calc
+        -deriv chi (R - s) ≤ |deriv chi (R - s)| := neg_le_abs _
+        _ ≤ K * chi (R - s) := hlog (R - s)
+        _ = K * E s := rfl
+    have hbound := scalarEnergy_crude_exponential_bound
+      hT hcont hderiv hgrowth
+    have hEzero : E 0 = 0 := by
+      dsimp only [E]
+      simpa using hsupport R le_rfl
+    have hET : E T = chi x := by
+      dsimp only [E, T]
+      congr 1
+      ring
+    rw [hET, hEzero, zero_mul] at hbound
+    exact le_antisymm hbound (hchi_nonneg x)
+
 /-- An exhaustion by honest finite cutoff energies produces the compact-window
 estimate consumed by
 `movingFrameWeightedError_propagation_of_crudeIccEstimate`.
@@ -266,6 +343,8 @@ theorem wholeLineCauchyGlobal_weightedError_propagation_of_cutoffEnergy
 section Theorem12WeightedAPrioriPropagationAxiomAudit
 
 #print axioms scalarEnergy_crude_exponential_bound
+#print axioms scalarEnergy_eq_zero_of_zero_initial
+#print axioms compactCutoff_eq_zero_of_logDerivative_bound
 #print axioms movingFrameWeightedError_Icc_bound_of_cutoffEnergy
 #print axioms movingFrameWeightedError_integrable_of_Icc_energy_bound
 #print axioms movingFrameWeightedError_integral_le_of_Icc_energy_bound
