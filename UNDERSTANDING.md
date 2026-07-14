@@ -5317,5 +5317,10 @@ the exponent equality remains confined to the attractive branch.  This weaker
 regime propagates through the canonical segments and global gluing, yielding
 `exists_wholeLineGlobalNonnegativeCauchySolution_of_chi_nonpos` for every
 paper-admissible nonnegative BUC datum, with a uniform-in-time boundedness
-witness.  The remaining Proposition 1.1(1) work is the sharp maximum bound
-`max {1, sup u₀}` and the uniform long-time limsup `≤ 1`.
+witness.  `WholeLineCauchySharpBound.lean` then separates the physical
+constant supersolution from the larger contraction clamp: any admissible
+ceiling is preserved through every recursive restart datum and segment.  In
+the nonpositive branch this gives the exact paper bound
+`u(t,x) ≤ max {1,M}` whenever `u₀ ≤ M`, together with a single existential
+producer carrying both the global solution and that sharp bound.  The
+remaining Proposition 1.1(1) work is the uniform long-time limsup `≤ 1`.
