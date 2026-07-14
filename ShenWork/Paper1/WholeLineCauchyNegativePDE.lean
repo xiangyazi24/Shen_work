@@ -1517,6 +1517,128 @@ theorem wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
   intro s hs y hy
   exact (hzero s hs y hy).2
 
+/-! ## Scalar-history form of the canonical fixed-point identity -/
+
+theorem wholeLineCauchyGradientBUCIntegrand_apply_eq_of_lt
+    (p : CMParams) {M T t s : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (hs : s < t) (x : ℝ) :
+    (wholeLineCauchyGradientBUCIntegrand p hM hT U t s).1 x =
+      wholeLineCauchyHeatGradOp (t - s)
+        (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 x := by
+  have hlag : 0 < t - s := sub_pos.mpr hs
+  simp [wholeLineCauchyGradientBUCIntegrand,
+    wholeLineCauchyHeatGradientBUCTotal, hlag]
+
+theorem wholeLineCauchyValueBUCIntegrand_apply_eq_of_lt
+    (p : CMParams) {M T t s : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (hs : s < t) (x : ℝ) :
+    (wholeLineCauchyValueBUCIntegrand p hM hT U t s).1 x =
+      wholeLineCauchyHeatOp (t - s)
+        (wholeLineCauchyReactionSourceTrajectory p hM hT U s).1 x := by
+  have hlag : 0 < t - s := sub_pos.mpr hs
+  simp [wholeLineCauchyValueBUCIntegrand, wholeLineCauchyHeatBUCTotal, hlag]
+
+/-- The canonical BUC fixed-point equation written in the exact scalar-history
+form consumed by the time and spatial derivative capstones. -/
+theorem wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ) (ht : 0 < z.1) :
+    (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x =
+      wholeLineCauchyHeatOp z.1 u₀.1 x +
+        (-p.χ) * wholeLineCauchyGradientHistory
+          (wholeLineCauchyFluxSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)) z.1 x +
+        wholeLineCauchyValueHistory
+          (wholeLineCauchyReactionSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)) z.1 x := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  have hgrad :
+      (∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyGradientBUCIntegrand p hM hT U z.1 s).1 x) =
+      wholeLineCauchyGradientHistory
+        (wholeLineCauchyFluxSourceTrajectory p hM hT U) z.1 x := by
+    unfold wholeLineCauchyGradientHistory
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [Measure.ae_ne volume z.1] with s hne hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    exact wholeLineCauchyGradientBUCIntegrand_apply_eq_of_lt
+      p hM hT U (lt_of_le_of_ne hs.2 hne) x
+  have hvalue :
+      (∫ s in (0 : ℝ)..z.1,
+        (wholeLineCauchyValueBUCIntegrand p hM hT U z.1 s).1 x) =
+      wholeLineCauchyValueHistory
+        (wholeLineCauchyReactionSourceTrajectory p hM hT U) z.1 x := by
+    unfold wholeLineCauchyValueHistory
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [Measure.ae_ne volume z.1] with s hne hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    exact wholeLineCauchyValueBUCIntegrand_apply_eq_of_lt
+      p hM hT U (lt_of_le_of_ne hs.2 hne) x
+  have hfix := wholeLineCauchyBUCMildFixedPoint_apply_eq_integrals
+    p hM hT u₀ hsmall z x
+  change (U z).1 x = _ at hfix ⊢
+  rw [show (wholeLineCauchyHeatBUCTotal z.1 u₀).1 x =
+      wholeLineCauchyHeatOp z.1 u₀.1 x by
+        simp [wholeLineCauchyHeatBUCTotal, ht], hgrad, hvalue] at hfix
+  exact hfix
+
+/-- Time derivative of the canonical clamped fixed point at an interior
+strict-negative point, in generator form. -/
+theorem wholeLineCauchyBUCMildFixedPoint_time_hasDerivAt_at_negative
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ)
+    (ht : 0 < z.1) (htop : z.1 < T)
+    (hneg : (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x < 0) :
+    HasDerivAt
+      (fun q : ℝ =>
+        (wholeLineBUCTrajectoryExtend hT
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) q).1 x)
+      ((wholeLineCauchyHeatHessOp z.1 u₀.1 x -
+          wholeLineCauchyHeatOp z.1 u₀.1 x) +
+        (-p.χ) * (∫ s in (0 : ℝ)..z.1,
+          (wholeLineCauchyHeatThirdOp (z.1 - s)
+              (wholeLineCauchyFluxSourceTrajectory p hM hT
+                (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x -
+            wholeLineCauchyHeatGradOp (z.1 - s)
+              (wholeLineCauchyFluxSourceTrajectory p hM hT
+                (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x)) +
+        (∫ s in (0 : ℝ)..z.1,
+          (wholeLineCauchyHeatHessOp (z.1 - s)
+              (wholeLineCauchyReactionSourceTrajectory p hM hT
+                (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x -
+            wholeLineCauchyHeatOp (z.1 - s)
+              (wholeLineCauchyReactionSourceTrajectory p hM hT
+                (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x))) z.1 := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let R : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  have hu₀bound : ∀ y, |u₀.1 y| ≤ ‖u₀‖ := fun y =>
+    WholeLineBUC.abs_apply_le_norm u₀ y
+  have hheat := wholeLineCauchyHeatOp_time_hasDerivAt
+    ht (norm_nonneg u₀) u₀.1.continuous.aestronglyMeasurable hu₀bound x
+  have hflux := wholeLineCauchyFluxGradientHistory_time_hasDerivAt_at_negative
+    p hM hT U z x ht htop hneg
+  have hreaction := wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
+    p hM hT U z x ht htop hneg
+  have hrhs := (hheat.add (hflux.const_mul (-p.χ))).add hreaction
+  have hevent :
+      (fun q : ℝ => (wholeLineBUCTrajectoryExtend hT U q).1 x) =ᶠ[𝓝 z.1]
+        (fun q : ℝ => wholeLineCauchyHeatOp q u₀.1 x +
+          (-p.χ) * wholeLineCauchyGradientHistory F q x +
+          wholeLineCauchyValueHistory R q x) := by
+    filter_upwards [Ioo_mem_nhds ht htop] with q hq
+    let w : Set.Icc (0 : ℝ) T := ⟨q, hq.1.le, hq.2.le⟩
+    rw [wholeLineBUCTrajectoryExtend_eq hT U w.2]
+    simpa [U, F, R, w] using
+      wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+        p hM hT u₀ hsmall w x hq.1
+  change HasDerivAt (fun q : ℝ => (wholeLineBUCTrajectoryExtend hT U q).1 x) _ z.1
+  exact hrhs.congr_of_eventuallyEq hevent
+
 #print axioms wholeLineCauchyHeatOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatGradOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
@@ -1525,5 +1647,7 @@ theorem wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
 #print axioms wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
 #print axioms wholeLineCauchyFluxGradientHistory_time_hasDerivAt_at_negative
 #print axioms wholeLineCauchyReactionValueHistory_time_hasDerivAt_at_negative
+#print axioms wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+#print axioms wholeLineCauchyBUCMildFixedPoint_time_hasDerivAt_at_negative
 
 end ShenWork.Paper1

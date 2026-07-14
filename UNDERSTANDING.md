@@ -4848,3 +4848,14 @@ time endpoints; hence the time clamp is provably inactive throughout the
 neighborhood.  The next assembly step is purely algebraic/regularity wiring:
 differentiate the pointwise fixed-point identity in time and twice in space,
 then cancel the matching history terms to obtain `u_t = u_xx - u`.
+
+The time half of that assembly is now complete for the canonical fixed point.
+The BUC-valued mild equation has first been normalized to the same scalar
+histories used by the derivative theorems.  At the terminal point the
+totalized value operator is the identity while the scalar zero-lag operator is
+zero, so their equality is correctly used only almost everywhere in the time
+integral.  On the open time cylinder the normalized mild identity is an
+eventual equality with the real-time trajectory extension; combining the
+homogeneous heat generator with both actual-source history derivatives gives
+an actual `HasDerivAt` theorem for the fixed point at every strict-negative
+interior point.  The remaining half is the twice-spatial derivative identity.
