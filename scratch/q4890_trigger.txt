@@ -1,2 +1,2 @@
 Run the exact Q4890 Jacobi/Christoffel-Darboux contiguous-band search.
-Trigger revision 3: include standard, ARM, and slim runner pools.
+Trigger revision 4: include Linux, ARM, slim, macOS, and Windows runner pools.
