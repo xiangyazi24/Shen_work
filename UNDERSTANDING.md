@@ -57,6 +57,14 @@ space correction, `WholeLineCauchyTruncation.lean` now globalizes both coupled
 nonlinearities with `clampIcc`; it provides global sup/Lipschitz estimates and
 proves that the truncation disappears on `[0,M]`.
 
+`WholeLineCauchyBUC.lean` now makes that statement correction executable.  It
+defines the paper-faithful bounded-uniformly-continuous datum predicate, proves
+its compatibility with the historical admissibility predicate, and realizes
+BUC as a closed (hence complete) subtype of the bounded-continuous sup-norm
+space.  Continuous BUC-valued trajectories on `Icc 0 T` are therefore a real
+complete metric space for the forthcoming Banach contraction; their evaluation
+is jointly continuous in time and space.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
