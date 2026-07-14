@@ -22,10 +22,6 @@ wave solution” explicitly in the Lean signature: the bare repository
 logically imply differentiability.
 -/
 
-/-- Laboratory solution observed in the coordinate moving at speed `c`. -/
-def coMovingPath (c : ℝ) (u : ℝ → ℝ → ℝ) (t z : ℝ) : ℝ :=
-  u t (z + c * t)
-
 /-- Paper 1 Theorem 1.2 with all three statement defects repaired:
 
 * the weighted norm is in the moving coordinate used in Section 5;
