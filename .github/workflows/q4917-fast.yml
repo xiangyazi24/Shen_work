@@ -1,0 +1,40 @@
+name: Q4917 fast modular recurrence probe
+
+on:
+  push:
+    branches: [q4917-krecurrence]
+    paths:
+      - scratch/q4917_fast.py
+      - .github/workflows/q4917-fast.yml
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - scratch/q4917_fast.py
+      - .github/workflows/q4917-fast.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: q4917-fast
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4917-krecurrence
+      - name: Run modular recurrence probe
+        run: python3 scratch/q4917_fast.py | tee scratch/q4917_fast_result.txt
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scratch/q4917_fast_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4917 fast recurrence result'
+          git push origin HEAD:q4917-krecurrence
