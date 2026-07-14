@@ -5243,7 +5243,21 @@ ceiling in advance.
 The same file now packages the limiting argument as
 `wholeLineSlabSup_le_of_scalar_pde`.  For any continuous scalar envelope `G`,
 if the equation has the upper form `u_t <= u_xx + K |u_x| + G(u)` and `G` is
-strictly negative at every candidate slab supremum above the initial ceiling,
+strictly negative at the actual candidate slab supremum above the initial ceiling,
 the approximate maximum errors are absorbed by continuity of `G` and a small
 choice of the derivative tolerance.  This separates the real-analysis
 maximum principle from the chemotaxis-specific resolver estimate.
+
+`WholeLineCauchyStableCeilingPDE.lean` supplies that nonlocal specialization.
+On a bounded classical slab the frozen elliptic resolver is bounded above by
+the gamma power of the true slab supremum, while its derivative is controlled
+by the same bound.  The derivative contribution is therefore absorbed by the
+small-gradient error at the approximate maximum.  For negative sensitivity,
+the remaining resolver difference cancels at the slab supremum and leaves
+`L * (1 - L^alpha) < 0`.  For nonnegative sensitivity, the stable equality
+`alpha = m + gamma - 1` and the explicit ceiling margin give
+`1 < (1 - chi) * L^alpha`.  Thus
+`wholeLineSlabSup_le_of_stable_resolver_pde` proves the genuine ceiling on
+every bounded classical slab without a spatial-tail assumption.  The next
+step is to instantiate its regularity and expanded-PDE hypotheses for the
+canonical local fixed point, then combine the ceiling with uniform restart.
