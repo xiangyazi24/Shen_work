@@ -110,17 +110,42 @@ theorem holderLeg_conjugateChemotaxisM
 
 /-! ## Positive-time capstone -/
 
+/-- An explicit spatial Holder constant for the faithful conjugate mild
+solution.  In particular, it depends on the ceiling `M` but not on the
+positive floor used to construct a local mild solution. -/
+def conjugateMildMHolderConstant
+    (p : CM2Params) (M T θ τ : ℝ) : ℝ :=
+  let base : ℝ := (2 : ℝ) ^ (1 - θ) * gradSmoothingConst ^ θ
+  let CL : ℝ := M * (p.a + p.b * M ^ p.α)
+  let CQ : ℝ := M ^ p.m * (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+      * (2 * (p.ν * M ^ p.γ)))
+  let gbase : ℝ := (2 : ℝ) ^ (1 - θ)
+    * ((5 * Real.sqrt 2 / 2) ^ θ
+      * heatGradientLinftyLinftyConstant ^ (1 - θ))
+  let UB_L : ℝ := T ^ (-(θ / 2) + 1) / (-(θ / 2) + 1)
+  let UB_Q : ℝ := T ^ (-((1 + θ) / 2) + 1)
+    / (-((1 + θ) / 2) + 1)
+  base * M * τ ^ (-(θ / 2) : ℝ)
+    + |p.χ₀| * (gbase * CQ * UB_Q) + base * CL * UB_L
+
+set_option maxHeartbeats 400000 in
+-- The explicit witness adds one normalization step to the original estimate;
+-- the analytic proof itself is unchanged.
 /-- Positive-time spatial Holder regularity of the faithful conjugate-kernel
-mild fixed point. -/
-theorem conjugateMildM_positiveTime_holder
+mild fixed point, with its explicit floor-independent constant. -/
+theorem conjugateMildM_positiveTime_holder_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildSolutionDataM p u₀)
     (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
     (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
     {θ τ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1) (hτ : 0 < τ) :
-    ∃ K : ℝ, 0 ≤ K ∧ ∀ t ∈ Set.Icc τ D.T,
+    0 ≤ conjugateMildMHolderConstant p D.M D.T θ τ ∧
+      ∀ t ∈ Set.Icc τ D.T,
       ∀ x y : intervalDomainPoint,
-        |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+        |D.u t x - D.u t y|
+          ≤ conjugateMildMHolderConstant p D.M D.T θ τ
+            * |x.1 - y.1| ^ θ := by
   classical
   set M := D.M with hMdef
   have hMpos : 0 < M := D.hM
@@ -173,7 +198,11 @@ theorem conjugateMildM_positiveTime_holder
     have h3 : 0 ≤ base * CL * UB_L :=
       mul_nonneg (mul_nonneg hbase_nn hCL_nn) hUBL_nn
     linarith
-  refine ⟨K, hK_nn, fun t ht x y => ?_⟩
+  have hK_eq : K = conjugateMildMHolderConstant p D.M D.T θ τ := by
+    simp only [conjugateMildMHolderConstant, hK, hbase, hCL, hCQ,
+      hgbase, hUBL, hUBQ, hMdef]
+  rw [← hK_eq]
+  refine ⟨hK_nn, fun t ht x y => ?_⟩
   obtain ⟨hτt, htT⟩ := ht
   have htpos : 0 < t := lt_of_lt_of_le hτ hτt
   have hdxy_nn : 0 ≤ |x.1 - y.1| ^ θ :=
@@ -290,9 +319,24 @@ theorem conjugateMildM_positiveTime_holder
   rw [hassoc] at hsum
   exact hsum
 
+/-- Positive-time spatial Holder regularity of the faithful conjugate-kernel
+mild fixed point. -/
+theorem conjugateMildM_positiveTime_holder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionDataM p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {θ τ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1) (hτ : 0 < τ) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t ∈ Set.Icc τ D.T,
+      ∀ x y : intervalDomainPoint,
+        |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact ⟨conjugateMildMHolderConstant p D.M D.T θ τ,
+    conjugateMildM_positiveTime_holder_bound D hu₀ hu₀_meas hθ0 hθ1 hτ⟩
+
 end
 
 end ShenWork.Paper2
 
 #print axioms ShenWork.Paper2.holderLeg_conjugateChemotaxisM
+#print axioms ShenWork.Paper2.conjugateMildM_positiveTime_holder_bound
 #print axioms ShenWork.Paper2.conjugateMildM_positiveTime_holder
