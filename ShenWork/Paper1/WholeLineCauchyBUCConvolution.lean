@@ -118,12 +118,140 @@ theorem kernelConvBUC_lipschitz
   rw [Real.coe_toNNReal _ hA]
   exact kernelConvBUC_dist_le hK_cont hK_int g₁ g₂
 
+@[simp] theorem kernelConvBUC_zero
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K) :
+    kernelConvBUC hK_cont hK_int 0 = 0 := by
+  apply Subtype.ext
+  apply BoundedContinuousFunction.ext
+  intro x
+  simp [kernelConvBUC_apply, kernelConvVal]
+
+theorem kernelConvBUC_add
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (g₁ g₂ : WholeLineBUC) :
+    kernelConvBUC hK_cont hK_int (g₁ + g₂) =
+      kernelConvBUC hK_cont hK_int g₁ +
+        kernelConvBUC hK_cont hK_int g₂ := by
+  apply Subtype.ext
+  apply BoundedContinuousFunction.ext
+  intro x
+  simp only [kernelConvBUC_apply, Submodule.coe_add,
+    BoundedContinuousFunction.add_apply]
+  unfold kernelConvVal
+  change (∫ y : ℝ, K (x - y) * (g₁.1 y + g₂.1 y)) = _
+  rw [show (fun y : ℝ => K (x - y) * (g₁.1 y + g₂.1 y)) =
+      fun y : ℝ => K (x - y) * g₁.1 y + K (x - y) * g₂.1 y by
+    funext y
+    ring]
+  rw [integral_add
+    (kernelConv_integrand_integrable hK_cont hK_int g₁.1 x)
+    (kernelConv_integrand_integrable hK_cont hK_int g₂.1 x)]
+
+theorem kernelConvBUC_smul
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (c : ℝ) (g : WholeLineBUC) :
+    kernelConvBUC hK_cont hK_int (c • g) =
+      c • kernelConvBUC hK_cont hK_int g := by
+  apply Subtype.ext
+  apply BoundedContinuousFunction.ext
+  intro x
+  simp only [kernelConvBUC_apply, Submodule.coe_smul_of_tower,
+    BoundedContinuousFunction.coe_smul, smul_eq_mul]
+  unfold kernelConvVal
+  change (∫ y : ℝ, K (x - y) * (c * g.1 y)) = _
+  rw [show (fun y : ℝ => K (x - y) * (c * g.1 y)) =
+      fun y : ℝ => c * (K (x - y) * g.1 y) by
+    funext y
+    ring]
+  rw [integral_const_mul]
+
+def kernelConvBUCLinearMap
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K) :
+    WholeLineBUC →ₗ[ℝ] WholeLineBUC where
+  toFun := kernelConvBUC hK_cont hK_int
+  map_add' := kernelConvBUC_add hK_cont hK_int
+  map_smul' := kernelConvBUC_smul hK_cont hK_int
+
+theorem kernelConvBUC_norm_le
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (g : WholeLineBUC) :
+    ‖kernelConvBUC hK_cont hK_int g‖ ≤
+      (∫ z : ℝ, |K z|) * ‖g‖ := by
+  have h := kernelConvBUC_dist_le hK_cont hK_int g 0
+  simpa using h
+
+def kernelConvBUCCLM
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K) :
+    WholeLineBUC →L[ℝ] WholeLineBUC where
+  toLinearMap := kernelConvBUCLinearMap hK_cont hK_int
+  cont := (kernelConvBUC_lipschitz hK_cont hK_int).continuous
+
+@[simp] theorem kernelConvBUCCLM_apply
+    {K : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (g : WholeLineBUC) :
+    kernelConvBUCCLM hK_cont hK_int g = kernelConvBUC hK_cont hK_int g :=
+  rfl
+
+theorem kernelConvVal_kernel_sub
+    {K L : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (hL_cont : Continuous L) (hL_int : Integrable L)
+    (g : WholeLineBUC) (x : ℝ) :
+    kernelConvVal (fun z => K z - L z) g.1 x =
+      kernelConvVal K g.1 x - kernelConvVal L g.1 x := by
+  unfold kernelConvVal
+  rw [← integral_sub
+    (kernelConv_integrand_integrable hK_cont hK_int g.1 x)
+    (kernelConv_integrand_integrable hL_cont hL_int g.1 x)]
+  apply integral_congr_ae
+  exact Eventually.of_forall fun y => by ring
+
+theorem kernelConvBUC_kernel_dist_le
+    {K L : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (hL_cont : Continuous L) (hL_int : Integrable L)
+    (g : WholeLineBUC) :
+    dist (kernelConvBUC hK_cont hK_int g)
+        (kernelConvBUC hL_cont hL_int g) ≤
+      (∫ z : ℝ, |K z - L z|) * ‖g‖ := by
+  change dist
+      (greenConvBCF hK_cont hK_int g.1)
+      (greenConvBCF hL_cont hL_int g.1) ≤ _
+  rw [BoundedContinuousFunction.dist_le_iff_of_nonempty]
+  intro x
+  rw [Real.dist_eq]
+  simp only [greenConvBCF_apply]
+  rw [← kernelConvVal_kernel_sub hK_cont hK_int
+    hL_cont hL_int g x]
+  exact kernelConvVal_abs_le (hK_int.sub hL_int) g.1 x
+
+theorem kernelConvBUC_joint_dist_le
+    {K L : ℝ → ℝ} (hK_cont : Continuous K) (hK_int : Integrable K)
+    (hL_cont : Continuous L) (hL_int : Integrable L)
+    (g w : WholeLineBUC) :
+    dist (kernelConvBUC hK_cont hK_int g)
+        (kernelConvBUC hL_cont hL_int w) ≤
+      (∫ z : ℝ, |K z|) * dist g w +
+        (∫ z : ℝ, |K z - L z|) * ‖w‖ := by
+  calc
+    dist (kernelConvBUC hK_cont hK_int g)
+        (kernelConvBUC hL_cont hL_int w) ≤
+      dist (kernelConvBUC hK_cont hK_int g)
+          (kernelConvBUC hK_cont hK_int w) +
+        dist (kernelConvBUC hK_cont hK_int w)
+          (kernelConvBUC hL_cont hL_int w) := dist_triangle _ _ _
+    _ ≤ (∫ z : ℝ, |K z|) * dist g w +
+        (∫ z : ℝ, |K z - L z|) * ‖w‖ :=
+      add_le_add (kernelConvBUC_dist_le hK_cont hK_int g w)
+        (kernelConvBUC_kernel_dist_le hK_cont hK_int hL_cont hL_int w)
+
 section WholeLineCauchyBUCConvolutionAxiomAudit
 
 #print axioms kernelConvVal_uniformContinuous
 #print axioms kernelConvBUC
 #print axioms kernelConvBUC_dist_le
 #print axioms kernelConvBUC_lipschitz
+#print axioms kernelConvBUCCLM
+#print axioms kernelConvBUC_kernel_dist_le
+#print axioms kernelConvBUC_joint_dist_le
 
 end WholeLineCauchyBUCConvolutionAxiomAudit
 
