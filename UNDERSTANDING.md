@@ -5261,3 +5261,15 @@ the remaining resolver difference cancels at the slab supremum and leaves
 every bounded classical slab without a spatial-tail assumption.  The next
 step is to instantiate its regularity and expanded-PDE hypotheses for the
 canonical local fixed point, then combine the ceiling with uniform restart.
+
+`WholeLineCauchyStableCeilingCanonical.lean` performs that instantiation.
+For each target time strictly below the construction endpoint, it applies the
+slab theorem on a slightly longer but still interior auxiliary horizon.  The
+ordinary time derivative, two spatial derivatives, expanded flux derivative,
+joint continuity, and physical strip all come from the canonical fixed-point
+bootstrap.  BUC time continuity then passes the estimate to the construction
+endpoint.  The resulting
+`wholeLineCauchyBUCMildFixedPoint_le_stableCeiling` bounds the full closed
+local trajectory by `wholeLineCauchyStableCeiling p u0`; it assumes neither a
+tail limit nor the conclusion itself.  This is the uniform a priori input for
+the remaining restart/gluing construction.
