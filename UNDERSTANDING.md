@@ -4873,3 +4873,12 @@ scalar-history mild identity yields the actual negative-set equation
 The next obligation is the comparison step: use this homogeneous equation and
 the nonnegative initial trace to rule out a first negative value, hence prove
 the canonical clamped fixed point is nonnegative and the lower clamp inactive.
+
+The comparison step is now closed.  A coercive quadratic barrier on a compact
+space-time rectangle proves a weak minimum principle that requires classical
+derivatives only on the strict-negative set.  Applying the negative-set PDE
+rules out negative values for every `0 <= t < T`; trajectory continuity supplies
+the terminal slice.  Combining this with the existing strict upper bound puts
+the canonical fixed point in `[0, ‖u₀‖ + 1)` on the whole construction cylinder.
+Both clamps are therefore inactive, and the same trajectory is proved
+pointwise to satisfy the original, unclamped whole-line Duhamel equation.
