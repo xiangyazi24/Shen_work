@@ -438,12 +438,140 @@ theorem wholeLineCauchyFluxHessianHistory_Ceta
       dsimp [K]
       rw [intervalIntegral.integral_mul_const]
 
+/-- Every positive-time canonical mild slice has a spatial derivative which
+is globally `C^eta`.  The three terms are respectively the homogeneous heat
+gradient, the flux Hessian history, and the reaction gradient history. -/
+theorem wholeLineCauchyBUCMildFixedPoint_spatial_deriv_Ceta
+    (p : CMParams) {M T theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ x y : ℝ,
+      |deriv (fun w : ℝ =>
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 w) x -
+        deriv (fun w : ℝ =>
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 w) y| ≤
+        K * |x - y| ^ eta := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let R : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  let Ceta : ℝ :=
+    (2 : ℝ) ^ (1 - eta) *
+      ((5 * Real.sqrt 2 / 2) ^ eta *
+        (2 / Real.sqrt (4 * Real.pi)) ^ (1 - eta))
+  let Kheat : ℝ :=
+    Ceta * z.1 ^ (-((1 + eta) / 2) : ℝ) * ‖u₀‖
+  let Kreac : ℝ :=
+    Ceta * MR *
+      (z.1 ^ ((1 - eta) / 2 : ℝ) / ((1 - eta) / 2))
+  have hMR : 0 ≤ MR := by
+    dsimp [MR]
+    positivity
+  have hCeta : 0 ≤ Ceta := by
+    dsimp [Ceta]
+    positivity
+  have hKheat : 0 ≤ Kheat := by
+    dsimp [Kheat]
+    positivity
+  have hKreac : 0 ≤ Kreac := by
+    dsimp [Kreac]
+    exact mul_nonneg (mul_nonneg hCeta hMR)
+      (div_nonneg (Real.rpow_nonneg hz.le _) (by linarith))
+  have hRcont : Continuous R := by
+    simpa [R] using wholeLineCauchyReactionSourceTrajectory_continuous p hM hT U
+  have hRnorm : ∀ s, ‖R s‖ ≤ MR := by
+    intro s
+    simpa [R, MR, wholeLineCauchyReactionSourceTrajectory] using
+      wholeLineCauchyTruncatedReactionBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  rcases wholeLineCauchyFluxHessianHistory_Ceta
+      p hM hT u₀ hsmall z hz htheta0 htheta1 heta0 heta1 hrel with
+    ⟨Kflux, hKflux, hflux⟩
+  let K : ℝ := Kheat + |p.χ| * Kflux + Kreac
+  have hK : 0 ≤ K := by
+    dsimp [K]
+    positivity
+  refine ⟨K, hK, ?_⟩
+  intro x y
+  have hdatum : ∀ q, |u₀.1 q| ≤ ‖u₀‖ :=
+    fun q => WholeLineBUC.abs_apply_le_norm u₀ q
+  have hheat :
+      |wholeLineCauchyHeatGradOp z.1 u₀.1 x -
+          wholeLineCauchyHeatGradOp z.1 u₀.1 y| ≤
+        Kheat * |x - y| ^ eta := by
+    have h := wholeLineCauchyHeatGradOp_Linf_to_Ctheta
+      hz (norm_nonneg u₀) heta0 heta1
+      u₀.1.continuous.aestronglyMeasurable hdatum x y
+    simpa [Kheat, Ceta, mul_assoc, mul_left_comm, mul_comm] using h
+  have hreac :
+      |wholeLineCauchyGradientHistory R z.1 x -
+          wholeLineCauchyGradientHistory R z.1 y| ≤
+        Kreac * |x - y| ^ eta := by
+    have h := wholeLineCauchyGradientHistory_Ctheta
+      hRcont hz hMR heta0 heta1 hRnorm x y
+    simpa [Kreac, Ceta, mul_assoc, mul_left_comm, mul_comm] using h
+  have hderiv : ∀ q : ℝ,
+      deriv (fun w : ℝ => (U z).1 w) q =
+        wholeLineCauchyHeatGradOp z.1 u₀.1 q +
+          (-p.χ) * (
+            ∫ s in (0 : ℝ)..z.1,
+              wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q) +
+          wholeLineCauchyGradientHistory R z.1 q := by
+    intro q
+    have h := (wholeLineCauchyBUCMildFixedPoint_spatial_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz q).deriv
+    simpa [U, F, R, wholeLineCauchyGradientHistory] using h
+  change |deriv (fun w : ℝ => (U z).1 w) x -
+    deriv (fun w : ℝ => (U z).1 w) y| ≤ _
+  rw [hderiv x, hderiv y]
+  let Hx : ℝ := wholeLineCauchyHeatGradOp z.1 u₀.1 x
+  let Hy : ℝ := wholeLineCauchyHeatGradOp z.1 u₀.1 y
+  let Fx : ℝ := ∫ s in (0 : ℝ)..z.1,
+    wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 x
+  let Fy : ℝ := ∫ s in (0 : ℝ)..z.1,
+    wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 y
+  let Rx : ℝ := wholeLineCauchyGradientHistory R z.1 x
+  let Ry : ℝ := wholeLineCauchyGradientHistory R z.1 y
+  have htriangle :
+      |(Hx + (-p.χ) * Fx + Rx) - (Hy + (-p.χ) * Fy + Ry)| ≤
+        |Hx - Hy| + |p.χ| * |Fx - Fy| + |Rx - Ry| := by
+    calc
+      |(Hx + (-p.χ) * Fx + Rx) - (Hy + (-p.χ) * Fy + Ry)| =
+          |(Hx - Hy) + (-p.χ) * (Fx - Fy) + (Rx - Ry)| := by ring_nf
+      _ ≤ |(Hx - Hy) + (-p.χ) * (Fx - Fy)| + |Rx - Ry| :=
+        abs_add_le _ _
+      _ ≤ (|Hx - Hy| + |(-p.χ) * (Fx - Fy)|) + |Rx - Ry| :=
+        add_le_add (abs_add_le _ _) le_rfl
+      _ = |Hx - Hy| + |p.χ| * |Fx - Fy| + |Rx - Ry| := by
+        rw [abs_mul, abs_neg]
+  calc
+    |wholeLineCauchyHeatGradOp z.1 u₀.1 x + (-p.χ) * Fx + Rx -
+        (wholeLineCauchyHeatGradOp z.1 u₀.1 y + (-p.χ) * Fy + Ry)| ≤
+        |Hx - Hy| + |p.χ| * |Fx - Fy| + |Rx - Ry| := by
+      simpa [Hx, Hy] using htriangle
+    _ ≤ Kheat * |x - y| ^ eta +
+          |p.χ| * (Kflux * |x - y| ^ eta) +
+          Kreac * |x - y| ^ eta := by
+      exact add_le_add
+        (add_le_add hheat (mul_le_mul_of_nonneg_left
+          (hflux x y) (abs_nonneg p.χ))) hreac
+    _ = K * |x - y| ^ eta := by
+      dsimp [K]
+      ring
+
 section WholeLineCauchyC1HolderBootstrapAxiomAudit
 
 #print axioms wholeLineCauchyHeatHessOp_lipschitz
 #print axioms wholeLineCauchyHeatHessOp_Ctheta_to_Ceta
 #print axioms intervalIntegrable_sub_rpow_hess_Ctheta_to_Ceta
 #print axioms wholeLineCauchyFluxHessianHistory_Ceta
+#print axioms wholeLineCauchyBUCMildFixedPoint_spatial_deriv_Ceta
 
 end WholeLineCauchyC1HolderBootstrapAxiomAudit
 
