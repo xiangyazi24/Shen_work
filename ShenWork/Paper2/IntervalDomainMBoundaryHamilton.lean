@@ -27,7 +27,7 @@ theorem hbdry_left_M_of_chemDiv_limit
       (nhds (intervalDomainLift (u s) 0 * gchem)))
     (hgchem : |gchem| ≤ M ^ (p.m - 1) *
       ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)) :
-    -generalMMinSlopeConst p M *
+    generalMMinGrowthRate p M *
         sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
       deriv (fun r => intervalDomainLift (u r) 0) s := by
   have htmem : s ∈ Set.Ioo (0 : ℝ) T := ⟨hs0, hsT⟩
@@ -160,12 +160,11 @@ theorem hbdry_left_M_of_chemDiv_limit
   have hGt_ge : R 0 - p.χ₀ * (minv * gchem) ≤ Gt 0 := by
     dsimp [Vlim] at hVlim
     linarith
-  have hR_lb : -(p.b * M ^ p.α) * minv ≤ R 0 := by
+  have hR_lb : (p.a - p.b * M ^ p.α) * minv ≤ R 0 := by
     rw [hR0]
     have h1 : 0 ≤ p.b * (minv * M ^ p.α - minv * minv ^ p.α) :=
       mul_nonneg p.hb (sub_nonneg.mpr
         (mul_le_mul_of_nonneg_left hpow_le hminv_nonneg))
-    have h2 : 0 ≤ minv * p.a := mul_nonneg hminv_nonneg p.ha
     nlinarith
   let Kchem := M ^ (p.m - 1) *
     ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)
@@ -177,12 +176,42 @@ theorem hbdry_left_M_of_chemDiv_limit
       nlinarith [mul_nonneg (abs_nonneg p.χ₀) hminv_nonneg,
         mul_nonneg (abs_nonneg p.χ₀) (abs_nonneg gchem)]
     nlinarith [(abs_le.mp habs).1]
-  have hkey : -(|p.χ₀| * Kchem + p.b * M ^ p.α) * minv ≤
+  have hkey : (p.a - (|p.χ₀| * Kchem + p.b * M ^ p.α)) * minv ≤
       R 0 - p.χ₀ * (minv * gchem) := by
     nlinarith [hR_lb, hchem_lb]
-  simpa [generalMMinSlopeConst, Kchem] using
-    (show -(|p.χ₀| * Kchem + p.b * M ^ p.α) * minv ≤ Gt 0 by
+  simpa [generalMMinGrowthRate, generalMMinSlopeConst, Kchem] using
+    (show (p.a - (|p.χ₀| * Kchem + p.b * M ^ p.α)) * minv ≤ Gt 0 by
       linarith [hkey, hGt_ge])
+
+/-- Historical left-endpoint Hamilton inequality, obtained by discarding the
+nonnegative linear reaction from the sharper growth estimate. -/
+theorem hbdry_left_M_of_chemDiv_limit_legacy
+    {p : CM2Params} {T s M gchem : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M)
+    (hargmin : intervalDomainLift (u s) 0 =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1))
+    (hchem_lim : Tendsto (boundaryChemDivMReal p (u s) (v s))
+      (nhdsWithin 0 (Set.Ioo (0 : ℝ) 1))
+      (nhds (intervalDomainLift (u s) 0 * gchem)))
+    (hgchem : |gchem| ≤ M ^ (p.m - 1) *
+      ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)) :
+    -generalMMinSlopeConst p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) 0) s := by
+  have hgrowth := hbdry_left_M_of_chemDiv_limit hm hsol hs0 hsT hM
+    hu_le hargmin hchem_lim hgchem
+  have h0Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
+  have hmin_nonneg : 0 ≤
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) := by
+    rw [← hargmin]
+    simpa [intervalDomainLift] using
+      (hsol.u_pos' (x := (⟨0, h0Icc⟩ : intervalDomainPoint)) hs0 hsT).le
+  unfold generalMMinGrowthRate at hgrowth
+  nlinarith [mul_nonneg p.ha hmin_nonneg]
 
 /-- The left endpoint bound with its faithful limit producer discharged. -/
 theorem hbdry_left_M_of_classicalSolution
@@ -195,6 +224,25 @@ theorem hbdry_left_M_of_classicalSolution
     (hargmin : intervalDomainLift (u s) 0 =
       sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
     -generalMMinSlopeConst p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) 0) s := by
+  obtain ⟨g, hg, hlim⟩ :=
+    boundaryChemDivM_left_limit_factor hm hsol hs0 hsT hM hu_le
+  exact hbdry_left_M_of_chemDiv_limit_legacy
+    hm hsol hs0 hsT hM hu_le hargmin hlim hg
+
+/-- The left endpoint growth bound with its faithful limit producer
+discharged. -/
+theorem hbdry_left_M_of_classicalSolution_with_growth
+    {p : CM2Params} {T s M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M)
+    (hargmin : intervalDomainLift (u s) 0 =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
+    generalMMinGrowthRate p M *
         sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
       deriv (fun r => intervalDomainLift (u r) 0) s := by
   obtain ⟨g, hg, hlim⟩ :=
@@ -219,7 +267,7 @@ theorem hbdry_right_M_of_chemDiv_limit
       (nhds (intervalDomainLift (u s) 1 * gchem)))
     (hgchem : |gchem| ≤ M ^ (p.m - 1) *
       ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)) :
-    -generalMMinSlopeConst p M *
+    generalMMinGrowthRate p M *
         sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
       deriv (fun r => intervalDomainLift (u r) 1) s := by
   have htmem : s ∈ Set.Ioo (0 : ℝ) T := ⟨hs0, hsT⟩
@@ -355,12 +403,11 @@ theorem hbdry_right_M_of_chemDiv_limit
   have hGt_ge : R 1 - p.χ₀ * (minv * gchem) ≤ Gt 1 := by
     dsimp [Vlim] at hVlim
     linarith
-  have hR_lb : -(p.b * M ^ p.α) * minv ≤ R 1 := by
+  have hR_lb : (p.a - p.b * M ^ p.α) * minv ≤ R 1 := by
     rw [hR1]
     have h1 : 0 ≤ p.b * (minv * M ^ p.α - minv * minv ^ p.α) :=
       mul_nonneg p.hb (sub_nonneg.mpr
         (mul_le_mul_of_nonneg_left hpow_le hminv_nonneg))
-    have h2 : 0 ≤ minv * p.a := mul_nonneg hminv_nonneg p.ha
     nlinarith
   let Kchem := M ^ (p.m - 1) *
     ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)
@@ -372,12 +419,42 @@ theorem hbdry_right_M_of_chemDiv_limit
       nlinarith [mul_nonneg (abs_nonneg p.χ₀) hminv_nonneg,
         mul_nonneg (abs_nonneg p.χ₀) (abs_nonneg gchem)]
     nlinarith [(abs_le.mp habs).1]
-  have hkey : -(|p.χ₀| * Kchem + p.b * M ^ p.α) * minv ≤
+  have hkey : (p.a - (|p.χ₀| * Kchem + p.b * M ^ p.α)) * minv ≤
       R 1 - p.χ₀ * (minv * gchem) := by
     nlinarith [hR_lb, hchem_lb]
-  simpa [generalMMinSlopeConst, Kchem] using
-    (show -(|p.χ₀| * Kchem + p.b * M ^ p.α) * minv ≤ Gt 1 by
+  simpa [generalMMinGrowthRate, generalMMinSlopeConst, Kchem] using
+    (show (p.a - (|p.χ₀| * Kchem + p.b * M ^ p.α)) * minv ≤ Gt 1 by
       linarith [hkey, hGt_ge])
+
+/-- Historical right-endpoint Hamilton inequality, obtained by discarding the
+nonnegative linear reaction from the sharper growth estimate. -/
+theorem hbdry_right_M_of_chemDiv_limit_legacy
+    {p : CM2Params} {T s M gchem : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M)
+    (hargmin : intervalDomainLift (u s) 1 =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1))
+    (hchem_lim : Tendsto (boundaryChemDivMReal p (u s) (v s))
+      (nhdsWithin 1 (Set.Ioo (0 : ℝ) 1))
+      (nhds (intervalDomainLift (u s) 1 * gchem)))
+    (hgchem : |gchem| ≤ M ^ (p.m - 1) *
+      ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)) :
+    -generalMMinSlopeConst p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) 1) s := by
+  have hgrowth := hbdry_right_M_of_chemDiv_limit hm hsol hs0 hsT hM
+    hu_le hargmin hchem_lim hgchem
+  have h1Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
+  have hmin_nonneg : 0 ≤
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) := by
+    rw [← hargmin]
+    simpa [intervalDomainLift] using
+      (hsol.u_pos' (x := (⟨1, h1Icc⟩ : intervalDomainPoint)) hs0 hsT).le
+  unfold generalMMinGrowthRate at hgrowth
+  nlinarith [mul_nonneg p.ha hmin_nonneg]
 
 /-- The right endpoint bound with its faithful limit producer discharged. -/
 theorem hbdry_right_M_of_classicalSolution
@@ -394,14 +471,35 @@ theorem hbdry_right_M_of_classicalSolution
       deriv (fun r => intervalDomainLift (u r) 1) s := by
   obtain ⟨g, hg, hlim⟩ :=
     boundaryChemDivM_right_limit_factor hm hsol hs0 hsT hM hu_le
+  exact hbdry_right_M_of_chemDiv_limit_legacy
+    hm hsol hs0 hsT hM hu_le hargmin hlim hg
+
+/-- The right endpoint growth bound with its faithful limit producer
+discharged. -/
+theorem hbdry_right_M_of_classicalSolution_with_growth
+    {p : CM2Params} {T s M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hs0 : 0 < s) (hsT : s < T) (hM : 0 ≤ M)
+    (hu_le : ∀ x : intervalDomainPoint, u s x ≤ M)
+    (hargmin : intervalDomainLift (u s) 1 =
+      sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1)) :
+    generalMMinGrowthRate p M *
+        sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+      deriv (fun r => intervalDomainLift (u r) 1) s := by
+  obtain ⟨g, hg, hlim⟩ :=
+    boundaryChemDivM_right_limit_factor hm hsol hs0 hsT hM hu_le
   exact hbdry_right_M_of_chemDiv_limit
     hm hsol hs0 hsT hM hu_le hargmin hlim hg
 
 section AxiomAudit
 
 #print axioms hbdry_left_M_of_chemDiv_limit
+#print axioms hbdry_left_M_of_classicalSolution_with_growth
 #print axioms hbdry_left_M_of_classicalSolution
 #print axioms hbdry_right_M_of_chemDiv_limit
+#print axioms hbdry_right_M_of_classicalSolution_with_growth
 #print axioms hbdry_right_M_of_classicalSolution
 
 end AxiomAudit
