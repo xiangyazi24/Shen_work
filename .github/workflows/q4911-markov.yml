@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   compute:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -34,15 +34,11 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          if command -v sage >/dev/null 2>&1; then
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            sagemath/sagemath:latest \
             sage scratch/q4911_markov.sage 2>&1 | tee scratch/q4911_result.txt
-          else
-            docker run --rm \
-              -v "$PWD:/work" \
-              -w /work \
-              sagemath/sagemath:latest \
-              sage scratch/q4911_markov.sage 2>&1 | tee scratch/q4911_result.txt
-          fi
       - name: Commit exact output
         if: always()
         shell: bash
