@@ -545,6 +545,101 @@ theorem paper5WeightedPopulation_time_hasDerivAt_of_joint
   have hmul := hsub.const_mul (Real.exp (η * x))
   simpa [paper5WeightedPopulation, paper5WeightedPopulationT] using hmul
 
+/-- The actual half of the weighted co-moving population energy used in
+Section 5. -/
+def paper5WeightedHalfEnergy
+    (η c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) (t : ℝ) : ℝ :=
+  ShenWork.PaperOne.wholeLineHalfEnergy
+    (paper5WeightedPopulation η (coMovingPath c u) U) t
+
+/-- Dominated time differentiation for the actual corrected Section 5
+energy.  The local envelope is left explicit, but the pointwise derivative
+field is produced from joint differentiability rather than assumed as an
+unrelated function. -/
+theorem paper5WeightedHalfEnergy_hasDerivAt_of_dominated
+    {η c t δ : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {bound : ℝ → ℝ}
+    (hδ : 0 < δ)
+    (hF_meas : ∀ᶠ s in 𝓝 t,
+      AEStronglyMeasurable
+        (ShenWork.PaperOne.wholeLineHalfEnergyIntegrand
+          (paper5WeightedPopulation η (coMovingPath c u) U) s) volume)
+    (hF_int : Integrable
+      (ShenWork.PaperOne.wholeLineHalfEnergyIntegrand
+        (paper5WeightedPopulation η (coMovingPath c u) U) t) volume)
+    (hF'_meas : AEStronglyMeasurable
+      (ShenWork.PaperOne.wholeLineHalfEnergyIntegrandDeriv
+        (paper5WeightedPopulation η (coMovingPath c u) U)
+        (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u)) t)
+      volume)
+    (h_bound : ∀ᵐ x ∂volume, ∀ s ∈ Metric.ball t δ,
+      ‖ShenWork.PaperOne.wholeLineHalfEnergyIntegrandDeriv
+        (paper5WeightedPopulation η (coMovingPath c u) U)
+        (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u))
+        s x‖ ≤ bound x)
+    (hbound_int : Integrable bound volume)
+    (hjoint : ∀ᵐ x ∂volume, ∀ s ∈ Metric.ball t δ,
+      HasFDerivAt
+        (fun q : ℝ × ℝ => u q.1 q.2)
+        (deriv (fun r => u r (x + c * s)) s •
+            ContinuousLinearMap.fst ℝ ℝ ℝ +
+          deriv (u s) (x + c * s) •
+            ContinuousLinearMap.snd ℝ ℝ ℝ)
+        (s, x + c * s)) :
+    HasDerivAt (paper5WeightedHalfEnergy η c u U)
+      (∫ x, paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u) t x) t := by
+  have hpoint : ∀ᵐ x ∂volume, ∀ s ∈ Metric.ball t δ,
+      HasDerivAt
+        (fun r => paper5WeightedPopulation η (coMovingPath c u) U r x)
+        (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u) s x) s := by
+    filter_upwards [hjoint] with x hx
+    intro s hs
+    exact paper5WeightedPopulation_time_hasDerivAt_of_joint (hx s hs)
+  simpa [paper5WeightedHalfEnergy,
+    ShenWork.PaperOne.wholeLineWeightedTimeTerm,
+    ShenWork.PaperOne.wholeLineHalfEnergyIntegrandDeriv] using
+    (ShenWork.PaperOne.wholeLine_halfEnergy_hasDerivAt_of_dominated
+      hδ hF_meas hF_int hF'_meas h_bound hbound_int hpoint)
+
+/-- Derivative equality form of
+`paper5WeightedHalfEnergy_hasDerivAt_of_dominated`. -/
+theorem paper5WeightedHalfEnergy_timeLeibniz_of_dominated
+    {η c t δ : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {bound : ℝ → ℝ}
+    (hδ : 0 < δ)
+    (hF_meas : ∀ᶠ s in 𝓝 t,
+      AEStronglyMeasurable
+        (ShenWork.PaperOne.wholeLineHalfEnergyIntegrand
+          (paper5WeightedPopulation η (coMovingPath c u) U) s) volume)
+    (hF_int : Integrable
+      (ShenWork.PaperOne.wholeLineHalfEnergyIntegrand
+        (paper5WeightedPopulation η (coMovingPath c u) U) t) volume)
+    (hF'_meas : AEStronglyMeasurable
+      (ShenWork.PaperOne.wholeLineHalfEnergyIntegrandDeriv
+        (paper5WeightedPopulation η (coMovingPath c u) U)
+        (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u)) t)
+      volume)
+    (h_bound : ∀ᵐ x ∂volume, ∀ s ∈ Metric.ball t δ,
+      ‖ShenWork.PaperOne.wholeLineHalfEnergyIntegrandDeriv
+        (paper5WeightedPopulation η (coMovingPath c u) U)
+        (paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u))
+        s x‖ ≤ bound x)
+    (hbound_int : Integrable bound volume)
+    (hjoint : ∀ᵐ x ∂volume, ∀ s ∈ Metric.ball t δ,
+      HasFDerivAt
+        (fun q : ℝ × ℝ => u q.1 q.2)
+        (deriv (fun r => u r (x + c * s)) s •
+            ContinuousLinearMap.fst ℝ ℝ ℝ +
+          deriv (u s) (x + c * s) •
+            ContinuousLinearMap.snd ℝ ℝ ℝ)
+        (s, x + c * s)) :
+    deriv (paper5WeightedHalfEnergy η c u U) t =
+      ∫ x, paper5WeightedPopulation η (coMovingPath c u) U t x *
+        paper5WeightedPopulationT η (paper5CoMovingMaterialTime c u) t x :=
+  (paper5WeightedHalfEnergy_hasDerivAt_of_dominated hδ hF_meas hF_int
+    hF'_meas h_bound hbound_int hjoint).deriv
+
 /-- The corrected pointwise version of (5.19).  The input `hPDE` is the
 population equation after the change to the moving coordinate; no spatial or
 time chain rule is hidden in this algebraic theorem. -/
@@ -1119,6 +1214,8 @@ section Theorem12WeightedEnergyAxiomAudit
 #print axioms paper5CoMovingMaterialPDE_of_classical
 #print axioms paper5CoMovingPath_hasDerivAt_of_joint
 #print axioms paper5WeightedPopulation_time_hasDerivAt_of_joint
+#print axioms paper5WeightedHalfEnergy_hasDerivAt_of_dominated
+#print axioms paper5WeightedHalfEnergy_timeLeibniz_of_dominated
 #print axioms paper5FluxDerivative_realization
 #print axioms paper5WeightedPopulation_space_hasDerivAt
 #print axioms paper5WeightedSignal_space_hasDerivAt
