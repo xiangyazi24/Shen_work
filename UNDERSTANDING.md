@@ -4882,3 +4882,35 @@ the terminal slice.  Combining this with the existing strict upper bound puts
 the canonical fixed point in `[0, ‖u₀‖ + 1)` on the whole construction cylinder.
 Both clamps are therefore inactive, and the same trajectory is proved
 pointwise to satisfy the original, unclamped whole-line Duhamel equation.
+
+### Paper 1 global/Step-4 route audit (2026-07-14)
+
+The exponential stability weight is `exp (2 * eta * x)` with `eta > 0`.
+It degenerates, rather than grows, as `x -> -infinity`.  Consequently the
+weighted energy controls the right tail and cannot produce the far-left
+uniform convergence by a half-line Agmon estimate.  This is already reflected
+in `WaveStabilityUpgrade.lean`, where the left-tail convergence is a separate
+input.  The paper's actual Step 4 obtains the left lower bound from Remark 4.2
+and then uses translated-solution compactness plus the positive eternal-solution
+rigidity from Proposition 1.2.  Any global closeout must formalize that route or
+an equally strong replacement; the weight-orientation shortcut is invalid.
+
+The constant ceiling calculation also requires the full chemotaxis exponent
+`m + gamma - 1`, not `gamma`.  The canonical
+`wholeLineCauchyStableCeiling` now lies strictly above the initial BUC norm and
+proves the exact scalar first-contact condition
+`1 + max chi 0 * M^(m + gamma - 1) <= M^alpha`.  In the negative branch the
+chemotaxis contribution is favorable; in the nonnegative stable branch the
+identity `alpha = m + gamma - 1`, the strict bound `chi < 1`, and `M >= MChi`
+close the inequality.
+
+There are two further honest interfaces before the headline core can be
+inhabited.  The current local construction is an unclamped BUC mild solution,
+whereas `IsGlobalCauchySolutionFrom` requires a classical solution; full
+positive-time Duhamel regularity and the active-source PDE remain to be
+proved.  Also, Section 5 of the paper uses a bound `Mtilde > MChi` obtained
+from the eventual `limsup <= MChi`, while the present concrete energy producer
+hardcodes the smaller value `MChi`.  Exact eventual boundedness by `MChi` does
+not follow from a limsup statement, so the energy coefficients must be
+parameterized by `Mtilde` (and chosen sufficiently close to `MChi`) before the
+global stability assembly is faithful.

@@ -41,6 +41,7 @@ import ShenWork.Paper1.WholeLineHeatThirdDerivative
 import ShenWork.Paper1.WholeLineCauchyBUCOffSupport
 import ShenWork.Paper1.WholeLineCauchyNegativePDE
 import ShenWork.Paper1.WholeLineCauchyNonnegativity
+import ShenWork.Paper1.WholeLineCauchyGlobalBounds
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
