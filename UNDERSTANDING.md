@@ -215,10 +215,20 @@ interior positive time.  Its derivative contains exactly the current shifted
 reaction and the current spatial derivative of the chemotactic flux, in
 addition to the two old-history generator integrals.  The theorem is
 root-imported, the authorized local full build passes with 9566 jobs, and its
-axiom audit is the standard three.  The immediate next step is the positive-
-time interval-integrability bundle that rewrites those generator integrals
-against the already-proved spatial second derivative and fixed-point identity,
-thereby producing the physical parabolic PDE.
+axiom audit is the standard three.  The positive-time generator cancellation
+is now complete as well.  Separate Holder-cancellation majorants prove genuine
+interval integrability of the flux third-kernel history and reaction Hessian
+history; together with the lower histories they form
+`wholeLineCauchy_actualSource_generator_intervalIntegrable_positive`.
+`wholeLineCauchyBUCMildFixedPoint_right_generator_pde` cancels the four
+histories against the spatial second derivative and fixed-point value, and
+`wholeLineCauchyBUCMildFixedPoint_right_physical_pde` removes the clamp on the
+physical strip.  Thus the exact original parabolic equation holds as a right
+derivative at every interior positive time.  The full root build still passes
+with 9566 jobs and all new declarations are clean-3.  The next step is to use
+continuity of the physical right-hand side to upgrade these compatible right
+derivatives to ordinary time differentiability and the classical-solution
+interface.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
