@@ -5227,3 +5227,15 @@ the lifespan is controlled solely by a ceiling and margin, rather than by an
 individual solution or a future global bound.  The remaining continuation
 input is the nonlocal first-crossing estimate that supplies a uniform ceiling
 with positive restart margin.
+
+`WholeLineCauchySpaceTimeMaximum.lean` supplies the tail-free maximum tool for
+that estimate.  It defines the actual supremum of a bounded closed
+space-time slab as the conditional supremum of its attained values.  Given a
+strict gap above the initial ceiling, a quadratic spatial penalty forces an
+attained maximum on a compact rectangle.  Its time coordinate is positive,
+the one-sided time derivative is nonnegative, and the first spatial
+derivative and upper second derivative can be made arbitrarily small.  This
+form keeps the maximizing values within an arbitrary tolerance of the true
+slab supremum, which is essential: the frozen elliptic resolver can then be
+bounded by the power of that same supremum without assuming the desired
+ceiling in advance.
