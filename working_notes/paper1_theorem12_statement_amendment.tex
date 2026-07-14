@@ -25,13 +25,15 @@
 \maketitle
 
 \begin{abstract}
-The stability proof in Section~5 of Shen's traveling-wave paper has four
+The stability proof in Section~5 of Shen's traveling-wave paper has six
 independent statement-level defects.  The perturbed quadratic in (5.31) is
 positive at the unperturbed tail exponent, so the root comparison in (5.35)
 has the wrong direction; the weighted norm in (1.21) is written in laboratory
 rather than moving coordinates; and the exponential factor following (5.35)
 has the wrong sign.  In addition, the chemotactic flux difference in (5.18)
-has two reversed signs.  This note gives the direct amendment supported by
+has two reversed signs.  Finally, (5.27) loses one factor of $b_1$ in
+Young's inequality and (5.29)--(5.30) drop the
+$M^{2(\gamma-1)}$ factor from Lemma~5.3.  This note gives the direct amendment supported by
 the corrected calculation, explains the corresponding change to the
 uniqueness theorem, and records the exact Lean certificates and remaining
 analytic boundary.
@@ -149,10 +151,51 @@ asymptotic constant.  For either sign of $\chi$,
 and the $b_4z$ term is estimated by absolute value.  The
 $(2m+\gamma)M^{m+\gamma-1}$ contribution is already present in (5.33).
 
+\section{The lost square in (5.27)}
+
+The $J_1$ cross term obeys the direct Young estimate
+\[
+ \abs{\chi b_1 W_xW}
+ \leq \frac12 W_x^2+\frac12\abs{\chi}^2 b_1^2W^2.
+\]
+Formula (5.27), propagated into (5.33), uses $b_1$ rather than $b_1^2$.
+There is no hypothesis making this replacement an upper bound; in
+particular, the negative-$\chi$ branch allows arbitrary $\abs{\chi}$.
+If $B_1$ bounds $\abs{b_1}$, the corrected constant contribution is
+$\abs{\chi}^2B_1^2/2$.
+
+\section{The missing resolver power in (5.29)--(5.30)}
+
+Lemma~5.3 gives
+\[
+ \int_{\R}V^2\leq
+ \frac{\gamma^2M^{2(\gamma-1)}}{(1-\eta)^2}\int_{\R}W^2,
+ \qquad
+ \int_{\R}V_x^2\leq
+ \frac{\gamma^2M^{2(\gamma-1)}}{1-\eta^2}\int_{\R}W^2.
+\]
+The subsequent estimates retain $\gamma^2$ but omit
+$M^{2(\gamma-1)}$.  This power is not identically one: the positive-$\chi$
+asymptotic cap $M_\chi$ can exceed one.  For $\chi\neq0$, put
+\[
+ x=\abs{\chi}^{1/6},\qquad
+ K=1+\gamma^2M^{2(\gamma-1)}\frac{(1+x)^2}{x^2}.
+\]
+Whenever $0\leq\eta<1/(1+x)$, this $K$ bounds both $1+R_V(\eta)$
+and $1+R_{V_x}(\eta)$.  The case $\chi=0$ is separate and all
+chemotactic corrections vanish.
+
 \section{Recommended amended statement}
 
-Let $A_{\chi}$ and $B_{\chi}$ be the limiting error budgets in
-(5.32)--(5.33), evaluated at the asymptotic bound $M_{\chi}$, and set
+Let $B_i$ bound $\abs{b_i}$ and use the corrected common resolver factor
+$K$ above.  The valid replacements for (5.32)--(5.33) are
+\begin{align*}
+ A_\chi&=\abs{\chi}B_1+\frac{\abs{\chi}B_3}{2}K,\\
+ B_\chi&=\abs{\chi}\bigl((2m+\gamma)M^{m+\gamma-1}+B_2\bigr)
+   +\frac{\abs{\chi}^2B_1^2}{2}
+   +\frac{\abs{\chi}(B_3+B_4)}{2}K.
+\end{align*}
+Set
 \begin{align*}
  \Delta&=(c-A_{\chi})^{2}-4(1+B_{\chi}),\\
  \kappa^-&=\frac{(c-A_{\chi})-\sqrt{\Delta}}{2},\\
@@ -224,6 +267,11 @@ The corrected flux identity
 zero-order estimate
 \path{paper5CorrectedChemZeroCoefficient_abs_le} are in
 \path{ShenWork/Paper1/Theorem12MeanCoefficients.lean}.
+The corrected Young, resolver-cap, and scalar-budget certificates
+\path{paper5J1VariableDensity_le},
+\path{paper5WeightedResolverFactors_le_cap}, and
+\path{paper5ResolvedW2Coefficient_le_corrected531} are in
+\path{ShenWork/Paper1/Theorem12WeightedEnergy.lean}.
 
 \path{ShenWork/Paper1/Theorem12Corrected.lean} proves the scalar Gronwall and
 moving-frame localization wiring, but keeps the general-data whole-line PDE
