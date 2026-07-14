@@ -4761,3 +4761,12 @@ This is still the globally clamped equation.  The next analytic obligation is
 the comparison/positivity argument showing that the fixed point remains in the
 physical nonnegative strip (and below a short-time upper barrier), after which
 the clamp is inactive and the fixed point solves the original Cauchy system.
+
+The upper half of that strip is now concrete.  The two nonlinear histories
+have an explicit `O(sqrt T) + O(T)` displacement from the homogeneous heat
+orbit.  Choosing the contraction window small enough makes this displacement
+strictly less than one, so the canonical fixed point issued from `u₀` stays
+strictly below the clamp ceiling `‖u₀‖ + 1` at every space-time point.  The
+remaining clamp-inactivity seam is therefore exactly nonnegativity; uniform
+closeness to the initial datum cannot supply it when the datum has zero
+infimum.

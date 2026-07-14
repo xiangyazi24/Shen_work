@@ -79,6 +79,14 @@ def wholeLineCauchyBUCMildRate
         (2 * Real.sqrt T)) +
     (1 + reactionLip p.α M) * T
 
+/-- Uniform size of the two truncated nonlinear histories on `[0,T]`. -/
+def wholeLineCauchyBUCMildDisplacement
+    (p : CMParams) (M T : ℝ) : ℝ :=
+  |p.χ| *
+      (((2 / Real.sqrt (4 * Real.pi)) * (M ^ p.m * M ^ p.γ)) *
+        (2 * Real.sqrt T)) +
+    (M + M * (1 + M ^ p.α)) * T
+
 theorem wholeLineCauchyBUCMildRate_nonneg
     (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T) :
     0 ≤ wholeLineCauchyBUCMildRate p M T := by
@@ -86,6 +94,52 @@ theorem wholeLineCauchyBUCMildRate_nonneg
   have hflux := wholeLineCauchyFluxLip_nonneg p hM
   have hreact := reactionLip_nonneg p.hα hM
   positivity
+
+theorem wholeLineCauchyBUCMildDisplacement_nonneg
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T) :
+    0 ≤ wholeLineCauchyBUCMildDisplacement p M T := by
+  unfold wholeLineCauchyBUCMildDisplacement
+  positivity
+
+theorem wholeLineCauchyBUCMildMap_apply_dist_homogeneous_le
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (U : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) :
+    dist (wholeLineCauchyBUCMildMap p hM hT u₀ U z)
+        (wholeLineCauchyHeatBUCTotal z.1 u₀) ≤
+      wholeLineCauchyBUCMildDisplacement p M T := by
+  let H := wholeLineCauchyHeatBUCTotal z.1 u₀
+  let G := wholeLineCauchyGradientDuhamelBUC p hM hT U z.1
+  let V := wholeLineCauchyValueDuhamelBUC p hM hT U z.1
+  have hG : ‖G‖ ≤
+      ((2 / Real.sqrt (4 * Real.pi)) * (M ^ p.m * M ^ p.γ)) *
+        (2 * Real.sqrt T) := by
+    exact (wholeLineCauchyGradientDuhamelBUC_norm_le
+      p hM hT U z.2.1).trans (by
+        have hbase : 0 ≤ (2 / Real.sqrt (4 * Real.pi)) *
+            (M ^ p.m * M ^ p.γ) := by positivity
+        apply mul_le_mul_of_nonneg_left _ hbase
+        exact mul_le_mul_of_nonneg_left
+          (Real.sqrt_le_sqrt z.2.2) (by norm_num))
+  have hV : ‖V‖ ≤ (M + M * (1 + M ^ p.α)) * T :=
+    (wholeLineCauchyValueDuhamelBUC_norm_le
+      p hM hT U z.2.1).trans
+        (mul_le_mul_of_nonneg_left z.2.2 (by positivity))
+  change dist (H + (-p.χ) • G + V) H ≤ _
+  rw [WholeLineBUC.dist_eq_norm_sub]
+  calc
+    ‖(H + (-p.χ) • G + V) - H‖ = ‖(-p.χ) • G + V‖ := by
+      congr 1
+      abel
+    _ ≤ ‖(-p.χ) • G‖ + ‖V‖ := norm_add_le _ _
+    _ = ‖-p.χ‖ * ‖G‖ + ‖V‖ := by rw [norm_smul]
+    _ ≤ |p.χ| *
+          (((2 / Real.sqrt (4 * Real.pi)) * (M ^ p.m * M ^ p.γ)) *
+            (2 * Real.sqrt T)) +
+        (M + M * (1 + M ^ p.α)) * T := by
+      rw [Real.norm_eq_abs, abs_neg]
+      exact add_le_add (mul_le_mul_of_nonneg_left hG (abs_nonneg _)) hV
+    _ = wholeLineCauchyBUCMildDisplacement p M T := rfl
 
 theorem wholeLineCauchyBUCMildMap_apply_dist_le
     (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
@@ -259,6 +313,98 @@ theorem wholeLineCauchyBUCMildFixedPoint_initial
     wholeLineCauchyGradientDuhamelBUC,
     wholeLineCauchyValueDuhamelBUC] using hfix
 
+theorem wholeLineCauchyBUCMildFixedPoint_dist_homogeneous_le
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC) (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) :
+    dist (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z)
+        (wholeLineCauchyHeatBUCTotal z.1 u₀) ≤
+      wholeLineCauchyBUCMildDisplacement p M T := by
+  rw [wholeLineCauchyBUCMildFixedPoint_eq_mildMap]
+  exact wholeLineCauchyBUCMildMap_apply_dist_homogeneous_le
+    p hM hT u₀ _ z
+
+theorem exists_pos_time_wholeLineCauchyBUCRate_and_displacement
+    (p : CMParams) {M η : ℝ} (hM : 0 ≤ M) (hη : 0 < η) :
+    ∃ T : ℝ, 0 < T ∧
+      wholeLineCauchyBUCMildRate p M T < 1 ∧
+      wholeLineCauchyBUCMildDisplacement p M T < η := by
+  have hrate_cont : ContinuousAt
+      (fun T : ℝ => wholeLineCauchyBUCMildRate p M T) 0 := by
+    unfold wholeLineCauchyBUCMildRate
+    fun_prop
+  have hdisp_cont : ContinuousAt
+      (fun T : ℝ => wholeLineCauchyBUCMildDisplacement p M T) 0 := by
+    unfold wholeLineCauchyBUCMildDisplacement
+    fun_prop
+  rw [Metric.continuousAt_iff] at hrate_cont hdisp_cont
+  obtain ⟨δ₁, hδ₁, hrate_close⟩ := hrate_cont 1 (by norm_num)
+  obtain ⟨δ₂, hδ₂, hdisp_close⟩ := hdisp_cont η hη
+  let δ := min δ₁ δ₂
+  let T := δ / 2
+  have hδ : 0 < δ := lt_min hδ₁ hδ₂
+  have hT : 0 < T := by dsimp [T]; linarith
+  have hTδ₁ : dist T 0 < δ₁ := by
+    rw [Real.dist_eq, sub_zero, abs_of_pos hT]
+    dsimp [T, δ]
+    have := min_le_left δ₁ δ₂
+    linarith
+  have hTδ₂ : dist T 0 < δ₂ := by
+    rw [Real.dist_eq, sub_zero, abs_of_pos hT]
+    dsimp [T, δ]
+    have := min_le_right δ₁ δ₂
+    linarith
+  have hrate := hrate_close hTδ₁
+  have hdisp := hdisp_close hTδ₂
+  have hrate_zero : wholeLineCauchyBUCMildRate p M 0 = 0 := by
+    simp [wholeLineCauchyBUCMildRate]
+  have hdisp_zero : wholeLineCauchyBUCMildDisplacement p M 0 = 0 := by
+    simp [wholeLineCauchyBUCMildDisplacement]
+  rw [hrate_zero, Real.dist_eq, sub_zero,
+    abs_of_nonneg (wholeLineCauchyBUCMildRate_nonneg p hM hT.le)] at hrate
+  rw [hdisp_zero, Real.dist_eq, sub_zero,
+    abs_of_nonneg
+      (wholeLineCauchyBUCMildDisplacement_nonneg p hM hT.le)] at hdisp
+  exact ⟨T, hT, hrate, hdisp⟩
+
+/-- A canonical short-time fixed point stays below its clamp ceiling.  This is
+the upper half of clamp inactivity; nonnegativity is a separate comparison
+argument. -/
+theorem exists_wholeLineCauchyBUCMildFixedPoint_below_clamp
+    (p : CMParams) (u₀ : WholeLineBUC) :
+    let M := ‖u₀‖ + 1
+    ∃ (T : ℝ) (hT : 0 < T)
+      (hsmall : wholeLineCauchyBUCMildRate p M T < 1),
+      ∀ (z : Set.Icc (0 : ℝ) T) (x : ℝ),
+        (wholeLineCauchyBUCMildFixedPoint p (by positivity) hT.le
+          u₀ hsmall z).1 x < M := by
+  let M := ‖u₀‖ + 1
+  have hM : 0 ≤ M := by dsimp [M]; positivity
+  obtain ⟨T, hT, hsmall, hdisp⟩ :=
+    exists_pos_time_wholeLineCauchyBUCRate_and_displacement
+      p hM (by norm_num : (0 : ℝ) < 1)
+  refine ⟨T, hT, hsmall, ?_⟩
+  intro z x
+  let U := wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall z
+  let H := wholeLineCauchyHeatBUCTotal z.1 u₀
+  have hUH : dist U H ≤ wholeLineCauchyBUCMildDisplacement p M T :=
+    wholeLineCauchyBUCMildFixedPoint_dist_homogeneous_le
+      p hM hT.le u₀ hsmall z
+  have hpoint : |U.1 x - H.1 x| ≤
+      wholeLineCauchyBUCMildDisplacement p M T :=
+    (WholeLineBUC.pointwise_abs_sub_le_dist U H x).trans hUH
+  have hHnorm : ‖H‖ ≤ ‖u₀‖ :=
+    wholeLineCauchyHeatBUCTotal_norm_le_of_nonneg z.2.1 u₀
+  calc
+    U.1 x ≤ H.1 x + |U.1 x - H.1 x| := by
+      linarith [le_abs_self (U.1 x - H.1 x)]
+    _ ≤ ‖H‖ + wholeLineCauchyBUCMildDisplacement p M T :=
+      add_le_add (WholeLineBUC.apply_le_norm H x) hpoint
+    _ ≤ ‖u₀‖ + wholeLineCauchyBUCMildDisplacement p M T :=
+      add_le_add hHnorm le_rfl
+    _ < ‖u₀‖ + 1 := by linarith
+    _ = M := rfl
+
 theorem exists_wholeLineCauchyBUCMildFixedPoint
     (p : CMParams) {M : ℝ} (hM : 0 ≤ M) (u₀ : WholeLineBUC) :
     ∃ (T : ℝ) (hT : 0 < T) (U : WholeLineBUCTrajectory T),
@@ -274,6 +420,8 @@ section WholeLineCauchyBUCFixedPointAxiomAudit
 #print axioms exists_pos_time_wholeLineCauchyBUCMildRate_lt_one
 #print axioms wholeLineCauchyBUCMildFixedPoint_isFixedPt
 #print axioms wholeLineCauchyBUCMildFixedPoint_initial
+#print axioms wholeLineCauchyBUCMildFixedPoint_dist_homogeneous_le
+#print axioms exists_wholeLineCauchyBUCMildFixedPoint_below_clamp
 #print axioms exists_wholeLineCauchyBUCMildFixedPoint
 
 end WholeLineCauchyBUCFixedPointAxiomAudit
