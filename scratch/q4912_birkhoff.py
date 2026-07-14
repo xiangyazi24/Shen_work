@@ -42,8 +42,9 @@ def projective_V(N, seed):
     v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix(rinf)
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
-        v /= max(abs(v[i]) for i in range(3))
-    return v/v[2]
+        scale = max(abs(v[i]) for i in range(3))
+        v = v / scale
+    return v / v[2]
 
 
 def dot(a,v):
