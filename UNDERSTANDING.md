@@ -4919,4 +4919,8 @@ corresponding `paper531CommonA/B` for an arbitrary common bound.  Their
 nonnegativity is proved, and specialization at `MChi` is definitionally the
 old concrete budget.  The remaining change is to thread these constants
 through the fixed-time energy producer and then prove the continuity-in-`M`
-choice of `Mtilde` below the available speed.
+choice of `Mtilde` below the available speed.  The first part is now complete:
+the barrier-speed coefficient producer and all half/full-energy derivative
+interfaces accept `MChi <= M` and conclude with `paper531CommonA/B p M`.
+The former `MChi` declarations remain as proved compatibility specializations,
+so no downstream result silently changes meaning.
