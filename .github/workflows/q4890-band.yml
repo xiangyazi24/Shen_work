@@ -7,9 +7,14 @@ on:
     paths:
       - '.github/workflows/q4890-band.yml'
       - 'scratch/q4890_band.sage'
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4890_trigger.txt'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   q4890-search:
@@ -26,11 +31,12 @@ jobs:
             -w /work \
             sagemath/sagemath:latest \
             sage scratch/q4890_band.sage > scratch/q4890_result.txt 2>&1
-      - name: Commit exact output
+      - name: Print exact output
         if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scratch/q4890_result.txt
-          git commit -m "Record Q4890 Sage search output [skip ci]" || exit 0
-          git push origin HEAD:chatgpt-scratch
+        run: cat scratch/q4890_result.txt || true
+      - name: Upload exact output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q4890-result
+          path: scratch/q4890_result.txt
