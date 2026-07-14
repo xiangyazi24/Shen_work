@@ -1,7 +1,7 @@
 import ShenWork.Paper1.Theorem12WeightedResolver
 import ShenWork.Paper1.CStarStarSpecSatisfiable
 import ShenWork.Paper1.Theorem12CoordinateAudit
-import ShenWork.Paper1.Theorem12RootObstruction
+import ShenWork.Paper1.Theorem12Section5Budgets
 import ShenWork.Paper1.WavePositiveConstruction
 import ShenWork.Paper1.WaveStabilityUpgrade
 
