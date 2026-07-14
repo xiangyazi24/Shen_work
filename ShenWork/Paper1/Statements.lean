@@ -15862,14 +15862,6 @@ theorem Remark_5_2_via_Remark_5_1_full
     Remark_5_2 :=
   Remark_5_2_from_Remark_5_1_and_lower_bound h_R51 h_U_lower h_const_compare
 
-def Remark52LogDerivativeAlgebra : Prop :=
-  ∀ p : CMParams, ∀ c sigma : ℝ,
-    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      c > max (p.γ + p.γ⁻¹)
-        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) ∧
-      logDerivativeBoundFormula p c ≤
-        remark52MTriplePrime p c sigma / (remark5ChiTwoSigma p sigma)
-
 def Remark52GammaSpeedAlgebra : Prop :=
   ∀ p : CMParams, ∀ c sigma : ℝ,
     0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
@@ -15910,6 +15902,83 @@ theorem remark5SpeedCondition_implies_Lemma_5_2_speed :
   · have hs_nn : 0 ≤ remark5ChiSigma p sigma :=
       remark5ChiSigma_nonneg p sigma
     linarith [hspeed.gt_second]
+
+/-- In the `c ≤ 5/2` branch used by Remark 5.2, the explicit Lemma 5.2
+log-derivative constant is dominated by the paper's `M'''` constant.
+
+For `c > 5/2` the paper switches to Remarks 4.1 and 5.1; comparing the
+Lemma 5.2 formula directly would be false because that formula grows with
+`c`, whereas the second branch of `M'''` is independent of `c`. -/
+theorem logDerivativeBoundFormula_le_remark52_of_c_le
+    {p : CMParams} {c sigma : ℝ}
+    (hM : 0 < MChi p)
+    (hc : c ≤ (5 / 2 : ℝ))
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma) :
+    logDerivativeBoundFormula p c ≤
+      remark52MTriplePrime p c sigma / remark5ChiTwoSigma p sigma := by
+  have hm_nn : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hK_nn :
+      0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) :=
+    mul_nonneg (mul_nonneg (abs_nonneg p.χ) hm_nn)
+      (Real.rpow_nonneg hM.le _)
+  have hc_pos : 0 < c := by
+    have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+    have hγinv_pos : 0 < p.γ⁻¹ := inv_pos.mpr hγ_pos
+    have := remark5SpeedCondition_implies_gammaSpeed
+      p c sigma hsigma hχ hspeed
+    linarith
+  have hbase_c :
+      0 ≤ c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+    linarith
+  have hbase_cap :
+      0 ≤ (5 / 2 : ℝ) +
+        |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+    linarith
+  have hbase_le :
+      c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) ≤
+        (5 / 2 : ℝ) +
+          |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+    linarith
+  have hsq :
+      (c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 ≤
+        ((5 / 2 : ℝ) +
+          |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 := by
+    nlinarith
+  have hrad :
+      (c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+          4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+          4 * (MChi p) ^ p.α ≤
+        ((5 / 2 : ℝ) +
+          |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+          4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+          4 * (MChi p) ^ p.α := by
+    linarith
+  have hsqrt := Real.sqrt_le_sqrt hrad
+  rw [remark52MTriplePrime_eq_of_le hc]
+  have hden : remark5ChiTwoSigma p sigma ≠ 0 :=
+    ne_of_gt (remark5ChiTwoSigma_pos sigma hχ)
+  rw [show
+      (remark5ChiTwoSigma p sigma / 2 *
+          ((5 / 2 : ℝ) +
+            |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+            Real.sqrt
+              (((5 / 2 : ℝ) + |p.χ| * p.m * (MChi p) ^
+                    (p.m + p.γ - 1)) ^ 2 +
+                4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+                4 * (MChi p) ^ p.α))) /
+          remark5ChiTwoSigma p sigma =
+        (1 / 2 : ℝ) *
+          ((5 / 2 : ℝ) +
+            |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+            Real.sqrt
+              (((5 / 2 : ℝ) + |p.χ| * p.m * (MChi p) ^
+                    (p.m + p.γ - 1)) ^ 2 +
+                4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+                4 * (MChi p) ^ p.α)) by
+      field_simp]
+  unfold logDerivativeBoundFormula
+  nlinarith
 
 theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
