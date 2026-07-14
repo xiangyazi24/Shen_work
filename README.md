@@ -1,5 +1,9 @@
 # ShenWork
 
+## Temporary Q4912 computation
+
+[Open the high-precision Q4912 output](https://deploy-preview-7--zinan.netlify.app/q4912_result.txt)
+
 ## GitHub configuration
 
 To set up your new GitHub repository, follow these steps:
