@@ -24,7 +24,7 @@ open ShenWork.IntervalCoupledRegularityBootstrap
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainSmallDataTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-! ### Unconditional local Cauchy producer

@@ -13,7 +13,7 @@ open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainMinimalWeakSupTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Uniform strong regularization at the end of a weak restart window on the

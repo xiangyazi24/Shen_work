@@ -14,7 +14,7 @@ open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainWeakWindowStrongTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Every weak-window slice has unweighted coefficient norm controlled by its

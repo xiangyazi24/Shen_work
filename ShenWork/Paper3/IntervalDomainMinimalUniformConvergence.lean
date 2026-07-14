@@ -15,7 +15,7 @@ open ShenWork.IntervalDomain ShenWork.Paper2
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainMinimalUniformMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- Every bounded positive, physical-mass orbit of the strictly repulsive

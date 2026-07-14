@@ -25,7 +25,7 @@ open ShenWork.IntervalDomainExistence
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainMinimalChiZeroHeatMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- On every positive-time restart, the `chi = a = b = 0` equation is exactly

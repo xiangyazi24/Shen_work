@@ -25,7 +25,7 @@ open ShenWork.IntervalDomain ShenWork.Paper2
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainTailReactionMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- A continuous function on the closed unit interval has an interval-

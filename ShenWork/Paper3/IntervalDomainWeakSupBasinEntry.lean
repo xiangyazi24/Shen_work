@@ -14,7 +14,7 @@ open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainWeakSupBasinTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 /-- Explicit weak-data radius which enters half of the strong bootstrap ball

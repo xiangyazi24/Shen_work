@@ -14,7 +14,7 @@ open ShenWork.Paper2
 
 noncomputable section
 
-local instance : TopologicalSpace intervalDomain.Point :=
+local instance intervalDomainClassicalRestartTopologicalSpace : TopologicalSpace intervalDomain.Point :=
   inferInstanceAs (TopologicalSpace intervalDomainPoint)
 
 open ShenWork.IntervalGradientDuhamelMap

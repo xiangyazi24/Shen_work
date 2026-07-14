@@ -15,7 +15,7 @@ open ShenWork.IntervalDomain ShenWork.Paper2
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainNegativeMassConvergenceMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- A bounded scalar trajectory with a uniformly positive derivative whenever

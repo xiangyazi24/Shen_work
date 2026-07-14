@@ -21,7 +21,7 @@ open ShenWork.IntervalDomain ShenWork.Paper2
 
 noncomputable section
 
-local instance : MetricSpace intervalDomainPoint :=
+local instance intervalDomainThetaMomentMetricSpace : MetricSpace intervalDomainPoint :=
   inferInstanceAs (MetricSpace (Subtype (Set.Icc (0 : ℝ) 1)))
 
 /-- The scalar theta-dissipation integrand. -/
