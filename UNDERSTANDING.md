@@ -187,6 +187,15 @@ the compatibility needed for the old pieces of both Duhamel histories.  A
 second local full root build passes with 9564 jobs; all new declarations remain
 on the standard three axioms.
 
+Both BUC Duhamel histories now have exact forward restart identities.
+`wholeLineCauchyValueDuhamelBUC_restart` is unconditional.  The divergence
+counterpart uses only bounded `C1` flux slices on the old positive-time
+interval; it neither assumes a time derivative nor the target PDE.  The
+endpoint `s=t` is removed only as a measure-zero point when applying the
+strictly-positive cocycle, and interval splitting is justified by the actual
+Bochner integrability theorems.  The local full root build again passes with
+9564 jobs, with standard-three-axiom audits for both restart theorems.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions

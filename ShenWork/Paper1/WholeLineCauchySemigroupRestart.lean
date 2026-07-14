@@ -288,6 +288,140 @@ theorem wholeLineCauchyHeatBUCTotal_intervalIntegral
       (wholeLineCauchyHeatBUCCLM t ht) hF
   exact hcomm.symm
 
+/-- BUC form of the heat-after-gradient cocycle for a bounded `C1` source. -/
+theorem wholeLineCauchyHeatBUCTotal_comp_heatGradientBUCTotal
+    {t s D : ℝ} (ht : 0 < t) (hs : 0 < s)
+    (f : WholeLineBUC)
+    (hfd : ∀ y, |deriv f.1 y| ≤ D)
+    (hfderiv : ∀ y, HasDerivAt f.1 (deriv f.1 y) y)
+    (hfdcont : Continuous (deriv f.1)) :
+    wholeLineCauchyHeatBUCTotal t
+        (wholeLineCauchyHeatGradientBUCTotal s f) =
+      wholeLineCauchyHeatGradientBUCTotal (t + s) f := by
+  apply Subtype.ext
+  apply BoundedContinuousFunction.ext
+  intro x
+  simp only [wholeLineCauchyHeatBUCTotal,
+    wholeLineCauchyHeatGradientBUCTotal, dif_pos ht, dif_pos hs,
+    dif_pos (add_pos ht hs), wholeLineCauchyHeatBUC_apply,
+    wholeLineCauchyHeatGradientBUC_apply]
+  have hsfun :
+      ((wholeLineCauchyHeatGradientBUC s hs f).1 : ℝ → ℝ) =
+        fun y => wholeLineCauchyHeatGradOp s f.1 y := by
+    funext y
+    exact wholeLineCauchyHeatGradientBUC_apply s hs f y
+  rw [hsfun]
+  exact wholeLineCauchyHeatOp_comp_heatGradOp ht hs
+    (fun y => by
+      simpa [Real.norm_eq_abs] using f.1.norm_coe_le_norm y)
+    hfd hfderiv hfdcont
+
+/-- Restart identity for the BUC-valued reaction Duhamel history. -/
+theorem wholeLineCauchyValueDuhamelBUC_restart
+    (p : CMParams) {M T t h : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (ht : 0 < t) (hh : 0 < h) :
+    wholeLineCauchyValueDuhamelBUC p hM hT U (t + h) =
+      wholeLineCauchyHeatBUCTotal h
+          (wholeLineCauchyValueDuhamelBUC p hM hT U t) +
+        ∫ s in t..(t + h),
+          wholeLineCauchyValueBUCIntegrand p hM hT U (t + h) s := by
+  let G : ℝ → WholeLineBUC :=
+    wholeLineCauchyValueBUCIntegrand p hM hT U (t + h)
+  let H : ℝ → WholeLineBUC :=
+    wholeLineCauchyValueBUCIntegrand p hM hT U t
+  have hth : 0 ≤ t + h := (add_pos ht hh).le
+  have hGfull : IntervalIntegrable G volume 0 (t + h) := by
+    exact wholeLineCauchyValueBUCIntegrand_intervalIntegrable
+      p hM hT U hth
+  have hGold : IntervalIntegrable G volume 0 t := by
+    apply hGfull.mono_set
+    rw [Set.uIcc_of_le ht.le, Set.uIcc_of_le hth]
+    exact Set.Icc_subset_Icc_right (by linarith)
+  have hGrecent : IntervalIntegrable G volume t (t + h) := by
+    apply hGfull.mono_set
+    rw [Set.uIcc_of_le (le_add_of_nonneg_right hh.le), Set.uIcc_of_le hth]
+    exact Set.Icc_subset_Icc_left ht.le
+  have hHint : IntervalIntegrable H volume 0 t := by
+    exact wholeLineCauchyValueBUCIntegrand_intervalIntegrable
+      p hM hT U ht.le
+  have hold : (∫ s in (0 : ℝ)..t, G s) =
+      wholeLineCauchyHeatBUCTotal h (∫ s in (0 : ℝ)..t, H s) := by
+    rw [wholeLineCauchyHeatBUCTotal_intervalIntegral hh hHint]
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [Measure.ae_ne volume t] with s hst hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    have hstlt : s < t := lt_of_le_of_ne hs.2 hst
+    dsimp [G, H, wholeLineCauchyValueBUCIntegrand]
+    rw [show t + h - s = h + (t - s) by ring]
+    exact (wholeLineCauchyHeatBUCTotal_add_time
+      hh (sub_pos.mpr hstlt)
+        (wholeLineCauchyReactionSourceTrajectory p hM hT U s)).symm
+  unfold wholeLineCauchyValueDuhamelBUC
+  change (∫ s in (0 : ℝ)..(t + h), G s) = _
+  rw [← intervalIntegral.integral_add_adjacent_intervals hGold hGrecent]
+  rw [hold]
+
+/-- Restart identity for the BUC-valued divergence Duhamel history.  Spatial
+`C1` data for the flux source are exactly what transfers the gradient through
+the old heat history. -/
+theorem wholeLineCauchyGradientDuhamelBUC_restart
+    (p : CMParams) {M T t h : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (ht : 0 < t) (hh : 0 < h)
+    (hFderiv : ∀ s ∈ Set.Ioc (0 : ℝ) t, ∀ y,
+      HasDerivAt
+        (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1
+        (deriv (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 y) y)
+    (hFderiv_cont : ∀ s ∈ Set.Ioc (0 : ℝ) t,
+      Continuous
+        (deriv (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1))
+    (hFderiv_bound : ∀ s ∈ Set.Ioc (0 : ℝ) t, ∃ D : ℝ, ∀ y,
+      |deriv (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 y| ≤ D) :
+    wholeLineCauchyGradientDuhamelBUC p hM hT U (t + h) =
+      wholeLineCauchyHeatBUCTotal h
+          (wholeLineCauchyGradientDuhamelBUC p hM hT U t) +
+        ∫ s in t..(t + h),
+          wholeLineCauchyGradientBUCIntegrand p hM hT U (t + h) s := by
+  let G : ℝ → WholeLineBUC :=
+    wholeLineCauchyGradientBUCIntegrand p hM hT U (t + h)
+  let H : ℝ → WholeLineBUC :=
+    wholeLineCauchyGradientBUCIntegrand p hM hT U t
+  have hth : 0 ≤ t + h := (add_pos ht hh).le
+  have hGfull : IntervalIntegrable G volume 0 (t + h) := by
+    exact wholeLineCauchyGradientBUCIntegrand_intervalIntegrable
+      p hM hT U hth
+  have hGold : IntervalIntegrable G volume 0 t := by
+    apply hGfull.mono_set
+    rw [Set.uIcc_of_le ht.le, Set.uIcc_of_le hth]
+    exact Set.Icc_subset_Icc_right (by linarith)
+  have hGrecent : IntervalIntegrable G volume t (t + h) := by
+    apply hGfull.mono_set
+    rw [Set.uIcc_of_le (le_add_of_nonneg_right hh.le), Set.uIcc_of_le hth]
+    exact Set.Icc_subset_Icc_left ht.le
+  have hHint : IntervalIntegrable H volume 0 t := by
+    exact wholeLineCauchyGradientBUCIntegrand_intervalIntegrable
+      p hM hT U ht.le
+  have hold : (∫ s in (0 : ℝ)..t, G s) =
+      wholeLineCauchyHeatBUCTotal h (∫ s in (0 : ℝ)..t, H s) := by
+    rw [wholeLineCauchyHeatBUCTotal_intervalIntegral hh hHint]
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [Measure.ae_ne volume t] with s hst hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    have hstlt : s < t := lt_of_le_of_ne hs.2 hst
+    obtain ⟨D, hD⟩ := hFderiv_bound s ⟨hs.1, hstlt.le⟩
+    dsimp [G, H, wholeLineCauchyGradientBUCIntegrand]
+    rw [show t + h - s = h + (t - s) by ring]
+    exact (wholeLineCauchyHeatBUCTotal_comp_heatGradientBUCTotal
+      hh (sub_pos.mpr hstlt)
+      (wholeLineCauchyFluxSourceTrajectory p hM hT U s)
+      hD (hFderiv s ⟨hs.1, hstlt.le⟩)
+        (hFderiv_cont s ⟨hs.1, hstlt.le⟩)).symm
+  unfold wholeLineCauchyGradientDuhamelBUC
+  change (∫ s in (0 : ℝ)..(t + h), G s) = _
+  rw [← intervalIntegral.integral_add_adjacent_intervals hGold hGrecent]
+  rw [hold]
+
 section WholeLineCauchySemigroupRestartAxiomAudit
 
 #print axioms heatKernel_convolution_add
@@ -296,6 +430,9 @@ section WholeLineCauchySemigroupRestartAxiomAudit
 #print axioms wholeLineCauchyHeatBUCTotal_add_time
 #print axioms wholeLineCauchyHeatOp_comp_heatGradOp
 #print axioms wholeLineCauchyHeatBUCTotal_intervalIntegral
+#print axioms wholeLineCauchyHeatBUCTotal_comp_heatGradientBUCTotal
+#print axioms wholeLineCauchyValueDuhamelBUC_restart
+#print axioms wholeLineCauchyGradientDuhamelBUC_restart
 
 end WholeLineCauchySemigroupRestartAxiomAudit
 
