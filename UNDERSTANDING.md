@@ -4839,3 +4839,12 @@ Duhamel legs now have actual time derivatives wherever their source vanishes
 on a product neighborhood.  What remains is to instantiate these generic
 theorems for the two clamped source trajectories and combine them with the
 already-proved spatial second derivatives and pointwise fixed-point identity.
+
+Both generic time-history theorems are now instantiated for the canonical
+clamped flux and reaction trajectories at every strict-negative interior
+point.  The compact-cylinder product neighborhood is converted to a genuine
+real-time neighborhood by choosing its radius below the distances to both
+time endpoints; hence the time clamp is provably inactive throughout the
+neighborhood.  The next assembly step is purely algebraic/regularity wiring:
+differentiate the pointwise fixed-point identity in time and twice in space,
+then cancel the matching history terms to obtain `u_t = u_xx - u`.
