@@ -1,0 +1,31 @@
+name: Q4892 Windows exact Python search
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4892_windows_trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-quick:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4892-single-sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install sympy
+      - shell: pwsh
+        run: python scratch/q4892_quick.py | Tee-Object -FilePath scratch/q4892_windows_result.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: q4892-windows-result
+          path: scratch/q4892_windows_result.txt
