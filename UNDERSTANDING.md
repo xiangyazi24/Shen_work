@@ -4986,3 +4986,14 @@ exponent `-1 + (theta - eta*(1+theta))/2`.  This exponent is integrable exactly
 under the strict condition `eta*(1+theta) < theta`.  The next assembly applies
 this estimate to the recent flux history, uses a nonsingular bound on the old
 history, and obtains a common positive-time Holder modulus for `u_x`.
+
+That Duhamel assembly is now complete for the flux leg.  Splitting the history
+at half the target time, the old interval combines a fixed-lag Hessian bound
+and a third-kernel Lipschitz bound through global interpolation, while the
+recent interval uses the uniform positive-window flux Holder modulus and the
+new cancellative `C^theta -> C^eta` estimate.  Both pieces share an explicitly
+interval-integrable majorant, so the integrated flux Hessian history is
+globally `C^eta` in space whenever `eta*(1+theta)<theta`.  The local full root
+build passes 9561 jobs and the new capstone is clean-3.  The remaining assembly
+adds the homogeneous and reaction histories to obtain a Holder modulus for
+the actual first derivative of the mild slice.
