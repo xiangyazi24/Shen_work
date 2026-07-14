@@ -37,6 +37,16 @@ kernel directly: the existing `deriv_heatSemigroup_*` API assumes global
 derivative convolution is well-defined.  Its time singularity is the
 integrable `1 / sqrt(t-s)` factor.
 
+`WholeLineCauchyDuhamel.lean` now supplies that B-form layer, including joint
+time-source measurability, domination by the integrable Gaussian-gradient
+singularity, and the resulting `sqrt(T)` chemotaxis / `T` reaction difference
+bounds.  It also repairs an important pre-existing mild-map mismatch:
+`PaperOne.wholeLineHeatOp` has generator `Delta-I`, so its paired reaction
+source must be `u + u(1-u^alpha) = u(2-u^alpha)`.  The older
+`PaperOne.wholeLineMildMap` pairs `Delta-I` with only `u(1-u^alpha)` and hence
+does not encode the stated Cauchy PDE.  New Cauchy work must use the corrected
+map.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
