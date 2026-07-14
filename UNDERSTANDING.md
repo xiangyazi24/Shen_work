@@ -5322,5 +5322,15 @@ constant supersolution from the larger contraction clamp: any admissible
 ceiling is preserved through every recursive restart datum and segment.  In
 the nonpositive branch this gives the exact paper bound
 `u(t,x) ≤ max {1,M}` whenever `u₀ ≤ M`, together with a single existential
-producer carrying both the global solution and that sharp bound.  The
-remaining Proposition 1.1(1) work is the uniform long-time limsup `≤ 1`.
+producer carrying both the global solution and that sharp bound.
+`WholeLineCauchyLongTimeBound.lean` proves the stronger quantitative decay
+`u(t,x) ≤ 1 + (C-1)e^{-t}` for every initial ceiling `C ≥ 1`.  The proof uses
+the existing whole-line approximate-maximum theorem on the moving difference
+`u-B_C`; it does not assume that spatial suprema are attained and avoids the
+paper's time-translate compactness argument.  The chemotaxis contribution is
+bounded by a nonnegative multiple of `L-w`, so it vanishes at the slab
+supremum, while the logistic residual is at most `-w` above the barrier.
+The exponential restart identity propagates this estimate through all
+canonical segments.  Consequently `Proposition_1_1_negative_branch` now
+contains unconditional global existence, (1.8), and (1.9) for every
+paper-admissible nonnegative BUC datum.
