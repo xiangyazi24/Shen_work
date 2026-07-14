@@ -40,20 +40,20 @@ rinf = mp.matrix([2, -rt2, 1])
 
 
 def scaled_column(v, scale):
-    return mp.matrix([v[i]/scale for i in range(3)])
+    return mp.matrix([v[i,0]/scale for i in range(3)])
 
 
 def projective_V(N, seed):
-    v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix([rinf[i] for i in range(3)])
+    v = mp.matrix([1,0,0]) if seed == "e1" else mp.matrix([rinf[i,0] for i in range(3)])
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
-        scale = max(abs(v[i]) for i in range(3))
+        scale = max(abs(v[i,0]) for i in range(3))
         v = scaled_column(v, scale)
-    return scaled_column(v, v[2])
+    return scaled_column(v, v[2,0])
 
 
 def dot(a,v):
-    return sum(mp.mpf(a[i])*v[i] for i in range(3))
+    return sum(mp.mpf(a[i])*v[i,0] for i in range(3))
 
 
 def s(x,d=250):
@@ -68,12 +68,12 @@ print("lambda_plus =",s(lam,100))
 print("rho =",s(rho,100))
 print("CONVERGENCE")
 for N in Ns[:-1]:
-    de=max(abs(Ve[N][i]-V[i]) for i in range(3))
-    dr=max(abs(Vr[N][i]-V[i]) for i in range(3))
+    de=max(abs(Ve[N][i,0]-V[i,0]) for i in range(3))
+    dr=max(abs(Vr[N][i,0]-V[i,0]) for i in range(3))
     print(N, "e1",mp.nstr(de,15),"rinf",mp.nstr(dr,15))
-print("seed agreement 260",mp.nstr(max(abs(Ve[260][i]-V[i]) for i in range(3)),15))
+print("seed agreement 260",mp.nstr(max(abs(Ve[260][i,0]-V[i,0]) for i in range(3)),15))
 print("V_NORMALIZED_V2_EQ_1")
-for i in range(3): print(i,s(V[i]))
+for i in range(3): print(i,s(V[i,0]))
 
 p=[30921,-32972,8240]
 q=[33750,-36000,9000]
@@ -98,12 +98,12 @@ def pslq(label, vals, tol_exp, maxcoeff, maxsteps=30000):
 pslq("pV_vs_GqV",[pV,mp.catalan*qV],220,10**4)
 pslq("ratio_vs_G",[ratio,mp.catalan],220,10**4)
 linear=[mp.mpf(1),mp.catalan,mp.pi,mp.log(2),rt2]
-for name,x in [("V0",V[0]),("V1",V[1]),("qV",qV),("pV",pV)]:
+for name,x in [("V0",V[0,0]),("V1",V[1,0]),("qV",qV),("pV",pV)]:
     pslq(name+"_linear",[x]+linear,200,10**8,50000)
     pslq(name+"_Qsqrt2",[x,mp.mpf(1),rt2],220,10**20,20000)
 
 quad=[mp.mpf(1),mp.catalan,mp.pi,mp.log(2),rt2,mp.pi**2,mp.catalan**2,
       mp.catalan*mp.pi,mp.catalan*mp.log(2),mp.pi*mp.log(2),mp.log(2)**2]
-for name,x in [("V0",V[0]),("V1",V[1]),("qV",qV),("pV",pV)]:
+for name,x in [("V0",V[0,0]),("V1",V[1,0]),("qV",qV),("pV",pV)]:
     pslq(name+"_quadratic",[x]+quad,180,10**6,100000)
 print("DONE")
