@@ -4952,3 +4952,15 @@ positive-time slice of the canonical BUC mild fixed point is globally
 not justify two spatial derivatives of the divergence Duhamel term.  The next
 step must use this Holder gain in the elliptic resolver, obtain a Holder flux,
 and then perform the cancellation-based second regularity bootstrap.
+
+The corresponding whole-line cancellation brick is now proved.  The second
+derivative heat kernel has zero translated mass, and testing it against a
+`C^theta` source after subtracting the source value gives the quantitative
+`t^(-1+theta/2)` Hessian bound.  The exponent is integrable at zero.  The
+truncated chemotaxis flux preserves the population slice's Holder exponent:
+the power factor is Lipschitz because `m >= 1`, while the elliptic gradient is
+globally Lipschitz by its ODE and strip bound.  Consequently every positive
+slice of the actual flux-source trajectory has a clean Holder modulus.  The
+next task is to make that modulus uniform on a compact positive-time window
+and integrate the Hessian history to obtain the first spatial derivative of
+the divergence Duhamel term.
