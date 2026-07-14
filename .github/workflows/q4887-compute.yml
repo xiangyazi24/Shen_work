@@ -5,6 +5,7 @@ on:
     branches: [chatgpt-scratch]
     paths:
       - 'tmp/q4887_compute.py'
+      - 'tmp/q4887_compute_fast.py'
       - '.github/workflows/q4887-compute.yml'
 
 permissions:
@@ -22,7 +23,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compute exact relations
-        run: python tmp/q4887_compute.py
+        run: python tmp/q4887_compute_fast.py
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
