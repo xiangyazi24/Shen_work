@@ -4819,3 +4819,13 @@ this supplies every pointwise lag derivative needed to differentiate a fixed-
 upper Duhamel history across its terminal diagonal.  The next step is that
 fixed-upper parameter-integral assembly for the actual two clamped source
 trajectories, followed by the negative-set equation `u_t = u_xx - u`.
+
+The fixed-upper assembly is now complete for value histories.  If a continuous
+uniformly bounded BUC source vanishes on a product neighborhood of `(t,x)`, its
+value Duhamel history is differentiable at `t`, with derivative the time
+integral of `heatHess - heatValue`.  The proof fixes the upper endpoint at
+`t + eta`, splits positive, zero, and negative kernel lag, and uses the old-time
+global Hessian bound together with the recent-time off-support Gaussian bound
+as a single integrable dominator.  The moving-upper and fixed-upper histories
+agree near `t` because all nonpositive-lag kernels are zero.  The gradient
+history analogue (`heatThird - heatGrad`) is the next local lemma.

@@ -880,9 +880,219 @@ theorem wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
             Real.exp (-(r ^ 2 / 16) / t)) := by
         field_simp [ne_of_gt htpos, ne_of_gt (Real.sqrt_pos.mpr htpos)]
 
+/-! ## Fixed-upper differentiation of a value history -/
+
+/-- A value Duhamel history is time differentiable at a point where its source
+vanishes on a product neighborhood.  The moving upper endpoint is replaced by
+the fixed endpoint `t + η`; kernels at nonpositive lag are identically zero. -/
+theorem wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
+    {F : ℝ → WholeLineBUC} (hF : Continuous F)
+    {t M eta r x : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (heta : 0 < eta) (hwindow : 2 * eta < t) (hr : 0 < r)
+    (hFnorm : ∀ s, ‖F s‖ ≤ M)
+    (hzero : ∀ s, dist s t < 2 * eta →
+      ∀ y, dist y x < r → (F s).1 y = 0) :
+    HasDerivAt (fun q : ℝ => wholeLineCauchyValueHistory F q x)
+      (∫ s in (0 : ℝ)..t,
+        (wholeLineCauchyHeatHessOp (t - s) (F s).1 x -
+          wholeLineCauchyHeatOp (t - s) (F s).1 x)) t := by
+  let b : ℝ := t + eta
+  let Cold : ℝ := ((5 * Real.sqrt 2 / 2) * eta ^ (-(1 : ℝ))) * M
+  let Crecent : ℝ :=
+    5 * M * ((1 / Real.exp 1) * (r ^ 2 / 16)⁻¹)
+  let C : ℝ := max Cold Crecent + M
+  let G : ℝ → ℝ → ℝ := fun q s =>
+    wholeLineCauchyHeatOp (q - s) (F s).1 x
+  let G' : ℝ → ℝ → ℝ := fun q s =>
+    wholeLineCauchyHeatHessOp (q - s) (F s).1 x -
+      wholeLineCauchyHeatOp (q - s) (F s).1 x
+  have hbpos : 0 < b := by dsimp [b]; linarith
+  have hC0 : 0 ≤ C := by
+    dsimp [C, Cold, Crecent]
+    positivity
+  have hf_bound : ∀ s y, |(F s).1 y| ≤ M := fun s y =>
+    (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s)
+  have hG_meas : ∀ q, AEStronglyMeasurable (G q) volume := by
+    intro q
+    simpa [G] using wholeLineCauchyHeatOp_s_dependent_aestronglyMeasurable hF q x
+  have hG'_meas : ∀ q, AEStronglyMeasurable (G' q) volume := by
+    intro q
+    exact (wholeLineCauchyHeatHessOp_s_dependent_aestronglyMeasurable hF q x).sub
+      (wholeLineCauchyHeatOp_s_dependent_aestronglyMeasurable hF q x)
+  have hG_int : ∀ q ∈ Metric.ball t (eta / 2),
+      IntervalIntegrable (G q) volume 0 b := by
+    intro q hq
+    apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le hbpos.le (hG_meas q)
+    intro s hs
+    rw [Real.norm_eq_abs]
+    by_cases hlag : 0 ≤ q - s
+    · exact wholeLineCauchyHeatOp_abs_bound_of_nonneg_time
+        (hf_bound s) hM (F s).1.continuous.aestronglyMeasurable hlag x
+    · dsimp [G]
+      rw [wholeLineCauchyHeatOp_eq_zero_of_nonpos (le_of_not_ge hlag), abs_zero]
+      exact hM
+  have hderiv_bound : ∀ s, ∀ q ∈ Metric.ball t (eta / 2),
+      ‖G' q s‖ ≤ C := by
+    intro s q hq
+    have hqt : |q - t| < eta / 2 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hq
+    by_cases hlag : 0 < q - s
+    · have hqpos : 0 < q - s := hlag
+      have hheat := wholeLineCauchyHeatOp_abs_bound_of_nonneg_time
+        (hf_bound s) hM (F s).1.continuous.aestronglyMeasurable hqpos.le x
+      have hhess : |wholeLineCauchyHeatHessOp (q - s) (F s).1 x| ≤
+          max Cold Crecent := by
+        by_cases hold : s ≤ t - 2 * eta
+        · have hlag_eta : eta ≤ q - s := by
+            have hqlo : t - eta / 2 < q := by linarith [(abs_lt.mp hqt).1]
+            linarith
+          have hinv : (q - s) ^ (-(1 : ℝ)) ≤ eta ^ (-(1 : ℝ)) := by
+            rw [Real.rpow_neg_one, Real.rpow_neg_one]
+            simpa [one_div] using one_div_le_one_div_of_le heta hlag_eta
+          have hglobal := wholeLineCauchyHeatHessOp_abs_le
+            (x := x) hqpos hM (F s).1.continuous.aestronglyMeasurable (hf_bound s)
+          refine hglobal.trans (le_max_of_le_left ?_)
+          dsimp [Cold]
+          exact mul_le_mul_of_nonneg_right
+            (mul_le_mul_of_nonneg_left hinv (by positivity)) hM
+        · have hslo : t - 2 * eta < s := lt_of_not_ge hold
+          have hshi : s < t + eta / 2 := by
+            have hqhi : q < t + eta / 2 := by linarith [(abs_lt.mp hqt).2]
+            linarith
+          have hst : dist s t < 2 * eta := by
+            rw [Real.dist_eq]
+            apply abs_lt.mpr
+            constructor <;> linarith
+          have hzero_s : ∀ y, dist y x < r → (F s).1 y = 0 := hzero s hst
+          have hrecent := wholeLineCauchyHeatHessOp_abs_le_of_zero_ball_uniform
+            hqpos hM hr (F s).1.continuous.aestronglyMeasurable
+              (hf_bound s) hzero_s
+          exact hrecent.trans (le_max_right _ _)
+      dsimp [G']
+      calc
+        |wholeLineCauchyHeatHessOp (q - s) (F s).1 x -
+            wholeLineCauchyHeatOp (q - s) (F s).1 x| ≤
+            |wholeLineCauchyHeatHessOp (q - s) (F s).1 x| +
+              |wholeLineCauchyHeatOp (q - s) (F s).1 x| := abs_sub _ _
+        _ ≤ max Cold Crecent + M := add_le_add hhess hheat
+        _ = C := rfl
+    · have hnonpos : q - s ≤ 0 := le_of_not_gt hlag
+      dsimp [G']
+      rw [wholeLineCauchyHeatHessOp_eq_zero_of_nonpos hnonpos,
+        wholeLineCauchyHeatOp_eq_zero_of_nonpos hnonpos, sub_self, abs_zero]
+      exact hC0
+  have hdiff : ∀ s, ∀ q ∈ Metric.ball t (eta / 2),
+      HasDerivAt (fun w : ℝ => G w s) (G' q s) q := by
+    intro s q hq
+    by_cases hpos : 0 < q - s
+    · have hbase := wholeLineCauchyHeatOp_time_hasDerivAt
+        hpos hM (F s).1.continuous.aestronglyMeasurable (hf_bound s) x
+      have hlin : HasDerivAt (fun w : ℝ => w - s) 1 q := by
+        simpa using (hasDerivAt_id q).sub_const s
+      simpa [G, G', Function.comp_def] using hbase.comp q hlin
+    · have hnonpos : q - s ≤ 0 := le_of_not_gt hpos
+      rcases hnonpos.eq_or_lt with heq | hneg
+      · have hqs : q = s := sub_eq_zero.mp heq
+        have hqt : dist s t < 2 * eta := by
+          rw [← hqs]
+          have : dist q t < eta / 2 := by simpa [Metric.mem_ball] using hq
+          exact this.trans (by linarith)
+        have hzero_s : ∀ y, dist y x < r → (F s).1 y = 0 := hzero s hqt
+        have hbase := wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
+          hM hr (F s).1.continuous.aestronglyMeasurable (hf_bound s) hzero_s
+        rw [← heq] at hbase
+        have hlin : HasDerivAt (fun w : ℝ => w - s) 1 q := by
+          simpa using (hasDerivAt_id q).sub_const s
+        have hcomp := hbase.comp q hlin
+        simpa [G, G', heq,
+          wholeLineCauchyHeatHessOp_eq_zero_of_nonpos le_rfl,
+          wholeLineCauchyHeatOp_eq_zero_of_nonpos le_rfl,
+          Function.comp_def] using hcomp
+      · have hqs : q < s := sub_neg.mp hneg
+        have hconst : HasDerivAt (fun _ : ℝ => (0 : ℝ)) 0 q := hasDerivAt_const q 0
+        have hevent : (fun w : ℝ => G w s) =ᶠ[𝓝 q] fun _ => 0 := by
+          filter_upwards [Iio_mem_nhds hqs] with w hw
+          simp [G, wholeLineCauchyHeatOp_eq_zero_of_nonpos (sub_nonpos.mpr hw.le)]
+        have hz := hconst.congr_of_eventuallyEq hevent
+        simpa [G', wholeLineCauchyHeatHessOp_eq_zero_of_nonpos hnonpos,
+          wholeLineCauchyHeatOp_eq_zero_of_nonpos hnonpos] using hz
+  have hfixed_pair := intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (μ := volume) (a := (0 : ℝ)) (b := b)
+    (F := G) (F' := G') (x₀ := t)
+    (s := Metric.ball t (eta / 2)) (bound := fun _ : ℝ => C)
+    (Metric.ball_mem_nhds t (half_pos heta))
+    (by filter_upwards with q; exact (hG_meas q).restrict)
+    (hG_int t (Metric.mem_ball_self (half_pos heta)))
+    (hG'_meas t).restrict
+    (by filter_upwards with s hs q hq; exact hderiv_bound s q hq)
+    intervalIntegrable_const
+    (by filter_upwards with s hs q hq; exact hdiff s q hq)
+  have hfixed := hfixed_pair.2
+  have hfixed_deriv : (∫ s in (0 : ℝ)..b, G' t s) =
+      ∫ s in (0 : ℝ)..t, G' t s := by
+    have hleft : IntervalIntegrable (G' t) volume 0 t := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le
+        ht.le (hG'_meas t)
+      intro s hs
+      exact hderiv_bound s t (Metric.mem_ball_self (half_pos heta))
+    have hright : IntervalIntegrable (G' t) volume t b := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le
+        (by dsimp [b]; linarith : t ≤ b) (hG'_meas t)
+      intro s hs
+      exact hderiv_bound s t (Metric.mem_ball_self (half_pos heta))
+    rw [← intervalIntegral.integral_add_adjacent_intervals hleft hright]
+    have hzero_right : (∫ s in t..b, G' t s) = 0 := by
+      calc
+        (∫ s in t..b, G' t s) = ∫ _s in t..b, (0 : ℝ) := by
+          apply intervalIntegral.integral_congr
+          intro s hs
+          rw [Set.uIcc_of_le (by dsimp [b]; linarith : t ≤ b)] at hs
+          have hnonpos : t - s ≤ 0 := sub_nonpos.mpr hs.1
+          simp [G', wholeLineCauchyHeatHessOp_eq_zero_of_nonpos hnonpos,
+            wholeLineCauchyHeatOp_eq_zero_of_nonpos hnonpos]
+        _ = 0 := intervalIntegral.integral_zero
+    rw [hzero_right, add_zero]
+  rw [hfixed_deriv] at hfixed
+  have hnear_eq :
+      (fun q : ℝ => ∫ s in (0 : ℝ)..b, G q s) =ᶠ[𝓝 t]
+        fun q : ℝ => wholeLineCauchyValueHistory F q x := by
+    filter_upwards [Metric.ball_mem_nhds t (half_pos heta)] with q hq
+    have hqt : |q - t| < eta / 2 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hq
+    have heta_lt_t : eta < t := by linarith
+    have hq0 : 0 < q := by linarith [(abs_lt.mp hqt).1]
+    have hqb : q ≤ b := by
+      dsimp [b]
+      linarith [(abs_lt.mp hqt).2]
+    have h0q : IntervalIntegrable (G q) volume 0 q := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le hq0.le (hG_meas q)
+      intro s hs
+      rw [Real.norm_eq_abs]
+      exact wholeLineCauchyHeatOp_abs_bound_of_nonneg_time
+        (hf_bound s) hM (F s).1.continuous.aestronglyMeasurable
+          (sub_nonneg.mpr hs.2) x
+    have hqb_int : IntervalIntegrable (G q) volume q b := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le (C := M) hqb (hG_meas q)
+      intro s hs
+      have hnonpos : q - s ≤ 0 := sub_nonpos.mpr hs.1
+      simpa [G, wholeLineCauchyHeatOp_eq_zero_of_nonpos hnonpos] using hM
+    rw [← intervalIntegral.integral_add_adjacent_intervals h0q hqb_int]
+    have hzero_qb : (∫ s in q..b, G q s) = 0 := by
+      calc
+        (∫ s in q..b, G q s) = ∫ _s in q..b, (0 : ℝ) := by
+          apply intervalIntegral.integral_congr
+          intro s hs
+          rw [Set.uIcc_of_le hqb] at hs
+          exact wholeLineCauchyHeatOp_eq_zero_of_nonpos (sub_nonpos.mpr hs.1) _ _
+        _ = 0 := intervalIntegral.integral_zero
+    rw [hzero_qb, add_zero]
+    rfl
+  exact hfixed.congr_of_eventuallyEq hnear_eq.symm
+
 #print axioms wholeLineCauchyHeatOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatGradOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
 #print axioms wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
+#print axioms wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
 
 end ShenWork.Paper1
