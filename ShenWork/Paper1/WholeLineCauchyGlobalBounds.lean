@@ -21,6 +21,32 @@ the nonnegative branch, `alpha = m + gamma - 1` and `chi < 1`, while `MChi`
 is the exact positive solution of `(1 - chi) * M^alpha = 1`.
 -/
 
+/-- The parameter regime actually needed by the Cauchy ceiling argument.
+For nonpositive sensitivity there is no relation between `alpha` and
+`m + gamma - 1`; the exponent equality is needed only in the positive branch. -/
+def WholeLineCauchyCeilingRegime (p : CMParams) : Prop :=
+  p.χ ≤ 0 ∨
+    (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
+
+theorem WholeLineCauchyCeilingRegime.of_nonpositive
+    {p : CMParams} (hχ : p.χ ≤ 0) :
+    WholeLineCauchyCeilingRegime p :=
+  Or.inl hχ
+
+theorem StableWaveParameterRegime.toWholeLineCauchyCeilingRegime
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    WholeLineCauchyCeilingRegime p := by
+  rcases h with hneg | hpos
+  · exact Or.inl hneg.1.le
+  · exact Or.inr hpos
+
+theorem WholeLineCauchyCeilingRegime.one_le_MChi
+    {p : CMParams} (h : WholeLineCauchyCeilingRegime p) :
+    1 ≤ MChi p := by
+  rcases h with hχ | hpos
+  · simp [MChi_eq_one_of_chi_nonpos p hχ]
+  · exact one_le_MChi_of_chi_nonneg_lt_chiStar p hpos.1 hpos.2.1
+
 /-- A canonical ceiling above both the initial BUC norm and the stable
 constant-state threshold. -/
 def wholeLineCauchyStableCeiling
@@ -40,7 +66,7 @@ theorem wholeLineCauchyStableCeiling_initial_lt
     (wholeLineCauchyStableCeiling_gt_norm p u₀)
 
 theorem wholeLineCauchyStableCeiling_one_le
-    {p : CMParams} (hregime : StableWaveParameterRegime p)
+    {p : CMParams} (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) :
     1 ≤ wholeLineCauchyStableCeiling p u₀ := by
   unfold wholeLineCauchyStableCeiling
@@ -50,7 +76,7 @@ theorem wholeLineCauchyStableCeiling_one_le
 first-contact argument.  In particular, the chemotaxis exponent is
 `m + gamma - 1`, not `gamma`. -/
 theorem wholeLineCauchyStableCeiling_margin
-    {p : CMParams} (hregime : StableWaveParameterRegime p)
+    {p : CMParams} (hregime : WholeLineCauchyCeilingRegime p)
     (u₀ : WholeLineBUC) :
     1 + max p.χ 0 *
         (wholeLineCauchyStableCeiling p u₀) ^ (p.m + p.γ - 1) ≤
@@ -58,10 +84,10 @@ theorem wholeLineCauchyStableCeiling_margin
   let M := wholeLineCauchyStableCeiling p u₀
   have hM1 : 1 ≤ M := wholeLineCauchyStableCeiling_one_le hregime u₀
   have hM0 : 0 ≤ M := zero_le_one.trans hM1
-  rcases hregime with hneg | hpos
+  rcases hregime with hχ | hpos
   · have hpow : 1 ≤ M ^ p.α :=
       Real.one_le_rpow hM1 (zero_le_one.trans p.hα)
-    simpa [max_eq_right (le_of_lt hneg.1), M] using hpow
+    simpa [max_eq_right hχ, M] using hpow
   · have hχ1 : p.χ < 1 :=
       lt_of_lt_of_le hpos.2.1 (chiStar_le_one p)
     have hden : 0 < 1 - p.χ := sub_pos.mpr hχ1
@@ -87,6 +113,7 @@ theorem wholeLineCauchyStableCeiling_margin
 section WholeLineCauchyGlobalBoundsAxiomAudit
 
 #print axioms wholeLineCauchyStableCeiling_initial_lt
+#print axioms WholeLineCauchyCeilingRegime.one_le_MChi
 #print axioms wholeLineCauchyStableCeiling_one_le
 #print axioms wholeLineCauchyStableCeiling_margin
 

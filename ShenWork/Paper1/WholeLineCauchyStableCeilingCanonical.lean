@@ -20,7 +20,7 @@ construction endpoint.
 /-- Before the construction endpoint, every canonical physical fixed point
 stays below any stable ceiling which bounds its initial datum. -/
 theorem wholeLineCauchyBUCMildFixedPoint_stable_ceiling_Ico
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     {M T C : ℝ} (hM : 0 ≤ M) (hT : 0 < T)
     (u₀ : WholeLineBUC)
     (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
@@ -156,7 +156,7 @@ theorem wholeLineCauchyBUCMildFixedPoint_stable_ceiling_Ico
 /-- Time continuity passes the strict-interior ceiling to the construction
 endpoint, so the entire closed canonical strip obeys the same bound. -/
 theorem wholeLineCauchyBUCMildFixedPoint_stable_ceiling_Icc
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     {M T C : ℝ} (hM : 0 ≤ M) (hT : 0 < T)
     (u₀ : WholeLineBUC)
     (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
@@ -202,7 +202,7 @@ theorem wholeLineCauchyBUCMildFixedPoint_stable_ceiling_Icc
 /-- The canonical stable ceiling from `WholeLineCauchyGlobalBounds` bounds
 the entire physical construction strip. -/
 theorem wholeLineCauchyBUCMildFixedPoint_le_stableCeiling
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     {M T : ℝ} (hM : 0 ≤ M) (hT : 0 < T)
     (u₀ : WholeLineBUC)
     (hsmall : wholeLineCauchyBUCMildRate p M T < 1)

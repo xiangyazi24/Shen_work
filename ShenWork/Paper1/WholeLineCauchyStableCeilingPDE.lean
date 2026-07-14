@@ -22,7 +22,7 @@ set_option maxHeartbeats 800000 in
 /-- The stable scalar margin closes the full nonlocal PDE maximum principle on
 a bounded classical slab. -/
 theorem wholeLineSlabSup_le_of_stable_resolver_pde
-    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (p : CMParams) (hregime : WholeLineCauchyCeilingRegime p)
     {T C A : ℝ} {u : ℝ → ℝ → ℝ}
     (hT : 0 < T) (hC1 : 1 ≤ C)
     (hmargin : 1 + max p.χ 0 * C ^ (p.m + p.γ - 1) ≤ C ^ p.α)
@@ -62,7 +62,7 @@ theorem wholeLineSlabSup_le_of_stable_resolver_pde
         (mul_nonneg (abs_nonneg _) (le_trans zero_le_one p.hm))
         (Real.rpow_nonneg hA0 _))
       (Real.rpow_nonneg hA0 _)
-  rcases hregime with hneg | hpos
+  rcases hregime with hχ | hpos
   · let G : ℝ → ℝ := fun r =>
       (-p.χ) * r ^ p.m * (L ^ p.γ - r ^ p.γ) +
         r * (1 - r ^ p.α)
@@ -167,7 +167,7 @@ theorem wholeLineSlabSup_le_of_stable_resolver_pde
           (-p.χ) * (u t x) ^ p.m *
             (L ^ p.γ - (u t x) ^ p.γ) := by
       have hcoef : 0 ≤ (-p.χ) * (u t x) ^ p.m :=
-        mul_nonneg (by linarith [hneg.1]) hum0
+        mul_nonneg (by linarith [hχ]) hum0
       calc
         -p.χ * ((u t x) ^ p.m *
               (frozenElliptic p (u t) x - (u t x) ^ p.γ))

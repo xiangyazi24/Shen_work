@@ -20,25 +20,6 @@ boundedness, so it is retained for compatibility while the genuine Cauchy
 construction uses the stronger predicate below.
 -/
 
-/-- The actual whole-line phase space used in the paper: bounded uniformly
-continuous real functions. -/
-def PaperCUnifBdd (f : ℝ → ℝ) : Prop :=
-  UniformContinuous f ∧ IsBddFun f
-
-/-- Paper-faithful nonnegative Cauchy data. -/
-def PaperNonnegativeInitialDatum (u₀ : ℝ → ℝ) : Prop :=
-  PaperCUnifBdd u₀ ∧ ∀ x, 0 ≤ u₀ x
-
-theorem PaperCUnifBdd.to_isCUnifBdd
-    {f : ℝ → ℝ} (h : PaperCUnifBdd f) :
-    IsCUnifBdd f :=
-  ⟨h.1.continuous, h.2⟩
-
-theorem PaperNonnegativeInitialDatum.to_nonnegativeInitialDatum
-    {u₀ : ℝ → ℝ} (h : PaperNonnegativeInitialDatum u₀) :
-    NonnegativeInitialDatum u₀ :=
-  ⟨h.1.to_isCUnifBdd, h.2⟩
-
 /-- Bounded continuous functions whose underlying maps are uniformly
 continuous form a real vector subspace of the ambient sup-norm space. -/
 def wholeLineBUCSubmodule : Submodule ℝ (BoundedContinuousFunction ℝ ℝ) where

@@ -24,6 +24,26 @@ noncomputable section
 def NonnegativeInitialDatum (u₀ : ℝ → ℝ) : Prop :=
   IsCUnifBdd u₀ ∧ ∀ x, 0 ≤ u₀ x
 
+/-- The paper's phase-space hypothesis `C_unif^b(R)`: bounded and uniformly
+continuous.  This is stronger than the repository's historical
+`IsCUnifBdd`, which records only bounded continuity. -/
+def PaperCUnifBdd (f : ℝ → ℝ) : Prop :=
+  UniformContinuous f ∧ IsBddFun f
+
+/-- Paper-faithful nonnegative Cauchy datum. -/
+def PaperNonnegativeInitialDatum (u₀ : ℝ → ℝ) : Prop :=
+  PaperCUnifBdd u₀ ∧ ∀ x, 0 ≤ u₀ x
+
+theorem PaperCUnifBdd.to_isCUnifBdd
+    {f : ℝ → ℝ} (h : PaperCUnifBdd f) :
+    IsCUnifBdd f :=
+  ⟨h.1.continuous, h.2⟩
+
+theorem PaperNonnegativeInitialDatum.to_nonnegativeInitialDatum
+    {u₀ : ℝ → ℝ} (h : PaperNonnegativeInitialDatum u₀) :
+    NonnegativeInitialDatum u₀ :=
+  ⟨h.1.to_isCUnifBdd, h.2⟩
+
 def UniformlyPositive (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ x, δ ≤ u₀ x
 
@@ -16444,7 +16464,7 @@ theorem Lemma_5_3.same_power_branch_of_tail_bounds_of_continuous
 /-- Paper1 Proposition 1.1: global existence and boundedness of Cauchy solutions. -/
 def Proposition_1_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
+    ∀ u₀ : ℝ → ℝ, PaperNonnegativeInitialDatum u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
         (∀ M, (∀ x, u₀ x ≤ M) →
@@ -16457,7 +16477,7 @@ def Proposition_1_1 : Prop :=
           ((p.m + p.γ - 1) / (2 * p.m - 1))
           ((p.m + p.γ - 1) / (p.γ - 1)) ∧
         p.α = p.m + p.γ - 1) →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
+    ∀ u₀ : ℝ → ℝ, PaperNonnegativeInitialDatum u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
         UniformEventuallyBounded u ∧
@@ -16722,12 +16742,14 @@ theorem Proposition_1_1.of_global_existence_and_bounds
     Proposition_1_1 := by
   constructor
   · intro p hχ u₀ hu₀
-    rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
-    rcases hmax_neg p hχ u₀ hu₀ u v hsol with ⟨hmax, hlimsup⟩
+    have hu₀' := hu₀.to_nonnegativeInitialDatum
+    rcases hexist p u₀ hu₀' with ⟨u, v, hsol⟩
+    rcases hmax_neg p hχ u₀ hu₀' u v hsol with ⟨hmax, hlimsup⟩
     exact ⟨u, v, hsol.toNonnegative hu₀.2, hmax, hlimsup⟩
   · intro p hcond u₀ hu₀
-    rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
-    rcases hbound_pos p hcond u₀ hu₀ u v hsol with ⟨hbdd, hlimsup⟩
+    have hu₀' := hu₀.to_nonnegativeInitialDatum
+    rcases hexist p u₀ hu₀' with ⟨u, v, hsol⟩
+    rcases hbound_pos p hcond u₀ hu₀' u v hsol with ⟨hbdd, hlimsup⟩
     exact ⟨u, v, hsol.toNonnegative hu₀.2, hbdd, hlimsup⟩
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
