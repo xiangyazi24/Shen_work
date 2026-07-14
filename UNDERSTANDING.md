@@ -135,10 +135,16 @@ its coefficient outside the time quantifier.  Consequently
 `wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window` produces a
 single positive exponent and coefficient for the differentiated physical flux
 on the whole window, including the fractional `1<m<2` case at `u=0`.  The
-local full root build passes with 9563 jobs and all window capstones have
-exactly the standard three axioms.  The next analytic step is to use Gaussian
-IBP plus Hessian cancellation to differentiate the divergence Duhamel history
-a second time.
+Gaussian third-kernel convolution is now identified with the Hessian
+convolution of that flux derivative.  Splitting at half the target time gives
+a fixed-lag third-kernel bound on the old history and the integrable
+`lag^(-1+rho/2)` Hessian-cancellation bound on the recent history.  Hence
+`wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive` constructs the
+second spatial derivative of the entire divergence Duhamel history.  The
+local full root build passes with 9563 jobs and all capstones have exactly the
+standard three axioms.  The next analytic step is the corresponding reaction
+history second derivative, followed by assembly of the full positive-time
+`u_xx` theorem.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
