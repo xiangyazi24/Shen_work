@@ -1,0 +1,24 @@
+name: q4859 exact Ore factor audit
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  factor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: sagemath/sagemath:latest
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ore_algebra
+        shell: bash
+        run: |
+          sage -pip install --no-cache-dir git+https://github.com/mkauers/ore_algebra.git
+      - name: Run exact factor audit
+        shell: bash
+        run: |
+          sage q4859_factor.sage
