@@ -1,0 +1,26 @@
+name: Q4912 high-precision Birkhoff computation
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - '.github/workflows/q4912-compute.yml'
+      - 'scratch/q4912_birkhoff.py'
+
+permissions:
+  contents: read
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install mpmath
+        run: python -m pip install --disable-pip-version-check mpmath
+      - name: Compute
+        run: python scratch/q4912_birkhoff.py
