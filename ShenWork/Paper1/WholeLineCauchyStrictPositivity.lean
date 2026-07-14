@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WholeLineCauchyDuhamel
+import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
 import ShenWork.Paper1.Statements
 
 open MeasureTheory Set Filter Topology
@@ -43,9 +44,24 @@ theorem wholeLineCauchyHeatOp_pos_of_nonneg_of_pos_atBot
   rw [modifiedSemigroup, heatSemigroup]
   exact mul_pos (Real.exp_pos _) hint_pos
 
+/-- The homogeneous heat part of the whole-line Cauchy construction is strictly
+positive at every positive time, for a nonnegative BUC datum that is `≥ δ > 0`
+on a left half-line.  This is the strict-positivity base (`S(t)u₀ > 0`) any
+lower-barrier propagation argument builds on. -/
+theorem wholeLineCauchyHeatBUCTotal_pos_of_nonneg_of_pos_atBot
+    {t : ℝ} (ht : 0 < t) (u₀ : WholeLineBUC)
+    (hnn : ∀ y, 0 ≤ u₀.1 y)
+    {δ A : ℝ} (hδ : 0 < δ) (hA : ∀ y ≤ A, δ ≤ u₀.1 y) (x : ℝ) :
+    0 < (wholeLineCauchyHeatBUCTotal t u₀).1 x := by
+  rw [wholeLineCauchyHeatBUCTotal, dif_pos ht, wholeLineCauchyHeatBUC_apply]
+  exact wholeLineCauchyHeatOp_pos_of_nonneg_of_pos_atBot ht
+    (fun y => WholeLineBUC.abs_apply_le_norm u₀ y)
+    u₀.1.continuous.aestronglyMeasurable hnn hδ hA x
+
 section WholeLineCauchyStrictPositivityAxiomAudit
 
 #print axioms wholeLineCauchyHeatOp_pos_of_nonneg_of_pos_atBot
+#print axioms wholeLineCauchyHeatBUCTotal_pos_of_nonneg_of_pos_atBot
 
 end WholeLineCauchyStrictPositivityAxiomAudit
 
