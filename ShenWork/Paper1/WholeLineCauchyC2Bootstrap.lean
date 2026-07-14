@@ -1378,6 +1378,310 @@ theorem wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive
   exact wholeLineCauchyGradientHistory_second_hasDerivAt
     hFcont hz one_pos hFnorm hfirst hhess hboundInt hbound
 
+/-- A bounded source trajectory with one spatial Holder modulus on the recent
+half-window has a twice spatially differentiable value Duhamel history. -/
+theorem wholeLineCauchyValueHistory_second_hasDerivAt_of_window_Ctheta
+    {F : ℝ → WholeLineBUC} (hF : Continuous F)
+    {t x C theta H : ℝ}
+    (ht : 0 < t) (hC : 0 ≤ C)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hFnorm : ∀ s, ‖F s‖ ≤ C) (hH : 0 ≤ H)
+    (hholder : ∀ s ∈ Set.Icc (t / 2) t, ∀ y w : ℝ,
+      |(F s).1 y - (F s).1 w| ≤ H * |y - w| ^ theta) :
+    HasDerivAt
+      (fun y : ℝ => deriv
+        (fun w : ℝ => wholeLineCauchyValueHistory F t w) y)
+      (∫ s in (0 : ℝ)..t,
+        wholeLineCauchyHeatHessOp (t - s) (F s).1 x) x := by
+  have hhalf : 0 < t / 2 := by positivity
+  let Cearly : ℝ :=
+    (5 * Real.sqrt 2 / 2) * (t / 2) ^ (-(1 : ℝ)) * C
+  let Wtheta : ℝ :=
+    ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst theta
+  let bound : ℝ → ℝ := fun s =>
+    Cearly + Wtheta * (t - s) ^ (-1 + theta / 2 : ℝ) * H
+  have hCearly : 0 ≤ Cearly := by dsimp [Cearly]; positivity
+  have hWtheta : 0 ≤ Wtheta := by
+    dsimp [Wtheta]
+    exact ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst_nonneg theta
+  have hboundInt : IntervalIntegrable bound volume 0 t := by
+    have hk :=
+      ShenWork.IntervalNeumannFullKernel.intervalIntegrable_sub_rpow_hessian
+        (t := t) htheta0
+    have hscaled := (hk.const_mul Wtheta).mul_const H
+    have hconst : IntervalIntegrable (fun _ : ℝ => Cearly) volume 0 t :=
+      intervalIntegrable_const
+    simpa [bound, mul_assoc] using hconst.add hscaled
+  have hvalue : ∀ q : ℝ, IntervalIntegrable
+      (fun s : ℝ => wholeLineCauchyHeatOp (t - s) (F s).1 q)
+      volume 0 t := fun q =>
+    wholeLineCauchyValueHistory_intervalIntegrable hF ht hC hFnorm q
+  have hgrad : ∀ q : ℝ, IntervalIntegrable
+      (fun s : ℝ => wholeLineCauchyHeatGradOp (t - s) (F s).1 q)
+      volume 0 t := fun q =>
+    wholeLineCauchyGradientHistory_intervalIntegrable hF ht hC hFnorm q
+  have hfirst : ∀ q : ℝ,
+      deriv (fun w : ℝ => wholeLineCauchyValueHistory F t w) q =
+        ∫ s in (0 : ℝ)..t,
+          wholeLineCauchyHeatGradOp (t - s) (F s).1 q := by
+    intro q
+    exact (wholeLineCauchyValueHistory_hasDerivAt
+      (ρ := 1) hF ht hC one_pos hFnorm (hvalue q)).deriv
+  have hbound : ∀ s, 0 ≤ s → s < t → ∀ q ∈ Metric.ball x 1,
+      ‖wholeLineCauchyHeatHessOp (t - s) (F s).1 q‖ ≤ bound s := by
+    intro s hs0 hst q _hq
+    have hlag : 0 < t - s := sub_pos.mpr hst
+    by_cases hsHalf : s ≤ t / 2
+    · have hlagHalf : t / 2 ≤ t - s := by linarith
+      have hpow : (t - s) ^ (-(1 : ℝ)) ≤
+          (t / 2) ^ (-(1 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos hhalf hlagHalf (by norm_num)
+      have hglobal := wholeLineCauchyHeatHessOp_abs_le
+        hlag hC (F s).1.continuous.aestronglyMeasurable
+        (fun y => (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s))
+        (x := q)
+      rw [Real.norm_eq_abs]
+      calc
+        |wholeLineCauchyHeatHessOp (t - s) (F s).1 q| ≤
+            ((5 * Real.sqrt 2 / 2) * (t - s) ^ (-(1 : ℝ))) * C :=
+          hglobal
+        _ ≤ Cearly := by
+          dsimp [Cearly]
+          gcongr
+        _ ≤ bound s := by
+          dsimp [bound]
+          exact le_add_of_nonneg_right
+            (mul_nonneg (mul_nonneg hWtheta
+              (Real.rpow_nonneg hlag.le _)) hH)
+    · have hsWindow : s ∈ Set.Icc (t / 2) t :=
+        ⟨le_of_not_ge hsHalf, hst.le⟩
+      have hcancel := wholeLineCauchyHeatHessOp_Ctheta_abs_le
+        hlag htheta0 htheta1 hH
+        (F s).1.continuous.aestronglyMeasurable
+        (fun y => (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s))
+        (hholder s hsWindow) (x := q)
+      rw [Real.norm_eq_abs]
+      calc
+        |wholeLineCauchyHeatHessOp (t - s) (F s).1 q| ≤
+            Wtheta * (t - s) ^ (-1 + theta / 2 : ℝ) * H := by
+          simpa [Wtheta] using hcancel
+        _ ≤ bound s := by
+          dsimp [bound]
+          linarith
+  exact wholeLineCauchyValueHistory_second_hasDerivAt
+    hF ht one_pos hFnorm hfirst (hgrad x) hboundInt hbound
+
+/-- The truncated reaction trajectory has one common spatial Holder modulus
+on every compact positive-time window. -/
+theorem exists_wholeLineCauchyReactionSourceTrajectory_window_Ctheta
+    (p : CMParams) {M T a b theta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (ha : 0 < a) (hbT : b ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1) :
+    ∃ HR : ℝ, 0 ≤ HR ∧ ∀ s ∈ Set.Icc a b, ∀ x y : ℝ,
+      |(wholeLineCauchyReactionSourceTrajectory p hM hT
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x -
+        (wholeLineCauchyReactionSourceTrajectory p hM hT
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 y| ≤
+        HR * |x - y| ^ theta := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  rcases exists_wholeLineCauchySliceHolderConst_window_bound
+      p u₀ (M := M) (a := a) (b := b) (theta := theta) ha with
+    ⟨HU, hHU, hwindow⟩
+  let L : ℝ := 1 + reactionLip p.α M
+  let HR : ℝ := L * HU
+  have hL : 0 ≤ L := by
+    dsimp [L]
+    linarith [reactionLip_nonneg p.hα hM]
+  have hHR : 0 ≤ HR := mul_nonneg hL hHU
+  refine ⟨HR, hHR, ?_⟩
+  intro s hs x y
+  have hs0 : 0 ≤ s := ha.le.trans hs.1
+  have hsT : s ≤ T := hs.2.trans hbT
+  let z : Set.Icc (0 : ℝ) T := ⟨s, hs0, hsT⟩
+  have hz : 0 < z.1 := ha.trans_le hs.1
+  rcases wholeLineCauchyBUCMildFixedPoint_slice_Ctheta_explicit
+      p hM hT u₀ hsmall z hz htheta0 htheta1 with ⟨_hcoef, hu⟩
+  have huHU : |(U z).1 x - (U z).1 y| ≤ HU * |x - y| ^ theta := by
+    exact (hu x y).trans
+      (mul_le_mul_of_nonneg_right (hwindow s hs)
+        (Real.rpow_nonneg (abs_nonneg _) _))
+  have hscalar :=
+    (wholeLineCauchyTruncatedReactionScalar_lipschitz p hM).dist_le_mul
+      ((U z).1 x) ((U z).1 y)
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ hL] at hscalar
+  have hreac :
+      |wholeLineCauchyTruncatedReactionScalar p M ((U z).1 x) -
+          wholeLineCauchyTruncatedReactionScalar p M ((U z).1 y)| ≤
+        HR * |x - y| ^ theta := by
+    calc
+      |wholeLineCauchyTruncatedReactionScalar p M ((U z).1 x) -
+          wholeLineCauchyTruncatedReactionScalar p M ((U z).1 y)| ≤
+          L * |(U z).1 x - (U z).1 y| := hscalar
+      _ ≤ L * (HU * |x - y| ^ theta) :=
+        mul_le_mul_of_nonneg_left huHU hL
+      _ = HR * |x - y| ^ theta := by dsimp [HR]; ring
+  have hext : wholeLineBUCTrajectoryExtend hT U s = U z :=
+    wholeLineBUCTrajectoryExtend_eq hT U z.2
+  simpa [U, z, wholeLineCauchyReactionSourceTrajectory, hext,
+    wholeLineCauchyTruncatedReactionScalar,
+    wholeLineCauchyTruncatedReactionBUC,
+    wholeLineCauchyTruncatedReaction, wholeLineCauchyShiftedReaction,
+    wholeLineCauchyClampProfile, wholeLineLogisticSource] using hreac
+
+/-- The reaction value history has a second spatial derivative at every
+positive physical point. -/
+theorem wholeLineCauchyReactionValueHistory_second_hasDerivAt_positive
+    (p : CMParams) {M T theta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (x : ℝ) :
+    HasDerivAt
+      (fun y : ℝ => deriv
+        (fun w : ℝ => wholeLineCauchyValueHistory
+          (wholeLineCauchyReactionSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)) z.1 w) y)
+      (∫ s in (0 : ℝ)..z.1,
+        wholeLineCauchyHeatHessOp (z.1 - s)
+          (wholeLineCauchyReactionSourceTrajectory p hM hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x) x := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let R : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  have hMR : 0 ≤ MR := by dsimp [MR]; positivity
+  have hRcont : Continuous R := by
+    simpa [R] using wholeLineCauchyReactionSourceTrajectory_continuous p hM hT U
+  have hRnorm : ∀ s, ‖R s‖ ≤ MR := by
+    intro s
+    simpa [R, MR, wholeLineCauchyReactionSourceTrajectory] using
+      wholeLineCauchyTruncatedReactionBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  have hhalf : 0 < z.1 / 2 := by positivity
+  rcases exists_wholeLineCauchyReactionSourceTrajectory_window_Ctheta
+      p hM hT hhalf z.2.2 u₀ hsmall htheta0 htheta1 with
+    ⟨HR, hHR, hRholder⟩
+  change HasDerivAt
+    (fun y : ℝ => deriv
+      (fun w : ℝ => wholeLineCauchyValueHistory R z.1 w) y)
+    (∫ s in (0 : ℝ)..z.1,
+      wholeLineCauchyHeatHessOp (z.1 - s) (R s).1 x) x
+  exact wholeLineCauchyValueHistory_second_hasDerivAt_of_window_Ctheta
+    hRcont hz hMR htheta0 htheta1 hRnorm hHR hRholder
+
+/-- Every positive physical canonical mild slice has a second spatial
+derivative. -/
+theorem wholeLineCauchyBUCMildFixedPoint_spatial_second_hasDerivAt_positive
+    (p : CMParams) {M T theta eta : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (z : Set.Icc (0 : ℝ) T) (hz : 0 < z.1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (heta0 : 0 < eta) (heta1 : eta < 1)
+    (hrel : eta * (1 + theta) < theta)
+    (hstrip : ∀ s ∈ Set.Icc (z.1 / 2) z.1, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT
+        (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x ∈
+          Set.Icc (0 : ℝ) M)
+    (x : ℝ) :
+    HasDerivAt
+      (fun y : ℝ => deriv
+        (fun w : ℝ =>
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 w) y)
+      (wholeLineCauchyHeatHessOp z.1 u₀.1 x +
+        (-p.χ) * (∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatThirdOp (z.1 - s)
+            (wholeLineCauchyFluxSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x) +
+        (∫ s in (0 : ℝ)..z.1,
+          wholeLineCauchyHeatHessOp (z.1 - s)
+            (wholeLineCauchyReactionSourceTrajectory p hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1 x)) x := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let F : ℝ → WholeLineBUC := wholeLineCauchyFluxSourceTrajectory p hM hT U
+  let R : ℝ → WholeLineBUC := wholeLineCauchyReactionSourceTrajectory p hM hT U
+  let MR : ℝ := M + M * (1 + M ^ p.α)
+  have hMR : 0 ≤ MR := by dsimp [MR]; positivity
+  have hRcont : Continuous R := by
+    simpa [R] using wholeLineCauchyReactionSourceTrajectory_continuous p hM hT U
+  have hRnorm : ∀ s, ‖R s‖ ≤ MR := by
+    intro s
+    simpa [R, MR, wholeLineCauchyReactionSourceTrajectory] using
+      wholeLineCauchyTruncatedReactionBUC_norm_le p hM
+        (wholeLineBUCTrajectoryExtend hT U s)
+  have hRvalue : ∀ q : ℝ, IntervalIntegrable
+      (fun s : ℝ => wholeLineCauchyHeatOp (z.1 - s) (R s).1 q)
+      volume 0 z.1 := fun q =>
+    wholeLineCauchyValueHistory_intervalIntegrable hRcont hz hMR hRnorm q
+  have hu₀bound : ∀ y, |u₀.1 y| ≤ ‖u₀‖ := fun y =>
+    WholeLineBUC.abs_apply_le_norm u₀ y
+  have hheatFirst : ∀ q : ℝ,
+      HasDerivAt (fun w : ℝ => wholeLineCauchyHeatOp z.1 u₀.1 w)
+        (wholeLineCauchyHeatGradOp z.1 u₀.1 q) q := fun q =>
+    wholeLineCauchyHeatOp_hasDerivAt hz
+      u₀.1.continuous.aestronglyMeasurable hu₀bound
+  have hheatSecondBase := wholeLineCauchyHeatGradOp_hasDerivAt
+    (x := x) hz u₀.1.continuous.aestronglyMeasurable hu₀bound
+  have hheatSecond : HasDerivAt
+      (fun y : ℝ => deriv
+        (fun w : ℝ => wholeLineCauchyHeatOp z.1 u₀.1 w) y)
+      (wholeLineCauchyHeatHessOp z.1 u₀.1 x) x := by
+    apply hheatSecondBase.congr_of_eventuallyEq
+    filter_upwards with q
+    exact (hheatFirst q).deriv
+  have hfluxSecond :=
+    wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz htheta0 htheta1
+        heta0 heta1 hrel hstrip x
+  have hreactionSecond :=
+    wholeLineCauchyReactionValueHistory_second_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz htheta0 htheta1 x
+  have hsecondSum :=
+    (hheatSecond.add (hfluxSecond.const_mul (-p.χ))).add hreactionSecond
+  have hfun :
+      (fun w : ℝ => (U z).1 w) =
+        (fun w : ℝ => wholeLineCauchyHeatOp z.1 u₀.1 w +
+          (-p.χ) * wholeLineCauchyGradientHistory F z.1 w +
+          wholeLineCauchyValueHistory R z.1 w) := by
+    funext w
+    simpa [U, F, R] using
+      wholeLineCauchyBUCMildFixedPoint_apply_eq_histories
+        p hM hT u₀ hsmall z w hz
+  have hevent :
+      (fun y : ℝ => deriv (fun w : ℝ => (U z).1 w) y) =ᶠ[nhds x]
+        (fun y : ℝ =>
+          deriv (fun w : ℝ => wholeLineCauchyHeatOp z.1 u₀.1 w) y +
+          (-p.χ) * deriv
+            (fun w : ℝ => wholeLineCauchyGradientHistory F z.1 w) y +
+          deriv (fun w : ℝ => wholeLineCauchyValueHistory R z.1 w) y) := by
+    filter_upwards with q
+    have hfluxFirst := wholeLineCauchyFluxGradientHistory_hasDerivAt_positive
+      p hM hT u₀ hsmall z hz htheta0 htheta1 q
+    have hreactionFirst := wholeLineCauchyValueHistory_hasDerivAt
+      (ρ := 1) hRcont hz hMR one_pos hRnorm (hRvalue q)
+    have hsumFirst :=
+      ((hheatFirst q).add (hfluxFirst.const_mul (-p.χ))).add hreactionFirst
+    have hUFirst : HasDerivAt (fun w : ℝ => (U z).1 w)
+        (wholeLineCauchyHeatGradOp z.1 u₀.1 q +
+          (-p.χ) * (∫ s in (0 : ℝ)..z.1,
+            wholeLineCauchyHeatHessOp (z.1 - s) (F s).1 q) +
+          (∫ s in (0 : ℝ)..z.1,
+            wholeLineCauchyHeatGradOp (z.1 - s) (R s).1 q)) q := by
+      rw [hfun]
+      exact hsumFirst
+    rw [(hheatFirst q).deriv, hfluxFirst.deriv, hreactionFirst.deriv]
+    exact hUFirst.deriv
+  change HasDerivAt
+    (fun y : ℝ => deriv (fun w : ℝ => (U z).1 w) y) _ x
+  exact hsecondSum.congr_of_eventuallyEq hevent
+
 section WholeLineCauchyC2BootstrapAxiomAudit
 
 #print axioms wholeLineCauchyHeatHessOp_eq_gradOp_deriv
@@ -1394,6 +1698,11 @@ section WholeLineCauchyC2BootstrapAxiomAudit
 #print axioms wholeLineContinuous_of_holder
 #print axioms
   wholeLineCauchyFluxGradientHistory_second_hasDerivAt_positive
+#print axioms wholeLineCauchyValueHistory_second_hasDerivAt_of_window_Ctheta
+#print axioms exists_wholeLineCauchyReactionSourceTrajectory_window_Ctheta
+#print axioms wholeLineCauchyReactionValueHistory_second_hasDerivAt_positive
+#print axioms
+  wholeLineCauchyBUCMildFixedPoint_spatial_second_hasDerivAt_positive
 
 end WholeLineCauchyC2BootstrapAxiomAudit
 
