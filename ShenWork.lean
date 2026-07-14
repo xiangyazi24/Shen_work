@@ -19,6 +19,8 @@ import ShenWork.PDE.GagliardoNirenberg
 import ShenWork.PDE.SpecialCases
 import ShenWork.Paper1.Statements
 import ShenWork.Paper1.CStarStarSpecSatisfiable
+import ShenWork.Paper1.Theorem1_1Unconditional
+import ShenWork.Paper1.Theorem12Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
 import ShenWork.Paper2.Statements
