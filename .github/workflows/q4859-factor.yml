@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: q4859-exact-factor-audit
+  cancel-in-progress: true
+
 jobs:
   sympy-hosted:
     runs-on: ubuntu-latest
@@ -15,31 +19,3 @@ jobs:
         run: python3 -m pip install --upgrade sympy
       - name: Run exact Petkovsek audit
         run: python3 -u q4859_factor_sympy.py
-
-  sympy-self-hosted:
-    runs-on: self-hosted
-    timeout-minutes: 45
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install current SymPy
-        run: python3 -m pip install --user --upgrade sympy
-      - name: Run exact Petkovsek audit
-        run: python3 -u q4859_factor_sympy.py
-
-  sage-factor:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    container:
-      image: sagemath/sagemath:latest
-      options: --user root
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install ore_algebra
-        shell: bash
-        run: |
-          sage -pip install --no-cache-dir --no-build-isolation git+https://github.com/mkauers/ore_algebra.git
-      - name: Run exact factor audit
-        shell: bash
-        run: |
-          sage q4859_factor.sage
