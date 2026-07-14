@@ -5239,3 +5239,11 @@ form keeps the maximizing values within an arbitrary tolerance of the true
 slab supremum, which is essential: the frozen elliptic resolver can then be
 bounded by the power of that same supremum without assuming the desired
 ceiling in advance.
+
+The same file now packages the limiting argument as
+`wholeLineSlabSup_le_of_scalar_pde`.  For any continuous scalar envelope `G`,
+if the equation has the upper form `u_t <= u_xx + K |u_x| + G(u)` and `G` is
+strictly negative at every candidate slab supremum above the initial ceiling,
+the approximate maximum errors are absorbed by continuity of `G` and a small
+choice of the derivative tolerance.  This separates the real-analysis
+maximum principle from the chemotaxis-specific resolver estimate.
