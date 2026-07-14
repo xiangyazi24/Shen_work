@@ -7,9 +7,7 @@ mp.dps = 350
 
 def col(a, b, c):
     out = mp.matrix(3, 1)
-    out[0, 0] = a
-    out[1, 0] = b
-    out[2, 0] = c
+    out[0, 0], out[1, 0], out[2, 0] = a, b, c
     return out
 
 
@@ -45,6 +43,7 @@ rt2 = mp.sqrt(2)
 lam = 17 + 12*rt2
 rho = 1/lam
 rinf = col(mp.mpf(2), -rt2, mp.mpf(1))
+generic = col(mp.mpf(1), mp.mpf(1), mp.mpf(1))
 
 
 def scaled_column(v, scale):
@@ -54,17 +53,32 @@ def scaled_column(v, scale):
     return out
 
 
+def canonicalize(v):
+    chart = max(range(3), key=lambda i: abs(v[i,0]))
+    if v[chart,0] == 0:
+        raise ZeroDivisionError("zero projective vector")
+    return scaled_column(v, v[chart,0]), chart
+
+
 def projective_V(N, seed):
-    v = col(mp.mpf(1), mp.mpf(0), mp.mpf(0)) if seed == "e1" else col(rinf[0,0], rinf[1,0], rinf[2,0])
+    v = col(seed[0,0], seed[1,0], seed[2,0])
     for n in range(N-1, -1, -1):
         v = A_bal(n)*v
         scale = max(abs(v[i,0]) for i in range(3))
+        if scale == 0:
+            raise ZeroDivisionError(f"zero vector after multiplying A_bal({n})")
         v = scaled_column(v, scale)
-    return scaled_column(v, v[2,0])
+    return canonicalize(v)
 
 
 def dot(a,v):
     return sum(mp.mpf(a[i])*v[i,0] for i in range(3))
+
+
+def align_to_chart(v, chart):
+    if v[chart,0] == 0:
+        raise ZeroDivisionError("comparison chart vanished")
+    return scaled_column(v, v[chart,0])
 
 
 def s(x,d=250):
@@ -72,18 +86,22 @@ def s(x,d=250):
 
 
 Ns=[60,90,120,150,180,220,260]
-Ve={N: projective_V(N,"e1") for N in Ns}
-Vr={N: projective_V(N,"rinf") for N in Ns}
-V=Vr[260]
+Vr={N: projective_V(N,rinf) for N in Ns}
+Vg={N: projective_V(N,generic) for N in Ns}
+V,chart=Vr[260]
 print("lambda_plus =",s(lam,100))
 print("rho =",s(rho,100))
+print("chart =",chart)
 print("CONVERGENCE")
 for N in Ns[:-1]:
-    de=max(abs(Ve[N][i,0]-V[i,0]) for i in range(3))
-    dr=max(abs(Vr[N][i,0]-V[i,0]) for i in range(3))
-    print(N, "e1",mp.nstr(de,15),"rinf",mp.nstr(dr,15))
-print("seed agreement 260",mp.nstr(max(abs(Ve[260][i,0]-V[i,0]) for i in range(3)),15))
-print("V_NORMALIZED_V2_EQ_1")
+    rN=align_to_chart(Vr[N][0],chart)
+    gN=align_to_chart(Vg[N][0],chart)
+    dr=max(abs(rN[i,0]-V[i,0]) for i in range(3))
+    dg=max(abs(gN[i,0]-V[i,0]) for i in range(3))
+    print(N,"rinf",mp.nstr(dr,15),"generic",mp.nstr(dg,15))
+g260=align_to_chart(Vg[260][0],chart)
+print("seed agreement 260",mp.nstr(max(abs(g260[i,0]-V[i,0]) for i in range(3)),15))
+print("V_NORMALIZED_CHART_EQ_1")
 for i in range(3): print(i,s(V[i,0]))
 
 p=[30921,-32972,8240]
@@ -98,9 +116,8 @@ print("pV_minus_GqV",s(pV-mp.catalan*qV,100))
 
 
 def pslq_vector(vals):
-    out = mp.matrix(len(vals), 1)
-    for i, value in enumerate(vals):
-        out[i, 0] = value
+    out=mp.matrix(len(vals),1)
+    for i,value in enumerate(vals): out[i,0]=value
     return out
 
 
@@ -116,12 +133,12 @@ def pslq(label, vals, tol_exp, maxcoeff, maxsteps=30000):
 pslq("pV_vs_GqV",[pV,mp.catalan*qV],220,10**4)
 pslq("ratio_vs_G",[ratio,mp.catalan],220,10**4)
 linear=[mp.mpf(1),mp.catalan,mp.pi,mp.log(2),rt2]
-for name,x in [("V0",V[0,0]),("V1",V[1,0]),("qV",qV),("pV",pV)]:
+for name,x in [("V0",V[0,0]),("V1",V[1,0]),("V2",V[2,0]),("qV",qV),("pV",pV)]:
     pslq(name+"_linear",[x]+linear,200,10**8,50000)
     pslq(name+"_Qsqrt2",[x,mp.mpf(1),rt2],220,10**20,20000)
 
 quad=[mp.mpf(1),mp.catalan,mp.pi,mp.log(2),rt2,mp.pi**2,mp.catalan**2,
       mp.catalan*mp.pi,mp.catalan*mp.log(2),mp.pi*mp.log(2),mp.log(2)**2]
-for name,x in [("V0",V[0,0]),("V1",V[1,0]),("qV",qV),("pV",pV)]:
+for name,x in [("V0",V[0,0]),("V1",V[1,0]),("V2",V[2,0]),("qV",qV),("pV",pV)]:
     pslq(name+"_quadratic",[x]+quad,180,10**6,100000)
 print("DONE")
