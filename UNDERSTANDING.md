@@ -81,6 +81,14 @@ so it applies equally to the Gaussian value and gradient kernels.  The BUC
 phase space is realized as a closed real submodule, hence now carries the
 complete normed-vector-space structure needed for Bochner Duhamel integrals.
 
+`WholeLineCauchyBUCHeatContinuity.lean` closes the initial-time topology gap.
+The Gaussian first absolute moment, combined with the datum's global uniform
+modulus, gives convergence in the actual BUC sup norm.  After totalizing the
+positive-time formula by the identity at nonpositive time, both the ordinary
+heat flow and the paper's modified flow are strongly continuous at zero.  The
+modified-flow proof explicitly restores the `exp (-t)` factor, rather than
+silently treating the generator `Δ-I` as the ordinary heat generator.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
