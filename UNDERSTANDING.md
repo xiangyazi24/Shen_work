@@ -5022,3 +5022,16 @@ The new root-imported file passes the local 9562-job build and all four audited
 declarations are clean-3.  The remaining step in this rung is a quantitative
 positive Holder modulus for that displayed flux derivative, including the
 fractional `1 < m < 2` behavior at `u=0`.
+
+That fractional-power obstruction is now closed.  The file provides reusable
+whole-line Holder algebra, exponent lowering for bounded functions, and a
+global power estimate for nonnegative bounded Lipschitz profiles.  In the
+linear-sensitivity case `m=1`, the factor `u^(m-1)` is constant and the flux
+derivative keeps the population exponent.  When `m>1`, choosing a positive
+exponent strictly below both `eta` and `m-1` controls the possibly singular
+coefficient at zero.  The two product terms in the physical flux derivative
+then assemble into a global positive-exponent Holder estimate.  The capstone
+`wholeLineCauchyFluxSourceTrajectory_slice_deriv_holder_positive` is clean-3,
+and the local root build passes 9562 jobs.  The next analytic rung can now
+integrate by parts in the divergence Duhamel leg and use Hessian cancellation
+on this Holder derivative to obtain the second spatial derivative.
