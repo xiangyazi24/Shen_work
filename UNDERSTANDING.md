@@ -89,6 +89,15 @@ heat flow and the paper's modified flow are strongly continuous at zero.  The
 modified-flow proof explicitly restores the `exp (-t)` factor, rather than
 silently treating the generator `Δ-I` as the ordinary heat generator.
 
+`WholeLineCauchyBUCHeatPositiveTime.lean` supplies the complementary open-time
+regularity needed by Duhamel.  Local Gaussian dominators prove `L¹` time
+continuity of both the shifted value kernel and its spatial derivative.  The
+kernel/input convolution estimate then yields joint strong continuity of the
+value and gradient operators in positive time and in their BUC input.  Thus a
+continuous BUC source trajectory produces a continuous BUC-valued Duhamel
+integrand away from the terminal diagonal; no pointwise-only measurability
+package is being substituted for this fact.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
