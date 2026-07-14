@@ -75,7 +75,7 @@ of, the bounded whole-line Cauchy solution class.  The weighted norm is the
 co-moving norm actually used in Section 5, and wave regularity is explicit. -/
 def Theorem_1_2_amended_bounded : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar : ℝ → ℝ,
+    ∃ cStarStar : ℝ → ℝ, ∃ budget : Paper531StabilityBudget p cStarStar,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
       stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
       ∀ c : ℝ, cStarStar p.χ < c →
@@ -85,8 +85,8 @@ def Theorem_1_2_amended_bounded : Prop :=
         HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
           HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η →
-          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+        ∀ η : ℝ, paper531RootMinus c budget.A budget.B < η →
+          η < stabilityWeightCap p →
           ∀ u₀ : ℝ → ℝ,
             NonnegativeInitialDatum u₀ →
             StrictlyPositiveAtLeft u₀ →
@@ -102,7 +102,7 @@ def Theorem_1_2_amended_bounded : Prop :=
 “traveling wave solution” carries in the paper made explicit. -/
 def Theorem_1_3_amended : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar : ℝ → ℝ,
+    ∃ cStarStar : ℝ → ℝ, ∃ budget : Paper531StabilityBudget p cStarStar,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
       stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
       ∀ c : ℝ, cStarStar p.χ < c →
@@ -113,7 +113,7 @@ def Theorem_1_3_amended : Prop :=
         TravelingWaveRegularity p c U₂ V₂ →
         HasStrictWaveUpperTailBound p c U₁ →
         HasStrictWaveUpperTailBound p c U₂ →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+        (∃ κ₁, paper531RootMinus c budget.A budget.B < κ₁ ∧ κ₁ < 1 ∧
           HasWaveRightTailAsymptotic c κ₁ U₁ ∧
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
@@ -126,23 +126,27 @@ theorem Theorem_1_3_amended.of_bounded_stability
     (h12 : Theorem_1_2_amended_bounded) :
     Theorem_1_3_amended := by
   intro p hregime
-  rcases h12 p hregime with ⟨cStarStar, hasymp, hbaseline, hstability⟩
-  refine ⟨cStarStar, hasymp, hbaseline, ?_⟩
+  rcases h12 p hregime with
+    ⟨cStarStar, budget, hasymp, hbaseline, hstability⟩
+  refine ⟨cStarStar, budget, hasymp, hbaseline, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hreg₁ hTW₂ hreg₂ hstrict₁ hstrict₂ htailPair
-  rcases htailPair with ⟨κ₁, hκ_gt, hκ_lt_one, htail₁, htail₂⟩
-  have hcap : kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
-    kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
-      hbaseline hc
-  rcases exists_between (lt_min hκ_gt hcap) with ⟨η, hκη, hηmin⟩
+  rcases htailPair with ⟨κ₁, hroot_κ₁, hκ_lt_one, htail₁, htail₂⟩
+  have hkappa_κ₁ : kappa c < κ₁ :=
+    (budget.kappa_le_rootMinus hc).trans_lt hroot_κ₁
+  have hroot_cap :
+      paper531RootMinus c budget.A budget.B < stabilityWeightCap p :=
+    (budget.cap_between c hc).1
+  rcases exists_between (lt_min hroot_κ₁ hroot_cap) with
+    ⟨η, hroot_η, hηmin⟩
   have hηκ₁ : η < κ₁ := lt_of_lt_of_le hηmin (min_le_left _ _)
-  have hηcap : η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+  have hηcap : η < stabilityWeightCap p :=
     lt_of_lt_of_le hηmin (min_le_right _ _)
   have hηpos : 0 < η :=
-    eta_pos_of_stability_weight_hypotheses hbaseline hc hκη
+    (budget.rootMinus_pos hc).trans hroot_η
   have htail₁_exists :
       ∃ κ, kappa c < κ ∧ κ < 1 ∧
         HasWaveRightTailAsymptotic c κ U₁ :=
-    ⟨κ₁, hκ_gt, hκ_lt_one, htail₁⟩
+    ⟨κ₁, hkappa_κ₁, hκ_lt_one, htail₁⟩
   have hclose : WeightedL2InitialCloseness η U₂ U₁ :=
     WeightedL2InitialCloseness.of_common_waveRightTailAsymptotic
       hηpos hηκ₁ hreg₁.U_cont hreg₂.U_cont
@@ -155,7 +159,7 @@ theorem Theorem_1_3_amended.of_bounded_stability
   have hU₂left : StrictlyPositiveAtLeft U₂ :=
     IsTravelingWave.strictlyPositiveAtLeft hTW₂
   rcases hstability c hc U₁ V₁ hTW₁ hreg₁ hstrict₁ htail₁_exists
-      η hκη hηcap U₂ hU₂nn hU₂left hclose with
+      η hroot_η hηcap U₂ hU₂nn hU₂left hclose with
     ⟨_hexists, hall⟩
   have hmoving :
       IsBoundedGlobalCauchySolutionFrom p U₂

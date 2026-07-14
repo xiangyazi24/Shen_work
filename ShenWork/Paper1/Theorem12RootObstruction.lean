@@ -35,6 +35,28 @@ def paper531RootMinus (c A B : ℝ) : ℝ :=
 def paper531RootPlus (c A B : ℝ) : ℝ :=
   ((c - A) + Real.sqrt (paper531Discriminant c A B)) / 2
 
+/-- The upper endpoint of the weight interval used in Paper 1, with the
+paper's fixed exponent `sigma = 1 / 6`. -/
+def stabilityWeightCap (p : CMParams) : ℝ :=
+  1 / (1 + |p.χ| ^ (1 / 6 : ℝ))
+
+/-- Explicit algebraic data for the corrected (5.31) weight window.
+
+The budgets are conclusions to be produced by the Section 5 estimates, not
+assumptions built into a headline theorem.  `speed_le` makes the perturbed
+quadratic have two real roots at every admitted speed, while `cap_between`
+ensures that the corrected open interval is nonempty. -/
+structure Paper531StabilityBudget
+    (p : CMParams) (cStarStar : ℝ → ℝ) where
+  A : ℝ
+  B : ℝ
+  A_nonneg : 0 ≤ A
+  B_nonneg : 0 ≤ B
+  speed_le : A + 2 * Real.sqrt (1 + B) ≤ cStarStar p.χ
+  cap_between : ∀ c : ℝ, cStarStar p.χ < c →
+    paper531RootMinus c A B < stabilityWeightCap p ∧
+      stabilityWeightCap p < paper531RootPlus c A B
+
 theorem paper531Quadratic_factor
     {c A B : ℝ} (hdisc : 0 ≤ paper531Discriminant c A B) (η : ℝ) :
     paper531Quadratic c A B η =
@@ -65,6 +87,21 @@ theorem paper531RootMinus_lt_rootPlus
   have hsqrt : 0 < Real.sqrt (paper531Discriminant c A B) :=
     Real.sqrt_pos.2 hdisc
   unfold paper531RootMinus paper531RootPlus
+  linarith
+
+theorem paper531RootMinus_pos
+    {c A B : ℝ} (hB : 0 ≤ B)
+    (hspeed : A + 2 * Real.sqrt (1 + B) < c) :
+    0 < paper531RootMinus c A B := by
+  have hbase : 0 < 1 + B := by linarith
+  have hsqrt_nn : 0 ≤ Real.sqrt (1 + B) := Real.sqrt_nonneg _
+  have hcA : 0 < c - A := by linarith
+  have hsqrt_lt :
+      Real.sqrt (paper531Discriminant c A B) < c - A := by
+    rw [Real.sqrt_lt' hcA]
+    unfold paper531Discriminant
+    nlinarith
+  unfold paper531RootMinus
   linarith
 
 theorem paper531Quadratic_neg_between_roots
@@ -156,6 +193,84 @@ theorem paper531_kappa_lt_rootMinus
   by_contra hnot
   apply hnot_between
   exact ⟨le_of_not_gt hnot, hk_plus.le⟩
+
+/-- The weak comparison, including the unperturbed case `A = B = 0`.
+Unlike the strict comparison above, this needs no separate strict-correction
+hypothesis. -/
+theorem paper531_kappa_le_rootMinus
+    {c A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hspeed : A + 2 * Real.sqrt (1 + B) < c) :
+    kappa c ≤ paper531RootMinus c A B := by
+  have hdisc : 0 < paper531Discriminant c A B :=
+    paper531Discriminant_pos_of_speed hB hspeed
+  have hbase : 1 ≤ 1 + B := by linarith
+  have hsqrt_one : 1 ≤ Real.sqrt (1 + B) := by
+    calc
+      (1 : ℝ) = Real.sqrt 1 := by norm_num
+      _ ≤ Real.sqrt (1 + B) := Real.sqrt_le_sqrt hbase
+  have hcA : 2 < c - A := by linarith
+  have hc : 2 < c := by linarith
+  have hk_one : kappa c < 1 := kappa_lt_one_of_two_lt hc
+  have hrootPlus_mid : (c - A) / 2 < paper531RootPlus c A B := by
+    have hsqrt_disc : 0 < Real.sqrt (paper531Discriminant c A B) :=
+      Real.sqrt_pos.2 hdisc
+    unfold paper531RootPlus
+    linarith
+  have hk_plus : kappa c < paper531RootPlus c A B := by
+    have hmid : 1 < (c - A) / 2 := by linarith
+    linarith
+  have hk_nonneg : 0 ≤ kappa c := kappa_nonneg_of_two_le hc.le
+  have hq_nonneg : 0 ≤ paper531Quadratic c A B (kappa c) := by
+    rw [paper531Quadratic_at_kappa hc.le]
+    positivity
+  by_contra hnot
+  have hminus : paper531RootMinus c A B < kappa c := lt_of_not_ge hnot
+  have hq_neg : paper531Quadratic c A B (kappa c) < 0 :=
+    paper531Quadratic_neg_between_roots hdisc hminus hk_plus
+  linarith
+
+namespace Paper531StabilityBudget
+
+theorem speed_at
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : Paper531StabilityBudget p cStarStar)
+    {c : ℝ} (hc : cStarStar p.χ < c) :
+    h.A + 2 * Real.sqrt (1 + h.B) < c :=
+  lt_of_le_of_lt h.speed_le hc
+
+theorem discriminant_pos
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : Paper531StabilityBudget p cStarStar)
+    {c : ℝ} (hc : cStarStar p.χ < c) :
+    0 < paper531Discriminant c h.A h.B :=
+  paper531Discriminant_pos_of_speed h.B_nonneg (h.speed_at hc)
+
+theorem rootMinus_pos
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : Paper531StabilityBudget p cStarStar)
+    {c : ℝ} (hc : cStarStar p.χ < c) :
+    0 < paper531RootMinus c h.A h.B :=
+  paper531RootMinus_pos h.B_nonneg (h.speed_at hc)
+
+theorem kappa_le_rootMinus
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : Paper531StabilityBudget p cStarStar)
+    {c : ℝ} (hc : cStarStar p.χ < c) :
+    kappa c ≤ paper531RootMinus c h.A h.B :=
+  paper531_kappa_le_rootMinus h.A_nonneg h.B_nonneg (h.speed_at hc)
+
+theorem quadratic_neg
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : Paper531StabilityBudget p cStarStar)
+    {c η : ℝ} (hc : cStarStar p.χ < c)
+    (hminus : paper531RootMinus c h.A h.B < η)
+    (hcap : η < stabilityWeightCap p) :
+    paper531Quadratic c h.A h.B η < 0 :=
+  paper531Quadratic_neg_between_roots (h.discriminant_pos hc) hminus
+    (hcap.trans (h.cap_between c hc).2)
+
+end Paper531StabilityBudget
 
 /-- The obstruction is not confined to the excluded endpoint `η = κ`.
 Continuity gives weights strictly above `κ` (and below any prescribed upper
@@ -280,8 +395,11 @@ theorem paper531_corrected_decay_factor_tendsto_zero
 section Theorem12RootObstructionAxiomAudit
 #print axioms paper531Quadratic_factor
 #print axioms paper531Discriminant_pos_of_speed
+#print axioms paper531RootMinus_pos
 #print axioms paper531Quadratic_neg_between_roots
 #print axioms paper531_kappa_lt_rootMinus
+#print axioms paper531_kappa_le_rootMinus
+#print axioms Paper531StabilityBudget.quadratic_neg
 #print axioms paper531Quadratic_at_kappa
 #print axioms paper531_kappa_not_between_perturbed_roots
 #print axioms paper531_positive_inside_stated_weight_window
