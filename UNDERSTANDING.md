@@ -15,9 +15,15 @@ requires the common wave-tail exponent to exceed the perturbed root.
 `CoMovingWeightedL2Convergence.of_paper531_energy_inequality` closes the
 scalar part in the native coefficient of (5.31): once the PDE calculation
 gives `E' <= 2*q(eta)*E`, root-window negativity supplies the positive decay
-rate internally.  This is a real reduction, not a stability proof.  The
-general-data whole-line Cauchy construction, the actual (5.31) energy/IBP
-identity, and the Step 4 compactness/left-tail inputs remain open.
+rate internally.  The fixed-positive-time PDE calculation is now concrete:
+the resolver estimates, corrected coefficients, diffusion IBP, drift
+cancellation, and corrected quadratic are assembled in
+`paper5WeightedEnergy_deriv_le_concrete_of_coreIntegrability`.  Weighted
+`H²` integrability automatically supplies the drift product and all four
+whole-line endpoint limits; they are no longer independent hypotheses.  The
+remaining stability frontiers are the general-data whole-line Cauchy
+construction, its positive-time weighted regularity/dominated time
+differentiation, and the Step 4 spatial-modulus/left-tail producers.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
