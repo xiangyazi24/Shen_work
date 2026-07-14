@@ -4964,3 +4964,16 @@ slice of the actual flux-source trajectory has a clean Holder modulus.  The
 next task is to make that modulus uniform on a compact positive-time window
 and integrate the Hessian history to obtain the first spatial derivative of
 the divergence Duhamel term.
+
+That uniformization and first differentiation are now complete.  The explicit
+slice coefficient is continuous on every compact subinterval of positive
+time, hence has a common upper bound there; the flux inherits a common Holder
+coefficient.  For a target time `t`, splitting at `t/2` uses the ordinary
+bounded-source Hessian estimate on the old history and the cancellative
+`(t-s)^(-1+theta/2)` estimate on the recent history.  The resulting majorant
+is interval-integrable and justifies differentiating the gradient Duhamel
+history.  Combining it with the homogeneous and value-history derivatives
+proves that every positive-time canonical mild slice is spatially
+differentiable at every point.  The next rung is a quantitative Holder bound
+for this first derivative, needed to make the nonlinear flux `C^{1,eta}` and
+then justify the final spatial/time derivatives in the classical PDE.
