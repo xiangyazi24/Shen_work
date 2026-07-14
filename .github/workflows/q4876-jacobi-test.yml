@@ -1,0 +1,23 @@
+name: Q4876 Jacobi comparison
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scripts/q4876_jacobi_test.py'
+      - '.github/workflows/q4876-jacobi-test.yml'
+  workflow_dispatch:
+
+jobs:
+  jacobi-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install mpmath
+        run: python -m pip install --upgrade pip mpmath
+      - name: Run the 120-digit exact/numerical comparison
+        run: python scripts/q4876_jacobi_test.py
