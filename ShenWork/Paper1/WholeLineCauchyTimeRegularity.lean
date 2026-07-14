@@ -582,9 +582,9 @@ theorem wholeLineCauchyFluxThird_recent_abs_le_positive
     _ = ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst rho *
         ((q - c) ^ (rho / 2 : ℝ) / (rho / 2)) * HFd := rfl
 
+set_option maxHeartbeats 800000 in
 -- The old/recent dominated-convergence decomposition below elaborates a
 -- large dependent expression before the kernel cancellations become visible.
-set_option maxHeartbeats 800000 in
 /-- The chemotaxis third-kernel history depends continuously on every
 strictly interior positive terminal time. -/
 theorem wholeLineCauchyFluxThirdHistory_time_continuousAt_positive
