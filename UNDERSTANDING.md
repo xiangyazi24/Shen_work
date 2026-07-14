@@ -196,6 +196,17 @@ strictly-positive cocycle, and interval splitting is justified by the actual
 Bochner integrability theorems.  The local full root build again passes with
 9564 jobs, with standard-three-axiom audits for both restart theorems.
 
+The remaining spatial premise of the divergence restart has now been
+discharged for the canonical fixed point.
+`wholeLineCauchyFluxSourceTrajectory_restartC1Data_positive` packages, on
+each physical positive-time slice, canonical derivatives, continuity of the
+derivative, and a global derivative bound.  It is assembled from the existing
+flux product rule, positive-time Holder modulus, and bounded-function
+interpolation.  Therefore
+`wholeLineCauchyGradientDuhamelBUC_restart_fixedPoint` takes only the already
+available exponent window and physical strip.  The local full root build
+passes with 9564 jobs and both producer and specialized restart are clean-3.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
