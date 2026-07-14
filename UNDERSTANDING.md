@@ -107,8 +107,18 @@ that the chemotaxis gradient history and the reaction value history have their
 required second spatial derivatives at every strictly negative trajectory
 point.  The module is root-imported; the explicitly authorized local full
 build passes with 9554 jobs, and both capstones have exactly the standard
-three axioms.  The next step is to assemble these identities with the
-fixed-point equation into the local homogeneous PDE on the negative set.
+three axioms.  `WholeLineCauchyNegativePDE.lean` now adds the complementary
+positive-lag generator identities.  It proves directly from the Gaussian
+formula that time differentiation of the value and gradient kernels gives the
+second and third spatial kernels, respectively, and then differentiates their
+convolutions against arbitrary bounded measurable data.  Consequently
+`wholeLineCauchyHeatOp_time_hasDerivAt` and
+`wholeLineCauchyHeatGradOp_time_hasDerivAt` realize the generator `d_xx - 1`
+without an inappropriate global-L1 assumption on Cauchy data.  The module is
+root-imported; the authorized local full build passes with 9555 jobs and both
+operator capstones have exactly the standard three axioms.  The remaining
+local-PDE step is the zero-lag off-support derivative and the fixed-upper-
+interval differentiation of the two histories.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
