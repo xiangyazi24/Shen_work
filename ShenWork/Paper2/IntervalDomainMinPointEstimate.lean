@@ -26,6 +26,38 @@ noncomputable section
 
 namespace ShenWork.MinPersistenceAtoms
 
+/-- **Min-point PDE estimate retaining positive linear growth.**  Given the
+parabolic PDE value at a spatial minimum, the time derivative retains the
+whole `a * m` contribution while bounding only chemotaxis and logistic
+damping by the supplied ceiling. -/
+theorem min_point_estimate_allChi_with_growth
+    {χ₀ a b α m M uxx cd G K₁ uT : ℝ}
+    (hb : 0 ≤ b) (hα : 0 ≤ α)
+    (hm_nonneg : 0 ≤ m) (hm_le : m ≤ M)
+    (huxx : 0 ≤ uxx)
+    (hcd : cd = m * G) (hG : |G| ≤ K₁)
+    (hpde : uT = uxx - χ₀ * cd + m * (a - b * m ^ α)) :
+    (a - (|χ₀| * K₁ + b * M ^ α)) * m ≤ uT := by
+  have hM_nonneg : 0 ≤ M := le_trans hm_nonneg hm_le
+  have hcd_lb : -(|χ₀| * K₁) * m ≤ -χ₀ * cd := by
+    have hterm_abs : |-χ₀ * cd| ≤ |χ₀| * K₁ * m := by
+      rw [hcd, abs_mul, abs_neg, abs_mul, abs_of_nonneg hm_nonneg]
+      nlinarith [mul_nonneg (abs_nonneg χ₀) hm_nonneg,
+        mul_nonneg (abs_nonneg χ₀) (abs_nonneg G)]
+    nlinarith [(abs_le.mp hterm_abs).1]
+  have hpow_le : m ^ α ≤ M ^ α :=
+    Real.rpow_le_rpow hm_nonneg hm_le hα
+  have hreact_lb : (a - b * M ^ α) * m ≤ m * (a - b * m ^ α) := by
+    have h1 : b * m ^ α ≤ b * M ^ α :=
+      mul_le_mul_of_nonneg_left hpow_le hb
+    nlinarith [mul_nonneg hm_nonneg (sub_nonneg.mpr h1),
+      Real.rpow_nonneg hM_nonneg α]
+  rw [hpde]
+  have hexpand : (a - (|χ₀| * K₁ + b * M ^ α)) * m =
+      -(|χ₀| * K₁) * m + (a - b * M ^ α) * m := by ring
+  rw [hexpand]
+  linarith [hcd_lb, hreact_lb, huxx]
+
 /-- **Min-point PDE estimate (abstract form).**  Given the parabolic PDE value
 `uT = uxx − χ₀·cd + m·(a − b·m^α)` at a spatial argmin (so `uxx ≥ 0` and the
 flux `cd = m·G` with `|G| ≤ K₁`), with `0 ≤ m ≤ M`, the time derivative obeys
@@ -38,32 +70,9 @@ theorem min_point_estimate_allChi
     (hcd : cd = m * G) (hG : |G| ≤ K₁)
     (hpde : uT = uxx - χ₀ * cd + m * (a - b * m ^ α)) :
     -(|χ₀| * K₁ + b * M ^ α) * m ≤ uT := by
-  have hM_nonneg : 0 ≤ M := le_trans hm_nonneg hm_le
-  -- Chemotaxis term: for either sign of `χ₀`, its absolute value is
-  -- bounded by `|χ₀|·K₁·m`.
-  have hcd_lb : -(|χ₀| * K₁) * m ≤ -χ₀ * cd := by
-    have hterm_abs : |-χ₀ * cd| ≤ |χ₀| * K₁ * m := by
-      rw [hcd, abs_mul, abs_neg, abs_mul, abs_of_nonneg hm_nonneg]
-      have hK : |G| ≤ K₁ := hG
-      nlinarith [mul_nonneg (abs_nonneg χ₀) hm_nonneg,
-        mul_nonneg (abs_nonneg χ₀) (abs_nonneg G)]
-    have := (abs_le.mp hterm_abs).1
-    nlinarith
-  -- Reaction term: `m·(a − b·m^α) ≥ −b·M^α·m`.
-  have hpow_le : m ^ α ≤ M ^ α := Real.rpow_le_rpow hm_nonneg hm_le hα
-  have hMpow_nonneg : 0 ≤ M ^ α := Real.rpow_nonneg hM_nonneg α
-  have hreact_lb : -(b * M ^ α) * m ≤ m * (a - b * m ^ α) := by
-    have h1 : b * m ^ α ≤ b * M ^ α := mul_le_mul_of_nonneg_left hpow_le hb
-    -- `m·(a − b·m^α) = a·m − b·m^α·m ≥ −b·M^α·m`.
-    have hmα_nonneg : 0 ≤ m ^ α := Real.rpow_nonneg hm_nonneg α
-    nlinarith [mul_nonneg ha hm_nonneg, mul_nonneg hm_nonneg
-      (sub_nonneg.mpr h1), mul_nonneg hb hmα_nonneg]
-  -- Assemble.
-  rw [hpde]
-  have hexpand : -(|χ₀| * K₁ + b * M ^ α) * m
-      = -(|χ₀| * K₁) * m + -(b * M ^ α) * m := by ring
-  rw [hexpand]
-  linarith [hcd_lb, hreact_lb, huxx]
+  have hgrowth := min_point_estimate_allChi_with_growth hb hα hm_nonneg
+    hm_le huxx hcd hG hpde
+  nlinarith [mul_nonneg ha hm_nonneg]
 
 /-- Compatibility form retaining the former nonpositive-sensitivity
 hypothesis.  The estimate itself is sign-agnostic. -/

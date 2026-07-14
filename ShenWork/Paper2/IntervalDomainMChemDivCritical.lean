@@ -86,9 +86,14 @@ def generalMMinSlopeConst (p : CM2Params) (M : ℝ) : ℝ :=
     ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β (p.ν * M ^ p.γ)) +
     p.b * M ^ p.α
 
+/-- Net linear growth left at a spatial minimum after bounding the faithful
+chemotaxis and logistic damping terms by a slice ceiling. -/
+def generalMMinGrowthRate (p : CM2Params) (M : ℝ) : ℝ :=
+  p.a - generalMMinSlopeConst p M
+
 /-- Interior critical-point Hamilton estimate for the faithful general-`m`
-flux. -/
-theorem min_point_estimate_interior_M_allChi
+flux, retaining the positive linear reaction. -/
+theorem min_point_estimate_interior_M_allChi_with_growth
     {p : CM2Params} {u v : intervalDomainPoint → ℝ} {x : intervalDomainPoint}
     {vx vxx M uT : ℝ}
     (hm : 1 ≤ p.m)
@@ -106,7 +111,7 @@ theorem min_point_estimate_interior_M_allChi
         - p.χ₀ * intervalDomainChemotaxisDivM p u v x
         + intervalDomainLift u x.1 *
             (p.a - p.b * intervalDomainLift u x.1 ^ p.α)) :
-    -generalMMinSlopeConst p M * intervalDomainLift u x.1 ≤ uT := by
+    generalMMinGrowthRate p M * intervalDomainLift u x.1 ≤ uT := by
   let U : ℝ := intervalDomainLift u x.1
   let B : ℝ := p.ν * M ^ p.γ
   let K : ℝ := ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β B
@@ -133,14 +138,41 @@ theorem min_point_estimate_interior_M_allChi
     dsimp [U, G]
     rw [rpow_eq_rpow_sub_one_mul hu_pos]
     ring
-  have hmain := ShenWork.MinPersistenceAtoms.min_point_estimate_allChi
-    p.ha p.hb p.hα.le hu_pos.le hu_le huxx hcd hG' hpde
-  simpa [generalMMinSlopeConst, U, B, K] using hmain
+  have hmain := ShenWork.MinPersistenceAtoms.min_point_estimate_allChi_with_growth
+    p.hb p.hα.le hu_pos.le hu_le huxx hcd hG' hpde
+  simpa [generalMMinGrowthRate, generalMMinSlopeConst, U, B, K] using hmain
+
+/-- Interior critical-point Hamilton estimate in its historical form, with
+the nonnegative linear reaction discarded. -/
+theorem min_point_estimate_interior_M_allChi
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    {vx vxx M uT : ℝ}
+    (hm : 1 ≤ p.m)
+    (hux : HasDerivAt (intervalDomainLift u) 0 x.1)
+    (hv : HasDerivAt (intervalDomainLift v) vx x.1)
+    (hvxx : HasDerivAt (deriv (intervalDomainLift v)) vxx x.1)
+    (hvnn : ∀ y, 0 ≤ intervalDomainLift v y)
+    (hM : 0 ≤ M)
+    (hvx_bd : |vx| ≤ 2 * (p.ν * M ^ p.γ))
+    (hvxx_bd : |vxx| ≤ 2 * (p.ν * M ^ p.γ))
+    (hu_pos : 0 < intervalDomainLift u x.1)
+    (hu_le : intervalDomainLift u x.1 ≤ M)
+    (huxx : 0 ≤ deriv (deriv (intervalDomainLift u)) x.1)
+    (hpde : uT = deriv (deriv (intervalDomainLift u)) x.1
+        - p.χ₀ * intervalDomainChemotaxisDivM p u v x
+        + intervalDomainLift u x.1 *
+            (p.a - p.b * intervalDomainLift u x.1 ^ p.α)) :
+    -generalMMinSlopeConst p M * intervalDomainLift u x.1 ≤ uT := by
+  have hgrowth := min_point_estimate_interior_M_allChi_with_growth hm hux hv
+    hvxx hvnn hM hvx_bd hvxx_bd hu_pos hu_le huxx hpde
+  unfold generalMMinGrowthRate at hgrowth
+  nlinarith [mul_nonneg p.ha hu_pos.le]
 
 section AxiomAudit
 
 #print axioms chemDivM_at_critical
 #print axioms rpow_eq_rpow_sub_one_mul
+#print axioms min_point_estimate_interior_M_allChi_with_growth
 #print axioms min_point_estimate_interior_M_allChi
 
 end AxiomAudit
