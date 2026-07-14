@@ -666,6 +666,30 @@ theorem wholeLineCauchyGlobal_le_stableCeiling
   rw [heq']
   exact hbound
 
+/-- The glued canonical pair is the paper-faithful global nonnegative Cauchy
+solution.  This deliberately does not assert strict positivity, so it also
+covers the identically-zero initial datum from Proposition 1.1. -/
+theorem wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
+    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
+    IsGlobalNonnegativeCauchySolutionFrom p u₀.1
+      (wholeLineCauchyGlobalU p u₀) (wholeLineCauchyGlobalV p u₀) := by
+  refine ⟨wholeLineCauchyGlobal_isGlobalClassicalSolution p hregime u₀ hu₀,
+    wholeLineCauchyGlobal_hasInitialDatum p u₀,
+    wholeLineCauchyGlobal_hasUniformInitialTrace p u₀, ?_⟩
+  intro t x ht
+  exact wholeLineCauchyGlobal_nonnegative p hregime u₀ hu₀ ht x
+
+theorem wholeLineCauchyGlobal_isBoundedGlobal
+    (p : CMParams) (hregime : StableWaveParameterRegime p)
+    (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
+    IsBoundedGlobal (wholeLineCauchyGlobalU p u₀) := by
+  refine ⟨wholeLineCauchyStableCeiling p u₀, ?_⟩
+  intro t x ht
+  rw [abs_of_nonneg
+    (wholeLineCauchyGlobal_nonnegative p hregime u₀ hu₀ ht x)]
+  exact wholeLineCauchyGlobal_le_stableCeiling p hregime u₀ hu₀ ht x
+
 section WholeLineCauchyGlobalGluingAxiomAudit
 
 #print axioms wholeLineCauchyGlobalLocalTime_nonneg
@@ -686,6 +710,8 @@ section WholeLineCauchyGlobalGluingAxiomAudit
 #print axioms wholeLineCauchyGlobal_hasUniformInitialTrace
 #print axioms wholeLineCauchyGlobal_nonnegative
 #print axioms wholeLineCauchyGlobal_le_stableCeiling
+#print axioms wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
+#print axioms wholeLineCauchyGlobal_isBoundedGlobal
 
 end WholeLineCauchyGlobalGluingAxiomAudit
 

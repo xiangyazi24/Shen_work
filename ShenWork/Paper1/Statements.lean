@@ -147,6 +147,16 @@ def IsGlobalCauchySolutionFrom
     HasUniformInitialTrace u u₀ ∧
     ∀ t x, 0 < t → 0 < u t x
 
+/-- The Cauchy-solution notion used by Proposition 1.1.  Unlike the
+strictly-positive notion above, this one includes the zero solution, exactly
+as the paper's quantification over arbitrary nonnegative BUC data requires. -/
+def IsGlobalNonnegativeCauchySolutionFrom
+    (p : CMParams) (u₀ : ℝ → ℝ) (u v : ℝ → ℝ → ℝ) : Prop :=
+  IsGlobalClassicalSolution p u v ∧
+    HasInitialDatum u u₀ ∧
+    HasUniformInitialTrace u u₀ ∧
+    ∀ t x, 0 ≤ t → 0 ≤ u t x
+
 def UniformEventuallyBounded (u : ℝ → ℝ → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, ∀ x, |u t x| ≤ M
 
@@ -770,6 +780,42 @@ theorem IsGlobalCauchySolutionFrom.shift_space
     exact ⟨δ, hδ, fun t x ht htδ => htrace t (x + a) ht htδ⟩
   · intro t x ht
     exact h.pos t (x + a) ht
+
+theorem IsGlobalCauchySolutionFrom.toNonnegative
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v)
+    (hu₀ : ∀ x, 0 ≤ u₀ x) :
+    IsGlobalNonnegativeCauchySolutionFrom p u₀ u v := by
+  refine ⟨h.classical, h.initial, h.initialTrace, ?_⟩
+  intro t x ht
+  rcases lt_or_eq_of_le ht with ht | rfl
+  · exact (h.pos t x ht).le
+  · rw [h.initial x]
+    exact hu₀ x
+
+theorem IsGlobalNonnegativeCauchySolutionFrom.classical
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalNonnegativeCauchySolutionFrom p u₀ u v) :
+    IsGlobalClassicalSolution p u v :=
+  h.1
+
+theorem IsGlobalNonnegativeCauchySolutionFrom.initial
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalNonnegativeCauchySolutionFrom p u₀ u v) :
+    HasInitialDatum u u₀ :=
+  h.2.1
+
+theorem IsGlobalNonnegativeCauchySolutionFrom.initialTrace
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalNonnegativeCauchySolutionFrom p u₀ u v) :
+    HasUniformInitialTrace u u₀ :=
+  h.2.2.1
+
+theorem IsGlobalNonnegativeCauchySolutionFrom.nonnegative
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalNonnegativeCauchySolutionFrom p u₀ u v) :
+    ∀ t x, 0 ≤ t → 0 ≤ u t x :=
+  h.2.2.2
 
 /-- A continuous real function with finite limits at both ends is uniformly
 continuous, even when the two limiting values differ. -/
@@ -16400,7 +16446,7 @@ def Proposition_1_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
     ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
-        IsGlobalCauchySolutionFrom p u₀ u v ∧
+        IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
         (∀ M, (∀ x, u₀ x ≤ M) →
           ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
         UniformLimsupLe u 1) ∧
@@ -16413,7 +16459,7 @@ def Proposition_1_1 : Prop :=
         p.α = p.m + p.γ - 1) →
     ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
-        IsGlobalCauchySolutionFrom p u₀ u v ∧
+        IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧
         UniformEventuallyBounded u ∧
         (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))))
 
@@ -16678,11 +16724,11 @@ theorem Proposition_1_1.of_global_existence_and_bounds
   · intro p hχ u₀ hu₀
     rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
     rcases hmax_neg p hχ u₀ hu₀ u v hsol with ⟨hmax, hlimsup⟩
-    exact ⟨u, v, hsol, hmax, hlimsup⟩
+    exact ⟨u, v, hsol.toNonnegative hu₀.2, hmax, hlimsup⟩
   · intro p hcond u₀ hu₀
     rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
     rcases hbound_pos p hcond u₀ hu₀ u v hsol with ⟨hbdd, hlimsup⟩
-    exact ⟨u, v, hsol, hbdd, hlimsup⟩
+    exact ⟨u, v, hsol.toNonnegative hu₀.2, hbdd, hlimsup⟩
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=

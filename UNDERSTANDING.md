@@ -5212,7 +5212,7 @@ of the BUC trajectory also gives the paper's uniform initial trace, since
 point evaluation is bounded by BUC distance.  Combining this with the
 previously constructed positive physical strip proves
 `exists_wholeLineCauchy_classicalSolution`: every nonnegative BUC datum has a
-positive local classical solution with both the exact initial datum and its
+nonnegative local classical solution with both the exact initial datum and its
 uniform right trace.  No packaged analytic hypothesis remains in this local
 existence result.
 
@@ -5303,5 +5303,13 @@ translate of one canonical segment.  Ordinary differentiability and both PDE
 identities therefore transfer locally, producing a genuine global classical
 pair.  The same construction has the exact initial datum, uniform BUC initial
 trace, global nonnegativity, and the datum-dependent stable ceiling.  Strict
-positive-time positivity is the only remaining field of
-`IsGlobalCauchySolutionFrom`.
+positive-time positivity is not part of Paper 1 Proposition 1.1: the original
+statement explicitly quantifies over every nonnegative BUC datum, including
+the zero datum.  The old Lean statement was therefore too strong because it
+reused `IsGlobalCauchySolutionFrom`, whose final field demands strict
+positive-time positivity.  `Statements.lean` now separates the faithful
+`IsGlobalNonnegativeCauchySolutionFrom`; Proposition 1.1 uses that predicate,
+while the strict predicate remains available for the positive-data stability
+and traveling-wave arguments.  The next Cauchy step is to package the glued
+pair into the new predicate and then remove the stable-wave-regime restriction
+from the negative-sensitivity ceiling, which Proposition 1.1 does not assume.
