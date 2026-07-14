@@ -5133,3 +5133,18 @@ all proved integrable, so no boundary-decay package is externalized.  The
 local full build passes 9563 jobs and the bridge is clean-3.  To integrate this
 identity through the Duhamel history, the next step is to uniformize the flux
 derivative Holder coefficient on compact positive-time windows.
+
+The positive-time restart and terminal-average layer is now root-imported.
+The implemented Gaussian kernel satisfies the exact convolution law, hence
+the modified heat flow has its semigroup cocycle in both scalar and BUC form.
+The reaction and divergence Duhamel histories restart at every positive time;
+for the physical fixed point, the divergence restart's bounded-C1 flux input
+is produced internally from the spatial bootstrap.  On a short terminal
+window, the reaction average converges in BUC to the current reaction source.
+After Gaussian integration by parts, the divergence average converges in BUC
+to the current spatial flux derivative.  The zero-lag value of the totalized
+gradient operator is used only at a measure-zero endpoint and is not falsely
+identified with that derivative.  The local full root build passes 9565 jobs,
+and the new terminal-average declarations are clean-3.  The remaining
+mild-to-classical step is the right generator limit for the homogeneous heat
+term, followed by assembly of the right time derivative and the PDE.
