@@ -1,5 +1,29 @@
 # Statement-faithfulness audit (2026-06-15) — initial-data positivity bug
 
+## 2026-07-13 — Paper 3 Theorem 2.5 all-time statement refuted and amended
+
+The original target `Theorem_2_5` quantifies one pair of exponential constants
+before all bounded positive global solutions and requires its `C¹` estimate at
+every `t ≥ 0`.  In the legacy solution API the PDE is imposed only for strict
+positive time, `HasInitialMass` reads only `u 0`, and no initial trace constrains
+`v 0`.  Therefore the stored chemical slice can be changed arbitrarily at
+`t = 0` without changing the PDE orbit or the mass.
+
+`not_intervalDomain_Theorem_2_5_of_stabilityCondition` proves that, whenever
+the minimal threshold condition is inhabited, the original all-time target is
+false for the concrete interval sectorial norm.  The theorem keeps `u` at its
+constant physical equilibrium (hence the mass is exact) and re-anchors only
+`v 0` after the proposed uniform prefactor is chosen.
+`not_intervalDomain_Theorem_2_5_original_allTime` gives a fully concrete
+non-vacuous instance with `χ₀ = 1/4`, all other exponents and elliptic
+coefficients equal to one, and a strict first minimal-threshold inequality.
+Both obstruction theorems are kernel-clean.
+
+The live faithful replacement is
+`intervalDomain_Theorem_2_5_EventualGlobalStabilityFormula`: it uses physical
+positive-time mass, orbit-dependent constants, and an orbit-dependent positive
+entrance time.  Its two minimal branches are proved, not package projections.
+
 Triggered by: Paper2 `Theorem_1_1` was found stating positivity on the OPEN interior
 (`PositiveInitialDatum` = `initialAdmissible ∧ ∀x∈D.inside, 0<u₀x`), which admits inf=0 data
 (e.g. `x(1−x)`) that the paper EXCLUDES via eq (1.11): `u₀∈C(Ω̄) ∧ inf_Ω u₀ > 0`.
