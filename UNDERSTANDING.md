@@ -4829,3 +4829,13 @@ global Hessian bound together with the recent-time off-support Gaussian bound
 as a single integrable dominator.  The moving-upper and fixed-upper histories
 agree near `t` because all nonpositive-lag kernels are zero.  The gradient
 history analogue (`heatThird - heatGrad`) is the next local lemma.
+
+The gradient analogue is now proved as well.  Its additional analytic input is
+a uniform off-support bound for the first heat gradient, obtained from the
+half-power scalar estimate `lambda^(1/2) exp(-lambda c)`.  Combining it with
+the existing uniform third-derivative tail gives a common bound for
+`heatThird - heatGrad` across the moving terminal diagonal.  Thus both scalar
+Duhamel legs now have actual time derivatives wherever their source vanishes
+on a product neighborhood.  What remains is to instantiate these generic
+theorems for the two clamped source trajectories and combine them with the
+already-proved spatial second derivatives and pointwise fixed-point identity.

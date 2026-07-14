@@ -8,6 +8,8 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
+open ShenWork.PDE.F1ProbeFractionalMultiplier
+
 /-!
 # The homogeneous equation on the negative set of the BUC fixed point
 
@@ -775,6 +777,50 @@ theorem tendsto_inv_rpow_mul_exp_neg_div_nhdsGT_zero
     (tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero s c hc).comp
       tendsto_inv_nhdsGT_zero
 
+/-- The half inverse-time Gaussian tail is uniformly bounded. -/
+theorem inv_sqrt_mul_exp_neg_div_le
+    {tau c : ℝ} (htau : 0 < tau) (hc : 0 < c) :
+    (1 / Real.sqrt tau) * Real.exp (-c / tau) ≤
+      (((1 : ℝ) / 2) / Real.exp 1) ^ ((1 : ℝ) / 2) *
+        c ^ (-((1 : ℝ) / 2)) := by
+  have hpow : (1 / tau) ^ ((1 : ℝ) / 2) = 1 / Real.sqrt tau := by
+    rw [← Real.sqrt_eq_rpow, Real.sqrt_div (by positivity), Real.sqrt_one]
+  have h := rpow_mul_exp_neg_mul_le
+    (σ := (1 : ℝ) / 2) (by norm_num)
+    (lam := 1 / tau) (t := c) (by positivity) hc
+  rw [hpow] at h
+  simpa [div_eq_mul_inv, mul_comm] using h
+
+/-- The off-support gradient tail is uniform over every positive lag. -/
+theorem wholeLineCauchyHeatGradOp_abs_le_of_zero_ball_uniform
+    {f : ℝ → ℝ} {t M r x : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) (hr : 0 < r)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ M)
+    (hzero : ∀ y, dist y x < r → f y = 0) :
+    |wholeLineCauchyHeatGradOp t f x| ≤
+      2 * Real.sqrt 2 * M *
+        ((((1 : ℝ) / 2) / Real.exp 1) ^ ((1 : ℝ) / 2) *
+          (r ^ 2 / 16) ^ (-((1 : ℝ) / 2))) := by
+  have hc : 0 < r ^ 2 / 16 := by positivity
+  have htail := inv_sqrt_mul_exp_neg_div_le ht hc
+  have hop := wholeLineCauchyHeatGradOp_abs_le_of_zero_ball
+    ht hM hr hf_meas hf hzero
+  have hexponent : -r ^ 2 / (16 * t) = -(r ^ 2 / 16) / t := by
+    field_simp [ne_of_gt ht]
+  calc
+    |wholeLineCauchyHeatGradOp t f x| ≤
+        (2 * Real.sqrt 2 / Real.sqrt t) *
+          Real.exp (-r ^ 2 / (16 * t)) * M := hop
+    _ = 2 * Real.sqrt 2 * M *
+          ((1 / Real.sqrt t) * Real.exp (-(r ^ 2 / 16) / t)) := by
+      rw [hexponent]
+      ring
+    _ ≤ 2 * Real.sqrt 2 * M *
+        ((((1 : ℝ) / 2) / Real.exp 1) ^ ((1 : ℝ) / 2) *
+          (r ^ 2 / 16) ^ (-((1 : ℝ) / 2))) := by
+      exact mul_le_mul_of_nonneg_left htail (by positivity)
+
 theorem wholeLineCauchyHeatOp_eq_zero_of_nonpos
     {t : ℝ} (ht : t ≤ 0) (f : ℝ → ℝ) (x : ℝ) :
     wholeLineCauchyHeatOp t f x = 0 := by
@@ -1089,10 +1135,271 @@ theorem wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
     rfl
   exact hfixed.congr_of_eventuallyEq hnear_eq.symm
 
+/-! ## Fixed-upper differentiation of a gradient history -/
+
+/-- A gradient Duhamel history is time differentiable at a point where its
+source vanishes on a product neighborhood. -/
+theorem wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
+    {F : ℝ → WholeLineBUC} (hF : Continuous F)
+    {t M eta r x : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (heta : 0 < eta) (hwindow : 2 * eta < t) (hr : 0 < r)
+    (hFnorm : ∀ s, ‖F s‖ ≤ M)
+    (hzero : ∀ s, dist s t < 2 * eta →
+      ∀ y, dist y x < r → (F s).1 y = 0) :
+    HasDerivAt (fun q : ℝ => wholeLineCauchyGradientHistory F q x)
+      (∫ s in (0 : ℝ)..t,
+        (wholeLineCauchyHeatThirdOp (t - s) (F s).1 x -
+          wholeLineCauchyHeatGradOp (t - s) (F s).1 x)) t := by
+  let b : ℝ := t + eta
+  let ColdThird : ℝ :=
+    (heatThirdTailConstant / (eta * Real.sqrt eta)) * M
+  let CrecentThird : ℝ :=
+    heatThirdTailConstant * M *
+      ((((3 : ℝ) / 2) / Real.exp 1) ^ ((3 : ℝ) / 2) *
+        (r ^ 2 / 16) ^ (-((3 : ℝ) / 2)))
+  let ColdGrad : ℝ :=
+    ((2 / Real.sqrt (4 * Real.pi)) * M) * eta ^ (-(1 / 2 : ℝ))
+  let CrecentGrad : ℝ :=
+    2 * Real.sqrt 2 * M *
+      ((((1 : ℝ) / 2) / Real.exp 1) ^ ((1 : ℝ) / 2) *
+        (r ^ 2 / 16) ^ (-((1 : ℝ) / 2)))
+  let C : ℝ := max ColdThird CrecentThird + max ColdGrad CrecentGrad
+  let G : ℝ → ℝ → ℝ := fun q s =>
+    wholeLineCauchyHeatGradOp (q - s) (F s).1 x
+  let G' : ℝ → ℝ → ℝ := fun q s =>
+    wholeLineCauchyHeatThirdOp (q - s) (F s).1 x -
+      wholeLineCauchyHeatGradOp (q - s) (F s).1 x
+  have hbpos : 0 < b := by dsimp [b]; linarith
+  have hC0 : 0 ≤ C := by
+    dsimp [C]
+    apply add_nonneg
+    · apply le_max_of_le_left
+      dsimp [ColdThird]
+      exact mul_nonneg
+        (div_nonneg heatThirdTailConstant_nonneg (by positivity)) hM
+    · apply le_max_of_le_left
+      dsimp [ColdGrad]
+      positivity
+  have hf_bound : ∀ s y, |(F s).1 y| ≤ M := fun s y =>
+    (WholeLineBUC.abs_apply_le_norm (F s) y).trans (hFnorm s)
+  have hG_meas : ∀ q, AEStronglyMeasurable (G q) volume := by
+    intro q
+    simpa [G] using wholeLineCauchyHeatGradOp_s_dependent_aestronglyMeasurable hF q x
+  have hG'_meas : ∀ q, AEStronglyMeasurable (G' q) volume := by
+    intro q
+    exact (wholeLineCauchyHeatThirdOp_s_dependent_aestronglyMeasurable hF q x).sub
+      (wholeLineCauchyHeatGradOp_s_dependent_aestronglyMeasurable hF q x)
+  have hG_int : ∀ q ∈ Metric.ball t (eta / 2),
+      IntervalIntegrable (G q) volume 0 b := by
+    intro q hq
+    have hqt : |q - t| < eta / 2 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hq
+    have heta_lt_t : eta < t := by linarith
+    have hq0 : 0 < q := by linarith [(abs_lt.mp hqt).1]
+    have hqb : q ≤ b := by
+      dsimp [b]
+      linarith [(abs_lt.mp hqt).2]
+    have h0q : IntervalIntegrable (G q) volume 0 q := by
+      simpa [G] using
+        wholeLineCauchyGradientHistory_intervalIntegrable hF hq0 hM hFnorm x
+    have hqb_int : IntervalIntegrable (G q) volume q b := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le (C := 0) hqb (hG_meas q)
+      intro s hs
+      have hnonpos : q - s ≤ 0 := sub_nonpos.mpr hs.1
+      simp [G, wholeLineCauchyHeatGradOp_eq_zero_of_nonpos hnonpos]
+    exact h0q.trans hqb_int
+  have hderiv_bound : ∀ s, ∀ q ∈ Metric.ball t (eta / 2),
+      ‖G' q s‖ ≤ C := by
+    intro s q hq
+    have hqt : |q - t| < eta / 2 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hq
+    by_cases hlag : 0 < q - s
+    · have hqpos : 0 < q - s := hlag
+      have hthird : |wholeLineCauchyHeatThirdOp (q - s) (F s).1 x| ≤
+          max ColdThird CrecentThird := by
+        by_cases hold : s ≤ t - 2 * eta
+        · have hlag_eta : eta ≤ q - s := by
+            have hqlo : t - eta / 2 < q := by linarith [(abs_lt.mp hqt).1]
+            linarith
+          have hsqrt : Real.sqrt eta ≤ Real.sqrt (q - s) :=
+            Real.sqrt_le_sqrt hlag_eta
+          have hprod : eta * Real.sqrt eta ≤
+              (q - s) * Real.sqrt (q - s) :=
+            mul_le_mul hlag_eta hsqrt (Real.sqrt_nonneg _) hqpos.le
+          have hinv : 1 / ((q - s) * Real.sqrt (q - s)) ≤
+              1 / (eta * Real.sqrt eta) :=
+            one_div_le_one_div_of_le
+              (mul_pos heta (Real.sqrt_pos.mpr heta)) hprod
+          have hglobal := wholeLineCauchyHeatThirdOp_abs_le (x := x)
+            hqpos hM (F s).1.continuous.aestronglyMeasurable (hf_bound s)
+          refine hglobal.trans (le_max_of_le_left ?_)
+          dsimp [ColdThird]
+          have hcoef := mul_le_mul_of_nonneg_left hinv heatThirdTailConstant_nonneg
+          exact mul_le_mul_of_nonneg_right
+            (by simpa [div_eq_mul_inv] using hcoef) hM
+        · have hslo : t - 2 * eta < s := lt_of_not_ge hold
+          have hshi : s < t + eta / 2 := by
+            have hqhi : q < t + eta / 2 := by linarith [(abs_lt.mp hqt).2]
+            linarith
+          have hst : dist s t < 2 * eta := by
+            rw [Real.dist_eq]
+            apply abs_lt.mpr
+            constructor <;> linarith
+          have hzero_s : ∀ y, dist y x < r → (F s).1 y = 0 := hzero s hst
+          have hrecent := wholeLineCauchyHeatThirdOp_abs_le_of_zero_ball_uniform
+            (x := x) hqpos hM hr (F s).1.continuous.aestronglyMeasurable
+              (hf_bound s) hzero_s
+          exact hrecent.trans (le_max_right _ _)
+      have hgrad : |wholeLineCauchyHeatGradOp (q - s) (F s).1 x| ≤
+          max ColdGrad CrecentGrad := by
+        by_cases hold : s ≤ t - 2 * eta
+        · have hlag_eta : eta ≤ q - s := by
+            have hqlo : t - eta / 2 < q := by linarith [(abs_lt.mp hqt).1]
+            linarith
+          have hinv : (q - s) ^ (-(1 / 2 : ℝ)) ≤
+              eta ^ (-(1 / 2 : ℝ)) :=
+            Real.rpow_le_rpow_of_nonpos heta hlag_eta (by norm_num)
+          have hglobal := wholeLineCauchyHeatGradOp_norm_le_rpow
+            hqpos hM (hf_bound s) x
+          rw [Real.norm_eq_abs] at hglobal
+          refine hglobal.trans (le_max_of_le_left ?_)
+          dsimp [ColdGrad]
+          exact mul_le_mul_of_nonneg_left hinv (by positivity)
+        · have hslo : t - 2 * eta < s := lt_of_not_ge hold
+          have hshi : s < t + eta / 2 := by
+            have hqhi : q < t + eta / 2 := by linarith [(abs_lt.mp hqt).2]
+            linarith
+          have hst : dist s t < 2 * eta := by
+            rw [Real.dist_eq]
+            apply abs_lt.mpr
+            constructor <;> linarith
+          have hzero_s : ∀ y, dist y x < r → (F s).1 y = 0 := hzero s hst
+          have hrecent := wholeLineCauchyHeatGradOp_abs_le_of_zero_ball_uniform
+            (x := x) hqpos hM hr (F s).1.continuous.aestronglyMeasurable
+              (hf_bound s) hzero_s
+          exact hrecent.trans (le_max_right _ _)
+      dsimp [G']
+      calc
+        |wholeLineCauchyHeatThirdOp (q - s) (F s).1 x -
+            wholeLineCauchyHeatGradOp (q - s) (F s).1 x| ≤
+            |wholeLineCauchyHeatThirdOp (q - s) (F s).1 x| +
+              |wholeLineCauchyHeatGradOp (q - s) (F s).1 x| := abs_sub _ _
+        _ ≤ max ColdThird CrecentThird + max ColdGrad CrecentGrad :=
+          add_le_add hthird hgrad
+        _ = C := rfl
+    · have hnonpos : q - s ≤ 0 := le_of_not_gt hlag
+      dsimp [G']
+      rw [wholeLineCauchyHeatThirdOp_eq_zero_of_nonpos hnonpos,
+        wholeLineCauchyHeatGradOp_eq_zero_of_nonpos hnonpos, sub_self, abs_zero]
+      exact hC0
+  have hdiff : ∀ s, ∀ q ∈ Metric.ball t (eta / 2),
+      HasDerivAt (fun w : ℝ => G w s) (G' q s) q := by
+    intro s q hq
+    by_cases hpos : 0 < q - s
+    · have hbase := wholeLineCauchyHeatGradOp_time_hasDerivAt
+        hpos hM (F s).1.continuous.aestronglyMeasurable (hf_bound s) x
+      have hlin : HasDerivAt (fun w : ℝ => w - s) 1 q := by
+        simpa using (hasDerivAt_id q).sub_const s
+      simpa [G, G', Function.comp_def] using hbase.comp q hlin
+    · have hnonpos : q - s ≤ 0 := le_of_not_gt hpos
+      rcases hnonpos.eq_or_lt with heq | hneg
+      · have hqs : q = s := sub_eq_zero.mp heq
+        have hqt : dist s t < 2 * eta := by
+          rw [← hqs]
+          have : dist q t < eta / 2 := by simpa [Metric.mem_ball] using hq
+          exact this.trans (by linarith)
+        have hzero_s : ∀ y, dist y x < r → (F s).1 y = 0 := hzero s hqt
+        have hbase := wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
+          hM hr (F s).1.continuous.aestronglyMeasurable (hf_bound s) hzero_s
+        rw [← heq] at hbase
+        have hlin : HasDerivAt (fun w : ℝ => w - s) 1 q := by
+          simpa using (hasDerivAt_id q).sub_const s
+        have hcomp := hbase.comp q hlin
+        simpa [G, G', heq,
+          wholeLineCauchyHeatThirdOp_eq_zero_of_nonpos le_rfl,
+          wholeLineCauchyHeatGradOp_eq_zero_of_nonpos le_rfl,
+          Function.comp_def] using hcomp
+      · have hqs : q < s := sub_neg.mp hneg
+        have hconst : HasDerivAt (fun _ : ℝ => (0 : ℝ)) 0 q := hasDerivAt_const q 0
+        have hevent : (fun w : ℝ => G w s) =ᶠ[𝓝 q] fun _ => 0 := by
+          filter_upwards [Iio_mem_nhds hqs] with w hw
+          simp [G, wholeLineCauchyHeatGradOp_eq_zero_of_nonpos (sub_nonpos.mpr hw.le)]
+        have hz := hconst.congr_of_eventuallyEq hevent
+        simpa [G', wholeLineCauchyHeatThirdOp_eq_zero_of_nonpos hnonpos,
+          wholeLineCauchyHeatGradOp_eq_zero_of_nonpos hnonpos] using hz
+  have hfixed_pair := intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (μ := volume) (a := (0 : ℝ)) (b := b)
+    (F := G) (F' := G') (x₀ := t)
+    (s := Metric.ball t (eta / 2)) (bound := fun _ : ℝ => C)
+    (Metric.ball_mem_nhds t (half_pos heta))
+    (by filter_upwards with q; exact (hG_meas q).restrict)
+    (hG_int t (Metric.mem_ball_self (half_pos heta)))
+    (hG'_meas t).restrict
+    (by filter_upwards with s hs q hq; exact hderiv_bound s q hq)
+    intervalIntegrable_const
+    (by filter_upwards with s hs q hq; exact hdiff s q hq)
+  have hfixed := hfixed_pair.2
+  have hfixed_deriv : (∫ s in (0 : ℝ)..b, G' t s) =
+      ∫ s in (0 : ℝ)..t, G' t s := by
+    have hleft : IntervalIntegrable (G' t) volume 0 t := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le ht.le (hG'_meas t)
+      intro s hs
+      exact hderiv_bound s t (Metric.mem_ball_self (half_pos heta))
+    have hright : IntervalIntegrable (G' t) volume t b := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le
+        (by dsimp [b]; linarith : t ≤ b) (hG'_meas t)
+      intro s hs
+      exact hderiv_bound s t (Metric.mem_ball_self (half_pos heta))
+    rw [← intervalIntegral.integral_add_adjacent_intervals hleft hright]
+    have hzero_right : (∫ s in t..b, G' t s) = 0 := by
+      calc
+        (∫ s in t..b, G' t s) = ∫ _s in t..b, (0 : ℝ) := by
+          apply intervalIntegral.integral_congr
+          intro s hs
+          rw [Set.uIcc_of_le (by dsimp [b]; linarith : t ≤ b)] at hs
+          have hnonpos : t - s ≤ 0 := sub_nonpos.mpr hs.1
+          simp [G', wholeLineCauchyHeatThirdOp_eq_zero_of_nonpos hnonpos,
+            wholeLineCauchyHeatGradOp_eq_zero_of_nonpos hnonpos]
+        _ = 0 := intervalIntegral.integral_zero
+    rw [hzero_right, add_zero]
+  rw [hfixed_deriv] at hfixed
+  have hnear_eq :
+      (fun q : ℝ => ∫ s in (0 : ℝ)..b, G q s) =ᶠ[𝓝 t]
+        fun q : ℝ => wholeLineCauchyGradientHistory F q x := by
+    filter_upwards [Metric.ball_mem_nhds t (half_pos heta)] with q hq
+    have hqt : |q - t| < eta / 2 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hq
+    have heta_lt_t : eta < t := by linarith
+    have hq0 : 0 < q := by linarith [(abs_lt.mp hqt).1]
+    have hqb : q ≤ b := by
+      dsimp [b]
+      linarith [(abs_lt.mp hqt).2]
+    have h0q : IntervalIntegrable (G q) volume 0 q := by
+      simpa [G] using
+        wholeLineCauchyGradientHistory_intervalIntegrable hF hq0 hM hFnorm x
+    have hqb_int : IntervalIntegrable (G q) volume q b := by
+      apply intervalIntegrable_of_aestronglyMeasurable_of_norm_le (C := 0) hqb (hG_meas q)
+      intro s hs
+      have hnonpos : q - s ≤ 0 := sub_nonpos.mpr hs.1
+      simp [G, wholeLineCauchyHeatGradOp_eq_zero_of_nonpos hnonpos]
+    rw [← intervalIntegral.integral_add_adjacent_intervals h0q hqb_int]
+    have hzero_qb : (∫ s in q..b, G q s) = 0 := by
+      calc
+        (∫ s in q..b, G q s) = ∫ _s in q..b, (0 : ℝ) := by
+          apply intervalIntegral.integral_congr
+          intro s hs
+          rw [Set.uIcc_of_le hqb] at hs
+          exact wholeLineCauchyHeatGradOp_eq_zero_of_nonpos (sub_nonpos.mpr hs.1) _ _
+        _ = 0 := intervalIntegral.integral_zero
+    rw [hzero_qb, add_zero]
+    rfl
+  exact hfixed.congr_of_eventuallyEq hnear_eq.symm
+
 #print axioms wholeLineCauchyHeatOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatGradOp_time_hasDerivAt
 #print axioms wholeLineCauchyHeatOp_zero_lag_hasDerivAt_of_zero_ball
 #print axioms wholeLineCauchyHeatGradOp_zero_lag_hasDerivAt_of_zero_ball
 #print axioms wholeLineCauchyValueHistory_time_hasDerivAt_of_local_zero
+#print axioms wholeLineCauchyGradientHistory_time_hasDerivAt_of_local_zero
 
 end ShenWork.Paper1
