@@ -36,7 +36,11 @@ def A_bal(n):
     dh = delta_H(n)
     dn = [mp.mpf(1), mp.mpf(n+1), mp.mpf(n+1)**2]
     dnp = [mp.mpf(1), mp.mpf(n+2), mp.mpf(n+2)**2]
-    return mp.matrix(3, 3, lambda i, j: (raw[i,j]/dh)*dnp[j]/dn[i])
+    out = mp.matrix(3, 3)
+    for i in range(3):
+        for j in range(3):
+            out[i, j] = (raw[i, j] / dh) * dnp[j] / dn[i]
+    return out
 
 
 rt2 = mp.sqrt(2)
