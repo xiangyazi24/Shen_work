@@ -6,6 +6,11 @@ on:
     paths:
       - 'tmp/q4913_compute.py'
       - '.github/workflows/q4913-compute.yml'
+  pull_request:
+    branches: [chatgpt-scratch]
+    paths:
+      - 'tmp/q4913_compute.py'
+      - '.github/workflows/q4913-compute.yml'
 
 permissions:
   contents: write
