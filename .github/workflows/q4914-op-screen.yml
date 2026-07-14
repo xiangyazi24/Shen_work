@@ -6,6 +6,11 @@ on:
     paths:
       - q4914_op_screen.py
       - .github/workflows/q4914-op-screen.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - q4914_op_screen.py
+      - .github/workflows/q4914-op-screen.yml
   workflow_dispatch:
 
 permissions:
