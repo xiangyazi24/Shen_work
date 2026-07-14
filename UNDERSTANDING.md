@@ -120,6 +120,22 @@ operator capstones have exactly the standard three axioms.  The remaining
 local-PDE step is the zero-lag off-support derivative and the fixed-upper-
 interval differentiation of the two histories.
 
+The active-source positive-time bootstrap now has the compact-window bounds
+needed for its second spatial differentiation.  On every `0<a<=b<=T`,
+`wholeLineCauchyFluxHessianHistory_Ceta_window` gives one common spatial
+`C^eta` coefficient for the flux Hessian history: the old portion has lag at
+least `a/2`, while the recent portion uses the already-proved common flux
+`C^theta` modulus on `[a/2,b]`.  The interpolated singularity is evaluated
+exactly and is integrable under `eta*(1+theta)<theta`.
+`wholeLineCauchyBUCMildFixedPoint_spatial_deriv_Ceta_window` then combines the
+homogeneous, flux, and reaction legs to give one common Holder coefficient for
+`u_x`; on a physical strip, the mean-value estimate also gives a common global
+bound for `u_x`.  The local full root build passes with 9563 jobs and all three
+window capstones have exactly the standard three axioms.  The next analytic
+step is to turn these common profile bounds into a common Holder bound for the
+physical flux derivative and use Gaussian IBP plus Hessian cancellation to
+differentiate the divergence Duhamel history a second time.
+
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
 `|chi|^sigma` and `|chi|^(2*sigma)`, while several repository definitions
