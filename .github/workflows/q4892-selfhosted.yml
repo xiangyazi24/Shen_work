@@ -1,0 +1,43 @@
+name: Q4892 self-hosted exact search
+
+on:
+  push:
+    branches: [q4892-run-clean]
+    paths:
+      - scratch/q4892_quick.py
+      - .github/workflows/q4892-selfhosted.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: q4892-selfhosted
+  cancel-in-progress: true
+
+jobs:
+  search:
+    runs-on: self-hosted
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4892-run-clean
+      - name: Ensure SymPy
+        run: python3 -m pip install --user --upgrade sympy
+      - name: Run exact search
+        shell: bash
+        run: |
+          set +e
+          python3 -u scratch/q4892_quick.py 2>&1 | tee scratch/q4892_result.txt
+          status=${PIPESTATUS[0]}
+          echo "PROCESS_EXIT_STATUS=$status" | tee -a scratch/q4892_result.txt
+          exit 0
+      - name: Commit result
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scratch/q4892_result.txt
+          git diff --cached --quiet || git commit -m 'Record Q4892 exact single-sum result'
+          git push origin HEAD:q4892-run-clean
