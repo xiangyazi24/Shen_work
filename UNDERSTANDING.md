@@ -5282,3 +5282,14 @@ semigroup restart identities account for the old histories.  Hence the
 translated trajectory is a fixed point of the short restarted mild map; the
 short-map contraction makes it equal to the canonical restarted fixed point.
 This removes a potential seam ambiguity before discrete global gluing.
+
+`WholeLineCauchyCanonicalSegments.lean` selects one clamp and one construction
+time from the original datum's stable ceiling.  It recursively restarts at
+half that time.  A combined induction proves that every restart datum is
+nonnegative and below the original ceiling, every full segment stays in the
+fixed clamp box, and the sharper stable ceiling is preserved.  Initial-horizon
+restriction compatibility together with positive-time restart compatibility
+then proves that consecutive segments agree on their entire common
+half-window.  The remaining work is now topological bookkeeping: define the
+global time-indexed pair and use these overlaps to identify it locally with an
+interior portion of one classical segment.

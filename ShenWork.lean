@@ -58,6 +58,7 @@ import ShenWork.Paper1.WholeLineCauchyGlobalBounds
 import ShenWork.Paper1.WholeLineCauchyStableCeilingPDE
 import ShenWork.Paper1.WholeLineCauchyStableCeilingCanonical
 import ShenWork.Paper1.WholeLineCauchyCanonicalRestart
+import ShenWork.Paper1.WholeLineCauchyCanonicalSegments
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
