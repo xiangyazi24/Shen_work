@@ -1,0 +1,37 @@
+name: Q4892 exact Delannoy single-sum search
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4892_trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  q4892-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: q4892-single-sum
+      - name: Run exact Sage search
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            sagemath/sagemath:latest \
+            sage scratch/q4892_single_sum.sage > scratch/q4892_result.txt 2>&1
+      - name: Print output
+        if: always()
+        run: cat scratch/q4892_result.txt || true
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q4892-result
+          path: scratch/q4892_result.txt
