@@ -1,6 +1,6 @@
 # Paper 1 Theorem 1.2 stability audit (2026-07-13)
 
-Three independent issues block a faithful proof of the literal headline as
+Four independent issues block a faithful proof of the literal headline as
 currently stated.
 
 ## 1. The root comparison in (5.35) has the wrong direction
@@ -41,7 +41,49 @@ stability theorem: a sharper spatially localized coercivity argument might
 retain the full open interval `eta > kappa` because the perturbation
 coefficients vanish in the right tail.
 
-## 2. The weighted norm is written in the wrong coordinate
+## 2. The chemotactic flux expansion in (5.18) has two wrong signs
+
+The elliptic equation in (1.1) is
+
+```text
+v_xx - v + u^gamma = 0,
+```
+
+so `v_xx = v - u^gamma`. If `w = u-U` and `z = v-V`, the zero-order
+part of the difference of the two chemotactic flux derivatives is
+
+```text
+(v a_m - a_(m+gamma)) w + U^m z.
+```
+
+After multiplication by `-chi`, the perturbation equation must therefore
+contain
+
+```text
+-chi (v a_m - a_(m+gamma) + b_2) w - chi b_4 z.
+```
+
+Equation (5.18) instead prints `+a_(m+gamma)` inside the first parentheses
+and `+chi b_4 z`. Both signs are incompatible with (1.1), and the same
+errors propagate into (5.19). The later `J_2` and `J_4` estimates can be
+repaired without changing the conservative final budgets: use
+
+```text
+|v a_m - a_(m+gamma)|
+  <= (2m+gamma) M^(m+gamma-1)
+```
+
+for either sign of `chi`, and estimate the `b_4` term by its absolute value.
+The `(2m+gamma)` contribution is already retained in (5.33).
+
+Lean certificates:
+
+- `paper5ChemFluxDifference_expansion_corrected`;
+- `paper5CorrectedChemZeroCoefficient_abs_le`
+
+in `Theorem12MeanCoefficients.lean`.
+
+## 3. The weighted norm is written in the wrong coordinate
 
 Section 5 estimates the stationary-wave/moving-coordinate energy
 
@@ -79,7 +121,7 @@ in `Theorem12CoordinateAudit.lean`.
 The last theorem is deliberately a function-level coordinate sanity witness,
 not a claimed PDE counterexample.
 
-## 3. The exponential factor after (5.35) has the wrong sign
+## 4. The exponential factor after (5.35) has the wrong sign
 
 Immediately after defining the quadratic coefficient `lambda` to be negative,
 the paper bounds the energy by `exp(-lambda t)` and says that this tends to

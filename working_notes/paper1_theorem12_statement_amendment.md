@@ -7,7 +7,7 @@ monotonicity of traveling waves for repulsion/attraction chemotaxis models
 with logistic type source*, arXiv:2605.04401v1 (6 May 2026).  The source
 checked is the archived local copy `paper1.pdf`.
 
-## Three independent defects
+## Four independent defects
 
 ### 1. The root comparison in (5.35) has the wrong direction
 
@@ -62,6 +62,33 @@ The paper defines the quadratic coefficient `lambda` to be negative and then
 writes `exp(-lambda t) → 0`.  For `lambda < 0` this factor grows.  The decaying
 factor is `exp(lambda t)`, or, after defining the positive rate
 `rho := -lambda`, `exp(-rho t)`.
+
+### 4. Equation (5.18) has two wrong chemotactic signs
+
+The elliptic equation is `v_xx-v+u^gamma=0`. Put `w=u-U` and `z=v-V`.
+The zero-order part of the chemotactic flux difference is
+
+```text
+(v a_m - a_(m+gamma)) w + U^m z.
+```
+
+Consequently the perturbation equation contains
+
+```text
+-chi (v a_m - a_(m+gamma) + b_2) w - chi b_4 z.
+```
+
+The printed (5.18), and hence (5.19), reverse both the `a_(m+gamma)` sign
+and the `b_4 z` sign. This does not force a larger conservative budget in
+(5.31): for both signs of `chi`,
+
+```text
+|v a_m - a_(m+gamma)|
+  <= (2m+gamma) M^(m+gamma-1),
+```
+
+and the `b_4` term is estimated by absolute value. The displayed (5.33)
+already retains the `(2m+gamma)` contribution.
 
 ## Recommended amended statement
 
@@ -118,7 +145,7 @@ proof.
 ## Lean certificates and present proof boundary
 
 The repository contains zero-`sorry`, standard-axiom certificates for all
-three defects:
+four defects:
 
 - `paper531_kappa_not_between_perturbed_roots`,
   `paper531_kappa_lt_rootMinus`, and
@@ -129,7 +156,10 @@ three defects:
   `ShenWork/Paper1/Theorem12CoordinateAudit.lean`;
 - `paper531_printed_decay_factor_tendsto_atTop` and
   `paper531_corrected_decay_factor_tendsto_zero` in
-  `ShenWork/Paper1/Theorem12RootObstruction.lean`.
+  `ShenWork/Paper1/Theorem12RootObstruction.lean`;
+- `paper5ChemFluxDifference_expansion_corrected` and
+  `paper5CorrectedChemZeroCoefficient_abs_le` in
+  `ShenWork/Paper1/Theorem12MeanCoefficients.lean`.
 
 `ShenWork/Paper1/Theorem12Corrected.lean` currently proves the scalar
 Gronwall and moving-frame localization wiring, but its general-data PDE

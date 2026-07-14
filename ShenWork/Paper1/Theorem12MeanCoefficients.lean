@@ -227,6 +227,101 @@ def paper5B3 (p : CMParams) (U : ℝ → ℝ) (x : ℝ) : ℝ :=
 def paper5B4 (p : CMParams) (U : ℝ → ℝ) (x : ℝ) : ℝ :=
   (U x) ^ p.m
 
+/-! ## The corrected chemotactic flux difference
+
+There are two sign errors in the displayed equation (5.18) of the paper.
+For the elliptic convention `vₓₓ - v + u^γ = 0`, the zero-order part of
+`(u^m vₓ)ₓ - (U^m Vₓ)ₓ` contains
+`v * a_m - a_{m+γ}`, not `v * a_m + a_{m+γ}`, and it contains
+`+ U^m (v - V)`.  Consequently multiplication by `-χ` gives
+`-χ * b₄ * (v - V)`, not `+χ * b₄ * (v - V)`.
+
+The following identity is the algebraic core of the corrected (5.18).  It
+is stated before invoking any derivative rule: the two arguments on the
+left are exactly the product-rule expansions after substituting the two
+elliptic equations. -/
+theorem paper5ChemFluxDifference_expansion_corrected
+    (p : CMParams) (u v : ℝ → ℝ → ℝ) (U V : ℝ → ℝ)
+    (t x : ℝ) (hu : 0 ≤ u t x) (hU : 0 ≤ U x) :
+    (p.m * (u t x) ^ (p.m - 1) * deriv (u t) x * deriv (v t) x +
+          (u t x) ^ p.m * (v t x - (u t x) ^ p.γ)) -
+        (p.m * (U x) ^ (p.m - 1) * deriv U x * deriv V x +
+          (U x) ^ p.m * (V x - (U x) ^ p.γ)) =
+      paper5B1 p u v t x * (deriv (u t) x - deriv U x) +
+        (paper5B2 p u v U t x +
+            v t x * paper5A p.m u U t x -
+              paper5A (p.m + p.γ) u U t x) * (u t x - U x) +
+        paper5B3 p U x * (deriv (v t) x - deriv V x) +
+        paper5B4 p U x * (v t x - V x) := by
+  have hm1 := paper5A_mul_sub (p.m - 1) u U t x
+  have hm := paper5A_mul_sub p.m u U t x
+  have hmg := paper5A_mul_sub (p.m + p.γ) u U t x
+  have hupow : (u t x) ^ p.m * (u t x) ^ p.γ =
+      (u t x) ^ (p.m + p.γ) :=
+    (Real.rpow_add_of_nonneg hu
+      (le_trans zero_le_one p.hm) (le_trans zero_le_one p.hγ)).symm
+  have hUpow : (U x) ^ p.m * (U x) ^ p.γ =
+      (U x) ^ (p.m + p.γ) :=
+    (Real.rpow_add_of_nonneg hU
+      (le_trans zero_le_one p.hm) (le_trans zero_le_one p.hγ)).symm
+  unfold paper5B1 paper5B2 paper5B3 paper5B4
+  linear_combination
+    -(p.m * deriv (v t) x * deriv U x) * hm1 -
+      v t x * hm + hmg - hupow + hUpow
+
+/-- The corrected zero-order chemotactic coefficient in (5.18), before
+multiplication by `-χ`. -/
+def paper5CorrectedChemZeroCoefficient
+    (p : CMParams) (u v : ℝ → ℝ → ℝ) (U : ℝ → ℝ)
+    (t x : ℝ) : ℝ :=
+  v t x * paper5A p.m u U t x - paper5A (p.m + p.γ) u U t x
+
+/-- The sign-corrected replacement for the case-dependent estimate used
+before (5.28).  Unlike the printed one-sided claim, this absolute estimate
+is valid for both signs of `χ`; it has exactly the conservative
+`(2m+γ) M^(m+γ-1)` size already retained in the final budget (5.33). -/
+theorem paper5CorrectedChemZeroCoefficient_abs_le
+    (p : CMParams) {M t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hM : 0 ≤ M)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) M)
+    (hU : U x ∈ Set.Icc (0 : ℝ) M)
+    (hv : v t x ∈ Set.Icc (0 : ℝ) (M ^ p.γ)) :
+    |paper5CorrectedChemZeroCoefficient p u v U t x| ≤
+      (2 * p.m + p.γ) * M ^ (p.m + p.γ - 1) := by
+  have ham :
+      |paper5A p.m u U t x| ≤ p.m * M ^ (p.m - 1) := by
+    exact paper5MeanCoefficient_abs_le p.hm hM hu hU
+  have hamg :
+      |paper5A (p.m + p.γ) u U t x| ≤
+        (p.m + p.γ) * M ^ (p.m + p.γ - 1) := by
+    exact paper5MeanCoefficient_abs_le (by linarith [p.hm, p.hγ]) hM hu hU
+  have hvabs : |v t x| ≤ M ^ p.γ := by
+    rw [abs_of_nonneg hv.1]
+    exact hv.2
+  have hfirst :
+      |v t x| * |paper5A p.m u U t x| ≤
+        M ^ p.γ * (p.m * M ^ (p.m - 1)) := by
+    exact mul_le_mul hvabs ham (abs_nonneg _)
+      (Real.rpow_nonneg hM _)
+  unfold paper5CorrectedChemZeroCoefficient
+  calc
+    |v t x * paper5A p.m u U t x -
+          paper5A (p.m + p.γ) u U t x|
+        ≤ |v t x| * |paper5A p.m u U t x| +
+            |paper5A (p.m + p.γ) u U t x| := by
+          simpa [abs_mul] using
+            (abs_sub (v t x * paper5A p.m u U t x)
+              (paper5A (p.m + p.γ) u U t x))
+    _ ≤ M ^ p.γ * (p.m * M ^ (p.m - 1)) +
+          (p.m + p.γ) * M ^ (p.m + p.γ - 1) :=
+      add_le_add hfirst hamg
+    _ = (2 * p.m + p.γ) * M ^ (p.m + p.γ - 1) := by
+      rw [show p.m + p.γ - 1 = p.γ + (p.m - 1) by ring,
+        Real.rpow_add_of_nonneg hM
+          (le_trans zero_le_one p.hγ) (by linarith [p.hm])]
+      ring
+
 theorem paper5B2_eq_zero_of_m_eq_one
     (p : CMParams) {u v : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {t x : ℝ}
     (hm : p.m = 1) :
@@ -437,6 +532,8 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5MeanCoefficient_zero
 #print axioms paper5MeanCoefficient_abs_mul_right_le_rpow
 #print axioms paper5A_mul_sub
+#print axioms paper5ChemFluxDifference_expansion_corrected
+#print axioms paper5CorrectedChemZeroCoefficient_abs_le
 #print axioms paper5B2_eq_zero_of_m_eq_one
 #print axioms paper5B2_abs_le_raw
 #print axioms paper5B2_abs_le_of_two_le_m
