@@ -103,13 +103,12 @@ negative-set regularity argument.  Splitting the time history into an old
 positive-lag interval and a recent interval on which the clamped sources
 vanish in a fixed spatial ball gives uniform integrable Hessian and third-
 derivative majorants.  Differentiation under the time integral then proves
-that the chemotaxis gradient history has its second spatial derivative at
-every strictly negative trajectory point.  The module is root-imported; the
-explicitly authorized local full build passes with 9554 jobs, and the new
-capstone has exactly the standard three axioms.  The next spatial producer is
-the analogous local second derivative of the reaction value history, after
-which the fixed-point equation can be assembled into the local homogeneous
-PDE on the negative set.
+that the chemotaxis gradient history and the reaction value history have their
+required second spatial derivatives at every strictly negative trajectory
+point.  The module is root-imported; the explicitly authorized local full
+build passes with 9554 jobs, and both capstones have exactly the standard
+three axioms.  The next step is to assemble these identities with the
+fixed-point equation into the local homogeneous PDE on the negative set.
 
 There is a separate fidelity defect in the older Remark 5.1/5.2 block of
 `Statements.lean`: the paper fixes `sigma = 1/6` and uses real powers
