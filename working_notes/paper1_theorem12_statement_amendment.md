@@ -7,7 +7,7 @@ monotonicity of traveling waves for repulsion/attraction chemotaxis models
 with logistic type source*, arXiv:2605.04401v1 (6 May 2026).  The source
 checked is the archived local copy `paper1.pdf`.
 
-## Six independent defects
+## Seven independent defects
 
 ### 1. The root comparison in (5.35) has the wrong direction
 
@@ -128,6 +128,29 @@ for `chi != 0`. For every admissible `eta < 1/(1+x)`, `K` bounds both
 `1+R_V(eta)` and `1+R_Vx(eta)`. The `chi=0` case is separate and all
 chemotactic corrections vanish.
 
+### 7. Lemma 5.2 is one-sided but (5.23) uses an absolute bound
+
+Lemma 5.2 proves only
+
+```text
+U_x/U <= C.
+```
+
+In Case ii.3, however, the estimate of `|b_2|` replaces this by
+`|U_x/U| <= C`. The implication is false: the displayed lemma controls the
+positive part of the logarithmic derivative and gives no lower bound. This
+is especially visible for a decreasing wave, where `U_x/U <= 0` makes the
+lemma automatic while `|U_x/U|` is exactly the uncontrolled negative part.
+
+There are two honest repairs. On the monotone negative-sensitivity branch of
+Theorem 1.1(1), strengthen the speed threshold so that the logarithmic
+Riccati vector field points inward at `-1`. A right-derivative fencing
+argument then proves the speed-independent bound `|U_x/U| <= 1`. For a
+general, possibly nonmonotone wave (including the positive-sensitivity
+branch as currently stated), retain an explicit absolute logarithmic-
+derivative bound in `B_2`; the threshold may then depend on its genuine
+speed dependence. The one-sided Lemma 5.2 cannot discharge that input.
+
 ## Recommended amended statement
 
 Let `B_i` bound `|b_i|`, use the corrected common resolver factor `K` above,
@@ -141,6 +164,10 @@ B_chi = |chi| ((2m+gamma) M^(m+gamma-1) + B_2)
 ```
 
 These replace, rather than merely rename, the printed budgets (5.32)–(5.33).
+Here `B_2` must come from an absolute logarithmic-derivative estimate.  On
+the monotone branch it can use the fixed Riccati barrier above; outside that
+branch it must remain an explicit absolute bound rather than the conclusion
+of Lemma 5.2.
 Define
 
 ```text
@@ -193,7 +220,7 @@ proof.
 ## Lean certificates and present proof boundary
 
 The repository contains zero-`sorry`, standard-axiom certificates for all
-six defects:
+seven defects:
 
 - `paper531_kappa_not_between_perturbed_roots`,
   `paper531_kappa_lt_rootMinus`, and
@@ -212,6 +239,12 @@ six defects:
   `paper5WeightedResolverFactors_le_cap`, and
   `paper5ResolvedW2Coefficient_le_corrected531` in
   `ShenWork/Paper1/Theorem12WeightedEnergy.lean`.
+- `lower_barrier_of_tendsto_atBot` and
+  `abs_waveLogDerivative_le_one_of_monotone` in
+  `ShenWork/Paper1/Theorem12LogDerivative.lean`, together with the fixed
+  coefficient bundle
+  `paper5CoefficientBounds_of_monotone_corrected_wave` in
+  `ShenWork/Paper1/Theorem12MeanCoefficients.lean`.
 
 `ShenWork/Paper1/Theorem12Corrected.lean` currently proves the scalar
 Gronwall and moving-frame localization wiring, but its general-data PDE

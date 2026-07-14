@@ -651,6 +651,50 @@ theorem paper5CoefficientBounds_of_corrected_wave
   exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu hBlog
     hu hU (hTW.U_pos x) hv hUx hlog
 
+/-- Speed-independent coefficient producer on the monotone negative-sensitivity
+branch constructed in Theorem 1.1(1).  The strengthened explicit speed
+condition makes `[-1,0]` invariant for `U'/U`, so the singular `b₂` branch
+uses the fixed budget `Blog = 1` rather than a quantity growing with `c`. -/
+theorem paper5CoefficientBounds_of_monotone_corrected_wave
+    (p : CMParams) {c sigma t x : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hbarrierSpeed : paper52MonotoneBarrierSpeed p < c)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : Antitone U)
+    (hu : u t x ∈ Set.Icc (0 : ℝ) (MChi p))
+    (hv : |deriv (v t) x| ≤ (MChi p) ^ p.γ) :
+    let Lu := remark51MPrime p / remark5ChiSigma p sigma
+    |paper5B1 p u v t x| ≤ paper520B1 p (MChi p) ∧
+      |paper5B2 p u v U t x| ≤
+        paper5B2BoundFromDerivativeData p (MChi p) Lu 1 ∧
+      |paper5B3 p U x| ≤ p.m * (MChi p) ^ (p.m - 1) * Lu ∧
+      |paper5B4 p U x| ≤ (MChi p) ^ p.m := by
+  let Lu := remark51MPrime p / remark5ChiSigma p sigma
+  have hMpos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hLu : 0 ≤ Lu := by
+    dsimp [Lu]
+    exact div_nonneg (remark51MPrime_nonneg_of_MChi_pos p hMpos)
+      (remark5ChiSigma_nonneg p sigma)
+  have hU : U x ∈ Set.Icc (0 : ℝ) (MChi p) :=
+    ⟨(hTW.U_pos x).le, hbound.le_MChi x⟩
+  have hUx : |deriv U x| ≤ Lu := by
+    dsimp [Lu]
+    exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V
+      hTW hbound hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont
+      hreg.deriv_U_diff hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound x
+  have hlog : 1 < p.m → p.m < 2 →
+      |deriv U x / U x| ≤ (1 : ℝ) := by
+    intro _ _
+    exact abs_waveLogDerivative_le_one_of_monotone p hbarrierSpeed
+      hTW hreg hbound hmono x
+  exact paper5CoefficientBounds_of_derivative_data p hMpos.le hLu
+    zero_le_one hu hU (hTW.U_pos x) hv hUx hlog
+
 section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5MeanCoefficient_mul_sub
 #print axioms paper5IntegralMeanCoefficient_eq
@@ -672,6 +716,7 @@ section Theorem12MeanCoefficientsAxiomAudit
 #print axioms paper5B2_abs_le_of_derivative_data
 #print axioms paper5CoefficientBounds_of_derivative_data
 #print axioms paper5CoefficientBounds_of_corrected_wave
+#print axioms paper5CoefficientBounds_of_monotone_corrected_wave
 end Theorem12MeanCoefficientsAxiomAudit
 
 end ShenWork.Paper1

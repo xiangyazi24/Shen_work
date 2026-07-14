@@ -146,6 +146,39 @@ theorem abs_le_of_bounded_riccati_root
   dsimp [eta] at hquad_upper
   nlinarith
 
+/-- A scalar trajectory converging to zero at the left end cannot cross a
+strict inward-pointing lower barrier.  This is the native right-derivative
+fencing theorem, so no bespoke Dini-derivative object is introduced. -/
+theorem lower_barrier_of_tendsto_atBot
+    {w : ℝ → ℝ} {K : ℝ}
+    (hK : 0 < K)
+    (hw_cont : Continuous w)
+    (hw_diff : Differentiable ℝ w)
+    (hw_bot : Tendsto w atBot (𝓝 0))
+    (hlevel : ∀ x, w x = -K → 0 < deriv w x) :
+    ∀ x, -K ≤ w x := by
+  intro x
+  have hstart_event : ∀ᶠ y in atBot, -K < w y :=
+    hw_bot.eventually (Ioi_mem_nhds (by linarith))
+  obtain ⟨L, hL⟩ := eventually_atBot.1 hstart_event
+  by_cases hxL : x ≤ L
+  · exact (hL x hxL).le
+  · have hLx : L < x := lt_of_not_ge hxL
+    have hf := image_le_of_deriv_right_lt_deriv_boundary
+      (f := fun y => -w y) (f' := fun y => -deriv w y)
+      (B := fun _ => K) (B' := fun _ => 0)
+      (a := L) (b := x)
+      hw_cont.neg.continuousOn
+      (fun y _ => (hw_diff y).hasDerivAt.neg.hasDerivWithinAt)
+      (by linarith [hL L (le_refl L)])
+      (fun y => hasDerivAt_const y K)
+      (by
+        intro y _ hy
+        have hwy : w y = -K := by linarith
+        linarith [hlevel y hwy])
+      (show x ∈ Icc L x from ⟨hLx.le, le_refl x⟩)
+    linarith
+
 /-- The coefficient of the linear Riccati term in Lemma 5.2. -/
 def paper52RiccatiA (p : CMParams) (c : ℝ) : ℝ :=
   c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)
@@ -153,6 +186,12 @@ def paper52RiccatiA (p : CMParams) (c : ℝ) : ℝ :=
 /-- The uniform zeroth-order Riccati budget in Lemma 5.2. -/
 def paper52RiccatiB (p : CMParams) : ℝ :=
   |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α
+
+/-- A sufficient speed for the fixed interval `[-1,0]` to be inward
+pointing for the logarithmic Riccati equation of a monotone wave. -/
+def paper52MonotoneBarrierSpeed (p : CMParams) : ℝ :=
+  |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+    1 + paper52RiccatiB p
 
 theorem logDerivativeBoundFormula_eq_riccati_root (p : CMParams) (c : ℝ) :
     logDerivativeBoundFormula p c =
@@ -311,6 +350,52 @@ theorem abs_waveLogRiccatiA_le
       rw [abs_of_pos hTW.hc]
       exact add_le_add (le_refl c) hchem
 
+/-- Lower, rather than absolute, control of the Riccati drift.  This is the
+estimate needed by the monotone-wave invariant interval. -/
+theorem waveLogRiccatiA_ge_speed_sub
+    (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U) (x : ℝ) :
+    c - |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) ≤
+      waveLogRiccatiA p c U V x := by
+  have hM_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hpow0 : 0 ≤ (U x) ^ (p.m - 1) :=
+    Real.rpow_nonneg (hbound.pos x).le _
+  have hpow_le : (U x) ^ (p.m - 1) ≤ (MChi p) ^ (p.m - 1) :=
+    Real.rpow_le_rpow (hbound.pos x).le (hbound.le_MChi x)
+      (sub_nonneg.mpr p.hm)
+  have htail :
+      (U x) ^ (p.m - 1) * |deriv V x| ≤
+        (MChi p) ^ (p.m + p.γ - 1) := by
+    calc
+      (U x) ^ (p.m - 1) * |deriv V x| ≤
+          (MChi p) ^ (p.m - 1) * (MChi p) ^ p.γ :=
+        mul_le_mul hpow_le (hreg.V_bound x).2 (abs_nonneg _)
+          (Real.rpow_nonneg hM_pos.le _)
+      _ = (MChi p) ^ (p.m + p.γ - 1) := by
+        rw [← Real.rpow_add hM_pos]
+        congr 1
+        ring
+  have hchem :
+      p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x ≤
+        |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+    calc
+      p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x
+          ≤ |p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x| :=
+        le_abs_self _
+      _ = |p.χ| * p.m *
+          ((U x) ^ (p.m - 1) * |deriv V x|) := by
+        rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg hm0,
+          abs_of_nonneg hpow0]
+        ring
+      _ ≤ |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) :=
+        mul_le_mul_of_nonneg_left htail
+          (mul_nonneg (abs_nonneg _) hm0)
+  unfold waveLogRiccatiA
+  linarith
+
 theorem abs_waveLogRiccatiB_le
     (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
     (hTW : IsTravelingWave p c U V)
@@ -364,6 +449,58 @@ theorem abs_waveLogRiccatiB_le
     constructor <;> linarith
   unfold waveLogRiccatiB paper52RiccatiB
   exact le_trans (abs_add_le _ _) (add_le_add hchem hreact)
+
+/-- Corrected speed-independent absolute logarithmic-derivative bound for
+the monotone traveling-wave branch of Theorem 1.1(1).  At the stronger
+explicit speed threshold the Riccati vector field points inward at `-1`;
+monotonicity gives the other endpoint `0`. -/
+theorem abs_waveLogDerivative_le_one_of_monotone
+    (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hspeed : paper52MonotoneBarrierSpeed p < c)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : Antitone U) :
+    ∀ x, |deriv U x / U x| ≤ 1 := by
+  have hwcont : Continuous (waveLogDerivative U) := by
+    unfold waveLogDerivative
+    exact hreg.deriv_U_cont.div hreg.U_cont
+      (fun x => ne_of_gt (hTW.U_pos x))
+  have hwdiff : Differentiable ℝ (waveLogDerivative U) := by
+    intro x
+    unfold waveLogDerivative
+    exact (hreg.deriv_U_diff x).div (hreg.U_diff x)
+      (ne_of_gt (hTW.U_pos x))
+  have hwbot : Tendsto (waveLogDerivative U) atBot (𝓝 0) := by
+    unfold waveLogDerivative
+    simpa using hreg.deriv_U_tendszero.2.div hTW.lim_neg_inf.1
+      (by norm_num : (1 : ℝ) ≠ 0)
+  have hlevel : ∀ x, waveLogDerivative U x = -(1 : ℝ) →
+      0 < deriv (waveLogDerivative U) x := by
+    intro x hx
+    have hA := waveLogRiccatiA_ge_speed_sub p hreg hbound x
+    have hb := abs_waveLogRiccatiB_le p hTW hreg hbound x
+    have hode := waveLogDerivative_riccati p c U V hTW hreg x
+    have hstrict :
+        1 + paper52RiccatiB p <
+          c - |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+      unfold paper52MonotoneBarrierSpeed at hspeed
+      linarith
+    rw [hx] at hode
+    have hb_upper : waveLogRiccatiB p U V x ≤ paper52RiccatiB p :=
+      (abs_le.mp hb).2
+    nlinarith
+  have hlower : ∀ x, -(1 : ℝ) ≤ waveLogDerivative U x :=
+    lower_barrier_of_tendsto_atBot one_pos hwcont hwdiff hwbot hlevel
+  intro x
+  have hupper : waveLogDerivative U x ≤ 0 := by
+    unfold waveLogDerivative
+    exact div_nonpos_of_nonpos_of_nonneg (hmono.deriv_nonpos)
+      (hTW.U_pos x).le
+  have := hlower x
+  change |waveLogDerivative U x| ≤ 1
+  rw [abs_of_nonpos hupper]
+  linarith
 
 theorem two_le_gamma_add_inv (p : CMParams) :
     2 ≤ p.γ + p.γ⁻¹ := by
@@ -629,7 +766,10 @@ theorem abs_waveLogDerivative_le_logDerivativeBoundFormula
 section AxiomAudit
 
 #print axioms abs_le_of_bounded_riccati_root
+#print axioms lower_barrier_of_tendsto_atBot
 #print axioms logDerivativeBoundFormula_root_data
+#print axioms waveLogRiccatiA_ge_speed_sub
+#print axioms abs_waveLogDerivative_le_one_of_monotone
 #print axioms waveWeightedDerivative_eventually_bounded
 #print axioms waveLogDerivative_isBounded
 #print axioms abs_waveLogDerivative_le_logDerivativeBoundFormula
