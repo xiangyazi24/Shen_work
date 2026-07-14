@@ -1,0 +1,188 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Om}{\Omega}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+
+\title{Paper 3, Theorem 2.1: Statement and Interface Amendment}
+\author{Internal research note for the \texttt{ShenWork} formalization}
+\date{14 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Theorem~2.1(1) of Chen--Ruau--Shen, Part~II, claims uniform persistence under
+the sole condition $m\geq1$, but its proof treats only $a=b=0$ and $a,b>0$.
+The omitted regime $a=0<b$ contains a spatially constant, positive, bounded,
+global solution that decays to zero, so the printed statement is false.  The
+correct parameter guard is the disjunction actually used in the proof.  A
+second issue concerns the formal interface for part~(4): the paper's mass is
+attached to the initial datum, whereas the first Lean version read the freely
+stored value $u(0)$ of a positive-time trajectory.  This note gives the exact
+counterexamples, the corrected statements, and the corresponding axiom-clean
+Lean capstones.
+\end{abstract}
+
+\section{Source checked}
+
+The source examined is the original submission, not a repository paraphrase:
+\begin{quote}
+Le Chen, Ian Ruau, and Wenxian Shen, \emph{Chemotaxis models with
+signal-dependent sensitivity and a logistic-type source, II: Persistence and
+stabilization}, arXiv:2604.02599v1, 3~April 2026.
+\end{quote}
+Theorem~2.1 is titled ``Uniform persistence.''  Section~4.1 proves part~(1),
+and Section~4.4 proves part~(4).  The two corrections below have different
+status: the first is a genuine parameter omission in the printed theorem; the
+second repairs the representation of the paper's initial mass in the Lean
+trajectory API.
+
+\section{The omitted pure-decay regime in part (1)}
+
+The printed part~(1) assumes only $m\geq1$ and asserts, for every globally
+defined, bounded, positive solution,
+\[
+  \liminf_{t\to\infty}\inf_{x\in\Om}u(t,x)>0.
+\]
+Section~4.1 nevertheless divides its proof into exactly two cases:
+\begin{enumerate}[label=\arabic*.]
+\item $a=b=0$;
+\item $a>0$ and $b>0$.
+\end{enumerate}
+It never treats the allowed parameter regime $a=0<b$, and in that regime the
+conclusion is false.
+
+\subsection{Concrete counterexample}
+
+On any bounded Neumann domain, let $c>0$, $a=0$, and $b>0$, and define the
+spatially constant functions
+\[
+  u(t,x)=\bigl(c^{-\alpha}+\alpha b t\bigr)^{-1/\alpha},
+  \qquad
+  v(t,x)=\frac{\nu}{\mu}u(t,x)^{\gamma}.
+\]
+All spatial derivatives vanish.  Hence the diffusion, chemotaxis-divergence,
+and boundary terms vanish, the elliptic equation holds identically, and the
+parabolic equation becomes
+\[
+  u_t=-b u^{1+\alpha}.
+\]
+The solution is classical, strictly positive at every finite positive time,
+global, and bounded by $c$.  However,
+\[
+  \lim_{t\to\infty}\inf_{x\in\Om}u(t,x)=0.
+\]
+The Lean counterexample specializes to
+$\alpha=\gamma=m=\mu=\nu=b=1$ and $a=\chi_0=0$, so that on positive time
+\[
+  u(t,x)=v(t,x)=\frac{1}{1+t}.
+\]
+
+\subsection{Corrected part (1)}
+
+The paper-faithful correction is the following.
+
+\begin{quote}
+Assume $m\geq1$ and either $a=b=0$ or $a>0$, $b>0$.  Then every globally
+defined, bounded, positive solution has a strictly positive asymptotic spatial
+lower bound for $u$, and the displayed elliptic lower bound for $v$ follows.
+\end{quote}
+
+The remaining nonnegative-parameter regime $a>0$, $b=0$ does not produce a
+decaying counterexample.  Integrating the equation and using both Neumann
+conditions gives
+\[
+  M'(t)=aM(t), \qquad M(t):=\int_{\Om}u(t,x)\,dx.
+\]
+A positive solution therefore has exponentially growing mass and cannot be
+globally bounded.  The persistence implication is vacuous in that regime.
+For fidelity, the recommended statement records the two cases proved in
+Section~4.1 instead of silently adding a vacuous third branch.
+
+\section{The positive-time mass interface in part (4)}
+
+Part~(4) is a minimal-model statement ($a=b=0$, $m=1$).  The paper starts from
+an initial datum $u_0$, constructs its solution, and imposes the mass condition
+on $u_0$.  This is unambiguous because $u(t)\to u_0$ as $t\to0^+$ and mass is
+conserved.
+
+The first Lean statement instead used
+\[
+  \texttt{HasInitialMass}(D,u,u_*)
+  \quad:\Longleftrightarrow\quad
+  \int_D u(0)=|D|u_*.
+\]
+But \texttt{IsPaper2GlobalClassicalSolution} constrains the trajectory only at
+strictly positive times.  Its stored value $u(0)$ is free.  Replacing only that
+zero-time slice preserves the full positive-time classical orbit, positivity,
+and boundedness, while changing \texttt{HasInitialMass} arbitrarily.  Thus the
+old Lean version of part~(4) is false for every admissible constants package.
+
+The correct formal interface is the conserved physical mass
+\[
+  \forall t>0,\qquad \int_D u(t)=|D|u_*.
+\]
+Equivalently, one may quantify over $u_0$, require an actual initial-trace
+relation, and impose the mass condition on $u_0$.  The positive-time version is
+the shorter interface for the persistence proof and states exactly the
+invariant it consumes.  This is a Lean-interface correction, not a claim that
+the paper's mathematical part~(4) is false.
+
+\section{Lean realization}
+
+The concrete interval counterexample to part~(1) is
+\begin{quote}
+\texttt{ShenWork.Paper3.}\
+\texttt{not\_Theorem\_2\_1\_part1\_intervalDomain\_pureDecay}
+\end{quote}
+in
+\path{ShenWork/Paper3/IntervalDomainPersistencePart1StatementObstruction.lean}.
+It constructs the genuine interval-domain trajectory, proves global classical
+solvability and boundedness, computes the lower-envelope liminf as zero, and
+refutes the unguarded statement.  The same file defines
+\texttt{Theorem\_2\_1\_part1\_corrected} with the Section~4.1 parameter split.
+
+For part~(4),
+\begin{quote}
+\texttt{ShenWork.Paper3.}\
+\texttt{not\_intervalDomain\_Theorem\_2\_1\_part4\_anyConstants}
+\end{quote}
+in
+\path{ShenWork/Paper3/IntervalDomainPersistenceMinimalMassInterfaceObstruction.lean}
+proves failure of the zero-slice formulation for every
+\texttt{Paper3Constants} package.  The corrected capstone is
+\begin{quote}
+\texttt{ShenWork.Paper3.}\
+\texttt{Theorem\_2\_1\_part4\_intervalDomainM\_physicalMass\_proven}
+\end{quote}
+in
+\path{ShenWork/Paper3/IntervalDomainPersistenceMinimalPhysicalMass.lean}.
+It uses the paper-faithful $u^m$ domain, conserved positive-time mass, the
+proved eventual upper bound, and the quantitative Neumann-resolver mass gap.
+
+All three capstones print only the standard Lean/Mathlib axioms
+\texttt{propext}, \texttt{Classical.choice}, and \texttt{Quot.sound}.
+
+\section{Recommended amendment}
+
+\begin{enumerate}[label=\arabic*.]
+\item Amend Theorem~2.1(1) by adding
+  $(a=b=0)\lor(a>0\ \text{and}\ b>0)$.
+\item Retain the mathematical mass hypothesis of Theorem~2.1(4), but in Lean
+  attach it to the initial datum plus initial trace, or use the equivalent
+  conserved positive-time mass.
+\item Do not use an axiom-clean proof as a substitute for semantic validation:
+  both failures above are themselves provable without any nonstandard axiom.
+\end{enumerate}
+
+\end{document}
