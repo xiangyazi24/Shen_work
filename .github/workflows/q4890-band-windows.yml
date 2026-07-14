@@ -1,0 +1,33 @@
+name: Q4890 Fraction band search Windows
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4890_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  q4890-fraction-windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt-scratch
+      - name: Run exact Fraction search
+        shell: pwsh
+        run: python scratch/q4890_fraction.py *> scratch/q4890_fraction_windows.txt
+      - name: Print exact output
+        if: always()
+        shell: pwsh
+        run: Get-Content scratch/q4890_fraction_windows.txt -ErrorAction SilentlyContinue
+      - name: Upload exact output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q4890-fraction-windows
+          path: scratch/q4890_fraction_windows.txt
