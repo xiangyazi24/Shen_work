@@ -1,0 +1,33 @@
+name: Q4890 exact Sage band search slim
+
+on:
+  pull_request:
+    branches:
+      - chatgpt-scratch
+    paths:
+      - 'scratch/q4890_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  q4890-search-slim:
+    runs-on: ubuntu-slim
+    timeout-minutes: 120
+    container:
+      image: sagemath/sagemath:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt-scratch
+      - name: Run exact search
+        run: sage scratch/q4890_band.sage > scratch/q4890_result_slim.txt 2>&1
+      - name: Print exact output
+        if: always()
+        run: cat scratch/q4890_result_slim.txt || true
+      - name: Upload exact output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q4890-result-slim
+          path: scratch/q4890_result_slim.txt
