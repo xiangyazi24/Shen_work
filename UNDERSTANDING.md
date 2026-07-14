@@ -4913,4 +4913,10 @@ from the eventual `limsup <= MChi`, while the present concrete energy producer
 hardcodes the smaller value `MChi`.  Exact eventual boundedness by `MChi` does
 not follow from a limsup statement, so the energy coefficients must be
 parameterized by `Mtilde` (and chosen sufficiently close to `MChi`) before the
-global stability assembly is faithful.
+global stability assembly is faithful.  The coefficient layer now exposes
+`paper5CommonB1` through `paper5CommonB4`, `paper5CommonResolverK`, and the
+corresponding `paper531CommonA/B` for an arbitrary common bound.  Their
+nonnegativity is proved, and specialization at `MChi` is definitionally the
+old concrete budget.  The remaining change is to thread these constants
+through the fixed-time energy producer and then prove the continuity-in-`M`
+choice of `Mtilde` below the available speed.
