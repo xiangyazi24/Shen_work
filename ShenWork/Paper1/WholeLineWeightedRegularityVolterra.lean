@@ -122,6 +122,83 @@ theorem intervalIntegrable_betaHalf_kernel {r : ℝ} (hr : 0 < r) :
     hrsub_right.mul_continuousOn hs_right_cont
   exact hleft.trans hright
 
+/-- Convolution with the gradient kernel preserves the inverse-square-root
+profile, with the exact beta-half constant. -/
+theorem intervalIntegral_invSqrt_mul_le_of_invSqrt_majorant
+    {r A : ℝ} (hr : 0 < r) {f : ℝ → ℝ}
+    (hf : IntervalIntegrable
+      (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * f s) volume 0 r)
+    (hmajor : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      f s ≤ A * s ^ (-(1 / 2 : ℝ))) :
+    (∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2 : ℝ)) * f s) ≤
+      A * Real.pi := by
+  let beta : ℝ → ℝ := fun s =>
+    (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+  have hbeta : IntervalIntegrable beta volume 0 r := by
+    simpa only [beta] using intervalIntegrable_betaHalf_kernel hr
+  have hupper : IntervalIntegrable (fun s => A * beta s) volume 0 r :=
+    hbeta.const_mul A
+  calc
+    (∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2 : ℝ)) * f s) ≤
+        ∫ s in (0 : ℝ)..r, A * beta s := by
+      apply intervalIntegral.integral_mono_on hr.le hf hupper
+      intro s hs
+      calc
+        (r - s) ^ (-(1 / 2 : ℝ)) * f s ≤
+            (r - s) ^ (-(1 / 2 : ℝ)) *
+              (A * s ^ (-(1 / 2 : ℝ))) :=
+          mul_le_mul_of_nonneg_left (hmajor s hs)
+            (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _)
+        _ = A * beta s := by simp only [beta]; ring
+    _ = A * (∫ s in (0 : ℝ)..r, beta s) := by
+      rw [intervalIntegral.integral_const_mul]
+    _ = A * Real.pi := by
+      rw [show (∫ s in (0 : ℝ)..r, beta s) = Real.pi by
+        simpa only [beta] using intervalIntegral_betaHalf_kernel_eq_pi hr]
+
+/-- The complete Henry profile `C/sqrt(s) + D` has an explicit convolution
+bound against the heat-gradient kernel. -/
+theorem intervalIntegral_invSqrt_mul_le_of_profile_majorant
+    {r C D : ℝ} (hr : 0 < r) {f : ℝ → ℝ}
+    (hf : IntervalIntegrable
+      (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * f s) volume 0 r)
+    (hmajor : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      f s ≤ C * s ^ (-(1 / 2 : ℝ)) + D) :
+    (∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2 : ℝ)) * f s) ≤
+      C * Real.pi + 2 * D * Real.sqrt r := by
+  let k : ℝ → ℝ := fun s => (r - s) ^ (-(1 / 2 : ℝ))
+  let beta : ℝ → ℝ := fun s => k s * s ^ (-(1 / 2 : ℝ))
+  let upper : ℝ → ℝ := fun s => C * beta s + D * k s
+  have hk : IntervalIntegrable k volume 0 r := by
+    simpa only [k] using (intervalIntegrable_invSqrt_sub (t := r))
+  have hbeta : IntervalIntegrable beta volume 0 r := by
+    simpa only [beta, k] using intervalIntegrable_betaHalf_kernel hr
+  have hupper : IntervalIntegrable upper volume 0 r :=
+    (hbeta.const_mul C).add (hk.const_mul D)
+  calc
+    (∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2 : ℝ)) * f s) ≤
+        ∫ s in (0 : ℝ)..r, upper s := by
+      apply intervalIntegral.integral_mono_on hr.le hf hupper
+      intro s hs
+      calc
+        (r - s) ^ (-(1 / 2 : ℝ)) * f s ≤
+            (r - s) ^ (-(1 / 2 : ℝ)) *
+              (C * s ^ (-(1 / 2 : ℝ)) + D) :=
+          mul_le_mul_of_nonneg_left (hmajor s hs)
+            (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _)
+        _ = upper s := by simp only [upper, beta, k]; ring
+    _ = C * (∫ s in (0 : ℝ)..r, beta s) +
+          D * (∫ s in (0 : ℝ)..r, k s) := by
+      rw [intervalIntegral.integral_add (hbeta.const_mul C) (hk.const_mul D),
+        intervalIntegral.integral_const_mul,
+        intervalIntegral.integral_const_mul]
+    _ = C * Real.pi + D * (2 * Real.sqrt r) := by
+      rw [show (∫ s in (0 : ℝ)..r, beta s) = Real.pi by
+          simpa only [beta, k] using intervalIntegral_betaHalf_kernel_eq_pi hr,
+        show (∫ s in (0 : ℝ)..r, k s) = 2 * Real.sqrt r by
+          simpa only [k] using intervalIntegral_invSqrt_sub_eq_two_sqrt hr]
+    _ = C * Real.pi + 2 * D * Real.sqrt r := by ring
+
 /-- A Volterra recurrence whose kernel has mass at most `q` preserves the
 closed scalar ball of radius `B`, provided `A + q * B <= B`. -/
 theorem volterraPicard_uniform_of_kernel_mass
@@ -213,6 +290,8 @@ section AxiomAudit
 
 #print axioms intervalIntegral_betaHalf_kernel_eq_pi
 #print axioms intervalIntegrable_betaHalf_kernel
+#print axioms intervalIntegral_invSqrt_mul_le_of_invSqrt_majorant
+#print axioms intervalIntegral_invSqrt_mul_le_of_profile_majorant
 #print axioms volterraPicard_uniform_of_kernel_mass
 #print axioms intervalIntegrable_const_add_mul_invSqrt_sub
 #print axioms intervalIntegral_const_add_mul_invSqrt_sub
