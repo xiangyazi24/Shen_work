@@ -223,11 +223,143 @@ theorem exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positi
       dsimp [H, d]
       ring
 
+/-- The unweighted physical forcing of the canonical fixed point, observed
+in the frame moving at speed `c` and measured relative to a traveling-wave
+profile. -/
+def paper5CanonicalGeneratorForcingRaw
+    (p : CMParams) (c : ℝ) {M T : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (Uw Vw : ℝ → ℝ)
+    (s x : ℝ) : ℝ :=
+  -p.χ *
+      (deriv (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1
+          (x + c * s) -
+        deriv (fun y => Uw y ^ p.m * deriv Vw y) x) +
+    (reactionFun p.α
+        ((wholeLineBUCTrajectoryExtend hT U s).1 (x + c * s)) -
+      reactionFun p.α (Uw x))
+
+/-- The complete canonical physical forcing has a positive power time
+modulus on every compact positive-time window.  Both nonlinear pieces are
+produced internally: the chemotaxis term uses the differentiated co-moving
+flux modulus, and the reaction term uses the co-moving population modulus
+and the committed reaction Lipschitz estimate. -/
+theorem exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
+    (p : CMParams) {M T a b theta zeta : ℝ} (c : ℝ)
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hzeta0 : 0 < zeta) (hzeta1 : zeta < 1)
+    (hrel : zeta * (1 + theta) < theta)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (Uw Vw : ℝ → ℝ) :
+    ∃ alpha H : ℝ, 0 < alpha ∧ alpha ≤ 1 ∧ 0 ≤ H ∧
+      ∀ s ∈ Set.Icc a b, ∀ t ∈ Set.Icc a b, ∀ x : ℝ,
+        |t - s| ≤ 1 →
+        |paper5CanonicalGeneratorForcingRaw p c hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)
+              Uw Vw t x -
+            paper5CanonicalGeneratorForcingRaw p c hM hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)
+              Uw Vw s x| ≤
+          H * |t - s| ^ alpha := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  rcases
+      wholeLineCauchyFluxSourceTrajectory_deriv_coMoving_time_holder_positive_window
+        p c hM hT ha hab hbT u₀ hsmall htheta0 htheta1
+          hzeta0 hzeta1 hrel hstrip with
+    ⟨q, Hflux, hq0, hq1, hHflux, hflux⟩
+  rcases
+      exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positive_window
+        p c hM hT ha hab hbT u₀ hsmall htheta0 htheta1
+          hzeta0 hzeta1 hrel hstrip with
+    ⟨Hpop, hHpop, hpop⟩
+  have hstripWindow : ∀ s ∈ Set.Icc a b, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT U s).1 x ∈ Set.Icc (0 : ℝ) M := by
+    intro s hs x
+    let zs : Set.Icc (0 : ℝ) T :=
+      ⟨s, (ha.trans_le hs.1).le, hs.2.trans hbT⟩
+    have hext : wholeLineBUCTrajectoryExtend hT U s = U zs :=
+      wholeLineBUCTrajectoryExtend_eq hT U zs.2
+    rw [hext]
+    exact hstrip zs x
+  let L : ℝ := reactionLip p.α M
+  have hL : 0 ≤ L := reactionLip_nonneg p.hα hM
+  let alpha : ℝ := min q (1 / 2 : ℝ)
+  have halpha0 : 0 < alpha := by dsimp [alpha]; positivity
+  have halpha1 : alpha ≤ 1 :=
+    (min_le_left q (1 / 2 : ℝ)).trans hq1
+  have halphaq : alpha ≤ q := min_le_left _ _
+  have halphahalf : alpha ≤ (1 / 2 : ℝ) := min_le_right _ _
+  let H : ℝ := |p.χ| * Hflux + L * Hpop
+  have hH : 0 ≤ H := by dsimp [H]; positivity
+  refine ⟨alpha, H, halpha0, halpha1, hH, ?_⟩
+  intro s hs t ht x hdist
+  let d : ℝ := |t - s|
+  have hd0 : 0 ≤ d := abs_nonneg _
+  have hd1 : d ≤ 1 := by simpa only [d] using hdist
+  have hdq : d ^ q ≤ d ^ alpha :=
+    Real.rpow_le_rpow_of_exponent_ge' hd0 hd1 halpha0.le halphaq
+  have hdhalf : d ^ (1 / 2 : ℝ) ≤ d ^ alpha :=
+    Real.rpow_le_rpow_of_exponent_ge' hd0 hd1 halpha0.le halphahalf
+  let Ft : ℝ := deriv
+    (wholeLineCauchyFluxSourceTrajectory p hM hT U t).1 (x + c * t)
+  let Fs : ℝ := deriv
+    (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 (x + c * s)
+  let Rt : ℝ := reactionFun p.α
+    ((wholeLineBUCTrajectoryExtend hT U t).1 (x + c * t))
+  let Rs : ℝ := reactionFun p.α
+    ((wholeLineBUCTrajectoryExtend hT U s).1 (x + c * s))
+  have hflux' : |Ft - Fs| ≤ Hflux * d ^ q := by
+    simpa only [Ft, Fs, U, d] using hflux s hs t ht x hdist
+  have hreactionBase : |Rt - Rs| ≤ L *
+      |(wholeLineBUCTrajectoryExtend hT U t).1 (x + c * t) -
+        (wholeLineBUCTrajectoryExtend hT U s).1 (x + c * s)| := by
+    simpa only [Rt, Rs, L] using
+      (reaction_increment_abs_le p.hα hM
+        (hstripWindow s hs (x + c * s))
+        (hstripWindow t ht (x + c * t)))
+  have hreaction : |Rt - Rs| ≤ L * Hpop * d ^ (1 / 2 : ℝ) := by
+    calc
+      |Rt - Rs| ≤ L *
+          |(wholeLineBUCTrajectoryExtend hT U t).1 (x + c * t) -
+            (wholeLineBUCTrajectoryExtend hT U s).1 (x + c * s)| :=
+        hreactionBase
+      _ ≤ L * (Hpop * d ^ (1 / 2 : ℝ)) :=
+        mul_le_mul_of_nonneg_left
+          (by simpa only [U, d] using hpop s hs t ht x hdist) hL
+      _ = L * Hpop * d ^ (1 / 2 : ℝ) := by ring
+  calc
+    |paper5CanonicalGeneratorForcingRaw p c hM hT U Uw Vw t x -
+        paper5CanonicalGeneratorForcingRaw p c hM hT U Uw Vw s x| =
+      |(-p.χ) * (Ft - Fs) + (Rt - Rs)| := by
+        dsimp only [paper5CanonicalGeneratorForcingRaw, Ft, Fs, Rt, Rs]
+        ring_nf
+    _ ≤ |p.χ| * |Ft - Fs| + |Rt - Rs| := by
+      simpa only [abs_mul, abs_neg] using
+        abs_add_le ((-p.χ) * (Ft - Fs)) (Rt - Rs)
+    _ ≤ |p.χ| * (Hflux * d ^ q) +
+        L * Hpop * d ^ (1 / 2 : ℝ) :=
+      add_le_add
+        (mul_le_mul_of_nonneg_left hflux' (abs_nonneg _)) hreaction
+    _ ≤ |p.χ| * (Hflux * d ^ alpha) +
+        L * Hpop * d ^ alpha := by gcongr
+    _ = H * |t - s| ^ alpha := by
+      dsimp [H, d]
+      ring
+
 section AxiomAudit
 
 #print axioms paper5WeightedLowerOrderSource_sub_growth_eq_generatorForcing
 #print axioms
   exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positive_window
+#print axioms
+  exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
 
 end AxiomAudit
 
