@@ -63,6 +63,7 @@ import ShenWork.Paper1.WholeLineCauchyGlobalGluing
 import ShenWork.Paper1.WholeLineCauchyStrictPositivity
 import ShenWork.Paper1.WholeLineCauchySharpBound
 import ShenWork.Paper1.WholeLineCauchyLongTimeBound
+import ShenWork.Paper1.Proposition12NegativeBranch
 import ShenWork.Paper1.Theorem13Corrected
 import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
@@ -649,3 +650,4 @@ import ShenWork.Paper2.IntervalDomainTheorem12PositiveCriticalAllExponents
 import ShenWork.Paper2.IntervalFullKernelLpContraction
 import ShenWork.Paper2.IntervalDomainProposition21
 import ShenWork.Paper2.IntervalDomainProposition23
+import ShenWork.Paper2.IntervalDomainMChiNonposHeadline
