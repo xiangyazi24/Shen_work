@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityL2Semigroup
 import ShenWork.Paper1.WholeLineWeightedRegularityH2
+import ShenWork.Paper1.WholeLineWeightedRegularityMaximal
 
 open Filter MeasureTheory Set Topology
 open scoped Interval
@@ -83,10 +84,39 @@ theorem weightedMovingHeatL2_generatorDuhamel_limit_norm_le
     htheta hh hC hH hA hF hrem
   exact (norm_add_le _ _).trans (add_le_add hremNorm le_rfl)
 
+/-- The final algebraic H² step for a weighted perturbation slice.  Once the
+full conjugated generator has been put in L² by the preceding Duhamel
+estimate, this turns the classical generator decomposition into the genuine
+weighted second-derivative integrability consumed by the Henry energy. -/
+theorem paper5WeightedPopulationXX_sq_integrable_of_generator
+    {eta c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {G : ℝ → ℝ}
+    (hWxx_meas : AEStronglyMeasurable
+      (paper5WeightedPopulationXX eta (coMovingPath c u) U t) volume)
+    (hdecomp : ∀ x, G x =
+      paper5WeightedPopulationXX eta (coMovingPath c u) U t x +
+        (c - 2 * eta) *
+          paper5WeightedPopulationX eta (coMovingPath c u) U t x +
+        (eta ^ 2 - c * eta) *
+          paper5WeightedPopulation eta (coMovingPath c u) U t x)
+    (hG2 : Integrable (fun x => G x ^ 2) volume)
+    (hW2 : Integrable (fun x =>
+      paper5WeightedPopulation eta (coMovingPath c u) U t x ^ 2) volume)
+    (hWx2 : Integrable (fun x =>
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2) volume) :
+    Integrable (fun x =>
+      paper5WeightedPopulationXX eta (coMovingPath c u) U t x ^ 2) volume := by
+  exact secondDerivative_sq_integrable_of_generator_decomposition
+    (Wxx := paper5WeightedPopulationXX eta (coMovingPath c u) U t)
+    (W := paper5WeightedPopulation eta (coMovingPath c u) U t)
+    (Wx := paper5WeightedPopulationX eta (coMovingPath c u) U t)
+    hWxx_meas hdecomp hG2 hW2 hWx2
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2_generatorDuhamel_truncated_tendsto
 #print axioms weightedMovingHeatL2_generatorDuhamel_limit_norm_le
+#print axioms paper5WeightedPopulationXX_sq_integrable_of_generator
 
 end AxiomAudit
 
