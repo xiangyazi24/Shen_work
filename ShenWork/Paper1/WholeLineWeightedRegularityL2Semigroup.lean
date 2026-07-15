@@ -2520,6 +2520,131 @@ def weightedMovingHeatSlopeErrorSchurData
   row_mul_l2_integrable :=
     weightedMovingHeatSlopeErrorKernel_row_mul_l2_integrable ht hs
 
+/-- The concrete Schur operator is exactly the slope of the positive-time
+heat operators minus the generator. -/
+theorem weightedMovingHeatSlopeErrorSchurData_toCLM_eq
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    (weightedMovingHeatSlopeErrorSchurData eta c t s ht hs).toCLM =
+      (s - t)⁻¹ •
+          (weightedMovingHeatL2CLM eta c s hs -
+            weightedMovingHeatL2CLM eta c t ht) -
+        weightedMovingHeatGeneratorL2CLM eta c t ht := by
+  let hE := weightedMovingHeatSlopeErrorSchurData eta c t s ht hs
+  ext Z
+  have hleft := hE.toL2Fun_coe_ae Z
+  have hS :
+      ((((weightedMovingHeatL2CLM eta c s hs) Z : WholeLineRealL2) :
+          ℝ → ℝ)) =ᵐ[volume]
+        weightedMovingHeatEta eta c s (Z : ℝ → ℝ) := by
+    simpa only [weightedMovingHeatL2CLM_apply] using
+      weightedMovingHeatL2Fun_coe_ae (eta := eta) (c := c) hs Z
+  have hT :
+      ((((weightedMovingHeatL2CLM eta c t ht) Z : WholeLineRealL2) :
+          ℝ → ℝ)) =ᵐ[volume]
+        weightedMovingHeatEta eta c t (Z : ℝ → ℝ) := by
+    simpa only [weightedMovingHeatL2CLM_apply] using
+      weightedMovingHeatL2Fun_coe_ae (eta := eta) (c := c) ht Z
+  have hG := weightedMovingHeatGeneratorL2CLM_coe_ae
+    (eta := eta) (c := c) ht Z
+  have hST := Lp.coeFn_sub
+    ((weightedMovingHeatL2CLM eta c s hs) Z)
+    ((weightedMovingHeatL2CLM eta c t ht) Z)
+  have hscale := Lp.coeFn_smul ((s - t)⁻¹)
+    (((weightedMovingHeatL2CLM eta c s hs) Z) -
+      ((weightedMovingHeatL2CLM eta c t ht) Z))
+  have hfinal := Lp.coeFn_sub
+    ((s - t)⁻¹ •
+      (((weightedMovingHeatL2CLM eta c s hs) Z) -
+        ((weightedMovingHeatL2CLM eta c t ht) Z)))
+    ((weightedMovingHeatGeneratorL2CLM eta c t ht) Z)
+  filter_upwards [hleft, hS, hT, hG, hST, hscale, hfinal]
+    with x hxLeft hxS hxT hxG hxST hxScale hxFinal
+  change (((hE.toCLM Z : WholeLineRealL2) : ℝ → ℝ) x) = _
+  rw [show hE.toCLM Z = hE.toL2Fun Z by rfl, hxLeft]
+  change (∫ y : ℝ,
+      weightedMovingHeatSlopeErrorKernel eta c t s x y * Z y) =
+    (((((s - t)⁻¹ •
+        (((weightedMovingHeatL2CLM eta c s hs) Z) -
+          ((weightedMovingHeatL2CLM eta c t ht) Z))) -
+        ((weightedMovingHeatGeneratorL2CLM eta c t ht) Z) :
+          WholeLineRealL2) : ℝ → ℝ) x)
+  rw [hxFinal]
+  simp only [Pi.sub_apply]
+  rw [hxScale]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [hxST]
+  simp only [Pi.sub_apply]
+  rw [hxS, hxT, hxG]
+  change (∫ y : ℝ,
+      weightedMovingHeatSlopeErrorKernel eta c t s x y * Z y) = _
+  have hFs := weightedMovingHeatFullKernel_mul_l2_integrable
+    (eta := eta) (c := c) hs x Z
+  have hFt := weightedMovingHeatFullKernel_mul_l2_integrable
+    (eta := eta) (c := c) ht x Z
+  have hGi := weightedMovingHeatGeneratorKernel_row_mul_l2_integrable
+    (eta := eta) (c := c) ht x Z
+  have hFsEq :
+      (∫ y : ℝ, weightedMovingHeatFullKernel eta c s (x - y) * Z y) =
+        weightedMovingHeatEta eta c s (Z : ℝ → ℝ) x := by
+    unfold weightedMovingHeatEta
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with y
+    unfold weightedMovingHeatFullKernel weightedMovingHeatMarkovKernel
+    rw [mul_assoc]
+    congr 2
+    ring
+  have hFtEq :
+      (∫ y : ℝ, weightedMovingHeatFullKernel eta c t (x - y) * Z y) =
+        weightedMovingHeatEta eta c t (Z : ℝ → ℝ) x := by
+    unfold weightedMovingHeatEta
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with y
+    unfold weightedMovingHeatFullKernel weightedMovingHeatMarkovKernel
+    rw [mul_assoc]
+    congr 2
+    ring
+  have hGEq :
+      (∫ y : ℝ,
+          weightedMovingHeatGeneratorBase eta c t
+            (x - y + (c - 2 * eta) * t) * Z y) =
+        ∫ y : ℝ,
+          weightedMovingHeatGeneratorKernel eta c t x y * Z y := by
+    apply integral_congr_ae
+    filter_upwards with y
+    unfold weightedMovingHeatGeneratorKernel
+    congr 2
+    ring
+  have hGbase : Integrable
+      (fun y : ℝ => weightedMovingHeatGeneratorBase eta c t
+        (x - y + (c - 2 * eta) * t) * Z y) := by
+    convert hGi using 1
+    ext y
+    unfold weightedMovingHeatGeneratorKernel
+    congr 2
+    ring
+  rw [show
+      (fun y : ℝ => weightedMovingHeatSlopeErrorKernel eta c t s x y * Z y) =
+        fun y => (s - t)⁻¹ *
+            (weightedMovingHeatFullKernel eta c s (x - y) * Z y -
+              weightedMovingHeatFullKernel eta c t (x - y) * Z y) -
+          weightedMovingHeatGeneratorBase eta c t
+            (x - y + (c - 2 * eta) * t) * Z y by
+    funext y
+    unfold weightedMovingHeatSlopeErrorKernel
+      weightedMovingHeatFullKernelSlopeError
+    simp only [slope_def_module, smul_eq_mul]
+    ring]
+  have hscaled : Integrable
+      (fun y : ℝ => (s - t)⁻¹ *
+        (weightedMovingHeatFullKernel eta c s (x - y) * Z y -
+          weightedMovingHeatFullKernel eta c t (x - y) * Z y)) := by
+    simpa only [Pi.sub_apply] using
+      (hFs.sub hFt).const_mul ((s - t)⁻¹)
+  rw [integral_sub hscaled hGbase, integral_const_mul,
+    integral_sub hFs hFt, hFsEq, hFtEq, hGEq]
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2536,6 +2661,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatFullGenerator_local_integrable_bound
 #print axioms weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
 #print axioms weightedMovingHeatSlopeErrorSchurData
+#print axioms weightedMovingHeatSlopeErrorSchurData_toCLM_eq
 
 end AxiomAudit
 
