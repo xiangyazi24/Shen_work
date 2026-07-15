@@ -1,0 +1,13 @@
+name: q4970-exact-calc
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  calculate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run exact rational calculation
+        run: node scripts/q4970_exact.js
