@@ -118,6 +118,61 @@ theorem capWeight_tendsto_full {η : ℝ} (hη : 0 < η) (z : ℝ) :
     (f := Filter.atTop)).div hden (by norm_num)
   simpa [capWeight, div_one] using hquot
 
+/-- The logistic weight is continuous in the space variable. -/
+theorem capWeight_continuous (η R : ℝ) : Continuous (capWeight η R) := by
+  unfold capWeight
+  refine Continuous.div ?_ ?_ (fun z => (capWeight_denom_pos η R z).ne')
+  · exact Real.continuous_exp.comp (continuous_const.mul continuous_id)
+  · exact continuous_const.add
+      (Real.continuous_exp.comp (continuous_const.mul (continuous_id.sub continuous_const)))
+
+/-- **Monotone-convergence bridge (route-B E-step).**  A uniform bound `K` on the
+`capWeight η n`-truncated integral of a nonnegative measurable `f` yields integrability of `f`
+against the full exponential weight `e^{2ηz}`, with the same bound `K`.  This is the reusable
+machinery that converts the `R`-independent truncated weighted-energy bound into the
+`coreIntegrability` inputs (`hclose`, `hWx2`, `hrem_int`). -/
+theorem weighted_integrable_of_uniform_capWeight_bound
+    {η : ℝ} (hη : 0 < η) {f : ℝ → ℝ} (hf0 : ∀ z, 0 ≤ f z) (hfm : Measurable f) {K : ℝ}
+    (hint : ∀ n : ℕ, Integrable (fun z => capWeight η (n : ℝ) z * f z))
+    (hbd : ∀ n : ℕ, ∫ z, capWeight η (n : ℝ) z * f z ≤ K) :
+    Integrable (fun z => Real.exp (2 * η * z) * f z) ∧
+      ∫ z, Real.exp (2 * η * z) * f z ≤ K := by
+  set g : ℕ → ℝ → ℝ := fun n z => capWeight η (n : ℝ) z * f z with hgdef
+  set G : ℝ → ℝ := fun z => Real.exp (2 * η * z) * f z with hGdef
+  have hg0 : ∀ n z, 0 ≤ g n z := fun n z => mul_nonneg (capWeight_nonneg η _ z) (hf0 z)
+  have hG0 : ∀ z, 0 ≤ G z := fun z => mul_nonneg (Real.exp_pos _).le (hf0 z)
+  have hgm : ∀ n, Measurable (g n) := fun n => ((capWeight_continuous η _).measurable).mul hfm
+  have hGm : Measurable G :=
+    ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).measurable).mul hfm
+  have hmono : Monotone (fun n z => ENNReal.ofReal (g n z)) := by
+    intro n m hnm z
+    exact ENNReal.ofReal_le_ofReal
+      (mul_le_mul_of_nonneg_right (capWeight_mono_R hη.le z (by exact_mod_cast hnm)) (hf0 z))
+  have hsup : (fun z => ⨆ n, ENNReal.ofReal (g n z)) = fun z => ENNReal.ofReal (G z) := by
+    funext z
+    have htend : Tendsto (fun n : ℕ => g n z) atTop (nhds (G z)) :=
+      ((capWeight_tendsto_full hη z).comp tendsto_natCast_atTop_atTop).mul_const (f z)
+    have htende : Tendsto (fun n : ℕ => ENNReal.ofReal (g n z)) atTop
+        (nhds (ENNReal.ofReal (G z))) := (ENNReal.continuous_ofReal.tendsto _).comp htend
+    have hmonoe : Monotone (fun n : ℕ => ENNReal.ofReal (g n z)) := fun n m hnm =>
+      ENNReal.ofReal_le_ofReal
+        (mul_le_mul_of_nonneg_right (capWeight_mono_R hη.le z (by exact_mod_cast hnm)) (hf0 z))
+    exact tendsto_nhds_unique (tendsto_atTop_iSup hmonoe) htende
+  have hK0 : 0 ≤ K := le_trans (integral_nonneg (fun z => hg0 0 z)) (hbd 0)
+  have hli : ∫⁻ z, ENNReal.ofReal (G z) ≤ ENNReal.ofReal K := by
+    rw [← hsup, lintegral_iSup (fun n => (hgm n).ennreal_ofReal) hmono]
+    refine iSup_le (fun n => ?_)
+    rw [← ofReal_integral_eq_lintegral_ofReal (hint n) (Filter.Eventually.of_forall (hg0 n))]
+    exact ENNReal.ofReal_le_ofReal (hbd n)
+  have hfin : HasFiniteIntegral G := by
+    rw [hasFiniteIntegral_iff_ofReal (Filter.Eventually.of_forall hG0)]
+    exact lt_of_le_of_lt hli ENNReal.ofReal_lt_top
+  have hInt : Integrable G := ⟨hGm.aestronglyMeasurable, hfin⟩
+  refine ⟨hInt, ?_⟩
+  have hle : ENNReal.ofReal (∫ z, G z) ≤ ENNReal.ofReal K := by
+    rw [ofReal_integral_eq_lintegral_ofReal hInt (Filter.Eventually.of_forall hG0)]; exact hli
+  exact (ENNReal.ofReal_le_ofReal_iff hK0).mp hle
+
 section Theorem12LogisticFinitenessAxiomAudit
 
 #print axioms capWeight_pos
@@ -127,6 +182,8 @@ section Theorem12LogisticFinitenessAxiomAudit
 #print axioms capWeight_abs_deriv_le
 #print axioms capWeight_mono_R
 #print axioms capWeight_tendsto_full
+#print axioms capWeight_continuous
+#print axioms weighted_integrable_of_uniform_capWeight_bound
 
 end Theorem12LogisticFinitenessAxiomAudit
 
