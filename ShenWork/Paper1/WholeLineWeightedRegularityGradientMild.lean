@@ -234,6 +234,33 @@ theorem capWeightedPopulationX_eq_three_gradient_legs_of_hasDerivAt
   rw [hderiv, hUderiv]
   exact hlegs
 
+/-! A source-level version of the `hWx2` producer.  The three weighted
+Duhamel legs are deliberately hypotheses here; their concrete Schur
+producers above (and the C² bootstrap bridge immediately above) can be
+plugged in without reproving the Hilbert-space addition argument. -/
+theorem paper5WeightedPopulationX_sq_integrable_of_three_gradient_representatives
+    {eta R c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {f₀ fG fR : ℝ → ℝ}
+    (h₀ : ∃ Z₀ : WholeLineRealL2, ((Z₀ : ℝ → ℝ) =ᵐ[volume] f₀))
+    (hG : ∃ ZG : WholeLineRealL2, ((ZG : ℝ → ℝ) =ᵐ[volume] fG))
+    (hR : ∃ ZR : WholeLineRealL2, ((ZR : ℝ → ℝ) =ᵐ[volume] fR))
+    (hpoint : ∀ x,
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x =
+        f₀ x + fG x + fR x) :
+    Integrable
+      (fun x => paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2)
+      volume := by
+  rcases h₀ with ⟨Z₀, h₀⟩
+  rcases hG with ⟨ZG, hG⟩
+  rcases hR with ⟨ZR, hR⟩
+  let Z : WholeLineRealL2 := Z₀ + ZG + ZR
+  have hZ : ((Z : ℝ → ℝ) =ᵐ[volume] fun x => f₀ x + fG x + fR x) := by
+    filter_upwards [h₀, hG, hR] with x hx₀ hxG hxR
+    change Z₀ x + ZG x + ZR x = f₀ x + fG x + fR x
+    rw [hx₀, hxG, hxR]
+  exact paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
+    ⟨Z, hZ⟩ hpoint
+
 
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
