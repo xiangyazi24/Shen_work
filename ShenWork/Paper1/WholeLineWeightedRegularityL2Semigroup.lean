@@ -2326,6 +2326,200 @@ theorem weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
     bound hFmeas hboundEventually hboundInt hlim
   simpa only [F, G, integral_zero] using hDCT
 
+/-! ## The signed Schur operator of the kernel slope error -/
+
+/-- Scalar translation kernel measuring the error between the time slope and
+the positive-time generator. -/
+def weightedMovingHeatFullKernelSlopeError
+    (eta c t s z : ℝ) : ℝ :=
+  slope (fun q => weightedMovingHeatFullKernel eta c q z) t s -
+    weightedMovingHeatGeneratorBase eta c t
+      (z + (c - 2 * eta) * t)
+
+def weightedMovingHeatFullKernelSlopeErrorMass
+    (eta c t s : ℝ) : ℝ :=
+  ∫ z : ℝ, |weightedMovingHeatFullKernelSlopeError eta c t s z|
+
+theorem weightedMovingHeatFullKernel_continuous
+    {eta c t : ℝ} (ht : 0 < t) :
+    Continuous (weightedMovingHeatFullKernel eta c t) := by
+  unfold weightedMovingHeatFullKernel weightedMovingHeatGrowth heatKernel
+  fun_prop
+
+theorem weightedMovingHeatFullKernel_integrable
+    {eta c t : ℝ} (ht : 0 < t) :
+    Integrable (weightedMovingHeatFullKernel eta c t) volume := by
+  have hshift := (heatKernel_integrable ht).comp_add_right
+    ((c - 2 * eta) * t)
+  simpa only [weightedMovingHeatFullKernel] using
+    hshift.const_mul (weightedMovingHeatGrowth eta c t)
+
+theorem weightedMovingHeatFullKernelSlopeError_integrable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    Integrable (weightedMovingHeatFullKernelSlopeError eta c t s) volume := by
+  have hBs := weightedMovingHeatFullKernel_integrable
+    (eta := eta) (c := c) hs
+  have hBt := weightedMovingHeatFullKernel_integrable
+    (eta := eta) (c := c) ht
+  have hG := (weightedMovingHeatGeneratorBase_integrable
+    (eta := eta) (c := c) ht).comp_add_right ((c - 2 * eta) * t)
+  have hraw := ((hBs.sub hBt).const_mul ((s - t)⁻¹)).sub hG
+  simpa only [weightedMovingHeatFullKernelSlopeError, slope_def_module,
+    smul_eq_mul, Pi.sub_apply] using hraw
+
+theorem weightedMovingHeatFullKernelSlopeError_abs_integrable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    Integrable
+      (fun z => |weightedMovingHeatFullKernelSlopeError eta c t s z|) volume := by
+  simpa only [Real.norm_eq_abs] using
+    (weightedMovingHeatFullKernelSlopeError_integrable
+      (eta := eta) (c := c) ht hs).norm
+
+theorem weightedMovingHeatFullKernelSlopeErrorMass_nonneg
+    (eta c t s : ℝ) :
+    0 ≤ weightedMovingHeatFullKernelSlopeErrorMass eta c t s :=
+  integral_nonneg fun _ => abs_nonneg _
+
+/-- Translation-invariant two-variable kernel associated with the scalar
+slope error. -/
+def weightedMovingHeatSlopeErrorKernel
+    (eta c t s x y : ℝ) : ℝ :=
+  weightedMovingHeatFullKernelSlopeError eta c t s (x - y)
+
+theorem weightedMovingHeatSlopeErrorKernel_measurable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    Measurable (Function.uncurry
+      (weightedMovingHeatSlopeErrorKernel eta c t s)) := by
+  have hBs := weightedMovingHeatFullKernel_continuous
+    (eta := eta) (c := c) hs
+  have hBt := weightedMovingHeatFullKernel_continuous
+    (eta := eta) (c := c) ht
+  have hshift : Continuous (fun z : ℝ => z + (c - 2 * eta) * t) := by
+    fun_prop
+  have hG := (weightedMovingHeatGeneratorBase_continuous
+    (eta := eta) (c := c) ht).comp hshift
+  have herr : Continuous (weightedMovingHeatFullKernelSlopeError eta c t s) := by
+    unfold weightedMovingHeatFullKernelSlopeError
+    simp only [slope_def_module, smul_eq_mul]
+    exact (continuous_const.mul (hBs.sub hBt)).sub hG
+  unfold weightedMovingHeatSlopeErrorKernel Function.uncurry
+  exact herr.measurable.comp (by fun_prop)
+
+theorem weightedMovingHeatSlopeErrorKernel_abs_measurable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) :
+    Measurable (Function.uncurry
+      (fun x y => |weightedMovingHeatSlopeErrorKernel eta c t s x y|)) :=
+  (weightedMovingHeatSlopeErrorKernel_measurable
+    (eta := eta) (c := c) ht hs).abs
+
+theorem weightedMovingHeatSlopeErrorKernel_abs_row_integrable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) (x : ℝ) :
+    Integrable
+      (fun y => |weightedMovingHeatSlopeErrorKernel eta c t s x y|) volume := by
+  have hbase := weightedMovingHeatFullKernelSlopeError_abs_integrable
+    (eta := eta) (c := c) ht hs
+  have htrans := hbase.comp_neg.comp_add_right (-x)
+  convert htrans using 1
+  ext y
+  unfold weightedMovingHeatSlopeErrorKernel
+  congr 2
+  ring
+
+theorem weightedMovingHeatSlopeErrorKernel_abs_row_mass
+    {eta c t s : ℝ} (_ht : 0 < t) (_hs : 0 < s) (x : ℝ) :
+    (∫ y : ℝ, |weightedMovingHeatSlopeErrorKernel eta c t s x y|) =
+      weightedMovingHeatFullKernelSlopeErrorMass eta c t s := by
+  let F : ℝ → ℝ := fun z =>
+    |weightedMovingHeatFullKernelSlopeError eta c t s z|
+  calc
+    (∫ y : ℝ, |weightedMovingHeatSlopeErrorKernel eta c t s x y|) =
+        ∫ y : ℝ, F (-(y - x)) := by
+      apply integral_congr_ae
+      filter_upwards with y
+      unfold weightedMovingHeatSlopeErrorKernel
+      dsimp [F]
+      congr 2
+      ring
+    _ = ∫ q : ℝ, F (-q) := integral_sub_right_eq_self (fun q => F (-q)) x
+    _ = ∫ z : ℝ, F z := integral_neg_eq_self F volume
+    _ = weightedMovingHeatFullKernelSlopeErrorMass eta c t s := rfl
+
+theorem weightedMovingHeatSlopeErrorKernel_abs_col_integrable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) (y : ℝ) :
+    Integrable
+      (fun x => |weightedMovingHeatSlopeErrorKernel eta c t s x y|) volume := by
+  have hbase := weightedMovingHeatFullKernelSlopeError_abs_integrable
+    (eta := eta) (c := c) ht hs
+  have htrans := hbase.comp_add_right (-y)
+  convert htrans using 1
+
+theorem weightedMovingHeatSlopeErrorKernel_abs_col_mass
+    {eta c t s : ℝ} (_ht : 0 < t) (_hs : 0 < s) (y : ℝ) :
+    (∫ x : ℝ, |weightedMovingHeatSlopeErrorKernel eta c t s x y|) =
+      weightedMovingHeatFullKernelSlopeErrorMass eta c t s := by
+  let F : ℝ → ℝ := fun z =>
+    |weightedMovingHeatFullKernelSlopeError eta c t s z|
+  calc
+    (∫ x : ℝ, |weightedMovingHeatSlopeErrorKernel eta c t s x y|) =
+        ∫ x : ℝ, F (x + (-y)) := by
+      apply integral_congr_ae
+      filter_upwards with x
+      unfold weightedMovingHeatSlopeErrorKernel
+      dsimp [F]
+      congr 2
+    _ = ∫ z : ℝ, F z := integral_add_right_eq_self _ _
+    _ = weightedMovingHeatFullKernelSlopeErrorMass eta c t s := rfl
+
+theorem weightedMovingHeatFullKernel_mul_l2_integrable
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) (Z : WholeLineRealL2) :
+    Integrable
+      (fun y => weightedMovingHeatFullKernel eta c t (x - y) * Z y) volume := by
+  have hraw := (weightedMovingHeatMarkovKernel_mul_integrable
+    (eta := eta) (c := c) ht x Z).const_mul
+      (weightedMovingHeatGrowth eta c t)
+  convert hraw using 1
+  ext y
+  simp only [weightedMovingHeatFullKernel, weightedMovingHeatMarkovKernel,
+    mul_assoc]
+  congr 3
+  ring
+
+theorem weightedMovingHeatSlopeErrorKernel_row_mul_l2_integrable
+    {eta c t s : ℝ} (ht : 0 < t) (hs : 0 < s) (x : ℝ)
+    (Z : WholeLineRealL2) :
+    Integrable
+      (fun y => weightedMovingHeatSlopeErrorKernel eta c t s x y * Z y) volume := by
+  have hBs := weightedMovingHeatFullKernel_mul_l2_integrable
+    (eta := eta) (c := c) hs x Z
+  have hBt := weightedMovingHeatFullKernel_mul_l2_integrable
+    (eta := eta) (c := c) ht x Z
+  have hG := weightedMovingHeatGeneratorKernel_row_mul_l2_integrable
+    (eta := eta) (c := c) ht x Z
+  have hraw := ((hBs.sub hBt).const_mul ((s - t)⁻¹)).sub hG
+  convert hraw using 1
+  ext y
+  unfold weightedMovingHeatSlopeErrorKernel
+    weightedMovingHeatFullKernelSlopeError
+    weightedMovingHeatGeneratorKernel
+  simp only [slope_def_module, smul_eq_mul, Pi.sub_apply]
+  ring
+
+/-- Concrete Schur data for the difference-quotient error kernel. -/
+def weightedMovingHeatSlopeErrorSchurData
+    (eta c t s : ℝ) (ht : 0 < t) (hs : 0 < s) :
+    WholeLineL2SchurKernelData
+      (weightedMovingHeatSlopeErrorKernel eta c t s)
+      (weightedMovingHeatFullKernelSlopeErrorMass eta c t s) where
+  mass_nonneg := weightedMovingHeatFullKernelSlopeErrorMass_nonneg eta c t s
+  kernel_measurable := weightedMovingHeatSlopeErrorKernel_measurable ht hs
+  absKernel_measurable := weightedMovingHeatSlopeErrorKernel_abs_measurable ht hs
+  abs_row_integrable := weightedMovingHeatSlopeErrorKernel_abs_row_integrable ht hs
+  abs_row_mass := weightedMovingHeatSlopeErrorKernel_abs_row_mass ht hs
+  abs_col_integrable := weightedMovingHeatSlopeErrorKernel_abs_col_integrable ht hs
+  abs_col_mass := weightedMovingHeatSlopeErrorKernel_abs_col_mass ht hs
+  row_mul_l2_integrable :=
+    weightedMovingHeatSlopeErrorKernel_row_mul_l2_integrable ht hs
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2341,6 +2535,7 @@ section AxiomAudit
 #print axioms exp_neg_moving_center_sq_local_time_le
 #print axioms weightedMovingHeatFullGenerator_local_integrable_bound
 #print axioms weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
+#print axioms weightedMovingHeatSlopeErrorSchurData
 
 end AxiomAudit
 
