@@ -1,23 +1,20 @@
-# Q4887 exact computation result
+# Q4887 targeted exact result
 
+Convention: A_n q_{n+3}-B_n q_{n+2}+C_n q_{n+1}-D_n q_n=0.
 Primes: 2305843009213693951, 2305843009213693921, 2305843009213693907, 2305843009213693723
-Generated 180 exact/modular terms.
 
-## Direct polynomial map to q
-No identity target_n=sum_{j=0}^r P_j(n)W_(n+j) found for r<=8, degree<=28, with 24 or more holdout equations.
+## Direct polynomial map: q
+No map found for r<=6, degree<=24.
 
-## Direct polynomial map to q_over_hA
-No identity target_n=sum_{j=0}^r P_j(n)W_(n+j) found for r<=8, degree<=28, with 24 or more holdout equations.
+## Direct polynomial map: qh
+No map found for r<=6, degree<=24.
 
-## Rational map to q
-No E(n) target_n=sum P_j(n)W_(n+j) found in search bounds r<=8, deg P/E<=18.
-
-## Rational map to q_over_hA
-No E(n) target_n=sum P_j(n)W_(n+j) found in search bounds r<=8, deg P/E<=18.
+## Rational map: qh
+No E(n) target=sum P_j W[n+j] found for r<=6, degP,degE<=12.
 
 ## Minimal recurrence search for W
-Candidate order=4, degree=12, normalized coordinate=64.
-Exact verification: True; first bad=None.
+Candidate order=4, degree=12, norm=64; reconstruction=True.
+Exact verification: True; bad=None.
 L_0(n) = 10083540285/56143812493312 + 137327557113/112287624986624*n + 100259594781/28071906246656*n^2 + 673760034663/112287624986624*n^3 + 366164191139/56143812493312*n^4 + 136568972383/28071906246656*n^5 + 36028137083/14035953123328*n^6 + 6800263177/7017976561664*n^7 + 914246673/3508988280832*n^8 + 85594045/1754494140416*n^9 + 5307829/877247070208*n^10 + 15/33554432*n^11 + 1/67108864*n^12
 L_1(n) = -2766887425575/7017976561664 - 29665773238545/14035953123328*n - 71394456706909/14035953123328*n^2 - 25548331260295/3508988280832*n^3 - 24262801749101/3508988280832*n^4 - 4031664203119/877247070208*n^5 - 1925258378583/877247070208*n^6 - 166546995563/219311767552*n^7 - 2183159069/11542724608*n^8 - 907163563/27413970944*n^9 - 13238173/3426746368*n^10 - 567/2097152*n^11 - 9/1048576*n^12
 L_2(n) = 2635803404535/1713373184 + 25359185708003/3426746368*n + 220892758656675/13706985472*n^2 + 288275642524675/13706985472*n^3 + 125671197881601/6853492736*n^4 + 253869066245/22544384*n^5 + 4281408517975/856686592*n^6 + 1384291770043/856686592*n^7 + 161880712077/428343296*n^8 + 6679772361/107085824*n^9 + 19442005/2818048*n^10 + 1881/4096*n^11 + 57/4096*n^12
