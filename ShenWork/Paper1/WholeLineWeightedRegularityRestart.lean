@@ -2,6 +2,7 @@ import ShenWork.Paper1.WholeLineCauchyC2Bootstrap
 import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
 import ShenWork.Paper1.WholeLineCauchyCanonicalRestart
 import ShenWork.Paper1.WholeLineWeightedRegularityConjugation
+import ShenWork.Paper1.WholeLineWeightedRegularityLinearSource
 
 open Filter Topology MeasureTheory Real Set
 open scoped Topology Interval
@@ -1804,6 +1805,629 @@ theorem weighted_travelingWave_divergence_conjugation
     (eta := eta) (x := x) hflux
   linear_combination (-p.χ) * hconj
 
+/-! ## Pure-drift value semigroup
+
+The nondivergence perturbation equation uses the principal operator
+`partial_xx + (c - 2 * eta) * partial_x`, with no zero-order term.  The
+canonical fixed-point construction instead uses the modified heat generator
+`partial_xx - 1`.  The factor `exp t` below removes that damping exactly.
+This distinction is load-bearing: using `weightedMovingHeatEta` without also
+removing its growth would change the four-term lower-order source.
+-/
+
+/-- Undamped whole-line heat flow in a frame moving at speed `d`. -/
+def wholeLineDriftHeatOp
+    (d t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  Real.exp t * wholeLineCauchyMovingHeatOp d t f x
+
+/-- Positive-time integral realization of the pure-drift heat flow, with the
+moving observation point translated onto the input. -/
+theorem wholeLineDriftHeatOp_eq_translated_integral
+    {d t : ℝ} (ht : 0 < t) (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineDriftHeatOp d t f x =
+      ∫ y : ℝ, heatKernel t (x - y) * f (y + d * t) := by
+  rw [wholeLineDriftHeatOp,
+    wholeLineCauchyMovingHeatOp_eq_heatOp_translated_input]
+  unfold wholeLineCauchyHeatOp modifiedSemigroup heatSemigroup
+  rw [← mul_assoc, ← Real.exp_add]
+  simp
+
+/-- The pure-drift heat flow is the zero-growth normalization of the
+weighted moving heat operator. -/
+theorem wholeLineDriftHeatOp_eq_weightedMovingHeatEta
+    {eta c t : ℝ} (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineDriftHeatOp (c - 2 * eta) t f x =
+      Real.exp (-((eta ^ 2 - c * eta) * t)) *
+        weightedMovingHeatEta eta c t f x := by
+  unfold wholeLineDriftHeatOp wholeLineCauchyMovingHeatOp
+    wholeLineCauchyHeatOp modifiedSemigroup heatSemigroup
+    weightedMovingHeatEta weightedMovingHeatGrowth
+    weightedMovingHeatMarkovKernel
+  calc
+    Real.exp t *
+        (Real.exp (-t) *
+          ∫ y : ℝ, heatKernel t (x + (c - 2 * eta) * t - y) * f y) =
+      ∫ y : ℝ, heatKernel t (x + (c - 2 * eta) * t - y) * f y := by
+        rw [← mul_assoc, ← Real.exp_add]
+        simp
+    _ = Real.exp (-((eta ^ 2 - c * eta) * t)) *
+        (Real.exp ((eta ^ 2 - c * eta) * t) *
+          ∫ y : ℝ, heatKernel t (x + (c - 2 * eta) * t - y) * f y) := by
+        rw [← mul_assoc, ← Real.exp_add]
+        simp
+
+/-- A varying-datum contraction converges whenever its fixed-datum orbit
+and the datum itself converge. -/
+theorem metric_tendsto_varying_of_contraction
+    {α X : Type*} [PseudoMetricSpace X] {l : Filter α}
+    {op : α → X → X} {datum : α → X} {f target : X}
+    (hdatum : Tendsto datum l (𝓝 f))
+    (hfixed : Tendsto (fun z => op z f) l (𝓝 target))
+    (hcontract : ∀ᶠ z in l,
+      dist (op z (datum z)) (op z f) ≤ dist (datum z) f) :
+    Tendsto (fun z => op z (datum z)) l (𝓝 target) := by
+  rw [Metric.tendsto_nhds]
+  intro epsilon hepsilon
+  have hdatum_event :=
+    (Metric.tendsto_nhds.mp hdatum) (epsilon / 2) (by linarith)
+  have hfixed_event :=
+    (Metric.tendsto_nhds.mp hfixed) (epsilon / 2) (by linarith)
+  filter_upwards [hcontract, hdatum_event, hfixed_event] with z hc hd hfz
+  calc
+    dist (op z (datum z)) target ≤
+        dist (op z (datum z)) (op z f) + dist (op z f) target :=
+      dist_triangle _ _ _
+    _ ≤ dist (datum z) f + dist (op z f) target :=
+      add_le_add hc le_rfl
+    _ < epsilon / 2 + epsilon / 2 := add_lt_add hd hfz
+    _ = epsilon := by ring
+
+/-- Joint strong continuity of the totalized modified heat flow at lag zero.
+The datum may vary in the genuine BUC norm. -/
+theorem wholeLineCauchyHeatBUCTotal_tendsto_zero_of_tendsto
+    {α : Type*} {l : Filter α} {lag : α → ℝ}
+    {datum : α → WholeLineBUC} {f : WholeLineBUC}
+    (hlag : Tendsto lag l (𝓝 0))
+    (hlag_nonneg : ∀ᶠ z in l, 0 ≤ lag z)
+    (hdatum : Tendsto datum l (𝓝 f)) :
+    Tendsto
+      (fun z => wholeLineCauchyHeatBUCTotal (lag z) (datum z))
+      l (𝓝 f) := by
+  have hfixed : Tendsto
+      (fun z => wholeLineCauchyHeatBUCTotal (lag z) f) l (𝓝 f) :=
+    by
+      simpa only [Function.comp_apply, wholeLineCauchyHeatBUCTotal_zero] using
+        (wholeLineCauchyHeatBUCTotal_continuousAt_zero f).tendsto.comp hlag
+  apply metric_tendsto_varying_of_contraction hdatum hfixed
+  filter_upwards [hlag_nonneg] with z hz
+  exact wholeLineCauchyHeatBUCTotal_dist_le_of_nonneg hz _ _
+
+/-- Joint strong continuity of the totalized modified heat flow at a
+strictly positive lag. -/
+theorem wholeLineCauchyHeatBUCTotal_tendsto_positive_of_tendsto
+    {α : Type*} {l : Filter α} {lag : α → ℝ} {t : ℝ}
+    {datum : α → WholeLineBUC} {f : WholeLineBUC}
+    (ht : 0 < t) (hlag : Tendsto lag l (𝓝 t))
+    (hlag_nonneg : ∀ᶠ z in l, 0 ≤ lag z)
+    (hdatum : Tendsto datum l (𝓝 f)) :
+    Tendsto
+      (fun z => wholeLineCauchyHeatBUCTotal (lag z) (datum z)) l
+      (𝓝 (wholeLineCauchyHeatBUCTotal t f)) := by
+  have hfixed : Tendsto
+      (fun z => wholeLineCauchyHeatBUCTotal (lag z) f) l
+      (𝓝 (wholeLineCauchyHeatBUCTotal t f)) :=
+    by
+      simpa only [Function.comp_apply] using
+        (wholeLineCauchyHeatBUCTotal_continuousAt_of_pos ht f).tendsto.comp hlag
+  apply metric_tendsto_varying_of_contraction hdatum hfixed
+  filter_upwards [hlag_nonneg] with z hz
+  exact wholeLineCauchyHeatBUCTotal_dist_le_of_nonneg hz _ _
+
+/-- Totalized BUC realization of the undamped drift heat flow. -/
+def wholeLineDriftHeatBUCTotalVal
+    (d t : ℝ) (f : WholeLineBUC) (x : ℝ) : ℝ :=
+  Real.exp t * (wholeLineCauchyHeatBUCTotal t f).1 (x + d * t)
+
+@[simp] theorem wholeLineDriftHeatBUCTotalVal_zero
+    (d : ℝ) (f : WholeLineBUC) (x : ℝ) :
+    wholeLineDriftHeatBUCTotalVal d 0 f x = f.1 x := by
+  simp [wholeLineDriftHeatBUCTotalVal]
+
+theorem wholeLineDriftHeatBUCTotalVal_of_pos
+    {d t : ℝ} (ht : 0 < t) (f : WholeLineBUC) (x : ℝ) :
+    wholeLineDriftHeatBUCTotalVal d t f x =
+      wholeLineDriftHeatOp d t f.1 x := by
+  simp [wholeLineDriftHeatBUCTotalVal, wholeLineDriftHeatOp,
+    wholeLineCauchyMovingHeatOp, wholeLineCauchyHeatBUCTotal, ht,
+    wholeLineCauchyHeatBUC_apply]
+
+/-- Joint endpoint continuity of the undamped drift heat flow at lag zero. -/
+theorem wholeLineDriftHeatBUCTotalVal_tendsto_zero_of_tendsto
+    {α : Type*} {l : Filter α} {lag : α → ℝ}
+    {datum : α → WholeLineBUC} {f : WholeLineBUC}
+    (d x : ℝ) (hlag : Tendsto lag l (𝓝 0))
+    (hlag_nonneg : ∀ᶠ z in l, 0 ≤ lag z)
+    (hdatum : Tendsto datum l (𝓝 f)) :
+    Tendsto
+      (fun z => wholeLineDriftHeatBUCTotalVal d (lag z) (datum z) x)
+      l (𝓝 (f.1 x)) := by
+  have hheat := wholeLineCauchyHeatBUCTotal_tendsto_zero_of_tendsto
+    hlag hlag_nonneg hdatum
+  have hx : Tendsto (fun z => x + d * lag z) l (𝓝 x) := by
+    convert tendsto_const_nhds.add (tendsto_const_nhds.mul hlag) using 1 <;>
+      ring
+  have heval : Continuous (fun q : WholeLineBUC × ℝ => q.1.1 q.2) := by
+    fun_prop
+  have heval_lim := (heval.tendsto (f, x)).comp (hheat.prodMk_nhds hx)
+  have hexp : Tendsto (fun z => Real.exp (lag z)) l (𝓝 1) := by
+    simpa only [Function.comp_apply, Real.exp_zero] using
+      (Real.continuous_exp.tendsto 0).comp hlag
+  simpa [wholeLineDriftHeatBUCTotalVal] using hexp.mul heval_lim
+
+/-- Joint endpoint continuity of the undamped drift heat flow at a strictly
+positive lag. -/
+theorem wholeLineDriftHeatBUCTotalVal_tendsto_positive_of_tendsto
+    {α : Type*} {l : Filter α} {lag : α → ℝ} {t : ℝ}
+    {datum : α → WholeLineBUC} {f : WholeLineBUC}
+    (d x : ℝ) (ht : 0 < t) (hlag : Tendsto lag l (𝓝 t))
+    (hlag_nonneg : ∀ᶠ z in l, 0 ≤ lag z)
+    (hdatum : Tendsto datum l (𝓝 f)) :
+    Tendsto
+      (fun z => wholeLineDriftHeatBUCTotalVal d (lag z) (datum z) x)
+      l (𝓝 (wholeLineDriftHeatBUCTotalVal d t f x)) := by
+  have hheat := wholeLineCauchyHeatBUCTotal_tendsto_positive_of_tendsto
+    ht hlag hlag_nonneg hdatum
+  have hx : Tendsto (fun z => x + d * lag z) l (𝓝 (x + d * t)) :=
+    tendsto_const_nhds.add (tendsto_const_nhds.mul hlag)
+  have heval : Continuous (fun q : WholeLineBUC × ℝ => q.1.1 q.2) := by
+    fun_prop
+  have heval_lim :=
+    (heval.tendsto (wholeLineCauchyHeatBUCTotal t f, x + d * t)).comp
+      (hheat.prodMk_nhds hx)
+  have hexp : Tendsto (fun z => Real.exp (lag z)) l (𝓝 (Real.exp t)) :=
+    (Real.continuous_exp.tendsto t).comp hlag
+  simpa [wholeLineDriftHeatBUCTotalVal] using hexp.mul heval_lim
+
+/-- Generator theorem for the undamped moving heat flow.  All spatial
+derivatives are transferred to the bounded `C2` input. -/
+theorem wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
+    {d : ℝ} {f : ℝ → ℝ} {t x C D E : ℝ}
+    (ht : 0 < t) (hC : 0 ≤ C) (hD : 0 ≤ D)
+    (hf : ∀ y, |f y| ≤ C)
+    (hfd : ∀ y, |deriv f y| ≤ D)
+    (hfdd : ∀ y, |deriv (deriv f) y| ≤ E)
+    (hfderiv : ∀ y, HasDerivAt f (deriv f y) y)
+    (hfdderiv : ∀ y, HasDerivAt (deriv f) (deriv (deriv f) y) y)
+    (hfdcont : Continuous (deriv f))
+    (hfddcont : Continuous (deriv (deriv f))) :
+    HasDerivAt (fun s : ℝ => wholeLineDriftHeatOp d s f x)
+      (wholeLineDriftHeatOp d t
+        (fun y => deriv (deriv f) y + d * deriv f y) x) t := by
+  have hmodified :=
+    wholeLineCauchyMovingHeatOp_time_hasDerivAt_of_bounded_C2
+      (c := d) (f := f) (t := t) (x := x)
+      ht hC hD hf hfd hfdd hfderiv hfdderiv hfdcont hfddcont
+  have hprod := Real.hasDerivAt_exp t |>.mul hmodified
+  have hadd := modifiedSemigroup_add_bounded hfdd
+    (fun y => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hfd y) (abs_nonneg d))
+    hfddcont.aestronglyMeasurable
+    (hfdcont.aestronglyMeasurable.const_mul d) ht (x + d * t)
+  have hcmul := modifiedSemigroup_const_mul d (deriv f) t (x + d * t)
+  apply hprod.congr_deriv
+  have hsource : wholeLineCauchyHeatOp t
+      (fun y => deriv (deriv f) y + d * deriv f y) (x + d * t) =
+        wholeLineCauchyHeatOp t (deriv (deriv f)) (x + d * t) +
+          d * wholeLineCauchyHeatOp t (deriv f) (x + d * t) := by
+    unfold wholeLineCauchyHeatOp
+    rw [hadd, hcmul]
+  unfold wholeLineDriftHeatOp wholeLineCauchyMovingHeatOp
+  rw [hsource]
+  ring
+
+/-- Whole-line Gaussian integration by parts with both derivatives moved
+from the kernel to a bounded `C2` input, stated without the harmless
+modified-semigroup damping factor. -/
+theorem integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
+    {f : ℝ → ℝ} {t x C D E : ℝ}
+    (ht : 0 < t)
+    (hf : ∀ y, |f y| ≤ C)
+    (hfd : ∀ y, |deriv f y| ≤ D)
+    (hfdd : ∀ y, |deriv (deriv f) y| ≤ E)
+    (hfderiv : ∀ y, HasDerivAt f (deriv f y) y)
+    (hfdderiv : ∀ y, HasDerivAt (deriv f) (deriv (deriv f) y) y)
+    (hfdcont : Continuous (deriv f))
+    (hfddcont : Continuous (deriv (deriv f))) :
+    (∫ y : ℝ,
+        deriv (fun q : ℝ => deriv (fun z : ℝ => heatKernel t z) q)
+          (x - y) * f y) =
+      ∫ y : ℝ, heatKernel t (x - y) * deriv (deriv f) y := by
+  have hbase := wholeLineCauchyHeatHessOp_eq_heatOp_secondDeriv
+    (x := x) ht hf hfd hfdd hfderiv hfdderiv hfdcont hfddcont
+  unfold wholeLineCauchyHeatHessOp wholeLineCauchyHeatOp
+    modifiedSemigroup heatSemigroup at hbase
+  have hexp : Real.exp (-t) ≠ 0 := Real.exp_ne_zero _
+  apply (mul_left_cancel₀ hexp)
+  simpa [MeasureTheory.integral_const_mul, mul_assoc] using hbase
+
+/-- Integrand of the backward pure-drift orbit
+`s ↦ P(b-s) (W s) x`, after translating the moving kernel onto the data. -/
+private def wholeLineDriftBackwardIntegrand
+    (d b x : ℝ) (W : ℝ → ℝ → ℝ) (s y : ℝ) : ℝ :=
+  heatKernel (b - s) (x - y) * W s (y + d * (b - s))
+
+/-- Pointwise time derivative of `wholeLineDriftBackwardIntegrand`. -/
+private def wholeLineDriftBackwardIntegrandDeriv
+    (d b x : ℝ) (W Wt Wx : ℝ → ℝ → ℝ) (s y : ℝ) : ℝ :=
+  -deriv
+      (fun q : ℝ => deriv (fun z : ℝ => heatKernel (b - s) z) q)
+      (x - y) * W s (y + d * (b - s)) +
+    heatKernel (b - s) (x - y) *
+      (Wt s (y + d * (b - s)) - d * Wx s (y + d * (b - s)))
+
+/-- Pointwise chain rule for the backward drift orbit.  The trajectory is
+differentiated jointly in time and space; no derivative of a nonlinear flux
+appears. -/
+private theorem wholeLineDriftBackwardIntegrand_hasDerivAt
+    {d b x s y : ℝ} {W Wt Wx : ℝ → ℝ → ℝ}
+    (hsb : s < b)
+    (hjoint : HasFDerivAt
+      (fun q : ℝ × ℝ => W q.1 q.2)
+      (Wt s (y + d * (b - s)) • ContinuousLinearMap.fst ℝ ℝ ℝ +
+        Wx s (y + d * (b - s)) • ContinuousLinearMap.snd ℝ ℝ ℝ)
+      (s, y + d * (b - s))) :
+    HasDerivAt
+      (fun r : ℝ => wholeLineDriftBackwardIntegrand d b x W r y)
+      (wholeLineDriftBackwardIntegrandDeriv d b x W Wt Wx s y) s := by
+  have hlag : HasDerivAt (fun r : ℝ => b - r) (-1) s := by
+    simpa using (hasDerivAt_const s b).sub (hasDerivAt_id s)
+  have hker0 := heatKernel_time_hasDerivAt (sub_pos.mpr hsb) (x - y)
+  have hker := hker0.comp s hlag
+  have hshift : HasDerivAt
+      (fun r : ℝ => y + d * (b - r)) (-d) s := by
+    have hmul := hlag.const_mul d
+    convert (hasDerivAt_const s y).add hmul using 1 <;> ring
+  have hpair : HasDerivAt
+      (fun r : ℝ => (r, y + d * (b - r))) (1, -d) s :=
+    (hasDerivAt_id s).prodMk hshift
+  have hdata := hjoint.comp_hasDerivAt
+    (f := fun r : ℝ => (r, y + d * (b - r))) (x := s) hpair
+  have hprod := hker.mul hdata
+  have hfun :
+      (fun r : ℝ => wholeLineDriftBackwardIntegrand d b x W r y) =ᶠ[𝓝 s]
+        ((fun τ : ℝ => heatKernel τ (x - y)) ∘ (fun r : ℝ => b - r) *
+          (fun q : ℝ × ℝ => W q.1 q.2) ∘
+            (fun r : ℝ => (r, y + d * (b - r)))) := by
+    filter_upwards with r
+    rfl
+  have hprod' := hprod.congr_of_eventuallyEq hfun
+  apply hprod'.congr_deriv
+  simp only [wholeLineDriftBackwardIntegrandDeriv,
+    Function.comp_apply,
+    ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply,
+    ContinuousLinearMap.coe_fst', ContinuousLinearMap.coe_snd',
+    smul_eq_mul]
+  ring
+
+/-- Backward-orbit derivative for the pure-drift heat semigroup.  The
+assumptions are concrete classical regularity and uniform bounds on a finite
+open time window.  In particular, the source contains only
+`Wt - Wxx - d * Wx`; no spatial derivative of that source is requested. -/
+theorem wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
+    {a b d x s CW CWt CWx CWxx : ℝ}
+    {W Wt Wx Wxx : ℝ → ℝ → ℝ}
+    (has : a < s) (hsb : s < b)
+    (hCW : 0 ≤ CW) (hCWt : 0 ≤ CWt) (hCWx : 0 ≤ CWx)
+    (hW : ∀ r ∈ Set.Ioo a b, ∀ y, |W r y| ≤ CW)
+    (hWt : ∀ r ∈ Set.Ioo a b, ∀ y, |Wt r y| ≤ CWt)
+    (hWx : ∀ r ∈ Set.Ioo a b, ∀ y, |Wx r y| ≤ CWx)
+    (hWxx : ∀ r ∈ Set.Ioo a b, ∀ y, |Wxx r y| ≤ CWxx)
+    (hW_cont : ∀ r ∈ Set.Ioo a b, Continuous (W r))
+    (hWt_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wt r))
+    (hWx_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wx r))
+    (hWxx_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wxx r))
+    (hspace1 : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasDerivAt (W r) (Wx r y) y)
+    (hspace2 : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasDerivAt (Wx r) (Wxx r y) y)
+    (hjoint : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasFDerivAt
+        (fun q : ℝ × ℝ => W q.1 q.2)
+        (Wt r y • ContinuousLinearMap.fst ℝ ℝ ℝ +
+          Wx r y • ContinuousLinearMap.snd ℝ ℝ ℝ)
+        (r, y)) :
+    HasDerivAt
+      (fun r : ℝ => wholeLineDriftHeatOp d (b - r) (W r) x)
+      (wholeLineDriftHeatOp d (b - s)
+        (fun y => Wt s y - Wxx s y - d * Wx s y) x) s := by
+  let tau : ℝ := b - s
+  let delta : ℝ := min ((s - a) / 2) (tau / 2)
+  let F : ℝ → ℝ → ℝ := wholeLineDriftBackwardIntegrand d b x W
+  let F' : ℝ → ℝ → ℝ :=
+    wholeLineDriftBackwardIntegrandDeriv d b x W Wt Wx
+  let Ch : ℝ := 5 * ((1 / tau) * (1 / Real.sqrt (2 * Real.pi * tau)))
+  let Ck : ℝ := 1 / Real.sqrt (2 * Real.pi * tau)
+  let C : ℝ := Ch * CW + Ck * (CWt + |d| * CWx)
+  let bound : ℝ → ℝ := fun y =>
+    C * Real.exp (-(1 / (12 * tau)) * (x - y) ^ 2)
+  have htau : 0 < tau := by dsimp [tau]; linarith
+  have hdelta : 0 < delta := by
+    dsimp [delta]
+    exact lt_min (half_pos (sub_pos.mpr has)) (half_pos htau)
+  have hrange : ∀ {r : ℝ}, r ∈ Metric.ball s delta → r ∈ Set.Ioo a b := by
+    intro r hr
+    have hdist := Metric.mem_ball.mp hr
+    rw [Real.dist_eq] at hdist
+    have habs := abs_lt.mp hdist
+    have hda : delta ≤ (s - a) / 2 := min_le_left _ _
+    have hdb : delta ≤ (b - s) / 2 := by
+      dsimp [delta, tau]
+      exact min_le_right _ _
+    constructor <;> linarith
+  have hlag_ball : ∀ {r : ℝ}, r ∈ Metric.ball s delta →
+      b - r ∈ Metric.ball tau (tau / 2) := by
+    intro r hr
+    have hdist := Metric.mem_ball.mp hr
+    rw [Real.dist_eq] at hdist
+    rw [Metric.mem_ball, Real.dist_eq]
+    have hdelta_tau : delta ≤ tau / 2 := min_le_right _ _
+    calc
+      |b - r - tau| = |s - r| := by dsimp [tau]; congr 1; ring
+      _ = |r - s| := abs_sub_comm s r
+      _ < delta := hdist
+      _ ≤ tau / 2 := hdelta_tau
+  have hlag_pos : ∀ {r : ℝ}, r ∈ Metric.ball s delta → 0 < b - r := by
+    intro r hr
+    exact sub_pos.mpr (hrange hr).2
+  have hs_mem : s ∈ Set.Ioo a b := ⟨has, hsb⟩
+  have hsball : Metric.ball s delta ∈ 𝓝 s :=
+    Metric.ball_mem_nhds s hdelta
+  have hF_meas : ∀ᶠ r in 𝓝 s, AEStronglyMeasurable (F r) volume := by
+    filter_upwards [hsball] with r hr
+    have hrI := hrange hr
+    change AEStronglyMeasurable
+      (fun y : ℝ => heatKernel (b - r) (x - y) *
+        W r (y + d * (b - r))) volume
+    apply Continuous.aestronglyMeasurable
+    exact (by
+      have hker : Continuous (fun y : ℝ => heatKernel (b - r) (x - y)) := by
+        unfold heatKernel
+        fun_prop
+      exact hker.mul ((hW_cont r hrI).comp
+        (continuous_id.add continuous_const)))
+  have hF_int : Integrable (F s) volume := by
+    change Integrable (fun y : ℝ => heatKernel tau (x - y) *
+      W s (y + d * tau)) volume
+    exact heatKernel_mul_bounded_integrable htau x
+      (fun y => hW s hs_mem (y + d * tau))
+      ((hW_cont s hs_mem).comp
+        (continuous_id.add continuous_const)).aestronglyMeasurable
+  have hF'_meas : AEStronglyMeasurable (F' s) volume := by
+    have hhess : Continuous (fun y : ℝ =>
+        deriv (fun q : ℝ => deriv (fun z : ℝ => heatKernel tau z) q)
+          (x - y)) :=
+      ShenWork.IntervalNeumannFullKernel.continuous_secondDeriv_heatKernel htau |>.comp
+        (continuous_const.sub continuous_id)
+    have hker : Continuous (fun y : ℝ => heatKernel tau (x - y)) := by
+      unfold heatKernel
+      fun_prop
+    have hshift : Continuous (fun y : ℝ => y + d * tau) :=
+      continuous_id.add continuous_const
+    dsimp [F', wholeLineDriftBackwardIntegrandDeriv, tau]
+    exact ((hhess.neg.mul ((hW_cont s hs_mem).comp hshift)).add
+      (hker.mul (((hWt_cont s hs_mem).comp hshift).sub
+        (continuous_const.mul ((hWx_cont s hs_mem).comp hshift))))).aestronglyMeasurable
+  have hC : 0 ≤ C := by
+    dsimp [C, Ch, Ck]
+    positivity
+  have h_bound :
+      ∀ᵐ y ∂volume, ∀ r ∈ Metric.ball s delta, ‖F' r y‖ ≤ bound y := by
+    filter_upwards with y r hr
+    have hrI := hrange hr
+    have hlagb := hlag_ball hr
+    have hhess :=
+      ShenWork.PaperOne.ConvLeibniz.abs_secondDeriv_heatKernel_local_time_le
+        htau hlagb (x - y)
+    have hker := abs_heatKernel_local_time_le htau hlagb (x - y)
+    have hdx : |d * Wx r (y + d * (b - r))| ≤ |d| * CWx := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hWx r hrI _) (abs_nonneg d)
+    have hinterior :
+        |Wt r (y + d * (b - r)) - d * Wx r (y + d * (b - r))| ≤
+          CWt + |d| * CWx :=
+      (abs_sub _ _).trans (add_le_add (hWt r hrI _) hdx)
+    have hpoint :
+        |-deriv
+              (fun q : ℝ => deriv (fun z : ℝ => heatKernel (b - r) z) q)
+              (x - y) * W r (y + d * (b - r)) +
+            heatKernel (b - r) (x - y) *
+              (Wt r (y + d * (b - r)) -
+                d * Wx r (y + d * (b - r)))| ≤
+          C * Real.exp (-(1 / (12 * tau)) * (x - y) ^ 2) := by
+      calc
+        _ ≤ |deriv
+              (fun q : ℝ => deriv (fun z : ℝ => heatKernel (b - r) z) q)
+              (x - y)| * |W r (y + d * (b - r))| +
+            |heatKernel (b - r) (x - y)| *
+              |Wt r (y + d * (b - r)) -
+                d * Wx r (y + d * (b - r))| := by
+          simpa [abs_mul] using abs_add_le
+            (-deriv
+              (fun q : ℝ => deriv (fun z : ℝ => heatKernel (b - r) z) q)
+              (x - y) * W r (y + d * (b - r)))
+            (heatKernel (b - r) (x - y) *
+              (Wt r (y + d * (b - r)) -
+                d * Wx r (y + d * (b - r))))
+        _ ≤ (Ch * Real.exp (-(1 / (12 * tau)) * (x - y) ^ 2)) * CW +
+            (Ck * Real.exp (-(1 / (12 * tau)) * (x - y) ^ 2)) *
+              (CWt + |d| * CWx) := by
+          exact add_le_add
+            (mul_le_mul hhess (hW r hrI _) (abs_nonneg _) (by positivity))
+            (mul_le_mul hker hinterior (abs_nonneg _) (by positivity))
+        _ = C * Real.exp (-(1 / (12 * tau)) * (x - y) ^ 2) := by
+          dsimp [C]
+          ring
+    rw [Real.norm_eq_abs]
+    simpa [F', wholeLineDriftBackwardIntegrandDeriv, bound] using hpoint
+  have hbound_int : Integrable bound volume := by
+    have hcoef : 0 < 1 / (12 * tau) := by positivity
+    dsimp [bound]
+    exact
+      (ShenWork.PaperOne.ConvLeibniz.integrable_exp_neg_mul_sq_shift
+        hcoef x).const_mul C
+  have h_diff :
+      ∀ᵐ y ∂volume, ∀ r ∈ Metric.ball s delta,
+        HasDerivAt (fun q : ℝ => F q y) (F' r y) r := by
+    filter_upwards with y r hr
+    have hrI := hrange hr
+    exact wholeLineDriftBackwardIntegrand_hasDerivAt
+      hrI.2 (hjoint r hrI (y + d * (b - r)))
+  have hraw :=
+    (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := volume) (bound := bound) (F := F) (F' := F')
+      (x₀ := s) (s := Metric.ball s delta)
+      hsball hF_meas hF_int hF'_meas h_bound hbound_int h_diff).2
+  have hpath :
+      (fun r : ℝ => wholeLineDriftHeatOp d (b - r) (W r) x) =ᶠ[𝓝 s]
+        (fun r => ∫ y : ℝ, F r y) := by
+    filter_upwards [hsball] with r hr
+    simpa [F, wholeLineDriftBackwardIntegrand] using
+      wholeLineDriftHeatOp_eq_translated_integral
+        (hlag_pos hr) (W r) x
+  have horbit := hraw.congr_of_eventuallyEq hpath
+  apply horbit.congr_deriv
+  let fshift : ℝ → ℝ := fun y => W s (y + d * tau)
+  let fxshift : ℝ → ℝ := fun y => Wx s (y + d * tau)
+  let fxxshift : ℝ → ℝ := fun y => Wxx s (y + d * tau)
+  have hfshift1 : ∀ y, HasDerivAt fshift (fxshift y) y := by
+    intro y
+    have hadd : HasDerivAt (fun z : ℝ => z + d * tau) 1 y := by
+      simpa using (hasDerivAt_id y).add_const (d * tau)
+    simpa [fshift, fxshift] using
+      (hspace1 s hs_mem (y + d * tau)).comp y hadd
+  have hfxshift1 : ∀ y, HasDerivAt fxshift (fxxshift y) y := by
+    intro y
+    have hadd : HasDerivAt (fun z : ℝ => z + d * tau) 1 y := by
+      simpa using (hasDerivAt_id y).add_const (d * tau)
+    simpa [fxshift, fxxshift] using
+      (hspace2 s hs_mem (y + d * tau)).comp y hadd
+  have hderiv_fshift : deriv fshift = fxshift := by
+    funext y
+    exact (hfshift1 y).deriv
+  have hderiv_fxshift : deriv fxshift = fxxshift := by
+    funext y
+    exact (hfxshift1 y).deriv
+  have hderiv2_fshift : deriv (deriv fshift) = fxxshift := by
+    rw [hderiv_fshift]
+    exact hderiv_fxshift
+  have hfshift_cont : Continuous fshift :=
+    (hW_cont s hs_mem).comp (continuous_id.add continuous_const)
+  have hfxshift_cont : Continuous fxshift :=
+    (hWx_cont s hs_mem).comp (continuous_id.add continuous_const)
+  have hfxxshift_cont : Continuous fxxshift :=
+    (hWxx_cont s hs_mem).comp (continuous_id.add continuous_const)
+  have hhess :
+      (∫ y : ℝ,
+          deriv (fun q : ℝ => deriv (fun z : ℝ => heatKernel tau z) q)
+            (x - y) * fshift y) =
+        ∫ y : ℝ, heatKernel tau (x - y) * fxxshift y := by
+    have hbase :=
+      integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
+        (f := fshift) (t := tau) (x := x)
+        (C := CW) (D := CWx) (E := CWxx) htau
+        (fun y => hW s hs_mem _)
+        (fun y => by rw [hderiv_fshift]; exact hWx s hs_mem _)
+        (fun y => by rw [hderiv2_fshift]; exact hWxx s hs_mem _)
+        (fun y => by rw [hderiv_fshift]; exact hfshift1 y)
+        (fun y => by
+          rw [hderiv_fshift, hderiv_fxshift]
+          exact hfxshift1 y)
+        (by simpa [hderiv_fshift] using hfxshift_cont)
+        (by simpa [hderiv2_fshift] using hfxxshift_cont)
+    simpa [hderiv2_fshift] using hbase
+  let H : ℝ → ℝ := fun y =>
+    deriv (fun q : ℝ => deriv (fun z : ℝ => heatKernel tau z) q)
+      (x - y) * fshift y
+  let Tm : ℝ → ℝ := fun y => heatKernel tau (x - y) * Wt s (y + d * tau)
+  let Xm : ℝ → ℝ := fun y => heatKernel tau (x - y) * fxshift y
+  let XXm : ℝ → ℝ := fun y => heatKernel tau (x - y) * fxxshift y
+  have hH_int : Integrable H volume := by
+    have hbase :=
+      ShenWork.PaperOne.ConvLeibniz.secondDeriv_heatKernel_mul_bounded_integrable
+        htau x (fun y => hW s hs_mem (y + d * tau))
+          hfshift_cont.aestronglyMeasurable
+    simpa [H, fshift] using hbase
+  have hTm_int : Integrable Tm volume := by
+    exact heatKernel_mul_bounded_integrable htau x
+      (fun y => hWt s hs_mem (y + d * tau))
+      (((hWt_cont s hs_mem).comp
+        (continuous_id.add continuous_const)).aestronglyMeasurable)
+  have hXm_int : Integrable Xm volume := by
+    exact heatKernel_mul_bounded_integrable htau x
+      (fun y => hWx s hs_mem (y + d * tau))
+      hfxshift_cont.aestronglyMeasurable
+  have hXXm_int : Integrable XXm volume := by
+    exact heatKernel_mul_bounded_integrable htau x
+      (fun y => hWxx s hs_mem (y + d * tau))
+      hfxxshift_cont.aestronglyMeasurable
+  have hFprime_fun : F' s = fun y => -H y + Tm y - d * Xm y := by
+    funext y
+    simp [F', wholeLineDriftBackwardIntegrandDeriv, H, Tm, Xm,
+      fshift, fxshift, tau]
+    ring
+  have hsource_fun :
+      (fun y => heatKernel tau (x - y) *
+        ((fun z => Wt s z - Wxx s z - d * Wx s z)
+          (y + d * tau))) =
+        fun y => Tm y - XXm y - d * Xm y := by
+    funext y
+    simp [Tm, XXm, Xm, fxshift, fxxshift]
+    ring
+  have hFprime_integral :
+      (∫ y : ℝ, F' s y) =
+        -(∫ y : ℝ, H y) + (∫ y : ℝ, Tm y) -
+          d * (∫ y : ℝ, Xm y) := by
+    rw [hFprime_fun]
+    calc
+      (∫ y : ℝ, (-H y + Tm y) - d * Xm y) =
+          (∫ y : ℝ, -H y + Tm y) - (∫ y : ℝ, d * Xm y) :=
+        MeasureTheory.integral_sub (hH_int.neg.add hTm_int)
+          (hXm_int.const_mul d)
+      _ = (-(∫ y : ℝ, H y) + (∫ y : ℝ, Tm y)) -
+          d * (∫ y : ℝ, Xm y) := by
+        have hadd : (∫ y : ℝ, -H y + Tm y) =
+            (∫ y : ℝ, -H y) + (∫ y : ℝ, Tm y) := by
+          simpa only [Pi.neg_apply] using
+            MeasureTheory.integral_add hH_int.neg hTm_int
+        have hneg : (∫ y : ℝ, -H y) = -(∫ y : ℝ, H y) := by
+          simpa only [Pi.neg_apply] using MeasureTheory.integral_neg H
+        have hmul : (∫ y : ℝ, d * Xm y) = d * (∫ y : ℝ, Xm y) :=
+          MeasureTheory.integral_const_mul d Xm
+        rw [hadd, hneg, hmul]
+  have hsource_integral :
+      (∫ y : ℝ, heatKernel tau (x - y) *
+        ((fun z => Wt s z - Wxx s z - d * Wx s z)
+          (y + d * tau))) =
+        (∫ y : ℝ, Tm y) - (∫ y : ℝ, XXm y) -
+          d * (∫ y : ℝ, Xm y) := by
+    rw [hsource_fun]
+    calc
+      (∫ y : ℝ, (Tm y - XXm y) - d * Xm y) =
+          (∫ y : ℝ, Tm y - XXm y) - (∫ y : ℝ, d * Xm y) :=
+        MeasureTheory.integral_sub (hTm_int.sub hXXm_int)
+          (hXm_int.const_mul d)
+      _ = ((∫ y : ℝ, Tm y) - (∫ y : ℝ, XXm y)) -
+          d * (∫ y : ℝ, Xm y) := by
+        rw [MeasureTheory.integral_sub hTm_int hXXm_int,
+          MeasureTheory.integral_const_mul]
+  rw [wholeLineDriftHeatOp_eq_translated_integral htau]
+  rw [hFprime_integral, hsource_integral]
+  have hhess' : (∫ y : ℝ, H y) = ∫ y : ℝ, XXm y := by
+    simpa [H, XXm] using hhess
+  rw [hhess']
+  ring
+
 #print axioms wholeLineCauchyMovingHeatOp_eq_heatOp_translated_input
 #print axioms wholeLineCauchyMovingHeatOp_time_hasDerivAt_of_bounded_C1
 #print axioms wholeLineCauchyHeatHessOp_eq_heatOp_secondDeriv
@@ -1825,5 +2449,10 @@ theorem weighted_travelingWave_divergence_conjugation
 #print axioms IsTravelingWave.stationary_weighted_divergence_mild_identity_on_window
 #print axioms paper5WeightedPopulation_restart_identity
 #print axioms weighted_travelingWave_divergence_conjugation
+#print axioms wholeLineDriftHeatOp_eq_translated_integral
+#print axioms wholeLineDriftHeatOp_eq_weightedMovingHeatEta
+#print axioms wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
+#print axioms integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
+#print axioms wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
 
 end ShenWork.Paper1
