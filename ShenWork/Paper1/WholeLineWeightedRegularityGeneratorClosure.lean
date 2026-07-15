@@ -58,9 +58,35 @@ theorem weightedMovingHeatL2_generatorDuhamel_truncated_tendsto
   exact tendsto_truncated_generator_duhamel_integral
     hh heps_pos hepsh heps hrem hfull hconst horbit hSzero
 
+theorem weightedMovingHeatL2_generatorDuhamel_limit_norm_le
+    {eta c h t theta C H : ℝ}
+    (htheta : 0 < theta) (hh : 0 ≤ h)
+    (hC : 0 ≤ C) (hH : 0 ≤ H)
+    {F : ℝ → WholeLineRealL2}
+    (hA : ∀ r ∈ Ioc (0 : ℝ) h,
+      ‖weightedMovingHeatL2Generator eta c r‖ ≤ C * r ^ (-(1 : ℝ)))
+    (hF : ∀ r ∈ Icc (0 : ℝ) h,
+      ‖F (t - r) - F t‖ ≤ H * r ^ theta)
+    (hmeas : AEStronglyMeasurable
+      (fun r => weightedMovingHeatL2Generator eta c r
+        (F (t - r) - F t))
+      (volume.restrict (uIoc (0 : ℝ) h))) :
+    ‖(∫ r in (0 : ℝ)..h,
+        weightedMovingHeatL2Generator eta c r
+          (F (t - r) - F t)) +
+        (weightedMovingHeatL2Semigroup eta c h - 1) (F t)‖ ≤
+      C * H * (h ^ theta / theta) +
+        ‖(weightedMovingHeatL2Semigroup eta c h - 1) (F t)‖ := by
+  have hrem := intervalIntegrable_generator_holder_remainder
+    htheta hh hC hH hA hF hmeas
+  have hremNorm := intervalIntegral_generator_holder_remainder_norm_le
+    htheta hh hC hH hA hF hrem
+  exact (norm_add_le _ _).trans (add_le_add hremNorm le_rfl)
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2_generatorDuhamel_truncated_tendsto
+#print axioms weightedMovingHeatL2_generatorDuhamel_limit_norm_le
 
 end AxiomAudit
 
