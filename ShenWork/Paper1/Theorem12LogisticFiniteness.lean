@@ -189,6 +189,30 @@ theorem capWeight_integral_le_full {η R : ℝ} {f : ℝ → ℝ}
   exact integral_mono hcapint hfull
     (fun z => mul_le_mul_of_nonneg_right (capWeight_le_full η R z) (hf z))
 
+/-- Reduction bridge: pointwise exponential right-tail decay of a continuous function gives
+`L²` integrability of its square on a right half-line.  This isolates the finiteness crux
+(`IntegrableOn |w(t,·)|² (Ioi a)` for the moving-frame error `w = u(t,·) - U`) to the SOLUTION's
+own tail decay `|u(t,·) - U| ≤ C e^{-κ·}` — the §5 content the paper obtains from Henry's
+semigroup regularity (Thm 7.1.3), which is unavailable via the glued whole-line mild solution and
+so must be supplied by a solution-tail supersolution comparison. -/
+theorem rightTailL2_of_exp_decay {w : ℝ → ℝ} {a C κ : ℝ} (hκ : 0 < κ)
+    (hwc : Continuous w)
+    (hdecay : ∀ z, a ≤ z → |w z| ≤ C * Real.exp (-κ * z)) :
+    IntegrableOn (fun z => |w z| ^ 2) (Set.Ioi a) := by
+  have hb : (0 : ℝ) < 2 * κ := by linarith
+  have hdom : IntegrableOn (fun z => C ^ 2 * Real.exp (-(2 * κ) * z)) (Set.Ioi a) :=
+    (exp_neg_integrableOn_Ioi a hb).const_mul (C ^ 2)
+  refine hdom.mono' ((hwc.abs.pow 2).aestronglyMeasurable) ?_
+  filter_upwards [self_mem_ae_restrict measurableSet_Ioi] with z hz
+  have hz' : a ≤ z := le_of_lt hz
+  have hnn : (0 : ℝ) ≤ |w z| := abs_nonneg _
+  have hbound : |w z| ≤ C * Real.exp (-κ * z) := hdecay z hz'
+  have hexp : Real.exp (-κ * z) ^ 2 = Real.exp (-(2 * κ) * z) := by
+    rw [pow_two, ← Real.exp_add]; ring_nf
+  rw [Real.norm_eq_abs, abs_of_nonneg (by positivity : (0 : ℝ) ≤ |w z| ^ 2)]
+  calc |w z| ^ 2 ≤ (C * Real.exp (-κ * z)) ^ 2 := pow_le_pow_left₀ hnn hbound 2
+    _ = C ^ 2 * Real.exp (-(2 * κ) * z) := by rw [mul_pow, hexp]
+
 section Theorem12LogisticFinitenessAxiomAudit
 
 #print axioms capWeight_pos
@@ -201,6 +225,7 @@ section Theorem12LogisticFinitenessAxiomAudit
 #print axioms capWeight_continuous
 #print axioms weighted_integrable_of_uniform_capWeight_bound
 #print axioms capWeight_integral_le_full
+#print axioms rightTailL2_of_exp_decay
 
 end Theorem12LogisticFinitenessAxiomAudit
 
