@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityDQSources
+import ShenWork.Paper1.WholeLineWeightedRegularityFourProfilePower
 
 open Filter MeasureTheory Set
 
@@ -33,6 +34,39 @@ theorem capShiftedReactionSpatialDQValueConst_nonneg
     (mul_nonneg (capShiftedReactionSpatialDQSelfConst_nonneg p hM) heta)
     (mul_nonneg
       (fourProfileReactionDerivativeLip_nonneg p.hα hM) hDU)
+
+/-- A logarithmic-derivative bound and a profile ceiling give a quotient
+ceiling uniform for all steps of size at most one. -/
+theorem profile_spatialDifferenceQuotient_le_of_logDerivative_bound
+    {U : ℝ → ℝ} {B M h : ℝ}
+    (hB : 0 ≤ B)
+    (hUpos : ∀ x, 0 < U x)
+    (hUle : ∀ x, U x ≤ M)
+    (hUdiff : Differentiable ℝ U)
+    (hlog : ∀ x, |deriv U x / U x| ≤ B)
+    (hh : h ≠ 0) (hh_one : |h| ≤ 1) :
+    ∀ x, |spatialDifferenceQuotient h U x| ≤
+      B * Real.exp (2 * B) * M := by
+  intro x
+  have hraw := profile_shift_quotient_le_convex_of_logDerivative_bound
+    (x := x) hB hUpos hUdiff hlog hh (0 : ℝ)
+    (by constructor <;> norm_num)
+  have hexp : Real.exp (2 * B * |h|) ≤ Real.exp (2 * B) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  calc
+    |spatialDifferenceQuotient h U x| =
+        |(U (x + h) - U x) / h| := rfl
+    _ ≤ (B * Real.exp (2 * B * |h|)) * U x := by
+      norm_num at hraw ⊢
+      exact hraw
+    _ ≤ (B * Real.exp (2 * B)) * U x :=
+      mul_le_mul_of_nonneg_right
+        (mul_le_mul_of_nonneg_left hexp hB) (hUpos x).le
+    _ ≤ (B * Real.exp (2 * B)) * M :=
+      mul_le_mul_of_nonneg_left (hUle x)
+        (mul_nonneg hB (Real.exp_nonneg _))
+    _ = B * Real.exp (2 * B) * M := by ring
 
 /-- Matched four-profile difference quotient for the full shifted reaction.
 The raw conjugated quotient is the self field; the wave quotient appears only
@@ -160,5 +194,6 @@ theorem capWeight_wholeLineShiftedReactionDifference_spatialDQ_l2_bounded
       _ = _ := by rfl
 
 #print axioms capWeight_wholeLineShiftedReactionDifference_spatialDQ_l2_bounded
+#print axioms profile_spatialDifferenceQuotient_le_of_logDerivative_bound
 
 end ShenWork.Paper1
