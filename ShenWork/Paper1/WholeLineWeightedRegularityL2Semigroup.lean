@@ -8,6 +8,7 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import Mathlib.Analysis.Normed.Lp.SmoothApprox
 
 open Filter MeasureTheory Set Topology
+open scoped RealInnerProductSpace
 
 noncomputable section
 
@@ -556,6 +557,73 @@ theorem weightedMovingHeatBUCErrorBound_tendsto_zero
       (habsGrowth.mul continuousAt_const)
   convert hcont.tendsto using 1
   simp [weightedMovingHeatBUCErrorBound, weightedMovingHeatGrowth]
+
+/-- The concrete weighted heat integral only depends on the a.e. class of
+its datum. -/
+theorem weightedMovingHeatEta_congr_ae
+    {eta c t : ℝ} {f g : ℝ → ℝ} (hfg : f =ᵐ[volume] g) (x : ℝ) :
+    weightedMovingHeatEta eta c t f x =
+      weightedMovingHeatEta eta c t g x := by
+  unfold weightedMovingHeatEta
+  congr 1
+  apply integral_congr_ae
+  filter_upwards [hfg] with y hy
+  rw [hy]
+
+/-- Pairing control for an `L²` class represented by an integrable Lipschitz
+BUC function.  This is the compact-core estimate used in the density
+argument for strong continuity. -/
+theorem weightedMovingHeatL2Semigroup_inner_error_le_of_bucRep
+    {eta c t : ℝ} (ht : 0 < t) {C : NNReal}
+    (Z : WholeLineRealL2) (g : WholeLineBUC)
+    (hrep : (Z : ℝ → ℝ) =ᵐ[volume] (g.1 : ℝ → ℝ))
+    (hg : LipschitzWith C (g.1 : ℝ → ℝ))
+    (hg_int : Integrable (g.1 : ℝ → ℝ)) :
+    |⟪weightedMovingHeatL2Semigroup eta c t Z, Z⟫ - ‖Z‖ ^ 2| ≤
+      weightedMovingHeatBUCErrorBound eta c C g t *
+        ∫ x : ℝ, |g.1 x| := by
+  let S : WholeLineRealL2 := weightedMovingHeatL2Semigroup eta c t Z
+  let E : ℝ := weightedMovingHeatBUCErrorBound eta c C g t
+  have hSrep : (S : ℝ → ℝ) =ᵐ[volume]
+      weightedMovingHeatEta eta c t (Z : ℝ → ℝ) := by
+    dsimp [S]
+    rw [weightedMovingHeatL2Semigroup_of_pos ht]
+    exact weightedMovingHeatL2Fun_coe_ae ht Z
+  have hprod : Integrable (fun x : ℝ =>
+      g.1 x * weightedMovingHeatEta eta c t (Z : ℝ → ℝ) x) := by
+    have hmul := (Lp.memLp Z).integrable_mul (Lp.memLp S)
+    exact hmul.congr (hrep.mul hSrep)
+  have hself : Integrable (fun x : ℝ => g.1 x * g.1 x) := by
+    have hmul := (Lp.memLp Z).integrable_mul (Lp.memLp Z)
+    exact hmul.congr (hrep.mul hrep)
+  have hZS := wholeLineIntegral_mul_eq_inner_of_aeEq Z S hrep hSrep
+  have hZZ := wholeLineIntegral_mul_eq_inner_of_aeEq Z Z hrep hrep
+  have heq :
+      ⟪S, Z⟫ - ‖Z‖ ^ 2 =
+        ∫ x : ℝ, g.1 x *
+          (weightedMovingHeatEta eta c t (g.1 : ℝ → ℝ) x - g.1 x) := by
+    rw [real_inner_comm, ← hZS, ← real_inner_self_eq_norm_sq, ← hZZ,
+      ← integral_sub hprod hself]
+    apply integral_congr_ae
+    filter_upwards with x
+    rw [weightedMovingHeatEta_congr_ae hrep x]
+    ring
+  rw [show weightedMovingHeatL2Semigroup eta c t Z = S from rfl, heq]
+  calc
+    |∫ x : ℝ, g.1 x *
+          (weightedMovingHeatEta eta c t (g.1 : ℝ → ℝ) x - g.1 x)| ≤
+        ∫ x : ℝ, E * |g.1 x| := by
+      change ‖∫ x : ℝ, g.1 x *
+          (weightedMovingHeatEta eta c t (g.1 : ℝ → ℝ) x - g.1 x)‖ ≤ _
+      apply norm_integral_le_of_norm_le (hg_int.abs.const_mul E)
+      filter_upwards with x
+      rw [Real.norm_eq_abs, abs_mul]
+      simpa [E, mul_comm] using mul_le_mul_of_nonneg_left
+        (weightedMovingHeatEta_sub_le_bucErrorBound ht hg x)
+        (abs_nonneg (g.1 x))
+    _ = E * ∫ x : ℝ, |g.1 x| := by rw [integral_const_mul]
+    _ = weightedMovingHeatBUCErrorBound eta c C g t *
+        ∫ x : ℝ, |g.1 x| := rfl
 
 /-! ## A reusable signed-kernel `L²` operator -/
 
