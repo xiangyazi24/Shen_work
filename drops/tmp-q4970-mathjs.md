@@ -1,0 +1,1 @@
+[exact fraction solve](https://api.mathjs.org/v4/?expr=lusolve%28%5B%5Bfraction%281%2C1%29%2Cfraction%281%2C2%29%5D%2C%5Bfraction%281%2C3%29%2Cfraction%281%2C4%29%5D%5D%2C%5Bfraction%281%2C5%29%2Cfraction%281%2C6%29%5D%29)
