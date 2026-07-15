@@ -823,6 +823,33 @@ Bochner/Fubini history hypotheses; every spatial estimate used to discharge
 their pointwise norm bounds is proved above.
 -/
 
+private theorem paper5MovingFrameHeatOp_sub_eq_buc_heat_sub
+    {t : ℝ} (ht : 0 < t) (c : ℝ) (u₂ u₁ : WholeLineBUC) (x : ℝ) :
+    paper5MovingFrameHeatOp c t (fun y => u₂.1 y - u₁.1 y) x =
+      (wholeLineCauchyHeatBUCTotal t u₂).1 (x + c * t) -
+        (wholeLineCauchyHeatBUCTotal t u₁).1 (x + c * t) := by
+  have hlin : wholeLineCauchyHeatBUC t ht (u₂ - u₁) =
+      wholeLineCauchyHeatBUC t ht u₂ -
+        wholeLineCauchyHeatBUC t ht u₁ := by
+    exact (kernelConvBUCLinearMap
+      (wholeLineModifiedHeatKernel_continuous ht)
+      (wholeLineModifiedHeatKernel_integrable ht)).map_sub u₂ u₁
+  have hpoint := congrArg
+    (fun w : WholeLineBUC => w.1 (x + c * t)) hlin
+  change
+    (wholeLineCauchyHeatBUC t ht (u₂ - u₁)).1 (x + c * t) =
+      (wholeLineCauchyHeatBUC t ht u₂).1 (x + c * t) -
+        (wholeLineCauchyHeatBUC t ht u₁).1 (x + c * t) at hpoint
+  have hraw : ((u₂ - u₁).1 : ℝ → ℝ) =
+      fun y => u₂.1 y - u₁.1 y := by
+    funext y
+    rfl
+  rw [wholeLineCauchyHeatBUC_apply, wholeLineCauchyHeatBUC_apply,
+    wholeLineCauchyHeatBUC_apply, hraw] at hpoint
+  simpa only [paper5MovingFrameHeatOp,
+    wholeLineCauchyHeatBUCTotal, ht, dif_pos,
+    wholeLineCauchyHeatBUC_apply] using hpoint
+
 /-- Assemble a homogeneous cap slice and the two honest `L²` Duhamel
 histories.  This is the canonical one-step triangle estimate, with the
 time-history/Fubini bridge exposed rather than hidden in a package. -/
@@ -881,6 +908,123 @@ theorem capWeightedMild_oneStep_l2_of_history
       _ = A + ∫ s in (0 : ℝ)..t, (gG s + gR s) := by
         rw [intervalIntegral.integral_add hgG_int hgR_int]
         ring
+
+private theorem bucMildMap_difference_decompose
+    (p : CMParams) {M T : ℝ} (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (u₀₂ u₀₁ : WholeLineBUC) (U₂ U₁ : WholeLineBUCTrajectory T)
+    (z : Set.Icc (0 : ℝ) T) (x : ℝ) :
+    (wholeLineCauchyBUCMildMap p hM hT u₀₂ U₂ z).1 x -
+        (wholeLineCauchyBUCMildMap p hM hT u₀₁ U₁ z).1 x =
+      ((wholeLineCauchyHeatBUCTotal z.1 u₀₂).1 x -
+          (wholeLineCauchyHeatBUCTotal z.1 u₀₁).1 x) +
+        (-p.χ) *
+          ((wholeLineCauchyGradientDuhamelBUC p hM hT U₂ z.1).1 x -
+            (wholeLineCauchyGradientDuhamelBUC p hM hT U₁ z.1).1 x) +
+        ((wholeLineCauchyValueDuhamelBUC p hM hT U₂ z.1).1 x -
+          (wholeLineCauchyValueDuhamelBUC p hM hT U₁ z.1).1 x) := by
+  rw [wholeLineCauchyBUCMildMap_apply,
+    wholeLineCauchyBUCMildMap_apply]
+  change
+    ((wholeLineCauchyHeatBUCTotal z.1 u₀₂).1 x +
+          (-p.χ) *
+            (wholeLineCauchyGradientDuhamelBUC p hM hT U₂ z.1).1 x +
+          (wholeLineCauchyValueDuhamelBUC p hM hT U₂ z.1).1 x) -
+        ((wholeLineCauchyHeatBUCTotal z.1 u₀₁).1 x +
+          (-p.χ) *
+            (wholeLineCauchyGradientDuhamelBUC p hM hT U₁ z.1).1 x +
+          (wholeLineCauchyValueDuhamelBUC p hM hT U₁ z.1).1 x) = _
+  ring
+
+/-- Canonical BUC one-step difference, realized in the cap-weighted `L²`
+space.  The homogeneous term is built from the actual BUC initial data.  The
+two time-history representatives remain explicit: this is precisely the
+strong-measurability/Fubini bridge that must be supplied by a trajectory-level
+construction rather than inferred from pointwise-in-time `L²` existence. -/
+theorem exists_capWeighted_coMoving_bucMildMap_differenceL2_of_history
+    (p : CMParams) {M eta c T B₀ : ℝ}
+    (hM : 0 ≤ M) (heta : 0 ≤ eta) (hT : 0 ≤ T) (hB₀ : 0 ≤ B₀)
+    (R : ℝ) (u₀₂ u₀₁ : WholeLineBUC)
+    (U₂ U₁ : WholeLineBUCTrajectory T) (z : Set.Icc (0 : ℝ) T)
+    (hz : 0 < z.1)
+    (hdata_meas : Measurable (fun y : ℝ => u₀₂.1 y - u₀₁.1 y))
+    (hdata_cap : Integrable (fun y : ℝ => capWeight eta R y *
+      |u₀₂.1 y - u₀₁.1 y| ^ 2))
+    (hdata_energy : (∫ y : ℝ, capWeight eta R y *
+      |u₀₂.1 y - u₀₁.1 y| ^ 2) ≤ B₀ ^ 2)
+    (ZG ZR : ℝ → WholeLineRealL2) (gG gR : ℝ → ℝ)
+    (hZG_int : IntervalIntegrable ZG volume 0 z.1)
+    (hZR_int : IntervalIntegrable ZR volume 0 z.1)
+    (hgG_int : IntervalIntegrable gG volume 0 z.1)
+    (hgR_int : IntervalIntegrable gR volume 0 z.1)
+    (hZG : ∀ s ∈ Set.Icc (0 : ℝ) z.1, ‖ZG s‖ ≤ gG s)
+    (hZR : ∀ s ∈ Set.Icc (0 : ℝ) z.1, ‖ZR s‖ ≤ gR s)
+    (hZG_rep : (((∫ s in (0 : ℝ)..z.1, ZG s) : WholeLineRealL2) :
+        ℝ → ℝ) =ᵐ[volume] fun x =>
+      capWeightSqrt eta R x * (-p.χ) *
+        ((wholeLineCauchyGradientDuhamelBUC p hM hT U₂ z.1).1
+            (x + c * z.1) -
+          (wholeLineCauchyGradientDuhamelBUC p hM hT U₁ z.1).1
+            (x + c * z.1)))
+    (hZR_rep : (((∫ s in (0 : ℝ)..z.1, ZR s) : WholeLineRealL2) :
+        ℝ → ℝ) =ᵐ[volume] fun x =>
+      capWeightSqrt eta R x *
+        ((wholeLineCauchyValueDuhamelBUC p hM hT U₂ z.1).1
+            (x + c * z.1) -
+          (wholeLineCauchyValueDuhamelBUC p hM hT U₁ z.1).1
+            (x + c * z.1))) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] fun x =>
+        capWeightSqrt eta R x *
+          ((wholeLineCauchyBUCMildMap p hM hT u₀₂ U₂ z).1
+              (x + c * z.1) -
+            (wholeLineCauchyBUCMildMap p hM hT u₀₁ U₁ z).1
+              (x + c * z.1))) ∧
+      ‖Z‖ ≤ 2 * capMildGrowthBound eta c T * B₀ +
+        ∫ s in (0 : ℝ)..z.1, (gG s + gR s) := by
+  rcases exists_capWeightedMovingHeatL2 heta hz hB₀ R c hdata_meas
+      hdata_cap hdata_energy with ⟨Z₀, hZ₀_rep, hZ₀_bound⟩
+  have hZ₀_rep' : ((Z₀ : ℝ → ℝ) =ᵐ[volume] fun x =>
+      capWeightSqrt eta R x *
+        ((wholeLineCauchyHeatBUCTotal z.1 u₀₂).1 (x + c * z.1) -
+          (wholeLineCauchyHeatBUCTotal z.1 u₀₁).1 (x + c * z.1))) :=
+    hZ₀_rep.trans (Eventually.of_forall fun x => by
+      change capWeightSqrt eta R x *
+          paper5MovingFrameHeatOp c z.1
+            (fun y => u₀₂.1 y - u₀₁.1 y) x =
+        capWeightSqrt eta R x *
+          ((wholeLineCauchyHeatBUCTotal z.1 u₀₂).1 (x + c * z.1) -
+            (wholeLineCauchyHeatBUCTotal z.1 u₀₁).1 (x + c * z.1))
+      rw [paper5MovingFrameHeatOp_sub_eq_buc_heat_sub hz])
+  have hmass := capHeatSchurMass_le_capMildGrowthBound
+    (c := c) heta hz.le z.2.2
+  have hexp : Real.exp (-z.1) ≤ 1 :=
+    Real.exp_le_one_iff.mpr (neg_nonpos.mpr hz.le)
+  have hfactor : Real.exp (-z.1) * capHeatSchurMass eta c z.1 ≤
+      2 * capMildGrowthBound eta c T :=
+    (mul_le_mul_of_nonneg_right hexp
+      (capHeatSchurMass_pos eta c z.1).le).trans (by simpa using hmass)
+  have hZ₀_bound' : ‖Z₀‖ ≤ 2 * capMildGrowthBound eta c T * B₀ :=
+    hZ₀_bound.trans (mul_le_mul_of_nonneg_right hfactor hB₀)
+  rcases capWeightedMild_oneStep_l2_of_history hz.le Z₀ ZG ZR
+      (fun x => capWeightSqrt eta R x *
+        ((wholeLineCauchyHeatBUCTotal z.1 u₀₂).1 (x + c * z.1) -
+          (wholeLineCauchyHeatBUCTotal z.1 u₀₁).1 (x + c * z.1)))
+      (fun x => capWeightSqrt eta R x * (-p.χ) *
+        ((wholeLineCauchyGradientDuhamelBUC p hM hT U₂ z.1).1
+            (x + c * z.1) -
+          (wholeLineCauchyGradientDuhamelBUC p hM hT U₁ z.1).1
+            (x + c * z.1)))
+      (fun x => capWeightSqrt eta R x *
+        ((wholeLineCauchyValueDuhamelBUC p hM hT U₂ z.1).1
+            (x + c * z.1) -
+          (wholeLineCauchyValueDuhamelBUC p hM hT U₁ z.1).1
+            (x + c * z.1)))
+      gG gR hZG_int hZR_int hgG_int hgR_int hZ₀_bound' hZG hZR
+      hZ₀_rep' hZG_rep hZR_rep with ⟨Z, hZ_rep, hZ_bound⟩
+  refine ⟨Z, hZ_rep.trans ?_, hZ_bound⟩
+  filter_upwards with x
+  rw [bucMildMap_difference_decompose]
+  ring
 
 /-- Constant-plus-inverse-square-root specialization of the one-step norm
 estimate.  Its scalar right-hand side is exactly the recurrence consumed by
@@ -1063,6 +1207,7 @@ section AxiomAudit
   exists_capWeightedMovingHeatGradient_truncatedChemotaxisL2_le_kernel
 #print axioms exists_capWeightedMovingHeat_truncatedReactionL2_le_kernel
 #print axioms capWeightedMild_oneStep_l2_of_history
+#print axioms exists_capWeighted_coMoving_bucMildMap_differenceL2_of_history
 #print axioms capWeightedMild_oneStep_norm_le_const_add_invSqrt
 #print axioms capWeightedMild_oneStep_norm_le_capKernel
 #print axioms capMildPicard_uniform_of_short_time
