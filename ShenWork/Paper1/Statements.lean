@@ -16593,13 +16593,13 @@ theorem Proposition_1_1_constant_one_positive_admissible_branch
 /-- Paper1 Proposition 1.2: stability of the positive constant solution. -/
 def Proposition_1_2 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
+    ∀ u₀ : ℝ → ℝ, PaperNonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1) ∧
   (∀ p : CMParams, 0 < p.χ → p.χ < (1 / 2 : ℝ) →
     p.m + p.γ - 1 ≤ p.α →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
+    ∀ u₀ : ℝ → ℝ, PaperNonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1)
@@ -16710,11 +16710,13 @@ theorem Proposition_1_2.of_global_existence_and_convergence
     Proposition_1_2 := by
   constructor
   · intro p hχ u₀ hu₀ hu₀_pos
-    rcases hexist p u₀ hu₀ hu₀_pos with ⟨u, v, hsol⟩
-    exact ⟨u, v, hsol, hconv_neg p hχ u₀ hu₀ hu₀_pos u v hsol⟩
+    have hu₀' := hu₀.to_nonnegativeInitialDatum
+    rcases hexist p u₀ hu₀' hu₀_pos with ⟨u, v, hsol⟩
+    exact ⟨u, v, hsol, hconv_neg p hχ u₀ hu₀' hu₀_pos u v hsol⟩
   · intro p hχ hχ_small hα u₀ hu₀ hu₀_pos
-    rcases hexist p u₀ hu₀ hu₀_pos with ⟨u, v, hsol⟩
-    exact ⟨u, v, hsol, hconv_pos p hχ hχ_small hα u₀ hu₀ hu₀_pos u v hsol⟩
+    have hu₀' := hu₀.to_nonnegativeInitialDatum
+    rcases hexist p u₀ hu₀' hu₀_pos with ⟨u, v, hsol⟩
+    exact ⟨u, v, hsol, hconv_pos p hχ hχ_small hα u₀ hu₀' hu₀_pos u v hsol⟩
 
 /-- Proposition 1.1 from separated global existence and a priori estimates.
 The three analytical steps — PDE existence, maximum-principle bound, and
