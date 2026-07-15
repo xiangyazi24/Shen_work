@@ -461,6 +461,102 @@ theorem weightedMovingHeatL2Semigroup_add
     weightedMovingHeatL2Semigroup_of_pos (add_pos hr hq)]
   exact weightedMovingHeatL2CLM_comp_add hr hq
 
+/-! ## Strong continuity at time zero -/
+
+/-- A scalar majorant for the uniform error on a Lipschitz BUC datum. -/
+def weightedMovingHeatBUCErrorBound
+    (eta c : ℝ) (C : NNReal) (g : WholeLineBUC) (t : ℝ) : ℝ :=
+  weightedMovingHeatGrowth eta c t *
+      (dist (wholeLineHeatBUCTotal t g) g +
+        (C : ℝ) * |(c - 2 * eta) * t|) +
+    |weightedMovingHeatGrowth eta c t - 1| * ‖g‖
+
+/-- At positive time the weighted moving flow is the ordinary BUC heat flow,
+evaluated at the drifted point and multiplied by the conjugation growth. -/
+theorem weightedMovingHeatEta_eq_growth_heatBUCTotal_shift
+    {eta c t : ℝ} (ht : 0 < t) (g : WholeLineBUC) (x : ℝ) :
+    weightedMovingHeatEta eta c t (g.1 : ℝ → ℝ) x =
+      weightedMovingHeatGrowth eta c t *
+        (wholeLineHeatBUCTotal t g).1
+          (x + (c - 2 * eta) * t) := by
+  simp only [wholeLineHeatBUCTotal, dif_pos ht, wholeLineHeatBUC_apply]
+  unfold weightedMovingHeatEta weightedMovingHeatMarkovKernel heatSemigroup
+  rfl
+
+/-- Uniform pointwise control of the weighted moving heat error on a
+Lipschitz BUC datum. -/
+theorem weightedMovingHeatEta_sub_le_bucErrorBound
+    {eta c t : ℝ} (ht : 0 < t) {C : NNReal} {g : WholeLineBUC}
+    (hg : LipschitzWith C (g.1 : ℝ → ℝ)) (x : ℝ) :
+    |weightedMovingHeatEta eta c t (g.1 : ℝ → ℝ) x - g.1 x| ≤
+      weightedMovingHeatBUCErrorBound eta c C g t := by
+  let d : ℝ := c - 2 * eta
+  let H : WholeLineBUC := wholeLineHeatBUCTotal t g
+  let a : ℝ := weightedMovingHeatGrowth eta c t
+  have ha : 0 ≤ a := by
+    dsimp [a, weightedMovingHeatGrowth]
+    positivity
+  have hheat : |H.1 (x + d * t) - g.1 (x + d * t)| ≤ dist H g := by
+    calc
+      |H.1 (x + d * t) - g.1 (x + d * t)| =
+          |(H - g).1 (x + d * t)| := rfl
+      _ ≤ ‖H - g‖ := WholeLineBUC.abs_apply_le_norm (H - g) _
+      _ = dist H g := (WholeLineBUC.dist_eq_norm_sub H g).symm
+  have hshift : |g.1 (x + d * t) - g.1 x| ≤ (C : ℝ) * |d * t| := by
+    simpa [Real.dist_eq] using hg.dist_le_mul (x + d * t) x
+  have hgx : |g.1 x| ≤ ‖g‖ := WholeLineBUC.abs_apply_le_norm g x
+  rw [weightedMovingHeatEta_eq_growth_heatBUCTotal_shift ht]
+  change |a * H.1 (x + d * t) - g.1 x| ≤ _
+  have hdecomp :
+      a * H.1 (x + d * t) - g.1 x =
+        a * (H.1 (x + d * t) - g.1 (x + d * t)) +
+          a * (g.1 (x + d * t) - g.1 x) +
+            (a - 1) * g.1 x := by ring
+  rw [hdecomp]
+  calc
+    |a * (H.1 (x + d * t) - g.1 (x + d * t)) +
+          a * (g.1 (x + d * t) - g.1 x) + (a - 1) * g.1 x| ≤
+        |a * (H.1 (x + d * t) - g.1 (x + d * t))| +
+          |a * (g.1 (x + d * t) - g.1 x)| +
+            |(a - 1) * g.1 x| := by
+      calc
+        _ ≤ |a * (H.1 (x + d * t) - g.1 (x + d * t)) +
+              a * (g.1 (x + d * t) - g.1 x)| +
+              |(a - 1) * g.1 x| := abs_add_le _ _
+        _ ≤ _ := add_le_add (abs_add_le _ _) le_rfl
+    _ = a * |H.1 (x + d * t) - g.1 (x + d * t)| +
+          a * |g.1 (x + d * t) - g.1 x| + |a - 1| * |g.1 x| := by
+      rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg ha]
+    _ ≤ a * dist H g + a * ((C : ℝ) * |d * t|) +
+          |a - 1| * ‖g‖ := by
+      gcongr
+    _ = weightedMovingHeatBUCErrorBound eta c C g t := by
+      dsimp [weightedMovingHeatBUCErrorBound, a, H, d]
+      ring
+
+/-- The preceding uniform error majorant tends to zero at time zero. -/
+theorem weightedMovingHeatBUCErrorBound_tendsto_zero
+    (eta c : ℝ) (C : NNReal) (g : WholeLineBUC) :
+    Tendsto (weightedMovingHeatBUCErrorBound eta c C g) (𝓝 0) (𝓝 0) := by
+  have hgrowth : ContinuousAt (weightedMovingHeatGrowth eta c) 0 := by
+    unfold weightedMovingHeatGrowth
+    fun_prop
+  have hheat : ContinuousAt
+      (fun t : ℝ => dist (wholeLineHeatBUCTotal t g) g) 0 :=
+    (wholeLineHeatBUCTotal_continuousAt_zero g).dist continuousAt_const
+  have hshift : ContinuousAt
+      (fun t : ℝ => (C : ℝ) * |(c - 2 * eta) * t|) 0 := by
+    fun_prop
+  have habsGrowth : ContinuousAt
+      (fun t : ℝ => |weightedMovingHeatGrowth eta c t - 1|) 0 := by
+    fun_prop
+  have hcont : ContinuousAt
+      (weightedMovingHeatBUCErrorBound eta c C g) 0 :=
+    (hgrowth.mul (hheat.add hshift)).add
+      (habsGrowth.mul continuousAt_const)
+  convert hcont.tendsto using 1
+  simp [weightedMovingHeatBUCErrorBound, weightedMovingHeatGrowth]
+
 /-! ## A reusable signed-kernel `L²` operator -/
 
 /-- Concrete data for a signed integral kernel with equal absolute row and
