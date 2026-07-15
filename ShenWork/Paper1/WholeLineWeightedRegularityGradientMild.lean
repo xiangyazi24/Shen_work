@@ -255,8 +255,12 @@ theorem paper5WeightedPopulationX_sq_integrable_of_three_gradient_representative
   rcases hR with ⟨ZR, hR⟩
   let Z : WholeLineRealL2 := Z₀ + ZG + ZR
   have hZ : ((Z : ℝ → ℝ) =ᵐ[volume] fun x => f₀ x + fG x + fR x) := by
-    filter_upwards [h₀, hG, hR] with x hx₀ hxG hxR
-    change Z₀ x + ZG x + ZR x = f₀ x + fG x + fR x
+    filter_upwards [h₀, hG, hR, Lp.coeFn_add Z₀ ZG,
+      Lp.coeFn_add (Z₀ + ZG) ZR] with x hx₀ hxG hxR hsum hsum'
+    rw [hsum']
+    simp only [Pi.add_apply]
+    rw [hsum]
+    simp only [Pi.add_apply]
     rw [hx₀, hxG, hxR]
   exact paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
     ⟨Z, hZ⟩ hpoint
@@ -277,12 +281,12 @@ theorem paper5WeightedPopulationX_sq_integrable_of_derivative_legs
     (hG : ∃ ZG : WholeLineRealL2, ((ZG : ℝ → ℝ) =ᵐ[volume] fG))
     (hR : ∃ ZR : WholeLineRealL2, ((ZR : ℝ → ℝ) =ᵐ[volume] fR))
     (hlegs : ∀ x, f₀ x + fG x + fR x =
-      capWeightSqrt eta R x * Real.exp (eta * x) *
-        (q₀ x + qG x + qR x)) :
+      Real.exp (eta * x) * (q₀ x + qG x + qR x)) :
     Integrable
       (fun x => paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2)
       volume := by
   apply paper5WeightedPopulationX_sq_integrable_of_three_gradient_representatives
+    (R := R)
     h₀ hG hR
   intro x
   have hdu := (hu x).deriv
@@ -296,7 +300,6 @@ theorem paper5WeightedPopulationX_sq_integrable_of_derivative_legs
       Real.exp (eta * x) *
         (q₀ x + qG x + qR x) := by
       rw [hdu, hru]
-      field_simp
       ring
     _ = f₀ x + fG x + fR x := by
       rw [← hlegs x]
