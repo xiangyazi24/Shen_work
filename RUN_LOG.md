@@ -610,3 +610,16 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   (general-m headline verify). Harvest + act on any defect when they land. No dependency-free
   formalization of mine remains (Thm1.2 extension ruled out; rest is Xiang χ>0 / imported infra /
   0<m<1 open-in-paper).
+
+### 2026-07-15 02:50 — general-m result DOUBLE-CONFIRMED (adversarial verify clean)
+- ChatGPT Q5058 independent source-grounded audit of the general-m χ≤0 sup bound: verdict
+  "mathematically sound". Constant max{‖u₀‖,(a/b)^{1/α}} EXACTLY matches paper Thm 1.1 (1.21);
+  no missing v/μ/ν/domain-length dependence. Every caveat it raised is already handled in the
+  committed proof: guard a=0∨0<b present (nonpos_guard_supNorm_bound_M); endpoint uses the
+  INTERIOR one-sided limit not the intervalDomainLift two-sided zero-extension trap (audit
+  explicitly confirmed the landed proof does this); InitialTrace hypothesis present. max_point_
+  slope_bound_M confirmed to use only 0<p.m (general-m faithful). No fix needed.
+- So Paper 2 Thm 1.3 χ≤0 general-m = independent build+axiom gate (mine) AND source audit (Q5058)
+  = doubly confirmed.
+- Outstanding: Q5051 (Prop1.2 floor adversarial audit, shen3) + shen2 (targeted Grönwall-weight
+  closure verify of the floor crux) still on SOL. Then both committed results fully verify-closed.
