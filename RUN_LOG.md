@@ -543,3 +543,23 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 ### 2026-07-14 23:55 infra resolved
 - Codex#1 r2 died identically (heredoc-in-same-command hijacks stdin; both failures had heredocs, the healthy Codex#2 did not). r3 dispatched as a bare single codex exec command: HEALTHY (banner + session 019f63f6 within 1 min). Lesson banked to CC memory (codex-no-heredoc-dispatch).
 - ChatGPT: Q5042 (P2 maximal-time alternative) landed — confirms spec framing: (1.14) general alternative, (1.15) m>=1 excludes floor collapse via scalar ODE subsolution; 0<m<1 residual = named no-floor-loss hypothesis. shen2 refilled with Lemma 2.6 exact-statement question (audit baseline for codex#1 product).
+
+### 2026-07-15 00:45 — AVENUE CLOSED: Paper 1 Prop 1.2(1) χ≤0 two-sided stabilization
+- Proposition_1_2_negative_branch clean-3 @ 934f2f54 (canonical-solution form, Paper data,
+  parallel to Proposition_1_1_negative_branch). Full chain: toolkit (0f711a67) → conditional
+  assembly (89875747) → Codex#2 floor file → capstone discharge.
+- CRUX RESOLUTION RECORD (honesty): my mid-run analysis declared the pointwise G-cone
+  engine IMPOSSIBLE for the floor (reaction degenerate at deep deficit) and designed a
+  heavier first-touch-in-time route. Codex#2 instead landed the standard GRONWALL
+  EXPONENTIAL WEIGHT (q = e^{-Dt}(B-u)) which absorbs the Lipschitz growth and keeps the
+  existing engine — my impossibility verdict was WRONG (missed the change of variables);
+  the race-not-dependency pattern paid off (did not kill the dispatch on my own verdict).
+  Both my derivation and ChatGPT Q5041 also missed this; the machine-checked file is the
+  arbiter. Design inputs that DID survive: rate-decoupled barrier (lam ≤ c), resolver
+  lower bounds, restart-with-fixed-rate — all load-bearing in the final file.
+- Paper 2: m=1 critical branch unconditional (both χ signs) + named residuals (m>1
+  continuation producer; 0<m<1 floor-loss open in paper per Q5042).
+- ChatGPT: Q5036/41/42/43 harvested; shen1/3/4 still cooking (ALL CONNECTORS FAILED =
+  delivery timeout only, per discipline not re-dispatched); shen2 on uniqueness.
+- end: Prop 1.2(1) avenue at terminal SUCCESS. Next dischargeable: Paper 3 Thm 2.1 Part 1
+  strong-max persistence (await shen3 design), Paper 2 m>1 continuation producer.
