@@ -97,9 +97,72 @@ theorem exists_capWeightedGradientDuhamelSumL2
     f₀ fG fR gG gR hZG_int hZR_int hgG_int hgR_int hZ₀ hZG hZR
     hZ₀_rep hZG_rep hZR_rep
 
+theorem exists_capWeightedMovingHeatGradient_truncatedReactionL2_le_kernel
+    (p : CMParams) {M eta R c s tau T B : ℝ}
+    (hM : 0 ≤ M) (heta : 0 ≤ eta) (heta_one : eta < 1)
+    (htau : 0 < tau)
+    (htauT : tau ≤ T) (hB : 0 ≤ B) (u₂ u₁ : WholeLineBUC)
+    (hclose : Integrable (fun x => capWeight eta R x *
+      |u₂.1 (x + c * s) - u₁.1 (x + c * s)| ^ 2))
+    (henergy : (∫ x : ℝ, capWeight eta R x *
+      |u₂.1 (x + c * s) - u₁.1 (x + c * s)| ^ 2) ≤ B ^ 2) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] fun x => capWeightSqrt eta R x *
+        paper5MovingFrameHeatGradOp c tau
+          (coMovingTruncatedReactionDifference
+            p M c s u₂.1 u₁.1) x) ∧
+      ‖Z‖ ≤
+      (2 * capMildGrowthBound eta c T *
+            (1 + reactionLip p.α M) * eta +
+          (2 * capMildGrowthBound eta c T *
+            (1 + reactionLip p.α M) *
+            (2 / Real.sqrt (4 * Real.pi))) *
+              tau ^ (-(1 / 2 : ℝ))) * B := by
+  let L : ℝ := 1 + reactionLip p.α M
+  have hL : 0 ≤ L := by
+    dsimp [L]
+    exact add_nonneg zero_le_one (reactionLip_nonneg p.hα hM)
+  rcases exists_capWeightedMovingHeatGradient_truncatedReactionL2
+      p hM heta heta_one htau hB u₂ u₁ hclose henergy with
+    ⟨Z, hrep, hZ⟩
+  have hmass := capHeatGradientSchurMass_le_capMildKernel
+    (c := c) heta htau htauT
+  have hexp : Real.exp (-tau) ≤ 1 :=
+    Real.exp_le_one_iff.mpr (neg_nonpos.mpr htau.le)
+  have hfactor : Real.exp (-tau) * capHeatGradientSchurMass eta c tau ≤
+      2 * capMildGrowthBound eta c T * eta +
+        (2 * capMildGrowthBound eta c T *
+          (2 / Real.sqrt (4 * Real.pi))) *
+            tau ^ (-(1 / 2 : ℝ)) := by
+    exact (mul_le_mul_of_nonneg_right hexp
+      (capHeatGradientSchurMass_pos htau heta c).le).trans (by simpa using hmass)
+  refine ⟨Z, hrep, hZ.trans ?_⟩
+  calc
+    Real.exp (-tau) * capHeatGradientSchurMass eta c tau * L * B =
+        (Real.exp (-tau) * capHeatGradientSchurMass eta c tau) * (L * B) := by ring
+    _ ≤ (2 * capMildGrowthBound eta c T * eta +
+        (2 * capMildGrowthBound eta c T *
+          (2 / Real.sqrt (4 * Real.pi))) *
+            tau ^ (-(1 / 2 : ℝ))) * (L * B) :=
+      mul_le_mul_of_nonneg_right hfactor (mul_nonneg hL hB)
+    _ = (2 * capMildGrowthBound eta c T * L * eta +
+        (2 * capMildGrowthBound eta c T *
+          (2 / Real.sqrt (4 * Real.pi))) * L *
+          tau ^ (-(1 / 2 : ℝ))) * B := by ring
+    _ = (2 * capMildGrowthBound eta c T *
+            (1 + reactionLip p.α M) * eta +
+          (2 * capMildGrowthBound eta c T *
+            (1 + reactionLip p.α M) *
+            (2 / Real.sqrt (4 * Real.pi))) *
+              tau ^ (-(1 / 2 : ℝ))) * B := by
+      rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 4)]
+      dsimp [L]
+      ring
+
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
 #print axioms exists_capWeightedGradientDuhamelSumL2
+#print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2_le_kernel
 end AxiomAudit
 
 end ShenWork.Paper1
