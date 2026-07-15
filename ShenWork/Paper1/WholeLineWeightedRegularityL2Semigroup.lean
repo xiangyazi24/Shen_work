@@ -3,6 +3,7 @@ import ShenWork.Paper1.Theorem12WeightedFiniteness
 import ShenWork.Paper1.WholeLineWeightedRegularityCap
 import ShenWork.Paper1.WholeLineCauchySemigroupRestart
 import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
+import ShenWork.Paper1.WholeLineCauchyBUCHeatPositiveTime
 import ShenWork.PaperOne.WholeLineConvolutionDifferentiation
 import ShenWork.PDE.HeatKernelLpEstimates
 import Mathlib.Analysis.Normed.Lp.SmoothApprox
@@ -2011,6 +2012,55 @@ theorem weightedMovingHeatFullKernel_hasDerivAt
   field_simp [ne_of_gt ht]
   ring
 
+/-- A Gaussian whose center moves at bounded speed on a compact positive-time
+window is dominated by one fixed, slightly wider Gaussian. -/
+theorem exp_neg_moving_center_sq_local_time_le
+    {t s d z : ℝ} (ht : 0 < t) (hs : s ∈ Metric.ball t (t / 2)) :
+    Real.exp (-(1 / (12 * t)) * (z + d * s) ^ 2) ≤
+      Real.exp ((1 / (12 * t)) * d ^ 2 * (3 * t / 2) ^ 2) *
+        Real.exp (-(1 / (24 * t)) * z ^ 2) := by
+  have hdist := Metric.mem_ball.mp hs
+  rw [Real.dist_eq] at hdist
+  have hspos : 0 < s := by linarith [(abs_lt.mp hdist).1]
+  have hsup : s ≤ 3 * t / 2 := by linarith [(abs_lt.mp hdist).2]
+  have hU : 0 ≤ 3 * t / 2 := by positivity
+  have hsSq : s ^ 2 ≤ (3 * t / 2) ^ 2 :=
+    (sq_le_sq₀ hspos.le hU).2 hsup
+  have hdsSq : (d * s) ^ 2 ≤ d ^ 2 * (3 * t / 2) ^ 2 := by
+    calc
+      (d * s) ^ 2 = d ^ 2 * s ^ 2 := by ring
+      _ ≤ d ^ 2 * (3 * t / 2) ^ 2 :=
+        mul_le_mul_of_nonneg_left hsSq (sq_nonneg d)
+  have hcenter : z ^ 2 / 2 - (d * s) ^ 2 ≤ (z + d * s) ^ 2 := by
+    nlinarith [sq_nonneg (z + 2 * d * s)]
+  have ha : 0 ≤ 1 / (12 * t) := by positivity
+  have hcenterMul := mul_le_mul_of_nonneg_left hcenter ha
+  have hshiftMul := mul_le_mul_of_nonneg_left hdsSq ha
+  have harg :
+      -(1 / (12 * t)) * (z + d * s) ^ 2 ≤
+        (1 / (12 * t)) * d ^ 2 * (3 * t / 2) ^ 2 -
+          (1 / (24 * t)) * z ^ 2 := by
+    calc
+      -(1 / (12 * t)) * (z + d * s) ^ 2 ≤
+          (1 / (12 * t)) * (d * s) ^ 2 -
+            (1 / (24 * t)) * z ^ 2 := by
+        have ht0 : t ≠ 0 := ne_of_gt ht
+        field_simp [ht0] at hcenterMul ⊢
+        nlinarith
+      _ ≤ (1 / (12 * t)) * d ^ 2 * (3 * t / 2) ^ 2 -
+            (1 / (24 * t)) * z ^ 2 := by
+        simpa only [mul_assoc] using
+          sub_le_sub_right hshiftMul ((1 / (24 * t)) * z ^ 2)
+  calc
+    Real.exp (-(1 / (12 * t)) * (z + d * s) ^ 2) ≤
+        Real.exp ((1 / (12 * t)) * d ^ 2 * (3 * t / 2) ^ 2 -
+          (1 / (24 * t)) * z ^ 2) := Real.exp_le_exp.mpr harg
+    _ = Real.exp ((1 / (12 * t)) * d ^ 2 * (3 * t / 2) ^ 2) *
+        Real.exp (-(1 / (24 * t)) * z ^ 2) := by
+      rw [← Real.exp_add]
+      congr 1
+      ring
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2023,6 +2073,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatGeneratorL2CLM_comp_heat
 #print axioms weightedMovingHeatL2Generator_comp_semigroup_add
 #print axioms weightedMovingHeatFullKernel_hasDerivAt
+#print axioms exp_neg_moving_center_sq_local_time_le
 
 end AxiomAudit
 
