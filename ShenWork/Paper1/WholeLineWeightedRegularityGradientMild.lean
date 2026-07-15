@@ -269,8 +269,6 @@ class is hidden in the final `hWx2` statement. -/
 theorem paper5WeightedPopulationX_sq_integrable_of_derivative_legs
     {eta R c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
     {q₀ qG qR qRef : ℝ → ℝ} {f₀ fG fR : ℝ → ℝ}
-    (hcoord : ∀ x, coMovingPath c u t x =
-      (fun y => coMovingPath c u t y) x)
     (hu : ∀ x, HasDerivAt (coMovingPath c u t)
       (q₀ x + qG x + qR x - eta *
         (coMovingPath c u t x - U x) + qRef x) x)
@@ -289,9 +287,6 @@ theorem paper5WeightedPopulationX_sq_integrable_of_derivative_legs
   intro x
   have hdu := (hu x).deriv
   have hru := (hU x).deriv
-  have hcoord' := hcoord x
-  dsimp only at hcoord'
-  rw [hcoord']
   unfold paper5WeightedPopulationX paper5WeightedPopulation
   calc
     eta * (Real.exp (eta * x) *
