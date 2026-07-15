@@ -1,0 +1,31 @@
+name: temporary-q4970-calc
+on:
+  push:
+    branches: [chatgpt-scratch]
+    paths: ['.github/workflows/tmp-q4970-calc.yml']
+permissions:
+  contents: write
+jobs:
+  calc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          mkdir -p drops
+          node <<'NODE' > drops/.tmp-q4970-result.md
+          function A(x){return x<0n?-x:x}function G(a,b){a=A(a);b=A(b);while(b){let t=a%b;a=b;b=t}return a}function W(a,e){a=BigInt(a);e=BigInt(e);let r=1n;while(e){if(e&1n)r*=a;a*=a;e>>=1n}return r}
+          class R{constructor(n,d=1n){n=BigInt(n);d=BigInt(d);if(d<0n){n=-n;d=-d}if(!n){this.n=0n;this.d=1n;return}let g=G(n,d);this.n=n/g;this.d=d/g}add(x){return new R(this.n*x.d+x.n*this.d,this.d*x.d)}sub(x){return new R(this.n*x.d-x.n*this.d,this.d*x.d)}mul(x){return new R(this.n*x.n,this.d*x.d)}div(x){return new R(this.n*x.d,this.d*x.n)}neg(){return new R(-this.n,this.d)}z(){return this.n===0n}tex(){return this.d===1n?`${this.n}`:`\\frac{${this.n}}{${this.d}}`}abs(){return new R(A(this.n),this.d)}one(){return A(this.n)===this.d}ap(){return Number(this.n)/Number(this.d)}}
+          const Z=()=>new R(0),O=()=>new R(1),M=(s,k)=>new R(1,W(k+1,s));
+          function solve(a,b){let n=a.length,m=a.map((r,i)=>r.slice().concat(b[i]));for(let c=0;c<n;c++){let p=c;while(p<n&&m[p][c].z())p++;if(p===n)throw Error('sing');[m[p],m[c]]=[m[c],m[p]];let q=m[c][c];for(let j=c;j<=n;j++)m[c][j]=m[c][j].div(q);for(let i=0;i<n;i++)if(i!==c&&!m[i][c].z()){let f=m[i][c];for(let j=c;j<=n;j++)m[i][j]=m[i][j].sub(f.mul(m[c][j]))}}return m.map(r=>r[n])}
+          function Q(n){if(!n)return[O()];let a=Math.ceil(n/2),b=Math.floor(n/2),x=[],y=[];for(let k=0;k<a;k++){x.push(Array.from({length:n},(_,i)=>M(2,i+k)));y.push(M(2,n+k).neg())}for(let k=0;k<b;k++){x.push(Array.from({length:n},(_,i)=>M(3,i+k)));y.push(M(3,n+k).neg())}return solve(x,y).concat(O())}
+          function c(p,i){return i>=0&&i<p.length?p[i]:Z()}function sub(a,b){return Array.from({length:Math.max(a.length,b.length)},(_,i)=>c(a,i).sub(c(b,i)))}function sc(a,q){return a.map(x=>x.mul(q))}function xt(a){return[Z()].concat(a)}function at1(a){return a.reduce((s,x)=>s.add(x),Z())}function H(i,s){let r=Z();for(let j=1;j<=i;j++)r=r.add(new R(1,W(j,s)));return r}function P(a,s){let r=Z();for(let i=1;i<a.length;i++)r=r.add(a[i].mul(H(i,s)));return r}
+          function pt(p){let o='';for(let k=p.length-1;k>=0;k--){let q=p[k];if(q.z())continue;let neg=q.n<0n,a=q.abs(),cs=a.tex(),t;if(k===0)t=cs;else{if(a.one())cs='';t=cs+(k===1?'t':`t^{${k}}`)}o?o+=(neg?' - ':' + ')+t:o=(neg?'-':'')+t}return o}
+          let qs=[];for(let n=0;n<=9;n++)qs.push(Q(n));let rr=[];for(let n=0;n<9;n++){let r=sub(xt(qs[n]),qs[n+1]),b=c(r,n);r=sub(r,sc(qs[n],b));let g=n?c(r,n-1):Z();if(n)r=sub(r,sc(qs[n-1],g));let d=n>1?c(r,n-2):Z();if(n>1)r=sub(r,sc(qs[n-2],d));if(r.some(x=>!x.z()))throw Error('not4');rr.push([b,g,d])}
+          console.log('## POLYS');for(let n=0;n<=8;n++)console.log(`Q${n}=${pt(qs[n])}`);console.log('## REC');for(let n=0;n<=6;n++)console.log(`${n}: ${rr[n][0].tex()}, ${rr[n][1].tex()}, ${rr[n][2].tex()}`);console.log('## VAL');for(let n=0;n<=8;n++){let y=at1(qs[n]),z=P(qs[n],2).add(P(qs[n],3));console.log(`${n}: ${y.tex()} ; ${z.tex()} ; ${z.div(y).ap()}`)}
+          NODE
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add drops/.tmp-q4970-result.md
+          git commit -m 'Temporary Q4970 exact result'
+          git push
