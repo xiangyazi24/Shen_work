@@ -261,6 +261,51 @@ theorem paper5WeightedPopulationX_sq_integrable_of_three_gradient_representative
   exact paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
     ⟨Z, hZ⟩ hpoint
 
+/-! Canonical fixed-point-facing wrapper.  A spatial bootstrap normally gives
+`HasDerivAt` pointwise, rather than an equality between derivatives.  This
+wrapper performs that conversion and feeds the result directly to the
+three-representative producer, so no informal differentiation of an `L²`
+class is hidden in the final `hWx2` statement. -/
+theorem paper5WeightedPopulationX_sq_integrable_of_derivative_legs
+    {eta R c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {q₀ qG qR qRef : ℝ → ℝ} {f₀ fG fR : ℝ → ℝ}
+    (hcoord : ∀ x, coMovingPath c u t x =
+      (fun y => coMovingPath c u t y) x)
+    (hu : ∀ x, HasDerivAt (coMovingPath c u t)
+      (q₀ x + qG x + qR x - eta *
+        (coMovingPath c u t x - U x) + qRef x) x)
+    (hU : ∀ x, HasDerivAt U (qRef x) x)
+    (h₀ : ∃ Z₀ : WholeLineRealL2, ((Z₀ : ℝ → ℝ) =ᵐ[volume] f₀))
+    (hG : ∃ ZG : WholeLineRealL2, ((ZG : ℝ → ℝ) =ᵐ[volume] fG))
+    (hR : ∃ ZR : WholeLineRealL2, ((ZR : ℝ → ℝ) =ᵐ[volume] fR))
+    (hlegs : ∀ x, f₀ x + fG x + fR x =
+      capWeightSqrt eta R x * Real.exp (eta * x) *
+        (q₀ x + qG x + qR x)) :
+    Integrable
+      (fun x => paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2)
+      volume := by
+  apply paper5WeightedPopulationX_sq_integrable_of_three_gradient_representatives
+    h₀ hG hR
+  intro x
+  have hdu := (hu x).deriv
+  have hru := (hU x).deriv
+  have hcoord' := hcoord x
+  dsimp only at hcoord'
+  rw [hcoord']
+  unfold paper5WeightedPopulationX paper5WeightedPopulation
+  calc
+    eta * (Real.exp (eta * x) *
+        (coMovingPath c u t x - U x)) +
+        Real.exp (eta * x) *
+          (deriv (coMovingPath c u t) x - deriv U x) =
+      Real.exp (eta * x) *
+        (q₀ x + qG x + qR x) := by
+      rw [hdu, hru]
+      field_simp
+      ring
+    _ = f₀ x + fG x + fR x := by
+      rw [← hlegs x]
+
 
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
