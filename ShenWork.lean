@@ -663,3 +663,4 @@ import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorClosure
 import ShenWork.Paper1.WholeLineWeightedRegularityGradient
 import ShenWork.Paper1.WholeLineWeightedRegularitySecondDeriv
 import ShenWork.Paper1.WholeLineWeightedRegularitySlice
+import ShenWork.Paper1.WholeLineWeightedRegularityCap
