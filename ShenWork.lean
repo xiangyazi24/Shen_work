@@ -114,6 +114,7 @@ import ShenWork.Paper3.UnitPointStatementAssembly
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
 import ShenWork.Paper3.IntervalDomainMinimalFaithfulTheorem22
 import ShenWork.Paper3.IntervalDomainRecalledPropositionsPositive
+import ShenWork.Paper3.IntervalDomainP31EventualSupBound
 import ShenWork.Paper3.IntervalDomainSectorial
 import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.Paper3.IntervalDomainStatementAssembly

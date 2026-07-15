@@ -51,7 +51,7 @@ theorem eventualSupBound_of_global_posAB
   by_cases hbelow :
       intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
   · exact le_trans hbelow (le_max_right _ _)
-  · push_neg at hbelow
+  · push Not at hbelow
     have hmono :
         SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t) :=
       (Lemma31Closure.Lemma_3_1_intervalDomain p hχ).1 ha hb (t + 1)
@@ -238,5 +238,8 @@ theorem proposition_1_2_intervalDomain_chiNonpos
     Proposition_1_2 intervalDomain p :=
   proposition_1_2_of_theorem_1_1_posAB p ha hb
     (ShenWork.Paper2.IntervalChiNegAssembly.paper2_chiNonpos p hχ ha hb hα hγ)
+
+#print axioms eventualSupBound_of_global_posAB
+#print axioms proposition_1_2_intervalDomain_chiNonpos
 
 end ShenWork.Paper3.P31EventualSupBound
