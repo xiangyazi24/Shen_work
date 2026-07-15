@@ -292,8 +292,111 @@ theorem capWeight_frozenElliptic_value_difference_l2_bounded
         rw [capWeightSqrt_mul_sq_eq eta R x (u2 x - u1 x)]]
       ring
 
+/-- The raw first-derivative bracket of the resolver difference is
+cap-weighted `L²`, with a bound uniform in the cap radius.  This is the
+signal field paired with `paper5RawPopulationX` in the cap-conjugated
+flux-derivative recurrence. -/
+theorem capWeight_frozenElliptic_rawSignalX_difference_l2_bounded
+    (p : CMParams) {M eta R : ℝ}
+    (hM : 0 ≤ M) (heta0 : 0 ≤ eta) (heta1 : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
+    (hu1_mem : ∀ x, u1 x ∈ Set.Icc (0 : ℝ) M)
+    (hu2_mem : ∀ x, u2 x ∈ Set.Icc (0 : ℝ) M)
+    (hclose : Integrable (fun x =>
+      capWeight eta R x * |u2 x - u1 x| ^ 2)) :
+    Integrable (fun x => capWeight eta R x *
+        |eta * (frozenElliptic p u2 x - frozenElliptic p u1 x) +
+          (deriv (frozenElliptic p u2) x -
+            deriv (frozenElliptic p u1) x)| ^ 2) ∧
+      (∫ x : ℝ, capWeight eta R x *
+          |eta * (frozenElliptic p u2 x - frozenElliptic p u1 x) +
+            (deriv (frozenElliptic p u2) x -
+              deriv (frozenElliptic p u1) x)| ^ 2) ≤
+        2 * (eta ^ 2 + 1) *
+          ((1 / (1 - eta)) * (p.γ * M ^ (p.γ - 1))) ^ 2 *
+            ∫ x : ℝ, capWeight eta R x * |u2 x - u1 x| ^ 2 := by
+  let K : ℝ := (1 / (1 - eta)) * (p.γ * M ^ (p.γ - 1))
+  let z : ℝ → ℝ := fun x =>
+    frozenElliptic p u2 x - frozenElliptic p u1 x
+  let zx : ℝ → ℝ := fun x =>
+    deriv (frozenElliptic p u2) x - deriv (frozenElliptic p u1) x
+  let target : ℝ → ℝ := fun x =>
+    capWeight eta R x * |eta * z x + zx x| ^ 2
+  let major : ℝ → ℝ := fun x =>
+    2 * eta ^ 2 * (capWeight eta R x * |z x| ^ 2) +
+      2 * (capWeight eta R x * |zx x| ^ 2)
+  have hz := capWeight_frozenElliptic_value_difference_l2_bounded
+    p hM heta0 heta1 hu1 hu2 hu1_mem hu2_mem hclose
+  have hzx := capWeight_frozenElliptic_gradient_difference_l2_bounded
+    p hM heta0 heta1 hu1 hu2 hu1_mem hu2_mem hclose
+  have hmajor : Integrable major :=
+    (hz.1.const_mul (2 * eta ^ 2)).add (hzx.1.const_mul 2)
+  have hpoint : ∀ x, target x ≤ major x := by
+    intro x
+    have hw : 0 ≤ capWeight eta R x := (capWeight_pos eta R x).le
+    have hsquare : (eta * z x + zx x) ^ 2 ≤
+        2 * (eta * z x) ^ 2 + 2 * (zx x) ^ 2 := by
+      nlinarith [sq_nonneg (eta * z x - zx x)]
+    dsimp only [target, major]
+    rw [sq_abs, sq_abs, sq_abs]
+    calc
+      capWeight eta R x * (eta * z x + zx x) ^ 2 ≤
+          capWeight eta R x *
+            (2 * (eta * z x) ^ 2 + 2 * (zx x) ^ 2) :=
+        mul_le_mul_of_nonneg_left hsquare hw
+      _ = 2 * eta ^ 2 * (capWeight eta R x * z x ^ 2) +
+          2 * (capWeight eta R x * zx x ^ 2) := by ring
+  have hzcont : Continuous z :=
+    (frozenElliptic_continuous p hu2 (fun x => (hu2_mem x).1)).sub
+      (frozenElliptic_continuous p hu1 (fun x => (hu1_mem x).1))
+  have hzxcont : Continuous zx :=
+    (frozenElliptic_deriv_continuous p hu2 (fun x => (hu2_mem x).1)).sub
+      (frozenElliptic_deriv_continuous p hu1 (fun x => (hu1_mem x).1))
+  have htarget_meas : AEStronglyMeasurable target volume := by
+    dsimp only [target]
+    exact ((capWeight_continuous eta R).mul
+      (((continuous_const.mul hzcont).add hzxcont).abs.pow 2)).aestronglyMeasurable
+  have htarget : Integrable target := by
+    refine Integrable.mono' hmajor htarget_meas ?_
+    exact Eventually.of_forall fun x => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (by
+        dsimp only [target]
+        exact mul_nonneg (capWeight_pos eta R x).le (sq_nonneg _))]
+      exact hpoint x
+  refine ⟨by simpa only [target, z, zx] using htarget, ?_⟩
+  calc
+    (∫ x : ℝ, capWeight eta R x *
+        |eta * (frozenElliptic p u2 x - frozenElliptic p u1 x) +
+          (deriv (frozenElliptic p u2) x -
+            deriv (frozenElliptic p u1) x)| ^ 2) =
+        ∫ x : ℝ, target x := by rfl
+    _ ≤ ∫ x : ℝ, major x := integral_mono htarget hmajor hpoint
+    _ = 2 * eta ^ 2 *
+          (∫ x : ℝ, capWeight eta R x * |z x| ^ 2) +
+        2 * (∫ x : ℝ, capWeight eta R x * |zx x| ^ 2) := by
+      dsimp only [major]
+      rw [integral_add (hz.1.const_mul (2 * eta ^ 2))
+          (hzx.1.const_mul 2), integral_const_mul, integral_const_mul]
+    _ ≤ 2 * eta ^ 2 * (K ^ 2 *
+          ∫ x : ℝ, capWeight eta R x * |u2 x - u1 x| ^ 2) +
+        2 * (K ^ 2 *
+          ∫ x : ℝ, capWeight eta R x * |u2 x - u1 x| ^ 2) := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left (by simpa only [K, z] using hz.2)
+          (by positivity))
+        (mul_le_mul_of_nonneg_left (by simpa only [K, zx] using hzx.2)
+          (by norm_num))
+    _ = 2 * (eta ^ 2 + 1) *
+          ((1 / (1 - eta)) * (p.γ * M ^ (p.γ - 1))) ^ 2 *
+            ∫ x : ℝ, capWeight eta R x * |u2 x - u1 x| ^ 2 := by
+      dsimp only [K]
+      ring
+
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.weighted_resolver_value_of_ratio_bound
 #print axioms
   ShenWork.Paper1.capWeight_frozenElliptic_value_difference_l2_bounded
+#print axioms
+  ShenWork.Paper1.capWeight_frozenElliptic_rawSignalX_difference_l2_bounded
