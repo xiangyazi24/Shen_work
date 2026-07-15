@@ -671,6 +671,7 @@ import ShenWork.Paper1.WholeLineWeightedRegularityMild
 import ShenWork.Paper1.WholeLineWeightedRegularityBUCTimeHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityConjugation
 import ShenWork.Paper1.WholeLineWeightedRegularityTime
+import ShenWork.Paper1.WholeLineWeightedRegularityTimeClosure
 import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
 import ShenWork.Paper1.WholeLineWeightedRegularityL2History
 import ShenWork.Paper1.WholeLineWeightedRegularityFluxDerivative
