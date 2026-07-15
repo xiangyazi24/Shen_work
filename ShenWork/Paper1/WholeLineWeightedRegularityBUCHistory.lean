@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityL2History
 import ShenWork.Paper1.WholeLineWeightedRegularityDQSources
+import Mathlib.Topology.Hom.ContinuousEval
 
 open Filter Topology MeasureTheory Set
 open scoped BoundedContinuousFunction Interval
@@ -398,6 +399,87 @@ theorem wholeLineRealL2Section_Iio_totalized_intervalIntegrable_of_majorant
     split_ifs with hst
     · exact hmajor s hs hst
     · simpa using hq_nonneg s hs
+
+/-- A Bochner-integrable BUC history is jointly locally integrable after
+spatial restriction to any finite-measure set.  This is the concrete
+product-integrability input needed by the canonical `L²` Fubini bridge. -/
+theorem wholeLineBUCHistory_local_prod_integrable
+    {μ : Measure ℝ} [SFinite μ]
+    {F : ℝ → WholeLineBUC}
+    (hFmeas : AEStronglyMeasurable F μ)
+    (hFnorm : Integrable (fun s => ‖F s‖) μ)
+    (A : Set ℝ) (hA : MeasurableSet A)
+    (hAfin : (volume : Measure ℝ) A < ⊤) :
+    Integrable
+      (fun z : ℝ × ℝ => A.indicator (F z.1).1 z.2)
+      (μ.prod volume) := by
+  let S : Set (ℝ × ℝ) := Prod.snd ⁻¹' A
+  let raw : ℝ × ℝ → ℝ := fun z => (F z.1).1 z.2
+  have hraw : AEStronglyMeasurable raw (μ.prod volume) := by
+    have hamb : AEStronglyMeasurable
+        (fun z : ℝ × ℝ => (F z.1).1) (μ.prod volume) :=
+      wholeLineBUCSubmodule.subtypeL.continuous.comp_aestronglyMeasurable
+        hFmeas.comp_fst
+    exact continuous_eval.comp_aestronglyMeasurable
+      (hamb.prodMk measurable_snd.aestronglyMeasurable)
+  have hS : MeasurableSet S := hA.preimage measurable_snd
+  have htarget : AEStronglyMeasurable
+      (fun z : ℝ × ℝ => A.indicator (F z.1).1 z.2)
+      (μ.prod volume) := by
+    have hi := hraw.indicator hS
+    refine hi.congr (Eventually.of_forall fun z => ?_)
+    by_cases hz : z.2 ∈ A
+    · simp [S, raw, hz]
+    · simp [S, raw, hz]
+  let oneA : ℝ → ℝ := A.indicator (fun _ => (1 : ℝ))
+  have honeA : Integrable oneA volume := by
+    exact (integrableOn_const hAfin.ne).integrable_indicator hA
+  have hmajor : Integrable
+      (fun z : ℝ × ℝ => ‖F z.1‖ * oneA z.2)
+      (μ.prod volume) := hFnorm.mul_prod honeA
+  refine Integrable.mono' hmajor htarget ?_
+  exact Eventually.of_forall fun z => by
+    by_cases hz : z.2 ∈ A
+    · simp only [Set.indicator_of_mem hz, oneA, Real.norm_eq_abs, mul_one]
+      exact WholeLineBUC.abs_apply_le_norm (F z.1) z.2
+    · simp [oneA, hz]
+
+/-- The Bochner integral of a canonical square-integrable BUC history has
+the expected pointwise representative.  Only BUC-history integrability and
+slice `L²` membership are used; no global spatial `L¹` assumption appears. -/
+theorem wholeLineRealL2_intervalIntegral_coe_ae_of_buc_history
+    {a b : ℝ} (hab : a ≤ b)
+    {F : ℝ → WholeLineBUC}
+    (hFmeas : AEStronglyMeasurable F
+      (volume.restrict (Set.Ioc a b)))
+    (hFnorm : Integrable (fun s => ‖F s‖)
+      (volume.restrict (Set.Ioc a b)))
+    (hF2 : ∀ s, Integrable (fun x : ℝ => (F s).1 x ^ 2) volume)
+    (hZint : IntervalIntegrable
+      (wholeLineRealL2Section
+        (fun s x => (F s).1 x)
+        (fun s => (F s).1.continuous.aestronglyMeasurable)
+        hF2) volume a b) :
+    ((((∫ s in a..b, wholeLineRealL2Section
+        (fun s x => (F s).1 x)
+        (fun s => (F s).1.continuous.aestronglyMeasurable)
+        hF2 s) : WholeLineRealL2) : ℝ → ℝ)
+      =ᵐ[volume] fun x => ∫ s in a..b, (F s).1 x) := by
+  apply wholeLineRealL2_intervalIntegral_coe_ae_of_local_prod_integrable
+    hab hZint
+  · exact Eventually.of_forall fun s =>
+      wholeLineRealL2Section_coe_ae
+        (fun s x => (F s).1 x)
+        (fun s => (F s).1.continuous.aestronglyMeasurable)
+        hF2 s
+  · intro A hA hAfin
+    exact wholeLineBUCHistory_local_prod_integrable
+      hFmeas hFnorm A hA hAfin
+
+
+#print axioms ShenWork.Paper1.wholeLineBUCHistory_local_prod_integrable
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2_intervalIntegral_coe_ae_of_buc_history
 
 #print axioms
   wholeLineRealL2Section_aestronglyMeasurableOn_Iio_of_continuousOn_buc
