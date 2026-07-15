@@ -9,6 +9,7 @@ import Mathlib.Analysis.Normed.Lp.SmoothApprox
 
 open Filter MeasureTheory Set Topology
 open scoped RealInnerProductSpace
+open scoped Nat NNReal ContDiff
 
 noncomputable section
 
@@ -713,7 +714,7 @@ compactly-supported representative. -/
 theorem weightedMovingHeatL2Semigroup_tendsto_zero_of_smoothCompactRep
     {eta c : ℝ} (Z : WholeLineRealL2) {g : ℝ → ℝ}
     (hrep : (Z : ℝ → ℝ) =ᵐ[volume] g)
-    (hcompact : HasCompactSupport g) (hsmooth : ContDiff ℝ ⊤ g) :
+    (hcompact : HasCompactSupport g) (hsmooth : ContDiff ℝ ∞ g) :
     Tendsto (fun t : ℝ => weightedMovingHeatL2Semigroup eta c t Z)
       (nhdsWithin 0 (Ioi 0)) (nhds Z) := by
   obtain ⟨C, hC⟩ :=
@@ -732,6 +733,88 @@ theorem weightedMovingHeatL2Semigroup_tendsto_zero_of_smoothCompactRep
       hsmooth.continuous.integrable_of_hasCompactSupport hcompact
   exact weightedMovingHeatL2Semigroup_tendsto_zero_of_bucRep
     Z gBUC hrepBUC hgBUC hgInt
+
+/-- Strong continuity at time zero on all of whole-line `L²`.  The proof
+extends the smooth compact-support core result using the locally uniform
+operator bound. -/
+theorem weightedMovingHeatL2Semigroup_tendsto_zero
+    (eta c : ℝ) (Z : WholeLineRealL2) :
+    Tendsto (fun t : ℝ => weightedMovingHeatL2Semigroup eta c t Z)
+      (nhdsWithin 0 (Ioi 0)) (nhds Z) := by
+  let M : ℝ := Real.exp |eta ^ 2 - c * eta|
+  have hM : 0 < M := by
+    dsimp [M]
+    positivity
+  have hgrowth_le : ∀ {t : ℝ}, 0 < t → t < 1 →
+      weightedMovingHeatGrowth eta c t ≤ M := by
+    intro t ht ht1
+    unfold weightedMovingHeatGrowth
+    dsimp [M]
+    apply Real.exp_le_exp.mpr
+    calc
+      (eta ^ 2 - c * eta) * t ≤ |(eta ^ 2 - c * eta) * t| :=
+        le_abs_self _
+      _ = |eta ^ 2 - c * eta| * t := by rw [abs_mul, abs_of_pos ht]
+      _ ≤ |eta ^ 2 - c * eta| * 1 :=
+        mul_le_mul_of_nonneg_left ht1.le (abs_nonneg _)
+      _ = |eta ^ 2 - c * eta| := mul_one _
+  rw [Metric.tendsto_nhds]
+  intro eps heps
+  let delta : ℝ := eps / (4 * (M + 1))
+  have hdelta : 0 < delta := by
+    dsimp [delta]
+    positivity
+  have hdense := MeasureTheory.Lp.dense_hasCompactSupport_contDiff
+    (F := ℝ) (E := ℝ) (μ := (volume : Measure ℝ)) (p := 2)
+    (by norm_num)
+  obtain ⟨G, hGmem, hZG⟩ := hdense.exists_dist_lt Z hdelta
+  rcases hGmem with ⟨g, hGrep, hgCompact, hgSmooth⟩
+  have hGtend :=
+    weightedMovingHeatL2Semigroup_tendsto_zero_of_smoothCompactRep
+      (eta := eta) (c := c) G hGrep hgCompact hgSmooth
+  have hGevent : ∀ᶠ t in nhdsWithin 0 (Ioi 0),
+      dist (weightedMovingHeatL2Semigroup eta c t G) G < eps / 2 :=
+    (Metric.tendsto_nhds.1 hGtend) (eps / 2) (half_pos heps)
+  have htlt : ∀ᶠ t : ℝ in nhdsWithin (0 : ℝ) (Ioi 0), t < (1 : ℝ) :=
+    mem_nhdsWithin_of_mem_nhds (Iio_mem_nhds (by norm_num : (0 : ℝ) < 1))
+  filter_upwards [self_mem_nhdsWithin, htlt, hGevent] with t ht ht1 hcore
+  have hop : ‖weightedMovingHeatL2Semigroup eta c t‖ ≤ M :=
+    (weightedMovingHeatL2Semigroup_norm_le_of_pos ht).trans
+      (hgrowth_le ht ht1)
+  have hmap : dist
+      (weightedMovingHeatL2Semigroup eta c t Z)
+      (weightedMovingHeatL2Semigroup eta c t G) ≤ M * dist Z G := by
+    exact ((weightedMovingHeatL2Semigroup eta c t).dist_le_opNorm Z G).trans
+      (mul_le_mul_of_nonneg_right hop dist_nonneg)
+  have hdeltaEq : (M + 1) * delta = eps / 4 := by
+    dsimp [delta]
+    field_simp
+  have htail : M * dist Z G + dist G Z < eps / 4 := by
+    rw [dist_comm G Z]
+    calc
+      M * dist Z G + dist Z G = (M + 1) * dist Z G := by ring
+      _ < (M + 1) * delta :=
+        mul_lt_mul_of_pos_left hZG (add_pos_of_pos_of_nonneg hM zero_le_one)
+      _ = eps / 4 := hdeltaEq
+  calc
+    dist (weightedMovingHeatL2Semigroup eta c t Z) Z ≤
+        dist (weightedMovingHeatL2Semigroup eta c t Z)
+            (weightedMovingHeatL2Semigroup eta c t G) +
+          dist (weightedMovingHeatL2Semigroup eta c t G) G + dist G Z := by
+      calc
+        _ ≤ dist (weightedMovingHeatL2Semigroup eta c t Z)
+              (weightedMovingHeatL2Semigroup eta c t G) +
+            dist (weightedMovingHeatL2Semigroup eta c t G) Z :=
+          dist_triangle _ _ _
+        _ ≤ dist (weightedMovingHeatL2Semigroup eta c t Z)
+              (weightedMovingHeatL2Semigroup eta c t G) +
+            (dist (weightedMovingHeatL2Semigroup eta c t G) G +
+              dist G Z) := add_le_add le_rfl (dist_triangle _ _ _)
+        _ = _ := by ring
+    _ ≤ M * dist Z G +
+        dist (weightedMovingHeatL2Semigroup eta c t G) G + dist G Z := by
+      gcongr
+    _ < eps := by linarith
 
 /-! ## A reusable signed-kernel `L²` operator -/
 
