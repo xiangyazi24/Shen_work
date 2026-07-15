@@ -1913,6 +1913,102 @@ theorem wholeLineDriftValueHistory_hasDerivAt_of_dominated
     exact wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
       (sub_pos.mpr hslt) (hF_slice_meas s hsI) (hF_bound s hsI)
 
+/-- Transfer the gradient from the Gaussian to a classical source at every
+positive lag in a Duhamel history.  The terminal lag is discarded as a
+single null time. -/
+theorem wholeLineDriftGradientHistory_eq_valueHistory_deriv
+    {a b d x C D : ℝ} {Q Qx : ℝ → ℝ → ℝ}
+    (hab : a < b)
+    (hQ : ∀ s ∈ Set.Ioc a b, ∀ y, |Q s y| ≤ C)
+    (hQx : ∀ s ∈ Set.Ioc a b, ∀ y, |Qx s y| ≤ D)
+    (hQderiv : ∀ s ∈ Set.Ioc a b, ∀ y,
+      HasDerivAt (Q s) (Qx s y) y)
+    (hQx_cont : ∀ s ∈ Set.Ioc a b, Continuous (Qx s)) :
+    wholeLineDriftGradientHistory d a b Q x =
+      wholeLineDriftValueHistory d a b Qx x := by
+  unfold wholeLineDriftGradientHistory wholeLineDriftValueHistory
+  apply intervalIntegral.integral_congr_ae
+  filter_upwards [Measure.ae_ne volume b] with s hsb hsI
+  rw [Set.uIoc_of_le hab.le] at hsI
+  have hslt : s < b := lt_of_le_of_ne hsI.2 hsb
+  have hderiv_fun : deriv (Q s) = Qx s := by
+    funext y
+    exact (hQderiv s hsI y).deriv
+  rw [← hderiv_fun]
+  exact wholeLineDriftHeatGradOp_eq_heatOp_deriv
+      (sub_pos.mpr hslt) (hQ s hsI)
+      (fun y => by rw [hderiv_fun]; exact hQx s hsI y)
+      (fun y => by simpa [hderiv_fun] using hQderiv s hsI y)
+      (by simpa [hderiv_fun] using hQx_cont s hsI)
+
+/-- Exact spatially differentiated split restart.  The chemotactic leg is
+written with its source derivative under the value semigroup, whereas the
+reaction leg keeps the integrable heat-gradient singularity. -/
+theorem wholeLineDrift_split_restart_spatial_identity
+    {a b d x CWa DWa CQ DQ : ℝ}
+    {Wb Wa Wax : ℝ → ℝ}
+    {Q Qx R : ℝ → ℝ → ℝ}
+    (hab : a < b)
+    (hrestart : ∀ z,
+      Wb z = wholeLineDriftHeatOp d (b - a) Wa z +
+        wholeLineDriftValueHistory d a b Q z +
+        wholeLineDriftValueHistory d a b R z)
+    (hWb_deriv : HasDerivAt Wb (deriv Wb x) x)
+    (hWa : ∀ y, |Wa y| ≤ CWa)
+    (hWax : ∀ y, |Wax y| ≤ DWa)
+    (hWa_deriv : ∀ y, HasDerivAt Wa (Wax y) y)
+    (hWax_cont : Continuous Wax)
+    (hQ : ∀ s ∈ Set.Ioc a b, ∀ y, |Q s y| ≤ CQ)
+    (hQx : ∀ s ∈ Set.Ioc a b, ∀ y, |Qx s y| ≤ DQ)
+    (hQ_deriv : ∀ s ∈ Set.Ioc a b, ∀ y,
+      HasDerivAt (Q s) (Qx s y) y)
+    (hQx_cont : ∀ s ∈ Set.Ioc a b, Continuous (Qx s))
+    (hQ_history : HasDerivAt
+      (wholeLineDriftValueHistory d a b Q)
+      (wholeLineDriftGradientHistory d a b Q x) x)
+    (hR_history : HasDerivAt
+      (wholeLineDriftValueHistory d a b R)
+      (wholeLineDriftGradientHistory d a b R x) x) :
+    deriv Wb x =
+      wholeLineDriftHeatOp d (b - a) Wax x +
+        wholeLineDriftValueHistory d a b Qx x +
+        wholeLineDriftGradientHistory d a b R x := by
+  have hWa_fun : deriv Wa = Wax := by
+    funext y
+    exact (hWa_deriv y).deriv
+  have hhom_raw := wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
+    (d := d) (x := x) (sub_pos.mpr hab)
+    ((continuous_iff_continuousAt.2
+      (fun y => (hWa_deriv y).continuousAt)).aestronglyMeasurable)
+    hWa
+  have hhom : HasDerivAt
+      (fun z => wholeLineDriftHeatOp d (b - a) Wa z)
+      (wholeLineDriftHeatOp d (b - a) Wax x) x := by
+    apply hhom_raw.congr_deriv
+    rw [← hWa_fun]
+    exact wholeLineDriftHeatGradOp_eq_heatOp_deriv
+      (sub_pos.mpr hab) hWa
+        (fun y => by rw [hWa_fun]; exact hWax y)
+        (fun y => by simpa [hWa_fun] using hWa_deriv y)
+        (by simpa [hWa_fun] using hWax_cont)
+  have hright := (hhom.add hQ_history).add hR_history
+  have hfun : Wb = fun z =>
+      wholeLineDriftHeatOp d (b - a) Wa z +
+        wholeLineDriftValueHistory d a b Q z +
+        wholeLineDriftValueHistory d a b R z := by
+    funext z
+    exact hrestart z
+  have hrightW : HasDerivAt Wb
+      (wholeLineDriftHeatOp d (b - a) Wax x +
+        wholeLineDriftGradientHistory d a b Q x +
+        wholeLineDriftGradientHistory d a b R x) x := by
+    rw [hfun]
+    exact hright
+  have hunique := hWb_deriv.unique hrightW
+  rw [wholeLineDriftGradientHistory_eq_valueHistory_deriv
+    hab hQ hQx hQ_deriv hQx_cont] at hunique
+  exact hunique
+
 /-- Positive-time integral realization of the pure-drift heat flow, with the
 moving observation point translated onto the input. -/
 theorem wholeLineDriftHeatOp_eq_translated_integral
@@ -2642,6 +2738,8 @@ theorem wholeLineDrift_restart_identity_of_bounded_joint
 #print axioms wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
 #print axioms wholeLineDriftHeatGradOp_eq_heatOp_deriv
 #print axioms wholeLineDriftValueHistory_hasDerivAt_of_dominated
+#print axioms wholeLineDriftGradientHistory_eq_valueHistory_deriv
+#print axioms wholeLineDrift_split_restart_spatial_identity
 #print axioms wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
 #print axioms integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
 #print axioms wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
