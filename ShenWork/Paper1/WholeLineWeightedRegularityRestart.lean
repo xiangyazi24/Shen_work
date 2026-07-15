@@ -4,6 +4,7 @@ import ShenWork.Paper1.WholeLineCauchyCanonicalRestart
 import ShenWork.Paper1.WholeLineWeightedRegularityConjugation
 import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
 import ShenWork.Paper1.WholeLineWeightedRegularityLinearSource
+import ShenWork.Paper1.Theorem12WeightedFiniteness
 
 open Filter Topology MeasureTheory Real Set
 open scoped Topology Interval
@@ -2123,6 +2124,141 @@ theorem wholeLineDriftHeatOp_eq_weightedMovingHeatEta
         rw [← mul_assoc, ← Real.exp_add]
         simp
 
+/-- The pure-drift flow is the zero-weight member of the conjugated moving
+heat family. -/
+theorem wholeLineDriftHeatOp_eq_weightedMovingHeatEta_zero
+    (d t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineDriftHeatOp d t f x =
+      weightedMovingHeatEta 0 d t f x := by
+  simpa using
+    (wholeLineDriftHeatOp_eq_weightedMovingHeatEta
+      (eta := 0) (c := d) (t := t) f x)
+
+/-- The pure-drift gradient is the zero-weight conjugated heat gradient. -/
+theorem wholeLineDriftHeatGradOp_eq_weightedMovingHeatGradientEta_zero
+    (d t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    wholeLineDriftHeatGradOp d t f x =
+      weightedMovingHeatGradientEta 0 d t f x := by
+  unfold wholeLineDriftHeatGradOp wholeLineCauchyHeatGradOp
+    weightedMovingHeatGradientEta weightedMovingHeatGrowth
+  rw [MeasureTheory.integral_const_mul, ← mul_assoc, ← Real.exp_add]
+  simp only [pow_two, zero_mul, mul_zero, sub_zero, add_neg_cancel,
+    Real.exp_zero, one_mul]
+  apply MeasureTheory.integral_congr_ae
+  filter_upwards with y
+  rw [deriv_heatKernel_translated_left_global]
+
+/-- `L2` contraction data for the undamped drift heat flow. -/
+theorem wholeLineDriftHeatOp_l2_data
+    {d t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_meas : Measurable f)
+    (hf_sq : Integrable (fun y => f y ^ 2)) :
+    Integrable (fun x => wholeLineDriftHeatOp d t f x ^ 2) ∧
+      (∫ x : ℝ, wholeLineDriftHeatOp d t f x ^ 2) ≤
+        ∫ y : ℝ, f y ^ 2 := by
+  have hbase := weighted_moving_heat_L2eta_bounded
+    (eta := 0) (c := d) ht hf_meas hf_sq
+  simpa [wholeLineDriftHeatOp_eq_weightedMovingHeatEta_zero,
+    weightedMovingHeatGrowth] using hbase
+
+/-- `L2` smoothing data for the spatial gradient of the undamped drift heat
+flow. -/
+theorem wholeLineDriftHeatGradOp_l2_data
+    {d t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_meas : Measurable f)
+    (hf_sq : Integrable (fun y => f y ^ 2)) :
+    Integrable (fun x => wholeLineDriftHeatGradOp d t f x ^ 2) ∧
+      (∫ x : ℝ, wholeLineDriftHeatGradOp d t f x ^ 2) ≤
+        (1 / Real.sqrt (Real.pi * t)) ^ 2 *
+          ∫ y : ℝ, f y ^ 2 := by
+  have hbase := weighted_moving_heat_gradient_L2eta_bounded
+    (eta := 0) (c := d) ht hf_meas hf_sq
+  simpa [wholeLineDriftHeatGradOp_eq_weightedMovingHeatGradientEta_zero,
+    weightedMovingHeatGrowth] using hbase
+
+/-- Strong measurability of a pure-drift heat slice. -/
+theorem wholeLineDriftHeatOp_aestronglyMeasurable
+    (d t : ℝ) {f : ℝ → ℝ} (hf_meas : Measurable f) :
+    AEStronglyMeasurable (wholeLineDriftHeatOp d t f) volume := by
+  have hstrong : StronglyMeasurable (weightedMovingHeatEta 0 d t f) := by
+    unfold weightedMovingHeatEta
+    apply StronglyMeasurable.const_mul
+    apply StronglyMeasurable.integral_prod_right
+    exact ((weightedMovingHeatMarkovKernel_measurable 0 d t).mul
+      (hf_meas.comp measurable_snd)).stronglyMeasurable
+  refine hstrong.aestronglyMeasurable.congr ?_
+  filter_upwards with x
+  exact (wholeLineDriftHeatOp_eq_weightedMovingHeatEta_zero d t f x).symm
+
+/-- Strong measurability of a positive-time pure-drift heat-gradient slice. -/
+theorem wholeLineDriftHeatGradOp_aestronglyMeasurable
+    {d t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf_meas : Measurable f) :
+    AEStronglyMeasurable (wholeLineDriftHeatGradOp d t f) volume := by
+  have hderiv_meas : Measurable (Function.uncurry (fun x y =>
+      deriv (fun z : ℝ => heatKernel t z)
+        (x + (d - 2 * 0) * t - y))) := by
+    unfold Function.uncurry
+    simp_rw [deriv_heatKernel ht]
+    unfold heatKernel
+    fun_prop
+  have hstrong : StronglyMeasurable
+      (weightedMovingHeatGradientEta 0 d t f) := by
+    unfold weightedMovingHeatGradientEta
+    apply stronglyMeasurable_const.mul
+    apply StronglyMeasurable.integral_prod_right
+    exact (hderiv_meas.mul
+      (hf_meas.comp measurable_snd)).stronglyMeasurable
+  refine hstrong.aestronglyMeasurable.congr ?_
+  filter_upwards with x
+  exact (wholeLineDriftHeatGradOp_eq_weightedMovingHeatGradientEta_zero
+    d t f x).symm
+
+/-- Honest `L2` representative and norm bound for a pure-drift heat slice. -/
+theorem exists_wholeLineDriftHeatOpL2
+    {d t B : ℝ} (ht : 0 < t) (hB : 0 ≤ B) {f : ℝ → ℝ}
+    (hf_meas : Measurable f)
+    (hf_sq : Integrable (fun y => f y ^ 2))
+    (henergy : (∫ y : ℝ, f y ^ 2) ≤ B ^ 2) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] wholeLineDriftHeatOp d t f) ∧
+        ‖Z‖ ≤ B := by
+  have hout := wholeLineDriftHeatOp_l2_data (d := d) ht hf_meas hf_sq
+  have hout_meas := wholeLineDriftHeatOp_aestronglyMeasurable d t hf_meas
+  let Z := wholeLineRealL2OfSqIntegrable
+    (wholeLineDriftHeatOp d t f) hout_meas hout.1
+  refine ⟨Z, wholeLineRealL2OfSqIntegrable_coe_ae _ _ _, ?_⟩
+  have hnorm := wholeLineRealL2OfSqIntegrable_norm_sq
+    (wholeLineDriftHeatOp d t f) hout_meas hout.1
+  nlinarith [norm_nonneg Z]
+
+/-- Honest `L2` representative and inverse-square-root norm bound for a
+pure-drift heat-gradient slice. -/
+theorem exists_wholeLineDriftHeatGradOpL2
+    {d t B : ℝ} (ht : 0 < t) (hB : 0 ≤ B) {f : ℝ → ℝ}
+    (hf_meas : Measurable f)
+    (hf_sq : Integrable (fun y => f y ^ 2))
+    (henergy : (∫ y : ℝ, f y ^ 2) ≤ B ^ 2) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] wholeLineDriftHeatGradOp d t f) ∧
+        ‖Z‖ ≤ (1 / Real.sqrt (Real.pi * t)) * B := by
+  have hout := wholeLineDriftHeatGradOp_l2_data (d := d) ht hf_meas hf_sq
+  have hout_meas := wholeLineDriftHeatGradOp_aestronglyMeasurable
+    (d := d) ht hf_meas
+  let Z := wholeLineRealL2OfSqIntegrable
+    (wholeLineDriftHeatGradOp d t f) hout_meas hout.1
+  refine ⟨Z, wholeLineRealL2OfSqIntegrable_coe_ae _ _ _, ?_⟩
+  have hnorm := wholeLineRealL2OfSqIntegrable_norm_sq
+    (wholeLineDriftHeatGradOp d t f) hout_meas hout.1
+  have hfactor : 0 ≤ (1 / Real.sqrt (Real.pi * t)) * B := by positivity
+  apply (sq_le_sq₀ (norm_nonneg Z) hfactor).mp
+  rw [hnorm]
+  calc
+    ∫ x : ℝ, wholeLineDriftHeatGradOp d t f x ^ 2 ≤
+        (1 / Real.sqrt (Real.pi * t)) ^ 2 * ∫ y : ℝ, f y ^ 2 := hout.2
+    _ ≤ (1 / Real.sqrt (Real.pi * t)) ^ 2 * B ^ 2 :=
+      mul_le_mul_of_nonneg_left henergy (sq_nonneg _)
+    _ = ((1 / Real.sqrt (Real.pi * t)) * B) ^ 2 := by ring
+
 /-- A varying-datum contraction converges whenever its fixed-datum orbit
 and the datum itself converge. -/
 theorem metric_tendsto_varying_of_contraction
@@ -2813,6 +2949,12 @@ theorem wholeLineDrift_restart_identity_of_bounded_joint
 #print axioms weighted_travelingWave_divergence_conjugation
 #print axioms wholeLineDriftHeatOp_eq_translated_integral
 #print axioms wholeLineDriftHeatOp_eq_weightedMovingHeatEta
+#print axioms wholeLineDriftHeatOp_l2_data
+#print axioms wholeLineDriftHeatGradOp_l2_data
+#print axioms wholeLineDriftHeatOp_aestronglyMeasurable
+#print axioms wholeLineDriftHeatGradOp_aestronglyMeasurable
+#print axioms exists_wholeLineDriftHeatOpL2
+#print axioms exists_wholeLineDriftHeatGradOpL2
 #print axioms wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
 #print axioms wholeLineDriftHeatGradOp_eq_heatOp_deriv
 #print axioms wholeLineDriftValueHistory_hasDerivAt_of_dominated
