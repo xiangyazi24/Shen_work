@@ -661,3 +661,23 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   completeness audit confirms it. Tactical surface closed; opening a new frontier (Henry-class infra /
   χ>0 collaboration / release) is a doctrine-level strategic decision = Xiang's call.
 - Not refilling ChatGPT tabs: no gap to fill; manufacturing questions = the busywork Q5060 warns against.
+
+### 2026-07-15 (resumed) — GREEN-TREE GAP CLOSED: root aggregate now covers all 5 headlines
+- Session interrupted mid full-tree fidelity audit; resumed. First: /tmp/zinan_handoff_shen.md was a
+  MISFILED flt-session handoff (project: flt) — anti-hijack check caught it, renamed to
+  zinan_handoff_flt_MISFILED_20260715.md, NOT executed (flt window zinan:9 alive with Xiang correcting it).
+- Harvested cron-window warm Codex audit (1h10m): root lake build green 9624 jobs BUT ShenWork.lean
+  did not import ShenWork.Paper1.Proposition12NegativeBranch + ShenWork.Paper2.IntervalDomainMChiNonposHeadline
+  → their .oleans absent from root closure (green-module ≠ green-tree, exactly the skipped check).
+  Explicit module builds + all 5 headline axiom prints were clean-3.
+- FIX d24d0837: added the 2 imports to ShenWork.lean (they transitively pull WholeLineCauchyLongTimeFloor
+  + IntervalDomainMChiNonposGeneral, so all 4 new modules enter the root closure). Pushed.
+- VERIFIED on uisai2 /dev/shm/lean/Shen_work-fullverify: root build green 9631 jobs (+7 vs before, the
+  new modules), and all 5 headlines print [propext, Classical.choice, Quot.sound] THROUGH `import ShenWork`
+  (root-closure gate, not per-module). Release/fidelity audit item CLOSED.
+- INFRA NOTE (for future verifies): fullverify clone's git origin = uisai2-local ~/repos/Shen_work whose
+  main is ahead 6 / behind 944 vs GitHub (stale since 07-10; the 6 local commits are already safe on
+  origin/codex/integrate). The fullverify WORKING TREE is rsync-staged from mini — `git pull` there is a
+  NO-OP for syncing. Ship changes by rsync/scp, never trust its git metadata.
+- Run state: exhaustion verdict (Q5060) stands; with the fidelity audit closed, ALL avenues have terminal
+  verdicts. New frontier = doctrine-level strategic call (Xiang).
