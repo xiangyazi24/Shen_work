@@ -71,8 +71,35 @@ theorem exists_capWeightedMovingHeatGradient_truncatedReactionL2
   dsimp only [L]
   ring
 
+/-- Generic three-leg assembly for a cap-weighted gradient Duhamel map.  The
+homogeneous, chemotactic, and reaction gradient representatives are kept
+separate so each can be supplied by its own Schur estimate. -/
+theorem exists_capWeightedGradientDuhamelSumL2
+    {t A : ℝ} (ht : 0 ≤ t)
+    (Z₀ : WholeLineRealL2) (ZG ZR : ℝ → WholeLineRealL2)
+    (f₀ fG fR gG gR : ℝ → ℝ)
+    (hZG_int : IntervalIntegrable ZG volume 0 t)
+    (hZR_int : IntervalIntegrable ZR volume 0 t)
+    (hgG_int : IntervalIntegrable gG volume 0 t)
+    (hgR_int : IntervalIntegrable gR volume 0 t)
+    (hZ₀ : ‖Z₀‖ ≤ A)
+    (hZG : ∀ s ∈ Set.Icc (0 : ℝ) t, ‖ZG s‖ ≤ gG s)
+    (hZR : ∀ s ∈ Set.Icc (0 : ℝ) t, ‖ZR s‖ ≤ gR s)
+    (hZ₀_rep : ((Z₀ : ℝ → ℝ) =ᵐ[volume] f₀))
+    (hZG_rep : (((∫ s in (0 : ℝ)..t, ZG s) : WholeLineRealL2) : ℝ → ℝ)
+      =ᵐ[volume] fG)
+    (hZR_rep : (((∫ s in (0 : ℝ)..t, ZR s) : WholeLineRealL2) : ℝ → ℝ)
+      =ᵐ[volume] fR) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] fun x => f₀ x + fG x + fR x) ∧
+      ‖Z‖ ≤ A + ∫ s in (0 : ℝ)..t, (gG s + gR s) := by
+  exact capWeightedMild_oneStep_l2_of_history ht Z₀ ZG ZR
+    f₀ fG fR gG gR hZG_int hZR_int hgG_int hgR_int hZ₀ hZG hZR
+    hZ₀_rep hZG_rep hZR_rep
+
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
+#print axioms exists_capWeightedGradientDuhamelSumL2
 end AxiomAudit
 
 end ShenWork.Paper1
