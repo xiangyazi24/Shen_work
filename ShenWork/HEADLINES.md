@@ -1,3 +1,30 @@
+# ⚠️ 2026-07-15 SIGNATURE-LEVEL SNAPSHOT (supersedes the 06-15 matrix below; verified by reading proving-theorem signatures, 3 parallel surveyors)
+
+**57 headline defs total** (P1:14, P2:18, P3:25). Repo 0 sorry / 0 custom axiom throughout — status below is about CONDITIONALITY, not sorries.
+
+| status | count | items |
+|---|---|---|
+| ✅ UNCONDITIONAL | 14 | P1: Lem2.5, Lem2.5J, Lem5.3, **Thm1.1(双支非空)** · P2: Prop2.1–2.5, Lem3.1, **Thm1.1(χ₀≤0双支+m≥1 global)** · P3: Prop1.4, Lem3.1, Prop1.2(logistic a,b>0 slice) |
+| 🌗 BRANCH-ONLY | 4 | P1 Prop1.1(χ≤0✓/χ>0✗), P1 Prop1.2(χ≤0✓但 datum 强于 def—见下), P2 Thm1.3(χ₀≤0 all m≥1✓/χ₀>0 strong-logistic✗), P3 Thm2.2(线性二分✓/非线性半✗) |
+| 🟡 CONDITIONAL(真 frontier) | 26 | P1: Lem5.1, Lem5.2(+explicit), Thm1.2, Thm1.3 · P2: Lem2.6, Cor2.1, Lem4.1, Prop1.1, Thm1.2(仅剩0<m<1残支; m=1 critical 支无条件) · P3: Prop1.3, Thm2.1+parts1–4, Thm2.3/2.4/2.5, Lem3.2, Lem3.4, LemA.2/A.3/A.4, LemA.7/A.8 |
+| 🔴 TAUTOLOGY-only | 6 | P2 Lem2.7 · P3 Lem3.3, Lem3.5, Cor5.1, Lem7.1, LemA.1 |
+| ⛔ 无非空证明(仅 impostor/nonsharp) | 4 | P2 Lem2.1–2.4(≡0 impostor + nonsharp 变体; 且有 obstruction 定理证 exp-decay 因子对当前 semigroup data 不可达) |
+| ❌ DISPROVED as stated | 3 | P1 Lem2.1(∀S 形式已证伪), P1 Lem4.1, P1 Lem4.2(not_Lemma_4_1/4_2 已提交) |
+
+**Frontier 聚类**（26 conditional 收敛到 ~8 个共享 frontier）:
+1. P2 Lem2.1–2.4 semigroup 衰减估计(喂 P3 LemA.2–A.4) — 有 statement-level obstruction，先修陈述
+2. P1 §5 stability 包 Paper1MainlineExistence(energy dissipation + L²→uniform + Cauchy unique) → Thm1.2/1.3 — Q5060 判 imported [39] Henry 级
+3. P1 χ>0 正支(Prop1.1/1.2 positive branch) — Xiang lane
+4. P1 wave 单调性(Lem5.2 crux) + Lem5.1 的 5 个 frontier fields
+5. P2 局部适定引擎(Prop1.1: hlocal+blow-up alternative = brick-1 深水区)
+6. P2 Thm1.2 slow 残支 0<m<1 — paper 本身 open
+7. P3 persistence frontiers(§4.1 compactness+strong-max) → Thm2.1 全家; contactSmallCeiling 关的是 intervalDomainM 上的 _corrected 变体，headline part1 未接线
+8. P3 nonlinear stability/sectorial(exp-upgrade+global) → Thm2.2 非线性半+2.3–2.5+Cor5.1
+
+**已知 caveat**: P1 Prop1.2 negative branch 定理要求 PaperNonnegativeInitialDatum，但 def 负支只给弱的 NonnegativeInitialDatum——standalone 定理插不进 def 原文（待决：改 def 或降 datum）。
+
+---
+
 # Shen_work — HEADLINE THEOREM 清单 (authoritative 按图索骥 map, 2026-06-15)
 
 Chen–Ruau–Shen TRILOGY on one chemotaxis-growth system. Models: `CMParams` (traveling waves, Paper1);
