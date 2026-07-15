@@ -582,3 +582,20 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   general-m = the one live mine-and-open residual (Codex A r2 + shen1/shen2 audits, complementary
   split). Remaining non-mine: χ>0 (Xiang), Henry hcore + Prop1.2 uniqueness (imported infra),
   0<m<1 floor-loss (open in paper).
+
+### 2026-07-15 02:15 — AVENUE CLOSED: Paper 2 Thm 1.3 χ₀≤0 general-m (m≥1)
+- Theorem_1_3_intervalDomainM_chiNonpos_m_ge_one + globalSolution_chiNonpos_m_ge_one clean-3
+  @ 05c51b8d. Faithful Neumann max-point route on intervalDomainM (NOT the legacy m=1 bridge).
+- TWO-WAY AUDIT CONVERGENCE: ChatGPT Q5056 independently diagnosed the exact route (the m=1 proof
+  routes through classicalSolution_intervalDomain_of_m_eq_one which can't exist for m>1; need a
+  faithful general-m Neumann max-point slope theorem, endpoints the crux) — Codex A r2's
+  implementation landed exactly that (max_point_slope_bound_M). My spec appendix's "generalize the
+  m=1 chain" framing was corrected by the audit; Codex found the faithful route regardless.
+- Codex A first dispatch died (API); r2 clean re-dispatch succeeded. INDEPENDENTLY VERIFIED on own
+  staging (8777-job build + own axiom gate), not Codex self-report. Constraint note: Codex added a
+  new theorem + 2 elaboration-preserving edits to existing Lemma31.lean; verified harmless.
+- Remaining Paper 2 residual: 0<m<1 finite-time floor-loss — OPEN IN THE PAPER (Q5042), named
+  hypothesis, not ours to close.
+- BOARD after this: Prop 1.2(1) χ≤0 closed+wired; Paper 3 complete; Paper 2 χ≤0 now general-m
+  complete (0<m<1 open-in-paper). Live-and-mine open avenues ~exhausted; remaining = χ>0 (Xiang),
+  Henry hcore + Prop1.2 uniqueness (imported infra), 0<m<1 (open in paper).
