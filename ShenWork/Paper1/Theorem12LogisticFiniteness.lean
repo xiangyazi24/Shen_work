@@ -173,6 +173,22 @@ theorem weighted_integrable_of_uniform_capWeight_bound
     rw [ofReal_integral_eq_lintegral_ofReal hInt (Filter.Eventually.of_forall hG0)]; exact hli
   exact (ENNReal.ofReal_le_ofReal_iff hK0).mp hle
 
+/-- `capWeight`-truncated integral of a nonnegative field is bounded by its full
+exponential-weighted integral, uniformly in `R` (`capWeight ≤ e^{2ηz}`).  This bounds
+`E_n(0)` by the initial closeness `E0`, the `R`-independent Grönwall input for step D. -/
+theorem capWeight_integral_le_full {η R : ℝ} {f : ℝ → ℝ}
+    (hf : ∀ z, 0 ≤ f z) (hfmeas : AEStronglyMeasurable f volume)
+    (hfull : Integrable (fun z => Real.exp (2 * η * z) * f z)) :
+    ∫ z, capWeight η R z * f z ≤ ∫ z, Real.exp (2 * η * z) * f z := by
+  have hcapint : Integrable (fun z => capWeight η R z * f z) := by
+    refine hfull.mono' ((capWeight_continuous η R).aestronglyMeasurable.mul hfmeas) ?_
+    filter_upwards with z
+    rw [Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg (capWeight_nonneg η R z) (hf z))]
+    exact mul_le_mul_of_nonneg_right (capWeight_le_full η R z) (hf z)
+  exact integral_mono hcapint hfull
+    (fun z => mul_le_mul_of_nonneg_right (capWeight_le_full η R z) (hf z))
+
 section Theorem12LogisticFinitenessAxiomAudit
 
 #print axioms capWeight_pos
@@ -184,6 +200,7 @@ section Theorem12LogisticFinitenessAxiomAudit
 #print axioms capWeight_tendsto_full
 #print axioms capWeight_continuous
 #print axioms weighted_integrable_of_uniform_capWeight_bound
+#print axioms capWeight_integral_le_full
 
 end Theorem12LogisticFinitenessAxiomAudit
 
