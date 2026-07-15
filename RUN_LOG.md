@@ -681,3 +681,12 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   NO-OP for syncing. Ship changes by rsync/scp, never trust its git metadata.
 - Run state: exhaustion verdict (Q5060) stands; with the fidelity audit closed, ALL avenues have terminal
   verdicts. New frontier = doctrine-level strategic call (Xiang).
+
+### 2026-07-15 (dispatch) — 三线分工开跑（Xiang 指令）
+- 最难山 → 新持久 Fable fork：P1 Thm1.2/1.3 Henry 级 §5 包（Paper1MainlineExistence 五字段 +
+  Lem5.1/5.2 frontier）+ 热身（Prop1.2 datum def 对齐 paper）。领地 ShenWork/Paper1/** 独占。
+- Paper 2 → zinan:6 warm Codex（续昨晚上下文）：Task A = Prop 1.1 finite-horizon alternative
+  frontier（Q5042 路线）；Task B = Lem2.1–2.4 修正 sharp 陈述（新文件）+ 顺手 P3 A.2–A.4。
+  领地 ShenWork/Paper2/** 独占。dispatch 时踩了 tmux-send-prompt.sh 残留 mktemp 字面量文件的坑，清除后正常。
+- Paper 3 → 我自己（不空等）：(a) paper 核对 P3 Thm2.2–2.4 closer 的 m=1 gate 与 Prop1.2 minimal
+  slice 是否 paper 本来的 regime；(b) A.7/A.8 阈值序不等式；(c) Prop1.2 minimal slice 可行性。
