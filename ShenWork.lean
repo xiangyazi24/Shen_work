@@ -651,3 +651,4 @@ import ShenWork.Paper2.IntervalFullKernelLpContraction
 import ShenWork.Paper2.IntervalDomainProposition21
 import ShenWork.Paper2.IntervalDomainProposition23
 import ShenWork.Paper2.IntervalDomainMChiNonposHeadline
+import ShenWork.Paper2.IntervalDomainCorrectedSemigroupLemmas
