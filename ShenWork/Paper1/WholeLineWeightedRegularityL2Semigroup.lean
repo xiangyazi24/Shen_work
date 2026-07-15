@@ -1505,6 +1505,112 @@ theorem weightedMovingHeatL2Generator_norm_le_horizon
   rw [weightedMovingHeatL2Generator_of_pos hr.1]
   exact weightedMovingHeatGeneratorL2CLM_norm_le_horizon hr.1 hr.2
 
+/-! ## Generator compatibility with the heat semigroup -/
+
+/-- First spatial Gaussian derivatives respect heat-kernel convolution. -/
+theorem deriv_heatKernel_convolution_add
+    {r q X A : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    (∫ y : ℝ,
+        deriv (fun z : ℝ => heatKernel r z) (X - y) *
+          heatKernel q (y - A)) =
+      deriv (fun z : ℝ => heatKernel (r + q) z) (X - A) := by
+  let f : ℝ → ℝ := fun y => heatKernel q (y - A)
+  let M : ℝ := 1 / Real.sqrt (4 * Real.pi * q)
+  have hfmeas : AEStronglyMeasurable f volume := by
+    dsimp [f]
+    exact (heatKernel_continuous hq).comp
+      (continuous_id.sub continuous_const) |>.aestronglyMeasurable
+  have hfbound : ∀ y, |f y| ≤ M := by
+    intro y
+    dsimp [f, M]
+    rw [abs_of_nonneg (heatKernel_nonneg hq _)]
+    exact heatKernel_pointwise_bound hq _
+  have hdiff := ShenWork.PaperOne.ConvLeibniz.heatConvolution_space_deriv
+    (f := f) (t := r) (x := X) (M := M) hr hfmeas hfbound
+  have hfun : (fun z : ℝ => heatSemigroup r f z) =
+      fun z : ℝ => heatKernel (r + q) (z - A) := by
+    funext z
+    unfold heatSemigroup
+    dsimp [f]
+    exact heatKernel_convolution_add
+      (t := r) (s := q) (x := z) (z := A) hr hq
+  calc
+    (∫ y : ℝ,
+        deriv (fun z : ℝ => heatKernel r z) (X - y) *
+          heatKernel q (y - A)) =
+        deriv (fun z : ℝ => heatSemigroup r f z) X := by
+      rw [hdiff.deriv]
+      apply integral_congr_ae
+      filter_upwards with y
+      dsimp [f]
+      rw [deriv_heatKernel_translated_left hr X y,
+        deriv_heatKernel hr (X - y)]
+    _ = deriv (fun z : ℝ => heatKernel (r + q) (z - A)) X := by
+      rw [hfun]
+    _ = deriv (fun z : ℝ => heatKernel (r + q) z) (X - A) := by
+      rw [deriv_heatKernel_translated_left (add_pos hr hq) X A,
+        deriv_heatKernel (add_pos hr hq) (X - A)]
+
+/-- Second spatial Gaussian derivatives respect heat-kernel convolution. -/
+theorem secondDeriv_heatKernel_convolution_add
+    {r q X A : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    (∫ y : ℝ,
+        deriv (fun u : ℝ => deriv (fun z : ℝ => heatKernel r z) u)
+            (X - y) * heatKernel q (y - A)) =
+      deriv (fun u : ℝ =>
+        deriv (fun z : ℝ => heatKernel (r + q) z) u) (X - A) := by
+  let f : ℝ → ℝ := fun y => heatKernel q (y - A)
+  let M : ℝ := 1 / Real.sqrt (4 * Real.pi * q)
+  have hfmeas : AEStronglyMeasurable f volume := by
+    dsimp [f]
+    exact (heatKernel_continuous hq).comp
+      (continuous_id.sub continuous_const) |>.aestronglyMeasurable
+  have hfbound : ∀ y, |f y| ≤ M := by
+    intro y
+    dsimp [f, M]
+    rw [abs_of_nonneg (heatKernel_nonneg hq _)]
+    exact heatKernel_pointwise_bound hq _
+  have hdiff := ShenWork.PaperOne.ConvLeibniz.heatConvolution_space_second_deriv
+    (f := f) (t := r) (x := X) (M := M) hr hfmeas hfbound
+  have hfun : (fun z : ℝ => heatSemigroup r f z) =
+      fun z : ℝ => heatKernel (r + q) (z - A) := by
+    funext z
+    unfold heatSemigroup
+    dsimp [f]
+    exact heatKernel_convolution_add
+      (t := r) (s := q) (x := z) (z := A) hr hq
+  have htrans :
+      deriv (fun z : ℝ =>
+          deriv (fun w : ℝ => heatKernel (r + q) (w - A)) z) X =
+        deriv (fun u : ℝ =>
+          deriv (fun z : ℝ => heatKernel (r + q) z) u) (X - A) := by
+    have hfirst : (fun z : ℝ =>
+        deriv (fun w : ℝ => heatKernel (r + q) (w - A)) z) =
+        fun z : ℝ => deriv (fun w : ℝ => heatKernel (r + q) w) (z - A) := by
+      funext z
+      rw [deriv_heatKernel_translated_left (add_pos hr hq) z A,
+        deriv_heatKernel (add_pos hr hq) (z - A)]
+    rw [hfirst]
+    have hinner : HasDerivAt (fun z : ℝ => z - A) 1 X := by
+      simpa [sub_eq_add_neg] using (hasDerivAt_id X).add_const (-A)
+    have hmain :=
+      ((ShenWork.IntervalNeumannFullKernel.heatKernel_secondDeriv_hasDerivAt
+        (add_pos hr hq) (X - A)).comp X hinner).deriv
+    convert hmain using 1
+    rw [ShenWork.IntervalNeumannFullKernel.deriv_deriv_heatKernel
+      (add_pos hr hq) (X - A)]
+    ring
+  calc
+    (∫ y : ℝ,
+        deriv (fun u : ℝ => deriv (fun z : ℝ => heatKernel r z) u)
+            (X - y) * heatKernel q (y - A)) =
+        deriv (fun z : ℝ => deriv (fun w : ℝ => heatSemigroup r f w) z) X := by
+      rw [hdiff.deriv]
+    _ = deriv (fun z : ℝ =>
+        deriv (fun w : ℝ => heatKernel (r + q) (w - A)) z) X := by
+      rw [hfun]
+    _ = _ := htrans
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
