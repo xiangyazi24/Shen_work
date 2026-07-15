@@ -2645,6 +2645,66 @@ theorem weightedMovingHeatSlopeErrorSchurData_toCLM_eq
   rw [integral_sub hscaled hGbase, integral_const_mul,
     integral_sub hFs hFt, hFsEq, hFtEq, hGEq]
 
+/-- At every positive time, the totalized weighted moving heat family is
+differentiable in operator norm and its derivative is the concrete Gaussian
+generator. -/
+theorem weightedMovingHeatL2Semigroup_hasDerivAt
+    {eta c t : ℝ} (ht : 0 < t) :
+    HasDerivAt
+      (fun s : ℝ => weightedMovingHeatL2Semigroup eta c s)
+      (weightedMovingHeatL2Generator eta c t) t := by
+  rw [hasDerivAt_iff_tendsto_slope]
+  have hmass : Tendsto
+      (weightedMovingHeatFullKernelSlopeErrorMass eta c t)
+      (nhdsWithin t ({t}ᶜ)) (nhds 0) := by
+    simpa only [weightedMovingHeatFullKernelSlopeErrorMass,
+      weightedMovingHeatFullKernelSlopeError] using
+      (weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
+        (eta := eta) (c := c) ht)
+  have hupper : ∀ᶠ s in nhdsWithin t ({t}ᶜ),
+      ‖slope (fun q : ℝ => weightedMovingHeatL2Semigroup eta c q) t s -
+          weightedMovingHeatL2Generator eta c t‖ ≤
+        weightedMovingHeatFullKernelSlopeErrorMass eta c t s := by
+    filter_upwards [Filter.Eventually.filter_mono nhdsWithin_le_nhds
+      (Metric.ball_mem_nhds t (half_pos ht))] with s hsball
+    have hdist := Metric.mem_ball.mp hsball
+    rw [Real.dist_eq] at hdist
+    have hs : 0 < s := by
+      linarith [(abs_lt.mp hdist).1]
+    let hE := weightedMovingHeatSlopeErrorSchurData eta c t s ht hs
+    have hEq :
+        slope (fun q : ℝ => weightedMovingHeatL2Semigroup eta c q) t s -
+            weightedMovingHeatL2Generator eta c t = hE.toCLM := by
+      simp only [slope_def_module]
+      rw [weightedMovingHeatL2Semigroup_of_pos hs,
+        weightedMovingHeatL2Semigroup_of_pos ht,
+        weightedMovingHeatL2Generator_of_pos ht]
+      exact (weightedMovingHeatSlopeErrorSchurData_toCLM_eq ht hs).symm
+    rw [hEq]
+    exact hE.toCLM_norm_le
+  have herr : Tendsto
+      (fun s : ℝ =>
+        slope (fun q : ℝ => weightedMovingHeatL2Semigroup eta c q) t s -
+          weightedMovingHeatL2Generator eta c t)
+      (nhdsWithin t ({t}ᶜ)) (nhds 0) := by
+    rw [tendsto_zero_iff_norm_tendsto_zero]
+    exact squeeze_zero'
+      (Eventually.of_forall fun _ => norm_nonneg _)
+      hupper hmass
+  simpa only [sub_add_cancel, zero_add] using
+    herr.add_const (weightedMovingHeatL2Generator eta c t)
+
+/-- Evaluation of the operator-norm derivative gives the positive-time
+generator law for every whole-line `L²` datum. -/
+theorem weightedMovingHeatL2Semigroup_orbit_hasDerivAt
+    {eta c t : ℝ} (ht : 0 < t) (Z : WholeLineRealL2) :
+    HasDerivAt
+      (fun s : ℝ => weightedMovingHeatL2Semigroup eta c s Z)
+      (weightedMovingHeatL2Generator eta c t Z) t := by
+  simpa using
+    (weightedMovingHeatL2Semigroup_hasDerivAt
+      (eta := eta) (c := c) ht).clm_apply (hasDerivAt_const t Z)
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2662,6 +2722,8 @@ section AxiomAudit
 #print axioms weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
 #print axioms weightedMovingHeatSlopeErrorSchurData
 #print axioms weightedMovingHeatSlopeErrorSchurData_toCLM_eq
+#print axioms weightedMovingHeatL2Semigroup_hasDerivAt
+#print axioms weightedMovingHeatL2Semigroup_orbit_hasDerivAt
 
 end AxiomAudit
 
