@@ -353,6 +353,206 @@ theorem exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
       dsimp [H, d]
       ring
 
+/-- Explicit square bound for the full generator forcing in terms of the
+weighted population `H1` energies. -/
+def paper5WeightedGeneratorForcingH1SquareBound
+    (p : CMParams) (M eta EW EWx : ℝ) : ℝ :=
+  2 *
+    (|p.χ| ^ 2 *
+        paper5WeightedFluxDerivativeH1SquareBound p M eta EW EWx +
+      reactionLip p.α M ^ 2 * EW)
+
+/-- Static strong-weight `L2` data for the full adjusted forcing.  The
+chemotactic part is supplied by
+`paper5WeightedFluxDerivative_data_of_population_H1`; the reaction part is
+closed directly by its strip Lipschitz estimate. -/
+theorem paper5WeightedGeneratorForcing_data_of_population_H1
+    (p : CMParams) {M T eta c t : ℝ}
+    {u v : ℝ → ℝ → ℝ} {U V : ℝ → ℝ}
+    (hchi : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (heta : 0 < eta) (hetaCap : eta < stabilityWeightCap p)
+    (hsol : IsClassicalSolution p T u v) (ht0 : 0 < t) (htT : t < T)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hMChiM : MChi p ≤ M)
+    (hu2 : ContDiff ℝ 2 (coMovingPath c u t))
+    (hv2 : ContDiff ℝ 2 (coMovingPath c v t))
+    (hU2 : ContDiff ℝ 2 U) (hV2 : ContDiff ℝ 2 V)
+    (huM : ∀ x, coMovingPath c u t x ∈ Set.Icc (0 : ℝ) M)
+    (hvEq : coMovingPath c v t =
+      frozenElliptic p (coMovingPath c u t))
+    (hclose : Integrable (fun x =>
+      Real.exp (2 * eta * x) * |coMovingPath c u t x - U x| ^ 2))
+    (hWx2 : Integrable (fun x =>
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2))
+    (hforcing_meas : AEStronglyMeasurable
+      (paper5WeightedGeneratorForcing p eta
+        (coMovingPath c u) (coMovingPath c v) U V t) volume) :
+    Integrable (fun x : ℝ =>
+        paper5WeightedGeneratorForcing p eta
+          (coMovingPath c u) (coMovingPath c v) U V t x ^ 2) ∧
+      (∫ x : ℝ,
+        paper5WeightedGeneratorForcing p eta
+          (coMovingPath c u) (coMovingPath c v) U V t x ^ 2) ≤
+        paper5WeightedGeneratorForcingH1SquareBound p M eta
+          (∫ x : ℝ,
+            Real.exp (2 * eta * x) *
+              |coMovingPath c u t x - U x| ^ 2)
+          (∫ x : ℝ,
+            paper5WeightedPopulationX eta
+              (coMovingPath c u) U t x ^ 2) := by
+  have hfluxData := paper5WeightedFluxDerivative_data_of_population_H1
+    p hchi hc heta hetaCap hsol ht0 htT hTW hreg hbound hMChiM
+      hu2 hv2 hU2 hV2 huM hvEq hclose hWx2
+  have hMChi1 : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hM1 : 1 ≤ M := hMChi1.trans hMChiM
+  have hM0 : 0 ≤ M := zero_le_one.trans hM1
+  have hUM : ∀ x, U x ∈ Set.Icc (0 : ℝ) M :=
+    fun x => ⟨(hTW.U_pos x).le, (hbound.le_MChi x).trans hMChiM⟩
+  let chem : ℝ → ℝ := fun x =>
+    Real.exp (eta * x) *
+      (deriv
+          (fun y => (coMovingPath c u t y) ^ p.m *
+            deriv (coMovingPath c v t) y) x -
+        deriv (fun y => U y ^ p.m * deriv V y) x)
+  let react : ℝ → ℝ := fun x =>
+    Real.exp (eta * x) *
+      (reactionFun p.α (coMovingPath c u t x) -
+        reactionFun p.α (U x))
+  let force : ℝ → ℝ :=
+    paper5WeightedGeneratorForcing p eta
+      (coMovingPath c u) (coMovingPath c v) U V t
+  let L : ℝ := reactionLip p.α M
+  have hL : 0 ≤ L := reactionLip_nonneg p.hα hM0
+  have hchemSq : Integrable (fun x : ℝ => chem x ^ 2) := by
+    simpa only [chem] using hfluxData.1
+  have hreactCont : Continuous react := by
+    have hexp : Continuous (fun x : ℝ => Real.exp (eta * x)) :=
+      Real.continuous_exp.comp (continuous_const.mul continuous_id)
+    have hru : Continuous (fun x => reactionFun p.α
+        (coMovingPath c u t x)) :=
+      (continuous_reactionFun (zero_le_one.trans p.hα)).comp hu2.continuous
+    have hrU : Continuous (fun x => reactionFun p.α (U x)) :=
+      (continuous_reactionFun (zero_le_one.trans p.hα)).comp hU2.continuous
+    exact hexp.mul (hru.sub hrU)
+  have hreactPoint : ∀ x, react x ^ 2 ≤
+      L ^ 2 *
+        (Real.exp (2 * eta * x) *
+          |coMovingPath c u t x - U x| ^ 2) := by
+    intro x
+    have hr := reaction_increment_abs_le p.hα hM0 (hUM x) (huM x)
+    have habs : |react x| ≤
+        L * (Real.exp (eta * x) *
+          |coMovingPath c u t x - U x|) := by
+      dsimp only [react, L]
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc
+        Real.exp (eta * x) *
+            |reactionFun p.α (coMovingPath c u t x) -
+              reactionFun p.α (U x)| ≤
+            Real.exp (eta * x) *
+              (reactionLip p.α M *
+                |coMovingPath c u t x - U x|) :=
+          mul_le_mul_of_nonneg_left hr (Real.exp_nonneg _)
+        _ = reactionLip p.α M *
+            (Real.exp (eta * x) *
+              |coMovingPath c u t x - U x|) := by ring
+    have hs := (sq_le_sq₀ (abs_nonneg (react x))
+      (mul_nonneg hL
+        (mul_nonneg (Real.exp_nonneg _) (abs_nonneg _)))).2 habs
+    rw [sq_abs] at hs
+    calc
+      react x ^ 2 ≤
+          (L * (Real.exp (eta * x) *
+            |coMovingPath c u t x - U x|)) ^ 2 := hs
+      _ = L ^ 2 *
+          (Real.exp (2 * eta * x) *
+            |coMovingPath c u t x - U x| ^ 2) := by
+        rw [mul_pow, mul_pow]
+        congr 2
+        rw [pow_two, ← Real.exp_add]
+        congr 1
+        ring
+  have hreactSq : Integrable (fun x : ℝ => react x ^ 2) := by
+    refine (hclose.const_mul (L ^ 2)).mono'
+      (hreactCont.aestronglyMeasurable.pow 2) ?_
+    filter_upwards with x
+    rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
+    exact hreactPoint x
+  have hforceEq : ∀ x, force x = -p.χ * chem x + react x := by
+    intro x
+    dsimp only [force, chem, react, paper5WeightedGeneratorForcing]
+    ring
+  let major : ℝ → ℝ := fun x =>
+    2 * (|p.χ| ^ 2 * chem x ^ 2 + react x ^ 2)
+  have hmajor : Integrable major := by
+    exact ((hchemSq.const_mul (|p.χ| ^ 2)).add hreactSq).const_mul 2
+  have hforcePoint : ∀ x, force x ^ 2 ≤ major x := by
+    intro x
+    rw [hforceEq x]
+    dsimp only [major]
+    have hs : (-p.χ * chem x + react x) ^ 2 ≤
+        2 * ((-p.χ * chem x) ^ 2 + react x ^ 2) := by
+      nlinarith [sq_nonneg (-p.χ * chem x - react x)]
+    simpa only [mul_pow, sq_abs, neg_sq] using hs
+  have hforceSq : Integrable (fun x : ℝ => force x ^ 2) := by
+    refine hmajor.mono' (by simpa only [force] using hforcing_meas.pow 2) ?_
+    filter_upwards with x
+    rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
+    exact hforcePoint x
+  refine ⟨by simpa only [force] using hforceSq, ?_⟩
+  have hreactIntegral : (∫ x : ℝ, react x ^ 2) ≤
+      L ^ 2 * (∫ x : ℝ,
+        Real.exp (2 * eta * x) *
+          |coMovingPath c u t x - U x| ^ 2) := by
+    calc
+      (∫ x : ℝ, react x ^ 2) ≤
+          ∫ x : ℝ, L ^ 2 *
+            (Real.exp (2 * eta * x) *
+              |coMovingPath c u t x - U x| ^ 2) :=
+        integral_mono hreactSq (hclose.const_mul (L ^ 2)) hreactPoint
+      _ = L ^ 2 * (∫ x : ℝ,
+          Real.exp (2 * eta * x) *
+            |coMovingPath c u t x - U x| ^ 2) := by
+        rw [integral_const_mul]
+  calc
+    (∫ x : ℝ,
+        paper5WeightedGeneratorForcing p eta
+          (coMovingPath c u) (coMovingPath c v) U V t x ^ 2) =
+        ∫ x : ℝ, force x ^ 2 := by rfl
+    _ ≤ ∫ x : ℝ, major x :=
+      integral_mono hforceSq hmajor hforcePoint
+    _ = 2 * (|p.χ| ^ 2 * (∫ x : ℝ, chem x ^ 2) +
+          ∫ x : ℝ, react x ^ 2) := by
+      dsimp only [major]
+      rw [integral_const_mul, integral_add
+        (hchemSq.const_mul (|p.χ| ^ 2)) hreactSq,
+        integral_const_mul]
+    _ ≤ 2 *
+        (|p.χ| ^ 2 *
+            paper5WeightedFluxDerivativeH1SquareBound p M eta
+              (∫ x : ℝ,
+                Real.exp (2 * eta * x) *
+                  |coMovingPath c u t x - U x| ^ 2)
+              (∫ x : ℝ,
+                paper5WeightedPopulationX eta
+                  (coMovingPath c u) U t x ^ 2) +
+          L ^ 2 * (∫ x : ℝ,
+            Real.exp (2 * eta * x) *
+              |coMovingPath c u t x - U x| ^ 2)) := by
+      gcongr
+      · exact hfluxData.2
+    _ = paper5WeightedGeneratorForcingH1SquareBound p M eta
+          (∫ x : ℝ,
+            Real.exp (2 * eta * x) *
+              |coMovingPath c u t x - U x| ^ 2)
+          (∫ x : ℝ,
+            paper5WeightedPopulationX eta
+              (coMovingPath c u) U t x ^ 2) := by
+      rfl
+
 section AxiomAudit
 
 #print axioms paper5WeightedLowerOrderSource_sub_growth_eq_generatorForcing
@@ -360,6 +560,7 @@ section AxiomAudit
   exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positive_window
 #print axioms
   exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
+#print axioms paper5WeightedGeneratorForcing_data_of_population_H1
 
 end AxiomAudit
 
