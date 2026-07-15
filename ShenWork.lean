@@ -664,3 +664,5 @@ import ShenWork.Paper1.WholeLineWeightedRegularityGradient
 import ShenWork.Paper1.WholeLineWeightedRegularitySecondDeriv
 import ShenWork.Paper1.WholeLineWeightedRegularitySlice
 import ShenWork.Paper1.WholeLineWeightedRegularityCap
+import ShenWork.Paper1.WholeLineWeightedRegularityNonlinearity
+import ShenWork.Paper1.WholeLineWeightedRegularityMild
