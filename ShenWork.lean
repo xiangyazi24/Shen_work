@@ -676,3 +676,4 @@ import ShenWork.Paper1.WholeLineWeightedRegularitySourceData
 import ShenWork.Paper1.WholeLineWeightedRegularitySourceHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityVolterra
 import ShenWork.Paper1.WholeLineWeightedRegularityWeightGap
+import ShenWork.Paper1.WholeLineWeightedRegularityGradientMild

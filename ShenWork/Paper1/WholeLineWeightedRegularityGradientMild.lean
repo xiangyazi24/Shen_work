@@ -1,0 +1,78 @@
+import ShenWork.Paper1.WholeLineWeightedRegularityMild
+
+open Filter MeasureTheory Set
+
+noncomputable section
+
+namespace ShenWork.Paper1
+
+/-- Gradient counterpart of the shifted-reaction Duhamel slice.  The value
+producer in `WholeLineWeightedRegularityMild` is insufficient for the Henry
+`hWx2` input; this theorem applies the already-proved cap Schur gradient
+estimate to the same truncated reaction source. -/
+theorem exists_capWeightedMovingHeatGradient_truncatedReactionL2
+    (p : CMParams) {M eta R c s tau B : ℝ}
+    (hM : 0 ≤ M) (heta : 0 ≤ eta) (heta_one : eta < 1)
+    (htau : 0 < tau) (hB : 0 ≤ B) (u₂ u₁ : WholeLineBUC)
+    (hclose : Integrable (fun x => capWeight eta R x *
+      |u₂.1 (x + c * s) - u₁.1 (x + c * s)| ^ 2))
+    (henergy : (∫ x : ℝ, capWeight eta R x *
+      |u₂.1 (x + c * s) - u₁.1 (x + c * s)| ^ 2) ≤ B ^ 2) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] fun x => capWeightSqrt eta R x *
+        paper5MovingFrameHeatGradOp c tau
+          (coMovingTruncatedReactionDifference
+            p M c s u₂.1 u₁.1) x) ∧
+      ‖Z‖ ≤ Real.exp (-tau) * capHeatGradientSchurMass eta c tau *
+        (1 + reactionLip p.α M) * B := by
+  let L : ℝ := 1 + reactionLip p.α M
+  have hL : 0 ≤ L := by
+    dsimp [L]
+    exact add_nonneg zero_le_one (reactionLip_nonneg p.hα hM)
+  have hsource := capWeighted_coMovingTruncatedReaction_l2_bounded
+    p hM (WholeLineBUC.isCUnifBdd u₂)
+      (WholeLineBUC.isCUnifBdd u₁) hclose
+  have hcap : Integrable (fun x => capWeight eta R x *
+      |coMovingTruncatedReactionDifference p M c s u₂.1 u₁.1 x| ^ 2) := by
+    refine hsource.1.congr (Eventually.of_forall fun x => ?_)
+    change (capWeightSqrt eta R x *
+      (wholeLineCauchyTruncatedReaction p M u₂.1 (x + c * s) -
+        wholeLineCauchyTruncatedReaction p M u₁.1 (x + c * s))) ^ 2 = _
+    dsimp only
+    rw [mul_pow, capWeightSqrt_sq, sq_abs]
+    rfl
+  have hsource_energy : (∫ x : ℝ, capWeight eta R x *
+      |coMovingTruncatedReactionDifference p M c s u₂.1 u₁.1 x| ^ 2) ≤
+      (L * B) ^ 2 := by
+    have heq : (∫ x : ℝ, capWeight eta R x *
+        |coMovingTruncatedReactionDifference p M c s u₂.1 u₁.1 x| ^ 2) =
+        ∫ x : ℝ, capWeightedCoMovingTruncatedReactionDifference
+          p M eta R c s u₂.1 u₁.1 x ^ 2 := by
+      apply integral_congr_ae
+      exact Eventually.of_forall fun x => by
+        change capWeight eta R x *
+            |coMovingTruncatedReactionDifference p M c s u₂.1 u₁.1 x| ^ 2 =
+          (capWeightSqrt eta R x *
+            (wholeLineCauchyTruncatedReaction p M u₂.1 (x + c * s) -
+              wholeLineCauchyTruncatedReaction p M u₁.1 (x + c * s))) ^ 2
+        rw [mul_pow, capWeightSqrt_sq, sq_abs]
+        rfl
+    rw [heq]
+    calc
+      (∫ x : ℝ, capWeightedCoMovingTruncatedReactionDifference
+          p M eta R c s u₂.1 u₁.1 x ^ 2) ≤ L ^ 2 * B ^ 2 :=
+        hsource.2.trans (mul_le_mul_of_nonneg_left henergy (sq_nonneg L))
+      _ = (L * B) ^ 2 := by rw [mul_pow]
+  rcases exists_capWeightedMovingHeatGradientL2
+    heta htau (mul_nonneg hL hB) R c
+      (coMovingTruncatedReactionDifference_measurable p hM c s u₂ u₁)
+      hcap hsource_energy with ⟨Z, hrep, hZ⟩
+  refine ⟨Z, hrep, hZ.trans_eq ?_⟩
+  dsimp only [L]
+  ring
+
+section AxiomAudit
+#print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
+end AxiomAudit
+
+end ShenWork.Paper1
