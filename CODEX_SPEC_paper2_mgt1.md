@@ -41,3 +41,20 @@ IntervalDomainLpHeadline.lean). No git commands. ≤100 cols. Reuse existing lem
 exact grepped name. Remote verification per CODEX_OPS_remote_build.md with
 STAGING=/dev/shm/lean/Shen_work-p2lp. #print axioms every headline (expect clean-3),
 then remove the directive.
+
+## APPENDIX (re-dispatch 2026-07-15): exact m=1 chain to generalize
+The m=1 χ₀≤0 boundedness chain lives in these files — generalize each to 1 ≤ p.m
+(currently they carry `hm : p.m = 1`); the cross-diffusion sign is favorable for χ₀≤0 so a
+direct max-principle should extend without the Lᵖ bootstrap:
+- `ShenWork/Paper2/IntervalDomainMChiNonposMax.lean`: `interior_max_point_of_solution_M`,
+  `boundary_max_point_left_M`, `boundary_max_point_right_M` (the max-point machinery).
+- `ShenWork/Paper2/IntervalDomainMChiNonposLemma31.lean`: Lemma 3.1 (the constant-supersolution
+  / ceiling comparison). Do NOT edit it — write a general-m sibling in a NEW file.
+- `ShenWork/Paper2/IntervalDomainMChiNonposBound.lean`: `critical_bounded_before_nonpos`
+  (m=1 only) — the target to generalize.
+- `ShenWork/Paper2/IntervalDomainMChiNonposGlobal.lean`: `globalSolution_chiNonpos_m_one` —
+  the continuation wrapper; `reachablePastM_of_bounded` already needs only `1 ≤ p.m`, so once
+  the general-m bound producer exists the global wrapper generalizes mechanically.
+Where m=1 gives `u^{m-1}=1` (constant), the general-m step needs `u^{m-1}` bounded on the
+box — available from the upper bound (u ≤ C) and the m≥1 floor (u ≥ δ>0). Prior dispatch died
+mid-work (API); this is a clean re-dispatch. Write NEW files only; do not edit the m=1 files.
