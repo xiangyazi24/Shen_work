@@ -2217,6 +2217,115 @@ theorem weightedMovingHeatFullGenerator_local_integrable_bound
         dsimp [C]
         ring
 
+/-- The scalar full-kernel difference quotients converge to the generator in
+`L¹(ℝ)`. -/
+theorem weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
+    {eta c t : ℝ} (ht : 0 < t) :
+    Tendsto
+      (fun s : ℝ => ∫ z : ℝ,
+        |slope (fun q => weightedMovingHeatFullKernel eta c q z) t s -
+          weightedMovingHeatGeneratorBase eta c t
+            (z + (c - 2 * eta) * t)|)
+      (nhdsWithin t ({t}ᶜ)) (nhds 0) := by
+  rcases weightedMovingHeatFullGenerator_local_integrable_bound
+      (eta := eta) (c := c) ht with ⟨C, hC, hbaseInt, hgenBound⟩
+  let G : ℝ → ℝ := fun z =>
+    weightedMovingHeatGeneratorBase eta c t
+      (z + (c - 2 * eta) * t)
+  let base : ℝ → ℝ := fun z =>
+    C * Real.exp (-(1 / (24 * t)) * z ^ 2)
+  let bound : ℝ → ℝ := fun z => 2 * base z
+  let F : ℝ → ℝ → ℝ := fun s z =>
+    |slope (fun q => weightedMovingHeatFullKernel eta c q z) t s - G z|
+  have htball : t ∈ Metric.ball t (t / 2) :=
+    Metric.mem_ball_self (half_pos ht)
+  have hFmeas : ∀ᶠ s in nhdsWithin t ({t}ᶜ),
+      AEStronglyMeasurable (F s) volume := by
+    filter_upwards [Filter.Eventually.filter_mono nhdsWithin_le_nhds
+      (Metric.ball_mem_nhds t (half_pos ht))] with s hs
+    have hdist := Metric.mem_ball.mp hs
+    rw [Real.dist_eq] at hdist
+    have hspos : 0 < s := by linarith [(abs_lt.mp hdist).1]
+    have hBs : Continuous (weightedMovingHeatFullKernel eta c s) := by
+      unfold weightedMovingHeatFullKernel weightedMovingHeatGrowth heatKernel
+      fun_prop
+    have hBt : Continuous (weightedMovingHeatFullKernel eta c t) := by
+      unfold weightedMovingHeatFullKernel weightedMovingHeatGrowth heatKernel
+      fun_prop
+    have hG : Continuous G := by
+      dsimp [G]
+      exact (weightedMovingHeatGeneratorBase_continuous
+        (eta := eta) (c := c) ht).comp
+          (continuous_id.add continuous_const)
+    dsimp [F]
+    simp only [slope_def_module, smul_eq_mul]
+    exact ((continuous_const.mul (hBs.sub hBt)).sub hG).abs.aestronglyMeasurable
+  have hboundEventually : ∀ᶠ s in nhdsWithin t ({t}ᶜ),
+      ∀ᵐ z ∂volume, ‖F s z‖ ≤ bound z := by
+    filter_upwards [Filter.Eventually.filter_mono nhdsWithin_le_nhds
+        (Metric.ball_mem_nhds t (half_pos ht)),
+      self_mem_nhdsWithin] with s hs hsne
+    have hst : s ≠ t := by simpa using hsne
+    filter_upwards with z
+    have hderiv : ∀ q ∈ Metric.ball t (t / 2),
+        HasDerivWithinAt
+          (fun a => weightedMovingHeatFullKernel eta c a z)
+          (weightedMovingHeatGeneratorBase eta c q
+            (z + (c - 2 * eta) * q))
+          (Metric.ball t (t / 2)) q := by
+      intro q hq
+      have hdist := Metric.mem_ball.mp hq
+      rw [Real.dist_eq] at hdist
+      have hqpos : 0 < q := by linarith [(abs_lt.mp hdist).1]
+      exact (weightedMovingHeatFullKernel_hasDerivAt
+        (eta := eta) (c := c) hqpos z).hasDerivWithinAt
+    have hmvt := (convex_ball t (t / 2)).norm_image_sub_le_of_norm_hasDerivWithin_le
+      (f := fun a => weightedMovingHeatFullKernel eta c a z)
+      (f' := fun q => weightedMovingHeatGeneratorBase eta c q
+        (z + (c - 2 * eta) * q))
+      (C := base z) hderiv
+      (fun q hq => by
+        rw [Real.norm_eq_abs]
+        exact hgenBound q hq z)
+      htball hs
+    have hslope :
+        ‖slope (fun q => weightedMovingHeatFullKernel eta c q z) t s‖ ≤
+          base z := by
+      have hapos : 0 < |s - t| := abs_pos.mpr (sub_ne_zero.mpr hst)
+      rw [slope_def_module, norm_smul, Real.norm_eq_abs, abs_inv,
+        inv_mul_le_iff₀ hapos]
+      simpa only [Real.norm_eq_abs, mul_comm] using hmvt
+    have hGz : |G z| ≤ base z := by
+      dsimp [G, base]
+      exact hgenBound t htball z
+    dsimp [F, bound]
+    rw [abs_abs]
+    calc
+      |slope (fun q => weightedMovingHeatFullKernel eta c q z) t s - G z| ≤
+          |slope (fun q => weightedMovingHeatFullKernel eta c q z) t s| +
+            |G z| := abs_sub _ _
+      _ ≤ base z + base z := by
+        exact add_le_add (by simpa only [Real.norm_eq_abs] using hslope) hGz
+      _ = 2 * base z := by ring
+  have hboundInt : Integrable bound volume := by
+    dsimp [bound, base]
+    exact hbaseInt.const_mul 2
+  have hlim : ∀ᵐ z ∂volume,
+      Tendsto (fun s => F s z) (nhdsWithin t ({t}ᶜ)) (nhds 0) := by
+    filter_upwards with z
+    have hslope := (weightedMovingHeatFullKernel_hasDerivAt
+      (eta := eta) (c := c) ht z).tendsto_slope
+    have hsub := hslope.sub_const
+      (weightedMovingHeatGeneratorBase eta c t
+        (z + (c - 2 * eta) * t))
+    have habs := hsub.abs
+    simpa only [F, G, sub_self, abs_zero] using habs
+  have hDCT := MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+    (μ := volume) (l := nhdsWithin t ({t}ᶜ))
+    (F := F) (f := fun _ : ℝ => (0 : ℝ))
+    bound hFmeas hboundEventually hboundInt hlim
+  simpa only [F, G, integral_zero] using hDCT
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2231,6 +2340,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatFullKernel_hasDerivAt
 #print axioms exp_neg_moving_center_sq_local_time_le
 #print axioms weightedMovingHeatFullGenerator_local_integrable_bound
+#print axioms weightedMovingHeatFullKernel_slope_error_L1_tendsto_zero
 
 end AxiomAudit
 
