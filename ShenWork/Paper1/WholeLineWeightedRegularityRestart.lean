@@ -2428,6 +2428,101 @@ theorem wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
   rw [hhess']
   ring
 
+/-- Exact restart identity for the undamped drift heat flow on a positive
+time window.  The endpoint hypotheses live in the genuine BUC norm; the
+interior hypotheses are the concrete classical bounds used by the backward
+orbit generator theorem. -/
+theorem wholeLineDrift_restart_identity_of_bounded_joint
+    {a b d x CW CWt CWx CWxx : ℝ}
+    {W : ℝ → WholeLineBUC} {Wt Wx Wxx : ℝ → ℝ → ℝ}
+    (hab : a < b)
+    (hW_left : Tendsto W (𝓝[>] a) (𝓝 (W a)))
+    (hW_right : Tendsto W (𝓝[<] b) (𝓝 (W b)))
+    (hCW : 0 ≤ CW) (hCWt : 0 ≤ CWt) (hCWx : 0 ≤ CWx)
+    (hW : ∀ r ∈ Set.Ioo a b, ∀ y, |(W r).1 y| ≤ CW)
+    (hWt : ∀ r ∈ Set.Ioo a b, ∀ y, |Wt r y| ≤ CWt)
+    (hWx : ∀ r ∈ Set.Ioo a b, ∀ y, |Wx r y| ≤ CWx)
+    (hWxx : ∀ r ∈ Set.Ioo a b, ∀ y, |Wxx r y| ≤ CWxx)
+    (hWt_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wt r))
+    (hWx_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wx r))
+    (hWxx_cont : ∀ r ∈ Set.Ioo a b, Continuous (Wxx r))
+    (hspace1 : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasDerivAt (W r).1 (Wx r y) y)
+    (hspace2 : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasDerivAt (Wx r) (Wxx r y) y)
+    (hjoint : ∀ r ∈ Set.Ioo a b, ∀ y,
+      HasFDerivAt
+        (fun q : ℝ × ℝ => (W q.1).1 q.2)
+        (Wt r y • ContinuousLinearMap.fst ℝ ℝ ℝ +
+          Wx r y • ContinuousLinearMap.snd ℝ ℝ ℝ)
+        (r, y))
+    (hint : IntervalIntegrable
+      (fun s => wholeLineDriftHeatOp d (b - s)
+        (fun y => Wt s y - Wxx s y - d * Wx s y) x)
+      volume a b) :
+    (W b).1 x = wholeLineDriftHeatOp d (b - a) (W a).1 x +
+      ∫ s in a..b, wholeLineDriftHeatOp d (b - s)
+        (fun y => Wt s y - Wxx s y - d * Wx s y) x := by
+  let path : ℝ → ℝ := fun r =>
+    wholeLineDriftHeatOp d (b - r) (W r).1 x
+  let totalPath : ℝ → ℝ := fun r =>
+    wholeLineDriftHeatBUCTotalVal d (b - r) (W r) x
+  let sourcePath : ℝ → ℝ := fun r =>
+    wholeLineDriftHeatOp d (b - r)
+      (fun y => Wt r y - Wxx r y - d * Wx r y) x
+  have hderiv : ∀ r ∈ Set.Ioo a b,
+      HasDerivAt path (sourcePath r) r := by
+    intro r hr
+    exact wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
+      hr.1 hr.2 hCW hCWt hCWx hW hWt hWx hWxx
+      (fun q hq => (W q).1.continuous) hWt_cont hWx_cont hWxx_cont
+      hspace1 hspace2 hjoint
+  have hlag_left : Tendsto (fun r : ℝ => b - r) (𝓝[>] a)
+      (𝓝 (b - a)) := by
+    exact (continuousAt_const.sub continuousAt_id).continuousWithinAt
+  have hlag_left_nonneg : ∀ᶠ r in 𝓝[>] a, 0 ≤ b - r := by
+    have hltb : ∀ᶠ r in 𝓝[>] a, r < b := by
+      exact Filter.Eventually.filter_mono nhdsWithin_le_nhds
+        (Iio_mem_nhds hab)
+    filter_upwards [hltb] with r hr
+    exact sub_nonneg.mpr hr.le
+  have htotal_left : Tendsto totalPath (𝓝[>] a)
+      (𝓝 (wholeLineDriftHeatBUCTotalVal d (b - a) (W a) x)) := by
+    exact wholeLineDriftHeatBUCTotalVal_tendsto_positive_of_tendsto
+      d x (sub_pos.mpr hab) hlag_left hlag_left_nonneg hW_left
+  have hpath_total_left : path =ᶠ[𝓝[>] a] totalPath := by
+    have hltb : ∀ᶠ r in 𝓝[>] a, r < b := by
+      exact Filter.Eventually.filter_mono nhdsWithin_le_nhds
+        (Iio_mem_nhds hab)
+    filter_upwards [hltb] with r hr
+    exact (wholeLineDriftHeatBUCTotalVal_of_pos
+      (sub_pos.mpr hr) (W r) x).symm
+  have hpath_left : Tendsto path (𝓝[>] a)
+      (𝓝 (wholeLineDriftHeatOp d (b - a) (W a).1 x)) := by
+    rw [wholeLineDriftHeatBUCTotalVal_of_pos (sub_pos.mpr hab)] at htotal_left
+    exact htotal_left.congr' hpath_total_left.symm
+  have hlag_right : Tendsto (fun r : ℝ => b - r) (𝓝[<] b)
+      (𝓝 0) := by
+    simpa only [sub_self] using
+      (show Tendsto (fun r : ℝ => b - r) (𝓝[<] b) (𝓝 (b - b)) from
+        (continuousAt_const.sub continuousAt_id).continuousWithinAt)
+  have hlag_right_nonneg : ∀ᶠ r in 𝓝[<] b, 0 ≤ b - r := by
+    filter_upwards [self_mem_nhdsWithin] with r hr
+    exact sub_nonneg.mpr hr.le
+  have htotal_right : Tendsto totalPath (𝓝[<] b) (𝓝 ((W b).1 x)) := by
+    exact wholeLineDriftHeatBUCTotalVal_tendsto_zero_of_tendsto
+      d x hlag_right hlag_right_nonneg hW_right
+  have hpath_total_right : path =ᶠ[𝓝[<] b] totalPath := by
+    filter_upwards [self_mem_nhdsWithin] with r hr
+    exact (wholeLineDriftHeatBUCTotalVal_of_pos
+      (sub_pos.mpr hr) (W r) x).symm
+  have hpath_right : Tendsto path (𝓝[<] b) (𝓝 ((W b).1 x)) :=
+    htotal_right.congr' hpath_total_right.symm
+  have hftc := intervalIntegral.integral_eq_sub_of_hasDerivAt_of_tendsto
+    hab hderiv hint hpath_left hpath_right
+  dsimp [path, sourcePath] at hftc
+  linarith
+
 #print axioms wholeLineCauchyMovingHeatOp_eq_heatOp_translated_input
 #print axioms wholeLineCauchyMovingHeatOp_time_hasDerivAt_of_bounded_C1
 #print axioms wholeLineCauchyHeatHessOp_eq_heatOp_secondDeriv
@@ -2454,5 +2549,6 @@ theorem wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
 #print axioms wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
 #print axioms integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
 #print axioms wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
+#print axioms wholeLineDrift_restart_identity_of_bounded_joint
 
 end ShenWork.Paper1
