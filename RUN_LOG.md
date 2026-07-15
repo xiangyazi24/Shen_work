@@ -539,3 +539,7 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - ChatGPT: Q5036 (Prop1.2 route, landed), Q5041 (floor audit, landed), in flight: seed p0
   (shen1), P3 strong-max DAG (shen3), Lp route adversarial audit (shen4), P2 maximal-time
   alternative (shen2 refill).
+
+### 2026-07-14 23:55 infra resolved
+- Codex#1 r2 died identically (heredoc-in-same-command hijacks stdin; both failures had heredocs, the healthy Codex#2 did not). r3 dispatched as a bare single codex exec command: HEALTHY (banner + session 019f63f6 within 1 min). Lesson banked to CC memory (codex-no-heredoc-dispatch).
+- ChatGPT: Q5042 (P2 maximal-time alternative) landed — confirms spec framing: (1.14) general alternative, (1.15) m>=1 excludes floor collapse via scalar ODE subsolution; 0<m<1 residual = named no-floor-loss hypothesis. shen2 refilled with Lemma 2.6 exact-statement question (audit baseline for codex#1 product).
