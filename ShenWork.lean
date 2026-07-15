@@ -669,6 +669,7 @@ import ShenWork.Paper1.WholeLineWeightedRegularityMild
 import ShenWork.Paper1.WholeLineWeightedRegularityBUCTimeHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityConjugation
 import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
+import ShenWork.Paper1.WholeLineWeightedRegularityL2History
 import ShenWork.Paper1.WholeLineWeightedRegularityFluxDerivative
 import ShenWork.Paper1.WholeLineWeightedRegularityForcingHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityLinearSource
@@ -677,3 +678,5 @@ import ShenWork.Paper1.WholeLineWeightedRegularitySourceHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityVolterra
 import ShenWork.Paper1.WholeLineWeightedRegularityWeightGap
 import ShenWork.Paper1.WholeLineWeightedRegularityGradientMild
+import ShenWork.Paper1.WholeLineWeightedRegularityGradientClosure
+import ShenWork.Paper1.WholeLineCauchyLeftTailBridge
