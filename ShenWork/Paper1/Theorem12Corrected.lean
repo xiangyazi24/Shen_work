@@ -192,12 +192,31 @@ theorem section5ProfileInitialSignalBounds_proved
   Lemma_5_3_profile_initial_signal_derivative_from_Lemma_2_5
     p (by norm_num) hTW hreg hbound hu₀
 
-/-! ## Honest one-core capstone
+/-! ## One-core capstone, conditional on the paper's cited analytic input
 
-The remaining hypothesis below is deliberately not hidden in a structure and
-does not contain either convergence conclusion.  It is the exact whole-line
-Cauchy/perturbation/Step 4 analytic block still missing after Lemma 2.5,
-Lemma 5.3, scalar Grönwall, and interval localization have been discharged.
+The remaining hypothesis `hcore` below is deliberately not hidden in a structure
+and does not contain either convergence conclusion.  It is the exact whole-line
+Cauchy/perturbation/Step 4 analytic block still open after Lemma 2.5, Lemma 5.3,
+scalar Grönwall, and interval localization have been discharged.
+
+Its irreducible content is the weighted-`L²` instant regularity of the
+moving-frame error: writing `U = e^{ηx}(u − U*)` for the weighted error, one
+needs `U(t,·), Uₓ(t,·) ∈ L²(ℝ)` for every `t > 0`.  This is precisely what the
+source paper (arXiv:2605.04401, §5.2, eq. (5.19) and the line immediately
+below it) obtains BY CITATION — "[26, Theorem 7.1.3]", i.e. Henry, *Geometric
+Theory of Semilinear Parabolic Equations*, the analytic-semigroup smoothing
+property.  The paper does not prove it elementarily, and neither is it provable
+from the glued whole-line mild solution: every elementary route (weighted mild
+transference, tent-weight cap exhaustion, pointwise drift barriers) reduces back
+to the same right-tail decay of the error gradient, which is the smoothing
+itself.  Formalizing it requires sectorial-operator / fractional-power /
+analytic-semigroup infrastructure absent from Mathlib — a separate campaign, out
+of scope for reproducing this paper.  Everything downstream of this cited input —
+the J1–J4 weighted energy estimate (Steps 1–4), Lemma 5.3, the Grönwall closure,
+and the passage (1.21) ⇒ (1.22) — is proved unconditionally below.  The theorem
+is therefore a faithful CONDITIONAL headline: conditional only on the standard
+regularity result the paper itself cites, with all of this paper's novel §5.2
+content discharged.
 -/
 
 theorem paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4
