@@ -1,6 +1,9 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
+import Mathlib.MeasureTheory.Integral.Prod
+import Mathlib.MeasureTheory.Function.AEEqOfIntegral
 
-open Filter MeasureTheory
+open Filter MeasureTheory Set
+open scoped RealInnerProductSpace
 
 noncomputable section
 
@@ -107,6 +110,108 @@ theorem wholeLineRealL2Section_aestronglyMeasurable_of_integral_sub_sq_tendsto_z
   (wholeLineRealL2Section_continuous_of_integral_sub_sq_tendsto_zero
     hg_meas hg2 hlim).aestronglyMeasurable
 
+/-- A Bochner integral in the whole-line `L²` space agrees almost everywhere
+with the pointwise scalar integral of any representative, provided only local
+product integrability on finite-measure spatial windows.  No global spatial
+`L¹` hypothesis is imposed. -/
+theorem wholeLineRealL2_integral_coe_ae_of_local_prod_integrable
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure ι} [SigmaFinite μ]
+    {Z : ι → WholeLineRealL2} {g : ι → ℝ → ℝ}
+    (hZint : Integrable Z μ)
+    (hrep : ∀ᵐ s ∂μ,
+      (((Z s : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] g s))
+    (hlocal : ∀ A : Set ℝ, MeasurableSet A →
+      (volume : Measure ℝ) A < ⊤ →
+      Integrable
+        (fun z : ι × ℝ => A.indicator (g z.1) z.2)
+        (μ.prod volume)) :
+    ((((∫ s, Z s ∂μ) : WholeLineRealL2) : ℝ → ℝ)
+      =ᵐ[volume] fun x => ∫ s, g s x ∂μ) := by
+  let H : WholeLineRealL2 := ∫ s, Z s ∂μ
+  let h : ℝ → ℝ := fun x => ∫ s, g s x ∂μ
+  apply ae_eq_of_forall_setIntegral_eq_of_sigmaFinite
+  · intro A hA hAfin
+    exact integrableOn_Lp_of_measure_ne_top H
+      fact_one_le_two_ennreal.elim hAfin.ne
+  · intro A hA hAfin
+    have hprod := hlocal A hA hAfin
+    have hxint : Integrable
+        (fun x => ∫ s, A.indicator (g s) x ∂μ) volume :=
+      hprod.integral_prod_right
+    apply (integrable_indicator_iff hA).mp
+    refine hxint.congr ?_
+    filter_upwards with x
+    by_cases hx : x ∈ A
+    · simp only [Set.indicator_of_mem hx]
+    · simp only [Set.indicator_of_notMem hx, integral_zero]
+  · intro A hA hAfin
+    let I : WholeLineRealL2 :=
+      indicatorConstLp 2 hA hAfin.ne (1 : ℝ)
+    have hinner_integral :
+        (⟪I, H⟫ : ℝ) = ∫ s, (⟪I, Z s⟫ : ℝ) ∂μ := by
+      dsimp only [H]
+      exact ((innerSL ℝ I).integral_comp_comm hZint).symm
+    have hinner_rep : ∀ᵐ s ∂μ,
+        (⟪I, Z s⟫ : ℝ) = ∫ x in A, g s x := by
+      filter_upwards [hrep] with s hs
+      have hI := L2.inner_indicatorConstLp_one hA hAfin.ne (Z s)
+      rw [show I = indicatorConstLp 2 hA hAfin.ne (1 : ℝ) by rfl]
+      refine hI.trans (setIntegral_congr_ae hA ?_)
+      filter_upwards [hs] with x hx
+      exact fun _ => hx
+    have hswap := integral_integral_swap
+      (μ := μ) (ν := volume)
+      (f := fun s x => A.indicator (g s) x)
+      (hlocal A hA hAfin)
+    have hswap' :
+        (∫ s, ∫ x in A, g s x ∂volume ∂μ) =
+          ∫ x in A, ∫ s, g s x ∂μ ∂volume := by
+      calc
+        (∫ s, ∫ x in A, g s x ∂volume ∂μ) =
+            ∫ s, ∫ x, A.indicator (g s) x ∂volume ∂μ := by
+          simp only [integral_indicator hA]
+        _ = ∫ x, ∫ s, A.indicator (g s) x ∂μ ∂volume := hswap
+        _ = ∫ x, A.indicator (fun x => ∫ s, g s x ∂μ) x ∂volume := by
+          apply integral_congr_ae
+          filter_upwards with x
+          by_cases hx : x ∈ A
+          · simp only [Set.indicator_of_mem hx]
+          · simp only [Set.indicator_of_notMem hx, integral_zero]
+        _ = ∫ x in A, ∫ s, g s x ∂μ ∂volume := by
+          rw [integral_indicator hA]
+    calc
+      (∫ x in A, (H : ℝ → ℝ) x) = (⟪I, H⟫ : ℝ) :=
+        (L2.inner_indicatorConstLp_one hA hAfin.ne H).symm
+      _ = ∫ s, (⟪I, Z s⟫ : ℝ) ∂μ := hinner_integral
+      _ = ∫ s, ∫ x in A, g s x ∂volume ∂μ :=
+        integral_congr_ae hinner_rep
+      _ = ∫ x in A, ∫ s, g s x ∂μ ∂volume := hswap'
+      _ = ∫ x in A, h x ∂volume := by rfl
+
+/-- Interval-integral specialization of the local Bochner/Fubini bridge. -/
+theorem wholeLineRealL2_intervalIntegral_coe_ae_of_local_prod_integrable
+    {a b : ℝ} (hab : a ≤ b)
+    {Z : ℝ → WholeLineRealL2} {g : ℝ → ℝ → ℝ}
+    (hZint : IntervalIntegrable Z volume a b)
+    (hrep : ∀ᵐ s ∂(volume.restrict (Set.Ioc a b)),
+      (((Z s : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] g s))
+    (hlocal : ∀ A : Set ℝ, MeasurableSet A →
+      (volume : Measure ℝ) A < ⊤ →
+      Integrable
+        (fun z : ℝ × ℝ => A.indicator (g z.1) z.2)
+        ((volume.restrict (Set.Ioc a b)).prod volume)) :
+    ((((∫ s in a..b, Z s) : WholeLineRealL2) : ℝ → ℝ)
+      =ᵐ[volume] fun x => ∫ s in a..b, g s x) := by
+  simp_rw [intervalIntegral.integral_of_le hab]
+  change
+    ((((∫ s, Z s ∂(volume.restrict (Set.Ioc a b))) : WholeLineRealL2) :
+        ℝ → ℝ) =ᵐ[volume]
+      fun x => ∫ s, g s x ∂(volume.restrict (Set.Ioc a b)))
+  exact wholeLineRealL2_integral_coe_ae_of_local_prod_integrable
+    ((intervalIntegrable_iff_integrableOn_Ioc_of_le hab).mp hZint)
+    hrep hlocal
+
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.wholeLineRealL2Section_coe_ae
@@ -116,3 +221,7 @@ end ShenWork.Paper1
   ShenWork.Paper1.wholeLineRealL2Section_continuous_of_integral_sub_sq_tendsto_zero
 #print axioms
   ShenWork.Paper1.wholeLineRealL2Section_aestronglyMeasurable_of_integral_sub_sq_tendsto_zero
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2_integral_coe_ae_of_local_prod_integrable
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2_intervalIntegral_coe_ae_of_local_prod_integrable
