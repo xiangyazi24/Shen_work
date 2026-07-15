@@ -1,6 +1,7 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityL2Semigroup
 import ShenWork.Paper1.WholeLineWeightedRegularityH2
 import ShenWork.Paper1.WholeLineWeightedRegularityMaximal
+import ShenWork.Paper1.WholeLineWeightedRegularitySecondDeriv
 
 open Filter MeasureTheory Set Topology
 open scoped Interval
@@ -112,11 +113,41 @@ theorem paper5WeightedPopulationXX_sq_integrable_of_generator
     (Wx := paper5WeightedPopulationX eta (coMovingPath c u) U t)
     hWxx_meas hdecomp hG2 hW2 hWx2
 
+theorem paper5WeightedPopulation_mul_XX_integrable_of_generator
+    {eta c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {G : ℝ → ℝ}
+    (hu2 : ContDiff ℝ 2 (coMovingPath c u t))
+    (hU2 : ContDiff ℝ 2 U)
+    (hclose : Integrable (fun x =>
+      Real.exp (2 * eta * x) *
+        |coMovingPath c u t x - U x| ^ 2))
+    (hWxx_meas : AEStronglyMeasurable
+      (paper5WeightedPopulationXX eta (coMovingPath c u) U t) volume)
+    (hdecomp : ∀ x, G x =
+      paper5WeightedPopulationXX eta (coMovingPath c u) U t x +
+        (c - 2 * eta) *
+          paper5WeightedPopulationX eta (coMovingPath c u) U t x +
+        (eta ^ 2 - c * eta) *
+          paper5WeightedPopulation eta (coMovingPath c u) U t x)
+    (hG2 : Integrable (fun x => G x ^ 2) volume)
+    (hWx2 : Integrable (fun x =>
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2) volume) :
+    Integrable (fun x =>
+      paper5WeightedPopulation eta (coMovingPath c u) U t x *
+        paper5WeightedPopulationXX eta (coMovingPath c u) U t x) := by
+  have hWxx2 := paper5WeightedPopulationXX_sq_integrable_of_generator
+    hWxx_meas hdecomp hG2
+    (paper5WeightedPopulation_sq_integrable_of_weighted_difference hclose)
+    hWx2
+  exact paper5WeightedPopulation_mul_XX_integrable_of_XX_sq
+    hu2 hU2 hclose hWxx2
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2_generatorDuhamel_truncated_tendsto
 #print axioms weightedMovingHeatL2_generatorDuhamel_limit_norm_le
 #print axioms paper5WeightedPopulationXX_sq_integrable_of_generator
+#print axioms paper5WeightedPopulation_mul_XX_integrable_of_generator
 
 end AxiomAudit
 
