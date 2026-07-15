@@ -2,6 +2,7 @@ import ShenWork.Paper1.WholeLineCauchyC2Bootstrap
 import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
 import ShenWork.Paper1.WholeLineCauchyCanonicalRestart
 import ShenWork.Paper1.WholeLineWeightedRegularityConjugation
+import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
 import ShenWork.Paper1.WholeLineWeightedRegularityLinearSource
 
 open Filter Topology MeasureTheory Real Set
@@ -2009,6 +2010,83 @@ theorem wholeLineDrift_split_restart_spatial_identity
     hab hQ hQx hQ_deriv hQx_cont] at hunique
   exact hunique
 
+/-- Hilbert-space realization of the split spatial restart.  The two
+time-dependent `L2` representatives and their Fubini identifications are
+explicit: pointwise existence of an `L2` slice alone would not justify a
+Bochner history.  The conclusion includes the concrete square-integrability
+of the restarted spatial derivative. -/
+theorem wholeLineDrift_split_restart_l2_of_history
+    {a b d A : ℝ} {Wbx Wax : ℝ → ℝ}
+    {Qx R : ℝ → ℝ → ℝ}
+    (hab : a ≤ b)
+    (Z₀ : WholeLineRealL2) (ZQ ZR : ℝ → WholeLineRealL2)
+    (gQ gR : ℝ → ℝ)
+    (hZQ_int : IntervalIntegrable ZQ volume a b)
+    (hZR_int : IntervalIntegrable ZR volume a b)
+    (hgQ_int : IntervalIntegrable gQ volume a b)
+    (hgR_int : IntervalIntegrable gR volume a b)
+    (hZ₀ : ‖Z₀‖ ≤ A)
+    (hZQ : ∀ s ∈ Set.Icc a b, ‖ZQ s‖ ≤ gQ s)
+    (hZR : ∀ s ∈ Set.Icc a b, ‖ZR s‖ ≤ gR s)
+    (hZ₀_rep : ((Z₀ : ℝ → ℝ) =ᵐ[volume]
+      wholeLineDriftHeatOp d (b - a) Wax))
+    (hZQ_rep :
+      (((∫ s in a..b, ZQ s) : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+        wholeLineDriftValueHistory d a b Qx)
+    (hZR_rep :
+      (((∫ s in a..b, ZR s) : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+        wholeLineDriftGradientHistory d a b R)
+    (hrestart : ∀ x,
+      Wbx x = wholeLineDriftHeatOp d (b - a) Wax x +
+        wholeLineDriftValueHistory d a b Qx x +
+        wholeLineDriftGradientHistory d a b R x) :
+    ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] Wbx) ∧
+        Integrable (fun x => Wbx x ^ 2) ∧
+        ‖Z‖ ≤ A + ∫ s in a..b, (gQ s + gR s) := by
+  let Qh : WholeLineRealL2 := ∫ s in a..b, ZQ s
+  let Rh : WholeLineRealL2 := ∫ s in a..b, ZR s
+  let Z : WholeLineRealL2 := (Z₀ + Qh) + Rh
+  have hQnorm : ‖Qh‖ ≤ ∫ s in a..b, gQ s := by
+    exact wholeLineRealL2_intervalIntegral_norm_le_of_majorant
+      hab hZQ_int hgQ_int hZQ
+  have hRnorm : ‖Rh‖ ≤ ∫ s in a..b, gR s := by
+    exact wholeLineRealL2_intervalIntegral_norm_le_of_majorant
+      hab hZR_int hgR_int hZR
+  have hrep : ((Z : ℝ → ℝ) =ᵐ[volume] Wbx) := by
+    have hadd₀ : (((Z₀ + Qh : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+        fun x => Z₀ x + Qh x) := Lp.coeFn_add Z₀ Qh
+    have hadd₁ : ((Z : ℝ → ℝ) =ᵐ[volume]
+        fun x => (Z₀ + Qh) x + Rh x) := by
+      simpa only [Z] using Lp.coeFn_add (Z₀ + Qh) Rh
+    filter_upwards [hadd₀, hadd₁, hZ₀_rep, hZQ_rep, hZR_rep]
+      with x ha₀ ha₁ h₀ hQ hR
+    calc
+      Z x = (Z₀ + Qh) x + Rh x := ha₁
+      _ = (Z₀ x + Qh x) + Rh x := by rw [ha₀]
+      _ = wholeLineDriftHeatOp d (b - a) Wax x +
+          wholeLineDriftValueHistory d a b Qx x +
+          wholeLineDriftGradientHistory d a b R x := by
+        dsimp only [Qh, Rh] at hQ hR ⊢
+        rw [h₀, hQ, hR]
+      _ = Wbx x := (hrestart x).symm
+  have hmemZ : MemLp ((Z : WholeLineRealL2) : ℝ → ℝ) 2 volume :=
+    Lp.memLp Z
+  have hmemW : MemLp Wbx 2 volume := (memLp_congr_ae hrep).mp hmemZ
+  have hWsq : Integrable (fun x => Wbx x ^ 2) :=
+    (memLp_two_iff_integrable_sq hmemW.1).1 hmemW
+  refine ⟨Z, hrep, hWsq, ?_⟩
+  calc
+    ‖Z‖ ≤ ‖Z₀‖ + ‖Qh‖ + ‖Rh‖ := by
+      dsimp only [Z]
+      exact (norm_add_le _ _).trans
+        (add_le_add (norm_add_le _ _) le_rfl)
+    _ ≤ A + (∫ s in a..b, gQ s) + ∫ s in a..b, gR s := by
+      linarith
+    _ = A + ∫ s in a..b, (gQ s + gR s) := by
+      rw [intervalIntegral.integral_add hgQ_int hgR_int]
+      ring
+
 /-- Positive-time integral realization of the pure-drift heat flow, with the
 moving observation point translated onto the input. -/
 theorem wholeLineDriftHeatOp_eq_translated_integral
@@ -2740,6 +2818,7 @@ theorem wholeLineDrift_restart_identity_of_bounded_joint
 #print axioms wholeLineDriftValueHistory_hasDerivAt_of_dominated
 #print axioms wholeLineDriftGradientHistory_eq_valueHistory_deriv
 #print axioms wholeLineDrift_split_restart_spatial_identity
+#print axioms wholeLineDrift_split_restart_l2_of_history
 #print axioms wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
 #print axioms integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
 #print axioms wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
