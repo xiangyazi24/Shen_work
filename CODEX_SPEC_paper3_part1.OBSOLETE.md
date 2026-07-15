@@ -1,3 +1,11 @@
+# ⚠️ OBSOLETE — DO NOT DISPATCH
+# Paper 3 Thm 2.1 Part 1 (guarded a>0,b>0,m>=1) is ALREADY CLOSED unconditionally via
+# Theorem_2_1_part1_corrected_intervalDomainM (contactSmallCeiling route,
+# IntervalDomainPersistenceGeneralMPart1Corrected.lean). The hStrongMaximumPersistence
+# 'leaf' in the headline matrix was STALE. Verified 2026-07-15 (ChatGPT Q5050 + repo read).
+# This spec's IntervalDomainLogisticULowerFields route would have been a redundant parallel
+# proof (zombie/over-build). Kept only as a record.
+
 # CODEX SPEC — Paper 3 Theorem 2.1 Part 1 (guarded a>0, b>0, m≥1) persistence
 
 ## Goal
