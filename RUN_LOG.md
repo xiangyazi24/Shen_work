@@ -485,3 +485,27 @@ ChiNeg L-numbers:
   - L722: iterate nonnegativity (likely FALSE — needs restructuring)
 
 GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
+
+## Run 2026-07-14 (Fable, source-of-truth reframe of hcore finiteness)
+- approval: /automode continuation (standing goal "完成 shen papers 形式化")
+- avenue: Paper1 Thm 1.2/1.3 hcore weighted-L² finiteness (coreIntegrability discharge)
+- DECISIVE FINDING (read paper1.pdf §5.2, eq 5.19 + line 4466): the paper OBTAINS the
+  weighted-L² instant regularity `U(t,·),Uₓ(t,·)∈L²` (t>0), U=e^{ηx}(u−U*), BY CITATION —
+  "[26, Thm 7.1.3]" = Henry, Geometric Theory of Semilinear Parabolic Eqns (analytic-
+  semigroup smoothing). That cited regularity IS coreIntegrability. The paper does NOT
+  prove it elementarily.
+- Consequence: the ~10 prior rounds (mild transference r6 / tent-weight cap exhaustion r7–r9 /
+  pointwise drift barriers) were re-deriving a cited textbook theorem. Every elementary route
+  reduces to the same error-gradient right-tail decay = the smoothing itself. Mathlib lacks the
+  sectorial-operator / fractional-power / analytic-semigroup infra; formalizing Henry 7.1.3 is a
+  separate campaign, out of scope for reproducing this paper.
+- DECISION (faithful default, matches how the paper operates): accept Thm 1.2/1.3 as a faithful
+  CONDITIONAL headline on the paper's own cited input. All novel §5.2 content (J1–J4 energy Steps
+  1–4, Lemma 5.3, Grönwall, 1.21⇒1.22) proved unconditionally clean-3. Bannered hcore with the
+  Henry citation: commit 661fc81c.
+- Banked partials remain clean-3 and committed (capWeight family, tail-rate arithmetic
+  tailBarrier_coeff_neg/drift_zero, rightTailL2_of_exp_decay) — usable if a Henry campaign is later
+  authorized; none faked, none load-bearing on a false claim.
+- end: finiteness avenue at faithful terminal state; next → outstanding mechanical headlines.
+- final result: Paper1 stability = faithful conditional-on-Henry; scope decision (formalize Henry
+  vs accept conditional) surfaced for Xiang; proceeding to next avenue without stopping.
