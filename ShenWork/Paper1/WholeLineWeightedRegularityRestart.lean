@@ -1820,6 +1820,99 @@ def wholeLineDriftHeatOp
     (d t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
   Real.exp t * wholeLineCauchyMovingHeatOp d t f x
 
+/-- Spatial derivative kernel for the undamped heat flow in a frame moving
+at speed `d`. -/
+def wholeLineDriftHeatGradOp
+    (d t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  Real.exp t * wholeLineCauchyHeatGradOp t f (x + d * t)
+
+/-- Spatial differentiation of the pure-drift heat orbit. -/
+theorem wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
+    {d t x C : ℝ} {f : ℝ → ℝ}
+    (ht : 0 < t) (hf_meas : AEStronglyMeasurable f volume)
+    (hf : ∀ y, |f y| ≤ C) :
+    HasDerivAt (fun z : ℝ => wholeLineDriftHeatOp d t f z)
+      (wholeLineDriftHeatGradOp d t f x) x := by
+  have hbase := wholeLineCauchyHeatOp_hasDerivAt
+    ht hf_meas hf (x := x + d * t)
+  have hinner : HasDerivAt (fun z : ℝ => z + d * t) 1 x := by
+    simpa using (hasDerivAt_id x).add_const (d * t)
+  have hcomp := hbase.comp x hinner
+  have hscaled := hcomp.const_mul (Real.exp t)
+  simpa [wholeLineDriftHeatOp, wholeLineCauchyMovingHeatOp,
+    wholeLineDriftHeatGradOp] using hscaled
+
+/-- If a bounded source has a bounded continuous classical derivative, one
+may transfer the spatial derivative from the Gaussian to that source. -/
+theorem wholeLineDriftHeatGradOp_eq_heatOp_deriv
+    {d t x C D : ℝ} {f : ℝ → ℝ}
+    (ht : 0 < t)
+    (hf : ∀ y, |f y| ≤ C)
+    (hfd : ∀ y, |deriv f y| ≤ D)
+    (hfderiv : ∀ y, HasDerivAt f (deriv f y) y)
+    (hfdcont : Continuous (deriv f)) :
+    wholeLineDriftHeatGradOp d t f x =
+      wholeLineDriftHeatOp d t (deriv f) x := by
+  have hbase := wholeLineCauchyHeatGradOp_eq_heatOp_deriv
+    (x := x + d * t) ht hf hfd hfderiv hfdcont
+  unfold wholeLineDriftHeatGradOp wholeLineDriftHeatOp
+    wholeLineCauchyMovingHeatOp
+  rw [hbase]
+
+/-- Value Duhamel history for the undamped drift heat flow. -/
+def wholeLineDriftValueHistory
+    (d a b : ℝ) (F : ℝ → ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ s in a..b, wholeLineDriftHeatOp d (b - s) (F s) x
+
+/-- Gradient Duhamel history for the undamped drift heat flow. -/
+def wholeLineDriftGradientHistory
+    (d a b : ℝ) (F : ℝ → ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ s in a..b, wholeLineDriftHeatGradOp d (b - s) (F s) x
+
+/-- Differentiate a drift-heat Duhamel history under an explicit local
+dominated-convergence majorant.  This is the exact interface used for the
+reaction leg of the positive-window `Wx` restart. -/
+theorem wholeLineDriftValueHistory_hasDerivAt_of_dominated
+    {a b d x C rho : ℝ} {F : ℝ → ℝ → ℝ}
+    {bound : ℝ → ℝ}
+    (hab : a < b) (hrho : 0 < rho)
+    (hF_slice_meas : ∀ s ∈ Set.Ioc a b,
+      AEStronglyMeasurable (F s) volume)
+    (hF_bound : ∀ s ∈ Set.Ioc a b, ∀ y, |F s y| ≤ C)
+    (hvalue_meas : ∀ z ∈ Metric.ball x rho,
+      AEStronglyMeasurable
+        (fun s : ℝ => wholeLineDriftHeatOp d (b - s) (F s) z)
+        (volume.restrict (Set.uIoc a b)))
+    (hvalue_int : IntervalIntegrable
+      (fun s : ℝ => wholeLineDriftHeatOp d (b - s) (F s) x)
+      volume a b)
+    (hgrad_meas : AEStronglyMeasurable
+      (fun s : ℝ => wholeLineDriftHeatGradOp d (b - s) (F s) x)
+      (volume.restrict (Set.uIoc a b)))
+    (hbound_int : IntervalIntegrable bound volume a b)
+    (hbound : ∀ᵐ s : ℝ ∂volume, s ∈ Set.uIoc a b →
+      ∀ z ∈ Metric.ball x rho,
+        ‖wholeLineDriftHeatGradOp d (b - s) (F s) z‖ ≤ bound s) :
+    HasDerivAt (wholeLineDriftValueHistory d a b F)
+      (wholeLineDriftGradientHistory d a b F x) x := by
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ b := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  apply (intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (μ := volume) (a := a) (b := b)
+    (F := fun z s => wholeLineDriftHeatOp d (b - s) (F s) z)
+    (F' := fun z s => wholeLineDriftHeatGradOp d (b - s) (F s) z)
+    (x₀ := x) (s := Metric.ball x rho) (bound := bound)
+    (Metric.ball_mem_nhds x hrho)
+    ?hF_meas hvalue_int hgrad_meas hbound hbound_int ?h_diff).2
+  · filter_upwards [Metric.ball_mem_nhds x hrho] with z hz
+    exact hvalue_meas z hz
+  · filter_upwards [hne] with s hsb hsI z hz
+    rw [Set.uIoc_of_le hab.le, Set.mem_Ioc] at hsI
+    have hslt : s < b := lt_of_le_of_ne hsI.2 hsb
+    exact wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
+      (sub_pos.mpr hslt) (hF_slice_meas s hsI) (hF_bound s hsI)
+
 /-- Positive-time integral realization of the pure-drift heat flow, with the
 moving observation point translated onto the input. -/
 theorem wholeLineDriftHeatOp_eq_translated_integral
@@ -2546,6 +2639,9 @@ theorem wholeLineDrift_restart_identity_of_bounded_joint
 #print axioms weighted_travelingWave_divergence_conjugation
 #print axioms wholeLineDriftHeatOp_eq_translated_integral
 #print axioms wholeLineDriftHeatOp_eq_weightedMovingHeatEta
+#print axioms wholeLineDriftHeatOp_spatial_hasDerivAt_of_bounded
+#print axioms wholeLineDriftHeatGradOp_eq_heatOp_deriv
+#print axioms wholeLineDriftValueHistory_hasDerivAt_of_dominated
 #print axioms wholeLineDriftHeatOp_time_hasDerivAt_of_bounded_C2
 #print axioms integral_heatKernel_secondDeriv_mul_eq_integral_mul_secondDeriv
 #print axioms wholeLineDriftBackwardOrbit_hasDerivAt_of_bounded_joint
