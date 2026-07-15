@@ -208,7 +208,31 @@ theorem capWeightedPopulationX_eq_three_gradient_legs
         (q₀ + qG + qR) := by rw [hderiv]
     _ = capWeightSqrt eta R x * Real.exp (eta * x) * q₀ +
         capWeightSqrt eta R x * Real.exp (eta * x) * qG +
-        capWeightSqrt eta R x * Real.exp (eta * x) * qR := by ring
+      capWeightSqrt eta R x * Real.exp (eta * x) * qR := by ring
+
+/-! The C² bootstrap exposes spatial derivatives as `HasDerivAt` facts.  This
+lemma is the small interface which turns those facts into the scalar identity
+consumed by the cap-weighted three-leg assembly above.  Keeping this bridge
+separate is useful: the fixed-point/Duhamel producers can provide the three
+source terms independently, while the coordinate change and the reference
+profile only enter through the two derivative witnesses. -/
+theorem capWeightedPopulationX_eq_three_gradient_legs_of_hasDerivAt
+    {eta R c t x : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {qU qRef q₀ qG qR : ℝ}
+    (hu : HasDerivAt (coMovingPath c u t) qU x)
+    (hU : HasDerivAt U qRef x)
+    (hlegs : eta * (coMovingPath c u t x - U x) +
+      qU - qRef = q₀ + qG + qR) :
+    capWeightSqrt eta R x *
+        paper5WeightedPopulationX eta (coMovingPath c u) U t x =
+      capWeightSqrt eta R x * Real.exp (eta * x) * q₀ +
+      capWeightSqrt eta R x * Real.exp (eta * x) * qG +
+      capWeightSqrt eta R x * Real.exp (eta * x) * qR := by
+  have hderiv : deriv (coMovingPath c u t) x = qU := hu.deriv
+  have hUderiv : deriv U x = qRef := hU.deriv
+  apply capWeightedPopulationX_eq_three_gradient_legs
+  rw [hderiv, hUderiv]
+  exact hlegs
 
 
 section AxiomAudit
