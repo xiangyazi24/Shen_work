@@ -1,0 +1,27 @@
+name: q4970-exact-result
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'drops/q4970-exact-result.md'
+permissions:
+  contents: write
+jobs:
+  calculate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Compute exact rational data
+        run: |
+          mkdir -p drops
+          node scripts/q4970_exact.js > drops/q4970-exact-result.md
+      - name: Commit exact output to disposable branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add drops/q4970-exact-result.md
+          git commit -m 'Record Q4970 exact computation'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
