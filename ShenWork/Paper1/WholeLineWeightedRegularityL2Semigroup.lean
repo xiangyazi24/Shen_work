@@ -708,6 +708,31 @@ theorem weightedMovingHeatL2Semigroup_tendsto_zero_of_bucRep
   apply tendsto_iff_dist_tendsto_zero.2
   simpa [dist_eq_norm] using hnorm
 
+/-- Strong continuity at zero for an `L²` class with a smooth
+compactly-supported representative. -/
+theorem weightedMovingHeatL2Semigroup_tendsto_zero_of_smoothCompactRep
+    {eta c : ℝ} (Z : WholeLineRealL2) {g : ℝ → ℝ}
+    (hrep : (Z : ℝ → ℝ) =ᵐ[volume] g)
+    (hcompact : HasCompactSupport g) (hsmooth : ContDiff ℝ ⊤ g) :
+    Tendsto (fun t : ℝ => weightedMovingHeatL2Semigroup eta c t Z)
+      (nhdsWithin 0 (Ioi 0)) (nhds Z) := by
+  obtain ⟨C, hC⟩ :=
+    ContDiff.lipschitzWith_of_hasCompactSupport hcompact hsmooth (by simp)
+  obtain ⟨M, hM⟩ :=
+    hsmooth.continuous.bounded_above_of_compact_support hcompact
+  let gBUC : WholeLineBUC := wholeLineBUCOfUniformBound g
+    hC.uniformContinuous M (fun x => by
+      simpa [Real.norm_eq_abs] using hM x)
+  have hrepBUC : (Z : ℝ → ℝ) =ᵐ[volume] (gBUC.1 : ℝ → ℝ) := by
+    simpa [gBUC] using hrep
+  have hgBUC : LipschitzWith C (gBUC.1 : ℝ → ℝ) := by
+    simpa [gBUC] using hC
+  have hgInt : Integrable (gBUC.1 : ℝ → ℝ) := by
+    simpa [gBUC] using
+      hsmooth.continuous.integrable_of_hasCompactSupport hcompact
+  exact weightedMovingHeatL2Semigroup_tendsto_zero_of_bucRep
+    Z gBUC hrepBUC hgBUC hgInt
+
 /-! ## A reusable signed-kernel `L²` operator -/
 
 /-- Concrete data for a signed integral kernel with equal absolute row and
