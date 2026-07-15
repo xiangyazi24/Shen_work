@@ -690,3 +690,21 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   领地 ShenWork/Paper2/** 独占。dispatch 时踩了 tmux-send-prompt.sh 残留 mktemp 字面量文件的坑，清除后正常。
 - Paper 3 → 我自己（不空等）：(a) paper 核对 P3 Thm2.2–2.4 closer 的 m=1 gate 与 Prop1.2 minimal
   slice 是否 paper 本来的 regime；(b) A.7/A.8 阈值序不等式；(c) Prop1.2 minimal slice 可行性。
+
+### 2026-07-15 (self, paper-check) — 实质修正：P3 stability 是 m=1-only，不是 COMPLETE
+- 读 paper3.pdf §2.2 主结果原文核对 Lean closer 的 m gate：
+  - Thm 2.1 persistence: paper 分 m≥1(part1)/m=1(2)/m>1(3)/m=1 minimal(4)；Lean part1_corrected
+    +part2/3/4 覆盖全 regime，含 m>1（part3）✅ 真全关。
+  - Thm 2.2: 线性二分 paper 是 m-general（χ* 公式带 u*^{m+γ-1}），Lean `Theorem_2_2_linear_
+    threshold_unitInterval` 无 m gate ✅；但非线性指数衰减 (2.12) paper 为 m≥1，Lean
+    `intervalDomain_Theorem_2_2_Eventual_*` 全部 `hm : p.m = 1` → **m>1 非线性衰减未关**。
+  - Thm 2.3 (χ₀≤0 global stability): paper 明文 "Assume χ₀≤0, m≥1"；Lean closer `hm : p.m = 1`
+    → **m>1 未关**。
+  - Thm 2.4 (strong-logistic global stability): paper 条件 (i)-(iv) 全 m≥1；Lean `hm : p.m = 1`
+    → **m>1 未关**。
+  - Thm 2.5 (minimal a=b=0): paper 本就是 m=1 minimal；Lean m=1/N=1 ✅ faithful。
+- **摘要原文**: "we develop several new arguments and extend existing methods, including the
+  Lyapunov functional method from m=1 to m>1"。即 m>1 稳定性正是本文的核心新贡献，Lean 只做了 m=1
+  基例，m>1 的 Lyapunov 泛函稳定性（Thm 2.3/2.4 + Thm 2.2 非线性半）是 GENUINE OPEN。
+- 结论：P3 persistence(Thm2.1) 真全关；P3 stability(Thm2.2 非线性/2.3/2.4) 只关 m=1 片。
+  "P3 COMPLETE" 是 over-claim。新增第 5 座 frontier：**P3 m>1 Lyapunov 稳定性**。
