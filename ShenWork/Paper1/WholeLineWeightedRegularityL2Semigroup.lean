@@ -662,6 +662,52 @@ theorem weightedMovingHeatL2Semigroup_norm_sub_sq_le_of_bucRep
   rw [norm_sub_sq_real]
   nlinarith
 
+/-- Strong continuity at zero on the integrable Lipschitz BUC core. -/
+theorem weightedMovingHeatL2Semigroup_tendsto_zero_of_bucRep
+    {eta c : ℝ} {C : NNReal}
+    (Z : WholeLineRealL2) (g : WholeLineBUC)
+    (hrep : (Z : ℝ → ℝ) =ᵐ[volume] (g.1 : ℝ → ℝ))
+    (hg : LipschitzWith C (g.1 : ℝ → ℝ))
+    (hg_int : Integrable (g.1 : ℝ → ℝ)) :
+    Tendsto (fun t : ℝ => weightedMovingHeatL2Semigroup eta c t Z)
+      (nhdsWithin 0 (Ioi 0)) (nhds Z) := by
+  let I : ℝ := ∫ x : ℝ, |g.1 x|
+  let R : ℝ → ℝ := fun t =>
+    (weightedMovingHeatGrowth eta c t ^ 2 - 1) * ‖Z‖ ^ 2 +
+      2 * weightedMovingHeatBUCErrorBound eta c C g t * I
+  have hgrowth : Tendsto (weightedMovingHeatGrowth eta c)
+      (nhds 0) (nhds 1) := by
+    have hcont : ContinuousAt (weightedMovingHeatGrowth eta c) 0 := by
+      unfold weightedMovingHeatGrowth
+      fun_prop
+    simpa [weightedMovingHeatGrowth] using hcont.tendsto
+  have hE := weightedMovingHeatBUCErrorBound_tendsto_zero eta c C g
+  have hRfull : Tendsto R (nhds 0) (nhds 0) := by
+    have hone : Tendsto (fun _ : ℝ => (1 : ℝ)) (nhds 0) (nhds 1) :=
+      tendsto_const_nhds
+    have hfirst := ((hgrowth.pow 2).sub hone).mul_const (‖Z‖ ^ 2)
+    have hsecond := (hE.const_mul 2).mul_const I
+    simpa [R] using hfirst.add hsecond
+  have hR : Tendsto R (nhdsWithin 0 (Ioi 0)) (nhds 0) :=
+    hRfull.mono_left inf_le_left
+  have hsq : Tendsto
+      (fun t : ℝ =>
+        ‖weightedMovingHeatL2Semigroup eta c t Z - Z‖ ^ 2)
+      (nhdsWithin 0 (Ioi 0)) (nhds 0) := by
+    apply squeeze_zero'
+    · exact Eventually.of_forall fun _ => sq_nonneg _
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      exact weightedMovingHeatL2Semigroup_norm_sub_sq_le_of_bucRep
+        ht Z g hrep hg hg_int
+    · exact hR
+  have hnorm : Tendsto
+      (fun t : ℝ => ‖weightedMovingHeatL2Semigroup eta c t Z - Z‖)
+      (nhdsWithin 0 (Ioi 0)) (nhds 0) := by
+    have hsqrt := hsq.sqrt
+    simpa [Real.sqrt_sq_eq_abs, abs_of_nonneg] using hsqrt
+  apply tendsto_iff_dist_tendsto_zero.2
+  simpa [dist_eq_norm] using hnorm
+
 /-! ## A reusable signed-kernel `L²` operator -/
 
 /-- Concrete data for a signed integral kernel with equal absolute row and
