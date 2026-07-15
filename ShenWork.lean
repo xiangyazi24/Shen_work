@@ -657,3 +657,5 @@ import ShenWork.Paper2.IntervalDomainCorrectedProposition11
 import ShenWork.Paper1.WholeLineWeightedRegularityRestart
 import ShenWork.Paper1.WholeLineWeightedRegularityForcingTrajectory
 import ShenWork.Paper1.WholeLineWeightedRegularityL2Semigroup
+import ShenWork.Paper1.WholeLineWeightedRegularityH2
+import ShenWork.Paper1.WholeLineWeightedRegularityMaximal
