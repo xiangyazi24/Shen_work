@@ -638,3 +638,13 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   adversarial audit + code check.
 - BOTH committed cruxes fully verify-closed: Prop 1.2(1) χ≤0 (Fable-attacked crux) + Paper 2 Thm
   1.3 χ≤0 general-m. Remaining cooking verifies (Q5051 floor-broad, Q5052 uniqueness) confirmatory.
+
+### 2026-07-15 03:20 — COLLABORATOR: cron window (tmux zinan:6) warm Codex is the standing Shen collaborator
+- Xiang correction: after compact I concept-drifted and spawned FRESH `codex exec` background
+  processes each dispatch instead of routing to the warm persistent Codex in the cron window
+  (tmux zinan:6, gpt-5.6-sol xhigh, ~53% context, session 019f5232, Pro xiangyazi24). Violated
+  persist-warm-workers.
+- FIX: reconnect via `~/.openclaw/scripts/tmux-send-prompt.sh zinan:6 -f <brief>`; monitor via
+  `tmux capture-pane -p -t zinan:6`. Route ALL subsequent Shen Codex dispatches there (reuse warm
+  context) instead of fresh codex exec. First re-brief: full changed-impact-closure build
+  verification of this session's 5 headlines on uisai2 (the green-module != green-tree check I skipped).
