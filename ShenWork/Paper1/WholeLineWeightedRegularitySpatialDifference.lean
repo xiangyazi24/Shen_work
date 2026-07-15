@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityMild
+import ShenWork.Paper1.WholeLineWeightedRegularityRestart
 
 open Filter MeasureTheory Set
 
@@ -37,6 +38,87 @@ def capWeightedCoMovingTruncatedReactionSpatialDifferenceQuotient
     (p : CMParams) (M eta R c s h : ℝ) (u : ℝ → ℝ) (x : ℝ) : ℝ :=
   capWeightedCoMovingTruncatedReactionDifference
     p M eta R c s (fun y => u (y + h)) u x / h
+
+/-- The moving-frame heat operator commutes with a spatial translation. -/
+theorem paper5MovingFrameHeatOp_eval_shift_eq_input_shift
+    (c t d : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    paper5MovingFrameHeatOp c t f (x + d) =
+      paper5MovingFrameHeatOp c t (fun y => f (y + d)) x := by
+  unfold paper5MovingFrameHeatOp
+  rw [show x + d + c * t = (x + c * t) + d by ring]
+  exact wholeLineCauchyHeatOp_eval_shift_eq_input_shift
+    t d f (x + c * t)
+
+/-- The moving-frame heat-gradient operator commutes with the same spatial
+translation. -/
+theorem paper5MovingFrameHeatGradOp_eval_shift_eq_input_shift
+    (c t d : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    paper5MovingFrameHeatGradOp c t f (x + d) =
+      paper5MovingFrameHeatGradOp c t (fun y => f (y + d)) x := by
+  unfold paper5MovingFrameHeatGradOp
+  rw [show x + d + c * t = (x + c * t) + d by ring]
+  exact wholeLineCauchyHeatGradOp_eval_shift_eq_input_shift
+    t d f (x + c * t)
+
+/-- Shifting an exact cap-weighted `L²` profile costs only the uniform
+exponential ratio factor.  This estimate is independent of the cap radius. -/
+theorem capWeight_shift_sq_integrable_and_integral_le
+    {eta R d : ℝ} (heta : 0 ≤ eta) {f : ℝ → ℝ}
+    (hf : Continuous f)
+    (hint : Integrable (fun x : ℝ =>
+      capWeight eta R x * |f x| ^ 2)) :
+    Integrable (fun x : ℝ =>
+        capWeight eta R x * |f (x + d)| ^ 2) ∧
+      (∫ x : ℝ, capWeight eta R x * |f (x + d)| ^ 2) ≤
+        Real.exp (2 * eta * |d|) *
+          ∫ x : ℝ, capWeight eta R x * |f x| ^ 2 := by
+  let base : ℝ → ℝ := fun x => capWeight eta R x * |f x| ^ 2
+  let shiftedWeight : ℝ → ℝ := fun y =>
+    capWeight eta R (y - d) * |f y| ^ 2
+  let major : ℝ → ℝ := fun y =>
+    Real.exp (2 * eta * |d|) * base y
+  have hpoint : ∀ y, shiftedWeight y ≤ major y := by
+    intro y
+    have hcap := capWeight_le_exp_abs_mul heta R (y - d) y
+    have habs : |(y - d) - y| = |d| := by
+      rw [show (y - d) - y = -d by ring, abs_neg]
+    rw [habs] at hcap
+    dsimp only [shiftedWeight, major, base]
+    calc
+      capWeight eta R (y - d) * |f y| ^ 2 ≤
+          (Real.exp (2 * eta * |d|) * capWeight eta R y) *
+            |f y| ^ 2 :=
+        mul_le_mul_of_nonneg_right hcap (sq_nonneg _)
+      _ = Real.exp (2 * eta * |d|) *
+          (capWeight eta R y * |f y| ^ 2) := by ring
+  have hmajor : Integrable major := by
+    simpa only [major, base] using
+      hint.const_mul (Real.exp (2 * eta * |d|))
+  have hshiftedMeas : AEStronglyMeasurable shiftedWeight volume := by
+    dsimp only [shiftedWeight]
+    exact (((capWeight_continuous eta R).comp
+      (continuous_id.sub continuous_const)).mul
+        (hf.abs.pow 2)).aestronglyMeasurable
+  have hshifted : Integrable shiftedWeight := by
+    refine Integrable.mono' hmajor hshiftedMeas ?_
+    exact Eventually.of_forall fun y => by
+      rw [Real.norm_eq_abs, abs_of_nonneg
+        (mul_nonneg (capWeight_pos eta R (y - d)).le (sq_nonneg _))]
+      exact hpoint y
+  have htarget : Integrable (fun x : ℝ =>
+      capWeight eta R x * |f (x + d)| ^ 2) := by
+    have hcomp := hshifted.comp_add_right d
+    simpa only [shiftedWeight, add_sub_cancel_right] using hcomp
+  refine ⟨htarget, ?_⟩
+  calc
+    (∫ x : ℝ, capWeight eta R x * |f (x + d)| ^ 2) =
+        ∫ y : ℝ, shiftedWeight y := by
+      have htrans := integral_add_right_eq_self (μ := volume) shiftedWeight d
+      simpa only [shiftedWeight, add_sub_cancel_right] using htrans
+    _ ≤ ∫ y : ℝ, major y := integral_mono hshifted hmajor hpoint
+    _ = Real.exp (2 * eta * |d|) *
+          ∫ x : ℝ, capWeight eta R x * |f x| ^ 2 := by
+      rw [integral_const_mul]
 
 private theorem spatialDifferenceQuotient_rescale_sq
     {h : ℝ} (hh : h ≠ 0) (f : ℝ → ℝ) (x : ℝ) :
@@ -235,6 +317,9 @@ section AxiomAudit
   capWeighted_coMovingTruncatedChemotaxis_spatialDifferenceQuotient_l2_bounded
 #print axioms
   capWeighted_coMovingTruncatedReaction_spatialDifferenceQuotient_l2_bounded
+#print axioms paper5MovingFrameHeatOp_eval_shift_eq_input_shift
+#print axioms paper5MovingFrameHeatGradOp_eval_shift_eq_input_shift
+#print axioms capWeight_shift_sq_integrable_and_integral_le
 
 end AxiomAudit
 
