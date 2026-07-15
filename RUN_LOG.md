@@ -599,3 +599,14 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - BOARD after this: Prop 1.2(1) χ≤0 closed+wired; Paper 3 complete; Paper 2 χ≤0 now general-m
   complete (0<m<1 open-in-paper). Live-and-mine open avenues ~exhausted; remaining = χ>0 (Xiang),
   Henry hcore + Prop1.2 uniqueness (imported infra), 0<m<1 (open in paper).
+
+### 2026-07-15 02:30 — checked-not-built (anti-zombie)
+- Considered extending Thm 1.2 χ≤0 to general-m (mirror the new Thm 1.3 general-m headline).
+  CHECKED Theorem_1_2 def (Statements.lean:4542): its global conjunct is hard-gated `p.m = 1 →`,
+  so for m>1 both conjuncts are VACUOUS; the meaningful general-m χ≤0 content is already the Thm 1.3
+  general-m headline. A Thm 1.2 general-m headline would be vacuous/redundant — NOT built (applied
+  the derived-index/verify-before-build lesson: checked the def before dispatching/building).
+- Live threads: adversarial verifies still on SOL — Q5051 (Prop1.2 floor audit, shen3) + shen2
+  (general-m headline verify). Harvest + act on any defect when they land. No dependency-free
+  formalization of mine remains (Thm1.2 extension ruled out; rest is Xiang χ>0 / imported infra /
+  0<m<1 open-in-paper).
