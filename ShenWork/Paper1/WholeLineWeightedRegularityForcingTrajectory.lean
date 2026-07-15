@@ -553,6 +553,120 @@ theorem paper5WeightedGeneratorForcing_data_of_population_H1
               (coMovingPath c u) U t x ^ 2) := by
       rfl
 
+/-- The canonical raw forcing is uniformly bounded on a compact positive
+time window.  The only profile-side input is a bound for the stationary
+flux derivative; all dynamic bounds are obtained from the canonical BUC
+bootstrap. -/
+theorem exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
+    (p : CMParams) {M T a b theta zeta FD : ℝ} (c : ℝ)
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b ≤ T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hzeta0 : 0 < zeta) (hzeta1 : zeta < 1)
+    (hrel : zeta * (1 + theta) < theta)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (Uw Vw : ℝ → ℝ) (hUwM : ∀ x, Uw x ∈ Set.Icc (0 : ℝ) M)
+    (hFD : 0 ≤ FD)
+    (hwaveFlux : ∀ x,
+      |deriv (fun y => Uw y ^ p.m * deriv Vw y) x| ≤ FD) :
+    ∃ D : ℝ, 0 ≤ D ∧
+      ∀ s ∈ Set.Icc a b, ∀ x : ℝ,
+        |paper5CanonicalGeneratorForcingRaw p c hM hT
+          (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall)
+          Uw Vw s x| ≤ D := by
+  let Uc : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  have hstripWindow : ∀ s ∈ Set.Icc a b, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT Uc s).1 x ∈ Set.Icc (0 : ℝ) M := by
+    intro s hs x
+    let zs : Set.Icc (0 : ℝ) T :=
+      ⟨s, (ha.trans_le hs.1).le, hs.2.trans hbT⟩
+    have hext : wholeLineBUCTrajectoryExtend hT Uc s = Uc zs :=
+      wholeLineBUCTrajectoryExtend_eq hT Uc zs.2
+    rw [hext]
+    exact hstrip zs x
+  rcases wholeLineCauchyFluxSourceTrajectory_deriv_holder_positive_window
+      p hM hT ha hab hbT u₀ hsmall htheta0 htheta1
+        hzeta0 hzeta1 hrel hstripWindow with
+    ⟨rho, Hflux, hrho0, _hrho1, hHflux, hfluxHolder⟩
+  let MF : ℝ := M ^ p.m * M ^ p.γ
+  have hMF : 0 ≤ MF := by dsimp [MF]; positivity
+  let Dflux : ℝ := Hflux + 2 * MF
+  have hDflux : 0 ≤ Dflux := by dsimp [Dflux]; positivity
+  have hdynamicFlux : ∀ s ∈ Set.Icc a b, ∀ x,
+      |deriv (wholeLineCauchyFluxSourceTrajectory p hM hT Uc s).1 x| ≤
+        Dflux := by
+    intro s hs x
+    have hsourceBound : ∀ y,
+        |(wholeLineCauchyFluxSourceTrajectory p hM hT Uc s).1 y| ≤ MF := by
+      intro y
+      exact (WholeLineBUC.abs_apply_le_norm
+        (wholeLineCauchyFluxSourceTrajectory p hM hT Uc s) y).trans
+        (by
+          simpa [MF, wholeLineCauchyFluxSourceTrajectory] using
+            wholeLineCauchyTruncatedFluxBUC_norm_le p hM
+              (wholeLineBUCTrajectoryExtend hT Uc s))
+    have hsourceDiff : ∀ y, DifferentiableAt ℝ
+        (wholeLineCauchyFluxSourceTrajectory p hM hT Uc s).1 y := by
+      intro y
+      let zs : Set.Icc (0 : ℝ) T :=
+        ⟨s, (ha.trans_le hs.1).le, hs.2.trans hbT⟩
+      have hstripS : ∀ q, (Uc zs).1 q ∈ Set.Icc (0 : ℝ) M := by
+        intro q
+        exact hstrip zs q
+      exact (wholeLineCauchyFluxSourceTrajectory_slice_hasDerivAt_positive
+        p hM hT u₀ hsmall zs (ha.trans_le hs.1) hstripS y).differentiableAt
+    exact deriv_abs_le_of_bounded_of_deriv_holder hHflux hrho0
+      hsourceBound hsourceDiff (hfluxHolder s hs) x
+  let R : ℝ := M * (1 + M ^ p.α)
+  have hR : 0 ≤ R := by dsimp [R]; positivity
+  have hdynamicReaction : ∀ s ∈ Set.Icc a b, ∀ x,
+      |reactionFun p.α
+        ((wholeLineBUCTrajectoryExtend hT Uc s).1 x)| ≤ R := by
+    intro s hs x
+    simpa only [wholeLineLogisticSource, R] using
+      wholeLineLogisticSource_abs_le p hM (hstripWindow s hs) x
+  have hwaveReaction : ∀ x, |reactionFun p.α (Uw x)| ≤ R := by
+    intro x
+    simpa only [wholeLineLogisticSource, R] using
+      wholeLineLogisticSource_abs_le p hM hUwM x
+  let D : ℝ := |p.χ| * (Dflux + FD) + 2 * R
+  have hD : 0 ≤ D := by dsimp [D]; positivity
+  refine ⟨D, hD, ?_⟩
+  intro s hs x
+  let Fc : ℝ := deriv
+    (wholeLineCauchyFluxSourceTrajectory p hM hT Uc s).1 (x + c * s)
+  let Fw : ℝ := deriv (fun y => Uw y ^ p.m * deriv Vw y) x
+  let Rc : ℝ := reactionFun p.α
+    ((wholeLineBUCTrajectoryExtend hT Uc s).1 (x + c * s))
+  let Rw : ℝ := reactionFun p.α (Uw x)
+  have hfluxAbs : |Fc - Fw| ≤ Dflux + FD := by
+    calc
+      |Fc - Fw| ≤ |Fc| + |Fw| := abs_sub _ _
+      _ ≤ Dflux + FD := add_le_add
+        (hdynamicFlux s hs (x + c * s)) (hwaveFlux x)
+  have hreactionAbs : |Rc - Rw| ≤ 2 * R := by
+    calc
+      |Rc - Rw| ≤ |Rc| + |Rw| := abs_sub _ _
+      _ ≤ R + R := add_le_add
+        (hdynamicReaction s hs (x + c * s)) (hwaveReaction x)
+      _ = 2 * R := by ring
+  calc
+    |paper5CanonicalGeneratorForcingRaw p c hM hT Uc Uw Vw s x| =
+        |(-p.χ) * (Fc - Fw) + (Rc - Rw)| := by
+          rfl
+    _ ≤ |p.χ| * |Fc - Fw| + |Rc - Rw| := by
+      simpa only [abs_mul, abs_neg] using
+        abs_add_le ((-p.χ) * (Fc - Fw)) (Rc - Rw)
+    _ ≤ |p.χ| * (Dflux + FD) + 2 * R :=
+      add_le_add
+        (mul_le_mul_of_nonneg_left hfluxAbs (abs_nonneg _)) hreactionAbs
+    _ = D := by rfl
+
 section AxiomAudit
 
 #print axioms paper5WeightedLowerOrderSource_sub_growth_eq_generatorForcing
@@ -561,6 +675,8 @@ section AxiomAudit
 #print axioms
   exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
 #print axioms paper5WeightedGeneratorForcing_data_of_population_H1
+#print axioms
+  exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
 
 end AxiomAudit
 

@@ -625,6 +625,43 @@ theorem weightedMovingHeatL2Semigroup_inner_error_le_of_bucRep
     _ = weightedMovingHeatBUCErrorBound eta c C g t *
         ∫ x : ℝ, |g.1 x| := rfl
 
+/-- Squared `L²` error bound on the Lipschitz BUC core. -/
+theorem weightedMovingHeatL2Semigroup_norm_sub_sq_le_of_bucRep
+    {eta c t : ℝ} (ht : 0 < t) {C : NNReal}
+    (Z : WholeLineRealL2) (g : WholeLineBUC)
+    (hrep : (Z : ℝ → ℝ) =ᵐ[volume] (g.1 : ℝ → ℝ))
+    (hg : LipschitzWith C (g.1 : ℝ → ℝ))
+    (hg_int : Integrable (g.1 : ℝ → ℝ)) :
+    ‖weightedMovingHeatL2Semigroup eta c t Z - Z‖ ^ 2 ≤
+      (weightedMovingHeatGrowth eta c t ^ 2 - 1) * ‖Z‖ ^ 2 +
+        2 * weightedMovingHeatBUCErrorBound eta c C g t *
+          ∫ x : ℝ, |g.1 x| := by
+  let S : WholeLineRealL2 := weightedMovingHeatL2Semigroup eta c t Z
+  let a : ℝ := weightedMovingHeatGrowth eta c t
+  let E : ℝ := weightedMovingHeatBUCErrorBound eta c C g t
+  let I : ℝ := ∫ x : ℝ, |g.1 x|
+  have ha : 0 ≤ a := by
+    dsimp [a, weightedMovingHeatGrowth]
+    positivity
+  have hSnorm : ‖S‖ ≤ a * ‖Z‖ := by
+    calc
+      ‖S‖ ≤ ‖weightedMovingHeatL2Semigroup eta c t‖ * ‖Z‖ :=
+        (weightedMovingHeatL2Semigroup eta c t).le_opNorm Z
+      _ ≤ a * ‖Z‖ := mul_le_mul_of_nonneg_right
+        (weightedMovingHeatL2Semigroup_norm_le_of_pos ht) (norm_nonneg _)
+  have hSsq : ‖S‖ ^ 2 ≤ (a * ‖Z‖) ^ 2 :=
+    (sq_le_sq₀ (norm_nonneg _) (mul_nonneg ha (norm_nonneg _))).2 hSnorm
+  have hpairAbs : |⟪S, Z⟫ - ‖Z‖ ^ 2| ≤ E * I := by
+    simpa [S, E, I] using
+      weightedMovingHeatL2Semigroup_inner_error_le_of_bucRep
+        ht Z g hrep hg hg_int
+  have hpair : ‖Z‖ ^ 2 - E * I ≤ ⟪S, Z⟫ := by
+    have := neg_le_of_abs_le hpairAbs
+    linarith
+  change ‖S - Z‖ ^ 2 ≤ (a ^ 2 - 1) * ‖Z‖ ^ 2 + 2 * E * I
+  rw [norm_sub_sq_real]
+  nlinarith
+
 /-! ## A reusable signed-kernel `L²` operator -/
 
 /-- Concrete data for a signed integral kernel with equal absolute row and
