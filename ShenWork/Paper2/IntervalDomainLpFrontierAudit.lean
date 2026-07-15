@@ -1,0 +1,36 @@
+import ShenWork.Paper2.IntervalDomainCorollary21
+import ShenWork.Paper2.IntervalDomainSharpCrossDiffusionBootstrap
+import ShenWork.Paper2.IntervalDomainMCriticalLpSeed
+import ShenWork.Paper2.IntervalDomainMCriticalLpBootstrap
+import ShenWork.Paper2.IntervalDomainMRestartedLpLinfGeneral
+import ShenWork.Paper2.IntervalDomainTheorem12PositiveCriticalAllExponents
+import ShenWork.Paper2.IntervalDomainTheorem13CorrectedHeadline
+import ShenWork.Paper2.IntervalDomainTheorem12Refutation
+import ShenWork.PDE.IntervalDomainExistence
+
+/-!
+# Paper 2 interval-domain Lp frontier audit
+
+This module records the axiom audit for the paper-faithful Lp closure, the
+faithful general-`m` Lp-to-Linfty endpoint, the corrected maximal-continuation
+headlines, and the two obstructions to filling the legacy `FrontierData`.
+-/
+
+open ShenWork.Paper2.IntervalDomainCorollary21
+open ShenWork.Paper2.IntervalDomainMRestartedLpLinfGeneral
+open ShenWork.Paper2.IntervalDomainTheorem13CorrectedHeadline
+
+#print axioms intervalDomain_Corollary_2_1_terminalWindow
+#print axioms ShenWork.Paper2.intervalDomain_crossDiffusionBootstrapEstimate_sharp
+#print axioms ShenWork.Paper2.IntervalDomainM.critical_bootstrap_seed_positive
+#print axioms
+  ShenWork.Paper2.IntervalDomainM.critical_lp_power_bounded_before_positive_of_seed
+#print axioms Proposition_2_5_intervalDomainM_of_restarted_affine_general
+#print axioms
+  ShenWork.Paper2.IntervalDomainM.Theorem_1_2_intervalDomain_positive_critical_branch_unconditional
+#print axioms
+  ShenWork.Paper2.IntervalDomainM.correctedTheorem12_positiveCriticalBranch_unconditional
+#print axioms correctedTheorem13_intervalDomainM
+#print axioms ShenWork.Paper2.not_Theorem_1_2_intervalDomain_of_a_pos_b_zero
+#print axioms
+  ShenWork.IntervalDomainExistence.not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail

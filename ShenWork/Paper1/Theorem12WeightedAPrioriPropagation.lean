@@ -1,4 +1,4 @@
-import ShenWork.Paper1.Theorem12Step4EnergyProducer
+import ShenWork.Paper1.Theorem12WeightedResolverEta
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 
 open Filter MeasureTheory Set
