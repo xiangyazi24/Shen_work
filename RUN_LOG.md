@@ -563,3 +563,22 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   delivery timeout only, per discipline not re-dispatched); shen2 on uniqueness.
 - end: Prop 1.2(1) avenue at terminal SUCCESS. Next dischargeable: Paper 3 Thm 2.1 Part 1
   strong-max persistence (await shen3 design), Paper 2 m>1 continuation producer.
+
+### 2026-07-15 01:30 — mid-run corrections (verify-before-build)
+- P3 Thm 2.1 Part 1: DISPATCH REVERTED. ChatGPT Q5050 flagged the headline-matrix
+  `hStrongMaximumPersistence` leaf as STALE; repo read confirmed
+  `Theorem_2_1_part1_corrected_intervalDomainM` already proves guarded Part 1 UNCONDITIONALLY
+  via the contactSmallCeiling route (handoff state-of-tree also said "Paper 3 COMPLETE").
+  Killed Codex B, cleaned -p3 staging, marked spec .OBSOLETE, fixed matrix leaf. Lesson: I
+  trusted a stale matrix line over the summary; the ChatGPT two-way audit caught the
+  redundant-parallel-route (zombie) before real waste.
+- Paper 2 general-m χ≤0 boundedness: Codex A (first dispatch) DIED mid-work (API), left only a
+  stray 4-line uncommitted edit to Lemma31 — reverted. Target VERIFIED genuinely open
+  (`critical_bounded_before_nonpos` + whole max-point chain carry `hm : p.m = 1`; no general-m
+  producer exists). Clean re-dispatch (Codex A r2) with sharpened spec appendix naming the exact
+  m=1 chain to generalize (interior/boundary_max_point_M, Lemma31, bound, global). NOT
+  dispatch-before-verify — the openness is checked.
+- Board: Prop 1.2(1) χ≤0 CLOSED+wired (this session's Fable-attacked crux). P3 COMPLETE. Paper 2
+  general-m = the one live mine-and-open residual (Codex A r2 + shen1/shen2 audits, complementary
+  split). Remaining non-mine: χ>0 (Xiang), Henry hcore + Prop1.2 uniqueness (imported infra),
+  0<m<1 floor-loss (open in paper).
