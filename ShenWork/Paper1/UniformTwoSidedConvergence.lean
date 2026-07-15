@@ -273,4 +273,42 @@ theorem wholeLineCauchyExpCeiling_eq_expFloor_rate_one (C t : ℝ) :
     wholeLineCauchyExpCeiling C t = wholeLineCauchyExpFloor C 1 t := by
   simp [wholeLineCauchyExpCeiling, wholeLineCauchyExpFloor]
 
+/-! ## End-to-end conditional assembly for Proposition 1.2(1)
+
+The χ ≤ 0 branch of Proposition 1.2, for the canonical whole-line Cauchy
+solution, carrying the two facts the floor campaign must deliver as named
+hypotheses: the uniform lower envelope at `1` and strict interior
+positivity.  Everything else (existence, upper envelope, combination) is
+already banked.  When `WholeLineCauchyLongTimeFloor` lands, both carried
+hypotheses discharge from the global floor theorem and this becomes the
+unconditional branch. -/
+
+theorem Proposition_1_2_negative_branch_of_floor
+    (p : CMParams) (hχ : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀)
+    (hfloor : UniformLiminfGe
+      (wholeLineCauchyGlobalU p (wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1)) 1)
+    (hstrict : ∀ t x : ℝ, 0 < t →
+      0 < wholeLineCauchyGlobalU p (wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1) t x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformConvergesToConstant u 1 := by
+  let w : WholeLineBUC := wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1
+  have hw0 : ∀ x, 0 ≤ w.1 x := by
+    intro x
+    simpa [w] using hu₀.2 x
+  let hregime : WholeLineCauchyCeilingRegime p :=
+    WholeLineCauchyCeilingRegime.of_nonpositive hχ
+  have hnonneg :
+      IsGlobalNonnegativeCauchySolutionFrom p u₀
+        (wholeLineCauchyGlobalU p w) (wholeLineCauchyGlobalV p w) := by
+    simpa [w] using
+      wholeLineCauchyGlobal_isGlobalNonnegativeCauchySolutionFrom
+        p hregime w hw0
+  have hlimsup : UniformLimsupLe (wholeLineCauchyGlobalU p w) 1 :=
+    wholeLineCauchyGlobal_uniformLimsupLe_one_of_chi_nonpos p hχ w hw0
+  refine ⟨wholeLineCauchyGlobalU p w, wholeLineCauchyGlobalV p w, ?_, ?_⟩
+  · exact ⟨hnonneg.1, hnonneg.2.1, hnonneg.2.2.1, hstrict⟩
+  · exact uniformConvergesToConstant_of_limsupLe_liminfGe hlimsup hfloor
+
 end ShenWork.Paper1
