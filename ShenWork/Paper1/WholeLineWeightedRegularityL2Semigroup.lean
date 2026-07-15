@@ -1611,6 +1611,126 @@ theorem secondDeriv_heatKernel_convolution_add
       rw [hfun]
     _ = _ := htrans
 
+/-- The positive-time generator kernel composes with the heat kernel by
+addition of times.  The scalar heat growth of the inner semigroup is kept
+explicit because it is outside its Markov kernel. -/
+theorem weightedMovingHeatGeneratorKernel_convolution_add
+    {eta c r q x z : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    weightedMovingHeatGrowth eta c q *
+        (∫ y : ℝ,
+          weightedMovingHeatGeneratorKernel eta c r x y *
+            weightedMovingHeatMarkovKernel eta c q y z) =
+      weightedMovingHeatGeneratorKernel eta c (r + q) x z := by
+  let d : ℝ := c - 2 * eta
+  let k : ℝ := eta ^ 2 - c * eta
+  let X : ℝ := x + d * r
+  let A : ℝ := z - d * q
+  let Q : ℝ → ℝ := fun y => heatKernel q (y - A)
+  let H0 : ℝ → ℝ := fun y => heatKernel r (X - y)
+  let H1 : ℝ → ℝ := fun y =>
+    deriv (fun w : ℝ => heatKernel r w) (X - y)
+  let H2 : ℝ → ℝ := fun y =>
+    deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel r w) u) (X - y)
+  let M : ℝ := 1 / Real.sqrt (4 * Real.pi * q)
+  have hQmeas : AEStronglyMeasurable Q volume := by
+    dsimp [Q]
+    exact (heatKernel_continuous hq).comp
+      (continuous_id.sub continuous_const) |>.aestronglyMeasurable
+  have hQbound : ∀ y, |Q y| ≤ M := by
+    intro y
+    dsimp [Q, M]
+    rw [abs_of_nonneg (heatKernel_nonneg hq _)]
+    exact heatKernel_pointwise_bound hq _
+  have h0int : Integrable (fun y => H0 y * Q y) := by
+    simpa [H0] using
+      heatKernel_mul_bounded_integrable hr X hQbound hQmeas
+  have h1int : Integrable (fun y => H1 y * Q y) := by
+    have hraw := heatKernel_deriv_mul_bounded_integrable hr X hQbound hQmeas
+    refine hraw.congr ?_
+    filter_upwards with y
+    dsimp [H1]
+    rw [deriv_heatKernel_translated_left hr X y,
+      deriv_heatKernel hr (X - y)]
+  have h2int : Integrable (fun y => H2 y * Q y) := by
+    simpa [H2] using
+      ShenWork.PaperOne.ConvLeibniz.secondDeriv_heatKernel_mul_bounded_integrable
+        hr X hQbound hQmeas
+  have hsplit :
+      (∫ y : ℝ, (H2 y + d * H1 y + k * H0 y) * Q y) =
+        (∫ y : ℝ, H2 y * Q y) +
+          d * (∫ y : ℝ, H1 y * Q y) +
+            k * (∫ y : ℝ, H0 y * Q y) := by
+    rw [show (fun y : ℝ => (H2 y + d * H1 y + k * H0 y) * Q y) =
+        (fun y => H2 y * Q y) +
+          (fun y => d * (H1 y * Q y)) +
+            (fun y => k * (H0 y * Q y)) by
+      funext y
+      simp only [Pi.add_apply]
+      ring]
+    calc
+      ∫ y : ℝ, ((fun y => H2 y * Q y) +
+            (fun y => d * (H1 y * Q y))) y + k * (H0 y * Q y) =
+          (∫ y : ℝ, H2 y * Q y + d * (H1 y * Q y)) +
+            ∫ y : ℝ, k * (H0 y * Q y) :=
+        integral_add (h2int.add (h1int.const_mul d)) (h0int.const_mul k)
+      _ = ((∫ y : ℝ, H2 y * Q y) +
+            ∫ y : ℝ, d * (H1 y * Q y)) +
+            ∫ y : ℝ, k * (H0 y * Q y) := by
+        rw [integral_add h2int (h1int.const_mul d)]
+      _ = _ := by rw [integral_const_mul, integral_const_mul]
+  unfold weightedMovingHeatGeneratorKernel weightedMovingHeatGeneratorBase
+  unfold weightedMovingHeatMarkovKernel
+  rw [show (fun y : ℝ =>
+      weightedMovingHeatGrowth eta c r *
+        (deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel r w) u)
+              (x + (c - 2 * eta) * r - y) +
+          (c - 2 * eta) * deriv (fun w : ℝ => heatKernel r w)
+              (x + (c - 2 * eta) * r - y) +
+          (eta ^ 2 - c * eta) * heatKernel r
+              (x + (c - 2 * eta) * r - y)) *
+        heatKernel q (y + (c - 2 * eta) * q - z)) =
+      fun y => weightedMovingHeatGrowth eta c r *
+        (H2 y + d * H1 y + k * H0 y) * Q y by
+    funext y
+    dsimp [H2, H1, H0, Q, X, A, d, k]
+    ring_nf]
+  rw [show (∫ y : ℝ,
+      weightedMovingHeatGrowth eta c r *
+        (H2 y + d * H1 y + k * H0 y) * Q y) =
+      weightedMovingHeatGrowth eta c r *
+        ∫ y : ℝ, (H2 y + d * H1 y + k * H0 y) * Q y by
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with y
+    ring]
+  rw [hsplit]
+  rw [show (∫ y : ℝ, H2 y * Q y) =
+      deriv (fun u : ℝ =>
+        deriv (fun w : ℝ => heatKernel (r + q) w) u) (X - A) by
+    simpa [H2, Q] using
+      secondDeriv_heatKernel_convolution_add (r := r) (q := q)
+        (X := X) (A := A) hr hq]
+  rw [show (∫ y : ℝ, H1 y * Q y) =
+      deriv (fun w : ℝ => heatKernel (r + q) w) (X - A) by
+    simpa [H1, Q] using
+      deriv_heatKernel_convolution_add (r := r) (q := q)
+        (X := X) (A := A) hr hq]
+  rw [show (∫ y : ℝ, H0 y * Q y) =
+      heatKernel (r + q) (X - A) by
+    simpa [H0, Q] using
+      heatKernel_convolution_add (t := r) (s := q) (x := X) (z := A) hr hq]
+  have hgrowth : weightedMovingHeatGrowth eta c q *
+      weightedMovingHeatGrowth eta c r =
+      weightedMovingHeatGrowth eta c (r + q) := by
+    unfold weightedMovingHeatGrowth
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [← mul_assoc, hgrowth]
+  congr 1
+  dsimp [X, A, d, k]
+  ring_nf
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
