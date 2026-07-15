@@ -1,6 +1,7 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityBUCTimeHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityFluxDerivative
 import ShenWork.Paper1.WholeLineWeightedRegularityForcingHolder
+import ShenWork.Paper1.WholeLineCauchyClassicalSolution
 
 open Filter MeasureTheory Real Set
 open scoped RealInnerProductSpace
@@ -714,6 +715,273 @@ theorem exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
         (mul_le_mul_of_nonneg_left hfluxAbs (abs_nonneg _)) hreactionAbs
     _ = D := by rfl
 
+/-- The canonical adjusted forcing has a continuous exponentially weighted
+`L2` realization on every compact positive-time window.  Time is clamped to
+the window outside it.  The nonlinear time modulus and the pointwise bound
+are produced internally; the only weighted input is a uniform strong-weight
+population `H1` budget. -/
+theorem exists_paper5CanonicalGeneratorForcing_L2_trajectory_positive_window
+    (p : CMParams)
+    {M T a b theta zeta eta etaPlus K FD : ℝ} (c : ℝ)
+    (hM : 0 ≤ M) (hT : 0 < T)
+    (ha : 0 < a) (hab : a ≤ b) (hbT : b < T)
+    (heta : 0 < eta) (hgap : eta < etaPlus)
+    (hetaPlusCap : etaPlus < stabilityWeightCap p)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (htheta0 : 0 < theta) (htheta1 : theta < 1)
+    (hzeta0 : 0 < zeta) (hzeta1 : zeta < 1)
+    (hrel : zeta * (1 + theta) < theta)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (Uw Vw : ℝ → ℝ)
+    (hchi : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (hTW : IsTravelingWave p c Uw Vw)
+    (hreg : TravelingWaveRegularity p c Uw Vw)
+    (hbound : HasWaveUpperTailBound p c Uw)
+    (hMChiM : MChi p ≤ M)
+    (hU2 : ContDiff ℝ 2 Uw) (hV2 : ContDiff ℝ 2 Vw)
+    (hu2 : ∀ s ∈ Set.Icc a b,
+      ContDiff ℝ 2
+        (coMovingPath c
+          (fun t x =>
+            (wholeLineBUCTrajectoryExtend hT.le
+              (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 x)
+          s))
+    (hv2 : ∀ s ∈ Set.Icc a b,
+      ContDiff ℝ 2
+        (coMovingPath c
+          (fun t => frozenElliptic p
+            (fun x =>
+              (wholeLineBUCTrajectoryExtend hT.le
+                (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 x))
+          s))
+    (hclosePlus : ∀ s ∈ Set.Icc a b,
+      Integrable (fun x : ℝ =>
+        Real.exp (2 * etaPlus * x) *
+          |coMovingPath c
+              (fun t y =>
+                (wholeLineBUCTrajectoryExtend hT.le
+                  (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 y)
+              s x - Uw x| ^ 2))
+    (hWxPlus : ∀ s ∈ Set.Icc a b,
+      Integrable (fun x : ℝ =>
+        paper5WeightedPopulationX etaPlus
+          (coMovingPath c
+            (fun t y =>
+              (wholeLineBUCTrajectoryExtend hT.le
+                (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 y))
+          Uw s x ^ 2))
+    (hbudget : ∀ s ∈ Set.Icc a b,
+      paper5WeightedGeneratorForcingH1SquareBound p M etaPlus
+          (∫ x : ℝ,
+            Real.exp (2 * etaPlus * x) *
+              |coMovingPath c
+                  (fun t y =>
+                    (wholeLineBUCTrajectoryExtend hT.le
+                      (wholeLineCauchyBUCMildFixedPoint p hM hT.le
+                        u₀ hsmall) t).1 y)
+                  s x - Uw x| ^ 2)
+          (∫ x : ℝ,
+            paper5WeightedPopulationX etaPlus
+              (coMovingPath c
+                (fun t y =>
+                  (wholeLineBUCTrajectoryExtend hT.le
+                    (wholeLineCauchyBUCMildFixedPoint p hM hT.le
+                      u₀ hsmall) t).1 y))
+              Uw s x ^ 2) ≤ K)
+    (hraw_meas : ∀ s ∈ Set.Icc a b,
+      AEStronglyMeasurable
+        (paper5CanonicalGeneratorForcingRaw p c hM hT.le
+          (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall)
+          Uw Vw s) volume)
+    (hUwM : ∀ x, Uw x ∈ Set.Icc (0 : ℝ) M)
+    (hFD : 0 ≤ FD)
+    (hwaveFlux : ∀ x,
+      |deriv (fun y => Uw y ^ p.m * deriv Vw y) x| ≤ FD) :
+    let Uc := wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall
+    let tau : ℝ → ℝ := fun s => (Set.projIcc a b hab s : ℝ)
+    let F : ℝ → ℝ → ℝ := fun s =>
+      paper5CanonicalGeneratorForcingRaw p c hM hT.le Uc Uw Vw (tau s)
+    ∃ Z : ℝ → WholeLineRealL2,
+      (∀ s, ((Z s : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+        fun x => Real.exp (eta * x) * F s x) ∧
+      Continuous Z ∧
+      ∃ alpha H : ℝ, 0 < alpha ∧ 0 ≤ H ∧
+        ∀ s t, |s - t| ≤ 1 →
+          ‖Z s - Z t‖ ≤
+            Real.sqrt (H ^ 2 / (2 * eta) + 4 * K) *
+              |s - t| ^ (alpha * (etaPlus - eta) / etaPlus) := by
+  dsimp only
+  let Uc : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall
+  let u : ℝ → ℝ → ℝ := fun t x =>
+    (wholeLineBUCTrajectoryExtend hT.le Uc t).1 x
+  let v : ℝ → ℝ → ℝ := fun t => frozenElliptic p (u t)
+  let tau : ℝ → ℝ := fun s => (Set.projIcc a b hab s : ℝ)
+  let F : ℝ → ℝ → ℝ := fun s =>
+    paper5CanonicalGeneratorForcingRaw p c hM hT.le Uc Uw Vw (tau s)
+  have htau_mem : ∀ s, tau s ∈ Set.Icc a b := by
+    intro s
+    exact (Set.projIcc a b hab s).2
+  have hsol : IsClassicalSolution p T u v := by
+    simpa [Uc, u, v] using
+      wholeLineCauchyBUCMildFixedPoint_isClassicalSolution
+        p hM hT u₀ hsmall htheta0 htheta1
+          hzeta0 hzeta1 hrel hstrip
+  have hstripWindow : ∀ s ∈ Set.Icc a b, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT.le Uc s).1 x ∈
+        Set.Icc (0 : ℝ) M := by
+    intro s hs x
+    let zs : Set.Icc (0 : ℝ) T :=
+      ⟨s, ha.le.trans hs.1, hs.2.trans hbT.le⟩
+    have hext : wholeLineBUCTrajectoryExtend hT.le Uc s = Uc zs :=
+      wholeLineBUCTrajectoryExtend_eq hT.le Uc zs.2
+    rw [hext]
+    exact hstrip zs x
+  rcases exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
+      p c hM hT.le ha hab hbT.le u₀ hsmall
+        htheta0 htheta1 hzeta0 hzeta1 hrel hstrip Uw Vw with
+    ⟨alpha, H, halpha, _halpha1, hH, hrawHolder⟩
+  rcases exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
+      p c hM hT.le ha hab hbT.le u₀ hsmall
+        htheta0 htheta1 hzeta0 hzeta1 hrel hstrip Uw Vw
+        hUwM hFD hwaveFlux with
+    ⟨D, hD, hrawBound⟩
+  let Hfull : ℝ := H + 2 * D
+  have hHfull : 0 ≤ Hfull := by dsimp [Hfull]; positivity
+  have hstrong : ∀ s,
+      Integrable (fun x : ℝ =>
+          Real.exp (2 * etaPlus * x) * |F s x| ^ 2) ∧
+        (∫ x : ℝ,
+          Real.exp (2 * etaPlus * x) * |F s x| ^ 2) ≤ K := by
+    intro s
+    have htm := htau_mem s
+    have ht0 : 0 < tau s := ha.trans_le htm.1
+    have htT : tau s < T := htm.2.trans_lt hbT
+    have huM : ∀ x, coMovingPath c u (tau s) x ∈ Set.Icc (0 : ℝ) M := by
+      intro x
+      simpa only [u, Uc, coMovingPath] using
+        hstripWindow (tau s) htm (x + c * tau s)
+    have huC : IsCUnifBdd (u (tau s)) := by
+      exact WholeLineBUC.isCUnifBdd
+        (wholeLineBUCTrajectoryExtend hT.le Uc (tau s))
+    have hu0 : ∀ x, 0 ≤ u (tau s) x := by
+      intro x
+      exact (hstripWindow (tau s) htm x).1
+    have hvEq : coMovingPath c v (tau s) =
+        frozenElliptic p (coMovingPath c u (tau s)) := by
+      change
+        (fun x => frozenElliptic p (u (tau s)) (x + c * tau s)) =
+          frozenElliptic p (fun x => u (tau s) (x + c * tau s))
+      exact (frozenElliptic_comp_add_const_fun p huC hu0
+        (c * tau s)).symm
+    have hforcingMeas : AEStronglyMeasurable
+        (paper5WeightedGeneratorForcing p etaPlus
+          (coMovingPath c u) (coMovingPath c v) Uw Vw (tau s)) volume := by
+      have hexp : AEStronglyMeasurable
+          (fun x : ℝ => Real.exp (etaPlus * x)) volume :=
+        (Real.continuous_exp.comp
+          (continuous_const.mul continuous_id)).aestronglyMeasurable
+      have hprod := hexp.mul (hraw_meas (tau s) htm)
+      exact hprod.congr (Eventually.of_forall fun x =>
+        paper5CanonicalGeneratorForcingRaw_exp_eq_weighted
+          p hM hT.le Uc Uw Vw (hstripWindow (tau s) htm) x)
+    have hdata := paper5WeightedGeneratorForcing_data_of_population_H1
+      p hchi hc (heta.trans hgap) hetaPlusCap hsol ht0 htT hTW hreg
+        hbound hMChiM (hu2 (tau s) htm) (hv2 (tau s) htm)
+        hU2 hV2 huM hvEq (hclosePlus (tau s) htm)
+        (hWxPlus (tau s) htm) hforcingMeas
+    have hsqEq : ∀ x,
+        paper5WeightedGeneratorForcing p etaPlus
+              (coMovingPath c u) (coMovingPath c v) Uw Vw (tau s) x ^ 2 =
+          Real.exp (2 * etaPlus * x) * |F s x| ^ 2 := by
+      intro x
+      have hreal := paper5CanonicalGeneratorForcingRaw_exp_eq_weighted
+        p (eta := etaPlus) (c := c) (s := tau s)
+          hM hT.le Uc Uw Vw (hstripWindow (tau s) htm) x
+      rw [← hreal]
+      dsimp only [F]
+      rw [mul_pow, sq_abs]
+      congr 1
+      rw [pow_two, ← Real.exp_add]
+      congr 1
+      ring
+    have hint : Integrable (fun x : ℝ =>
+        Real.exp (2 * etaPlus * x) * |F s x| ^ 2) :=
+      hdata.1.congr (Eventually.of_forall hsqEq)
+    refine ⟨hint, ?_⟩
+    calc
+      (∫ x : ℝ, Real.exp (2 * etaPlus * x) * |F s x| ^ 2) =
+          ∫ x : ℝ,
+            paper5WeightedGeneratorForcing p etaPlus
+              (coMovingPath c u) (coMovingPath c v) Uw Vw (tau s) x ^ 2 := by
+        apply integral_congr_ae
+        filter_upwards with x
+        exact (hsqEq x).symm
+      _ ≤ paper5WeightedGeneratorForcingH1SquareBound p M etaPlus
+          (∫ x : ℝ,
+            Real.exp (2 * etaPlus * x) *
+              |coMovingPath c u (tau s) x - Uw x| ^ 2)
+          (∫ x : ℝ,
+            paper5WeightedPopulationX etaPlus
+              (coMovingPath c u) Uw (tau s) x ^ 2) := hdata.2
+      _ ≤ K := by
+        simpa only [u, Uc] using hbudget (tau s) htm
+  have hFmeas : ∀ s, AEStronglyMeasurable (F s) volume := by
+    intro s
+    exact hraw_meas (tau s) (htau_mem s)
+  have hweak : ∀ s, Integrable (fun x : ℝ =>
+      Real.exp (2 * eta * x) * |F s x| ^ 2) := by
+    intro s
+    exact (weightedL2_le_of_sup_and_stronger_weight
+      heta hgap hD (hFmeas s)
+      (fun x => hrawBound (tau s) (htau_mem s) x)
+      (hstrong s).1 (R := 0)).1
+  have hsup : ∀ s t x, |F s x - F t x| ≤
+      Hfull * |s - t| ^ alpha := by
+    intro s t x
+    have hclamp : |tau s - tau t| ≤ |s - t| := by
+      simpa only [tau] using
+        (Set.abs_projIcc_sub_projIcc (a := a) (b := b)
+          hab (c := s) (d := t))
+    by_cases hdist : |s - t| ≤ 1
+    · have hraw := hrawHolder (tau t) (htau_mem t)
+          (tau s) (htau_mem s) x
+          (hclamp.trans hdist)
+      have hpow : |tau s - tau t| ^ alpha ≤ |s - t| ^ alpha :=
+        Real.rpow_le_rpow (abs_nonneg _) hclamp halpha.le
+      calc
+        |F s x - F t x| ≤ H * |tau s - tau t| ^ alpha := hraw
+        _ ≤ H * |s - t| ^ alpha :=
+          mul_le_mul_of_nonneg_left hpow hH
+        _ ≤ Hfull * |s - t| ^ alpha := by
+          exact mul_le_mul_of_nonneg_right
+            (by dsimp [Hfull]; linarith [hD])
+            (Real.rpow_nonneg (abs_nonneg _) _)
+    · have hst1 : 1 < |s - t| := lt_of_not_ge hdist
+      have hpow1 : 1 ≤ |s - t| ^ alpha := by
+        simpa using Real.one_rpow alpha ▸
+          Real.rpow_le_rpow (by norm_num) hst1.le halpha.le
+      have hdiff : |F s x - F t x| ≤ 2 * D := by
+        calc
+          |F s x - F t x| ≤ |F s x| + |F t x| := abs_sub _ _
+          _ ≤ D + D := add_le_add
+            (hrawBound (tau s) (htau_mem s) x)
+            (hrawBound (tau t) (htau_mem t) x)
+          _ = 2 * D := by ring
+      calc
+        |F s x - F t x| ≤ 2 * D := hdiff
+        _ ≤ Hfull * 1 := by dsimp [Hfull]; nlinarith [hH]
+        _ ≤ Hfull * |s - t| ^ alpha :=
+          mul_le_mul_of_nonneg_left hpow1 hHfull
+  obtain ⟨Z, hrep, hcont, hholder⟩ :=
+    exists_expWeightedL2_continuous_holder_of_weightGap
+      heta hgap halpha hHfull hFmeas hweak hstrong hsup
+  exact ⟨Z, hrep, hcont, alpha, Hfull, halpha, hHfull, hholder⟩
+
 section AxiomAudit
 
 #print axioms paper5WeightedLowerOrderSource_sub_growth_eq_generatorForcing
@@ -725,6 +993,8 @@ section AxiomAudit
 #print axioms paper5WeightedGeneratorForcing_data_of_population_H1
 #print axioms
   exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
+#print axioms
+  exists_paper5CanonicalGeneratorForcing_L2_trajectory_positive_window
 
 end AxiomAudit
 
