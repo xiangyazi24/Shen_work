@@ -1,0 +1,32 @@
+name: q4970-match-markers
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'drops/q4970-*-match'
+      - 'drops/q4970-*-no-match'
+permissions:
+  contents: write
+jobs:
+  mark:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Compute markers
+        run: |
+          mkdir -p drops
+          node scripts/q4970_exact.js > /tmp/q4970.txt
+          if grep -q '^offset=.*: ok=true' /tmp/q4970.txt | true; then :; fi
+          if grep -A20 '^## direct gauge tests' /tmp/q4970.txt | grep -q 'ok=true'; then touch drops/q4970-direct-match; else touch drops/q4970-direct-no-match; fi
+          if grep -A20 '^## two-step contraction gauge tests' /tmp/q4970.txt | grep -q 'ok=true'; then touch drops/q4970-contraction-match; else touch drops/q4970-contraction-no-match; fi
+          if grep -q '^offset=5: ok=true' /tmp/q4970.txt; then touch drops/q4970-offset5-match; else touch drops/q4970-offset5-no-match; fi
+      - name: Commit markers
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add drops/q4970-*
+          git commit -m 'Record Q4970 match markers' || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
