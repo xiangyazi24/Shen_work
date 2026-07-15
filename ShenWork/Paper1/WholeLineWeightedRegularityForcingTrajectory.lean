@@ -239,6 +239,53 @@ def paper5CanonicalGeneratorForcingRaw
         ((wholeLineBUCTrajectoryExtend hT U s).1 (x + c * s)) -
       reactionFun p.α (Uw x))
 
+/-- On a physical strip the canonical truncated-flux representative is the
+genuine co-moving generator forcing. -/
+theorem paper5CanonicalGeneratorForcingRaw_exp_eq_weighted
+    (p : CMParams) {M T eta c s : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T)
+    (U : WholeLineBUCTrajectory T) (Uw Vw : ℝ → ℝ)
+    (hstrip : ∀ y,
+      (wholeLineBUCTrajectoryExtend hT U s).1 y ∈ Set.Icc (0 : ℝ) M)
+    (x : ℝ) :
+    let u : ℝ → ℝ → ℝ := fun t y =>
+      (wholeLineBUCTrajectoryExtend hT U t).1 y
+    let v : ℝ → ℝ → ℝ := fun t => frozenElliptic p (u t)
+    Real.exp (eta * x) *
+        paper5CanonicalGeneratorForcingRaw p c hM hT U Uw Vw s x =
+      paper5WeightedGeneratorForcing p eta
+        (coMovingPath c u) (coMovingPath c v) Uw Vw s x := by
+  dsimp only
+  let u : ℝ → ℝ → ℝ := fun t y =>
+    (wholeLineBUCTrajectoryExtend hT U t).1 y
+  let v : ℝ → ℝ → ℝ := fun t => frozenElliptic p (u t)
+  have hfluxEq :
+      (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1 =
+        wholeLineChemotaxisFlux p (u s) := by
+    funext y
+    simpa [u, wholeLineCauchyFluxSourceTrajectory] using congrFun
+      (wholeLineCauchyTruncatedFlux_eq_of_mem_Icc p hM hstrip) y
+  have hcoFlux :
+      (fun y => (coMovingPath c u s y) ^ p.m *
+          deriv (coMovingPath c v s) y) =
+        (fun y => wholeLineChemotaxisFlux p (u s) (y + c * s)) := by
+    funext y
+    unfold wholeLineChemotaxisFlux coMovingPath
+    dsimp only [v]
+    rw [deriv_comp_add_const]
+  have hdynamic :
+      deriv
+          (fun y => (coMovingPath c u s y) ^ p.m *
+            deriv (coMovingPath c v s) y) x =
+        deriv
+          (wholeLineCauchyFluxSourceTrajectory p hM hT U s).1
+          (x + c * s) := by
+    rw [hcoFlux, deriv_comp_add_const, hfluxEq]
+  unfold paper5CanonicalGeneratorForcingRaw
+    paper5WeightedGeneratorForcing
+  rw [hdynamic]
+  rfl
+
 /-- The complete canonical physical forcing has a positive power time
 modulus on every compact positive-time window.  Both nonlinear pieces are
 produced internally: the chemotaxis term uses the differentiated co-moving
@@ -674,6 +721,7 @@ section AxiomAudit
   exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positive_window
 #print axioms
   exists_paper5CanonicalGeneratorForcingRaw_time_holder_positive_window
+#print axioms paper5CanonicalGeneratorForcingRaw_exp_eq_weighted
 #print axioms paper5WeightedGeneratorForcing_data_of_population_H1
 #print axioms
   exists_paper5CanonicalGeneratorForcingRaw_uniform_bound_positive_window
