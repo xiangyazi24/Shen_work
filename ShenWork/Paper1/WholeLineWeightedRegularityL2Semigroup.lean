@@ -1840,6 +1840,94 @@ theorem weightedMovingHeatGeneratorKernel_comp_integrable
         rw [Real.norm_eq_abs, abs_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
         exact hsecBound y)⟩
 
+/-- The positive-time generator commutes through a later heat step.  This is
+the concrete `L²` version of `A(r) S(q) = A(r+q)`. -/
+theorem weightedMovingHeatGeneratorL2CLM_comp_heat
+    {eta c r q : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    (weightedMovingHeatGeneratorL2CLM eta c r hr).comp
+        (weightedMovingHeatL2CLM eta c q hq) =
+      weightedMovingHeatGeneratorL2CLM eta c (r + q) (add_pos hr hq) := by
+  ext Z
+  simp only [ContinuousLinearMap.comp_apply, weightedMovingHeatL2CLM_apply]
+  have houter := weightedMovingHeatGeneratorL2CLM_coe_ae
+    (eta := eta) (c := c) hr (weightedMovingHeatL2Fun eta c q hq Z)
+  have hinner := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) hq Z
+  have hright := weightedMovingHeatGeneratorL2CLM_coe_ae
+    (eta := eta) (c := c) (add_pos hr hq) Z
+  filter_upwards [houter, hright] with x hxOuter hxRight
+  rw [hxOuter, hxRight]
+  have hreplace :
+      (∫ y : ℝ,
+          weightedMovingHeatGeneratorKernel eta c r x y *
+            (((weightedMovingHeatL2Fun eta c q hq Z : WholeLineRealL2) :
+              ℝ → ℝ) y)) =
+        ∫ y : ℝ,
+          weightedMovingHeatGeneratorKernel eta c r x y *
+            weightedMovingHeatEta eta c q (Z : ℝ → ℝ) y := by
+    apply integral_congr_ae
+    filter_upwards [hinner] with y hy
+    rw [hy]
+  rw [hreplace]
+  unfold weightedMovingHeatEta
+  let J : ℝ × ℝ → ℝ := fun p =>
+    weightedMovingHeatGeneratorKernel eta c r x p.1 *
+      weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2
+  have hswap := MeasureTheory.integral_integral_swap
+    (f := fun y z : ℝ => J (y, z))
+    (weightedMovingHeatGeneratorKernel_comp_integrable
+      (eta := eta) (c := c) (x := x) hr hq Z)
+  rw [show
+      (∫ y : ℝ,
+          weightedMovingHeatGeneratorKernel eta c r x y *
+            (weightedMovingHeatGrowth eta c q *
+              ∫ z : ℝ,
+                weightedMovingHeatMarkovKernel eta c q y z * Z z)) =
+        weightedMovingHeatGrowth eta c q *
+          ∫ y : ℝ, ∫ z : ℝ, J (y, z) by
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with y
+    rw [show
+        (∫ z : ℝ, J (y, z)) =
+          weightedMovingHeatGeneratorKernel eta c r x y *
+            ∫ z : ℝ,
+              weightedMovingHeatMarkovKernel eta c q y z * Z z by
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with z
+      dsimp [J]
+      ring]
+    ring]
+  rw [hswap]
+  rw [show
+      weightedMovingHeatGrowth eta c q *
+          (∫ z : ℝ, ∫ y : ℝ, J (y, z)) =
+        ∫ z : ℝ,
+          weightedMovingHeatGeneratorKernel eta c (r + q) x z * Z z by
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with z
+    dsimp [J]
+    rw [integral_mul_const, ← mul_assoc,
+      weightedMovingHeatGeneratorKernel_convolution_add hr hq]]
+
+/-- Totalized generator-shift law at nonnegative later times. -/
+theorem weightedMovingHeatL2Generator_comp_semigroup_add
+    {eta c r q : ℝ} (hr : 0 < r) (hq : 0 ≤ q) :
+    (weightedMovingHeatL2Generator eta c r).comp
+        (weightedMovingHeatL2Semigroup eta c q) =
+      weightedMovingHeatL2Generator eta c (r + q) := by
+  rcases hq.eq_or_lt with hq0 | hq
+  · subst q
+    rw [weightedMovingHeatL2Semigroup_zero, add_zero]
+    ext Z
+    rfl
+  · rw [weightedMovingHeatL2Generator_of_pos hr,
+      weightedMovingHeatL2Semigroup_of_pos hq,
+      weightedMovingHeatL2Generator_of_pos (add_pos hr hq)]
+    exact weightedMovingHeatGeneratorL2CLM_comp_heat hr hq
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -1849,6 +1937,8 @@ section AxiomAudit
 #print axioms weightedMovingHeatGeneratorL2CLM_coe_ae
 #print axioms weightedMovingHeatL2Generator_norm_le_horizon
 #print axioms weightedMovingHeatGeneratorKernel_comp_integrable
+#print axioms weightedMovingHeatGeneratorL2CLM_comp_heat
+#print axioms weightedMovingHeatL2Generator_comp_semigroup_add
 
 end AxiomAudit
 
