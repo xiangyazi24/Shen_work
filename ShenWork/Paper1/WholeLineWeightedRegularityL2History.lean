@@ -71,8 +71,48 @@ theorem wholeLineRealL2Section_norm_sub_sq
   rw [real_inner_self_eq_norm_sq] at hinner
   simpa only [Zs, Zt, pow_two] using hinner.symm
 
+/-- Scalar `L²` convergence of the representatives gives continuity of the
+canonical `L²` section.  This is the deterministic replacement for choosing
+an unrelated `L²` witness at each time. -/
+theorem wholeLineRealL2Section_continuous_of_integral_sub_sq_tendsto_zero
+    {g : ℝ → ℝ → ℝ}
+    (hg_meas : ∀ s, AEStronglyMeasurable (g s) volume)
+    (hg2 : ∀ s, Integrable (fun x : ℝ => g s x ^ 2) volume)
+    (hlim : ∀ t, Tendsto
+      (fun s => ∫ x : ℝ, (g s x - g t x) ^ 2)
+      (nhds t) (nhds 0)) :
+    Continuous (wholeLineRealL2Section g hg_meas hg2) := by
+  rw [continuous_iff_continuousAt]
+  intro t
+  apply tendsto_iff_norm_sub_tendsto_zero.2
+  have hsqrt := (Real.continuous_sqrt.tendsto 0).comp (hlim t)
+  have hsqrt0 : Tendsto
+      (fun s => Real.sqrt (∫ x : ℝ, (g s x - g t x) ^ 2))
+      (nhds t) (nhds 0) := by
+    simpa only [Function.comp_apply, Real.sqrt_zero] using hsqrt
+  refine hsqrt0.congr' (Eventually.of_forall fun s => ?_)
+  rw [← wholeLineRealL2Section_norm_sub_sq g hg_meas hg2]
+  exact Real.sqrt_sq (norm_nonneg _)
+
+/-- In particular, scalar `L²` convergence supplies the strong measurability
+needed for Bochner integration of the canonical history. -/
+theorem wholeLineRealL2Section_aestronglyMeasurable_of_integral_sub_sq_tendsto_zero
+    {g : ℝ → ℝ → ℝ}
+    (hg_meas : ∀ s, AEStronglyMeasurable (g s) volume)
+    (hg2 : ∀ s, Integrable (fun x : ℝ => g s x ^ 2) volume)
+    (hlim : ∀ t, Tendsto
+      (fun s => ∫ x : ℝ, (g s x - g t x) ^ 2)
+      (nhds t) (nhds 0)) :
+    AEStronglyMeasurable (wholeLineRealL2Section g hg_meas hg2) volume :=
+  (wholeLineRealL2Section_continuous_of_integral_sub_sq_tendsto_zero
+    hg_meas hg2 hlim).aestronglyMeasurable
+
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.wholeLineRealL2Section_coe_ae
 #print axioms ShenWork.Paper1.wholeLineRealL2Section_norm_sq
 #print axioms ShenWork.Paper1.wholeLineRealL2Section_norm_sub_sq
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2Section_continuous_of_integral_sub_sq_tendsto_zero
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2Section_aestronglyMeasurable_of_integral_sub_sq_tendsto_zero
