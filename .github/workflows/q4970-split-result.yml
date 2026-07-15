@@ -1,0 +1,34 @@
+name: q4970-split-result
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'drops/q4970-split-*'
+permissions:
+  contents: write
+jobs:
+  split:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Compute and split exact output
+        run: |
+          mkdir -p drops
+          node scripts/q4970_exact.js > /tmp/q4970.txt
+          grep '^Q_[0-8](t)' /tmp/q4970.txt > drops/q4970-split-polynomials.txt
+          sed -n '/^## recurrence beta,gamma,delta n=0..6$/,/^## values at 1/p' /tmp/q4970.txt | sed '$d' > drops/q4970-split-recurrence.txt
+          sed -n '/^## values at 1 and combined second-kind numerator$/,/^## target initial/p' /tmp/q4970.txt | sed '$d' > drops/q4970-split-values.txt
+          sed -n '/^## direct gauge tests$/,/^## two-step contraction gauge tests$/p' /tmp/q4970.txt | sed '$d' > drops/q4970-split-direct.txt
+          sed -n '/^## two-step contraction gauge tests$/,$p' /tmp/q4970.txt > drops/q4970-split-contraction.txt
+          for k in 0 1 2 3 4 5 6 7 8; do grep "^Q_${k}(t)" /tmp/q4970.txt > "drops/q4970-split-Q${k}.txt"; done
+          for k in 0 1 2 3 4 5 6; do grep "^n=${k}: beta=" /tmp/q4970.txt > "drops/q4970-split-R${k}.txt"; done
+      - name: Commit split records
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add drops/q4970-split-*
+          git commit -m 'Record Q4970 split exact outputs' || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
