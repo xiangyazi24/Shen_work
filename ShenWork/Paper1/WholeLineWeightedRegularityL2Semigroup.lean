@@ -2061,6 +2061,162 @@ theorem exp_neg_moving_center_sq_local_time_le
       congr 1
       ring
 
+/-- On a compact positive-time window the full moving generator kernel has
+one fixed integrable Gaussian majorant. -/
+theorem weightedMovingHeatFullGenerator_local_integrable_bound
+    {eta c t : ℝ} (ht : 0 < t) :
+    ∃ C : ℝ,
+      0 ≤ C ∧
+      Integrable
+        (fun z : ℝ => C * Real.exp (-(1 / (24 * t)) * z ^ 2)) volume ∧
+      ∀ s ∈ Metric.ball t (t / 2), ∀ z : ℝ,
+        |weightedMovingHeatGeneratorBase eta c s
+          (z + (c - 2 * eta) * s)| ≤
+            C * Real.exp (-(1 / (24 * t)) * z ^ 2) := by
+  let d : ℝ := c - 2 * eta
+  let lam : ℝ := eta ^ 2 - c * eta
+  let U : ℝ := 3 * t / 2
+  let Etime : ℝ := Real.exp U
+  let Egrowth : ℝ := Real.exp (|lam| * U)
+  let Eshift : ℝ := Real.exp ((1 / (12 * t)) * d ^ 2 * U ^ 2)
+  let Ch : ℝ := 5 * ((1 / t) * (1 / Real.sqrt (2 * Real.pi * t)))
+  let Cg : ℝ :=
+    (1 / t) * (1 / Real.sqrt (2 * Real.pi * t)) * Real.sqrt (12 * t)
+  let Ck : ℝ := 1 / Real.sqrt (2 * Real.pi * t)
+  let C : ℝ :=
+    Egrowth * (Ch + |d| * (Etime * Cg) + |lam| * (Etime * Ck)) * Eshift
+  have hU : 0 ≤ U := by dsimp [U]; positivity
+  have hEtime : 0 ≤ Etime := by dsimp [Etime]; positivity
+  have hEgrowth : 0 ≤ Egrowth := by dsimp [Egrowth]; positivity
+  have hEshift : 0 ≤ Eshift := by dsimp [Eshift]; positivity
+  have hCh : 0 ≤ Ch := by dsimp [Ch]; positivity
+  have hCg : 0 ≤ Cg := by dsimp [Cg]; positivity
+  have hCk : 0 ≤ Ck := by dsimp [Ck]; positivity
+  have hC : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  refine ⟨C, hC, ?_, ?_⟩
+  · have hb : 0 < 1 / (24 * t) := by positivity
+    exact (integrable_exp_neg_mul_sq hb).const_mul C
+  · intro s hs z
+    have hdist := Metric.mem_ball.mp hs
+    rw [Real.dist_eq] at hdist
+    have hspos : 0 < s := by linarith [(abs_lt.mp hdist).1]
+    have hsup : s ≤ U := by
+      dsimp [U]
+      linarith [(abs_lt.mp hdist).2]
+    let w : ℝ := z + d * s
+    let em : ℝ := Real.exp (-(1 / (12 * t)) * w ^ 2)
+    let ef : ℝ := Real.exp (-(1 / (24 * t)) * z ^ 2)
+    have hem : 0 ≤ em := by dsimp [em]; positivity
+    have hef : 0 ≤ ef := by dsimp [ef]; positivity
+    have hgrowth : weightedMovingHeatGrowth eta c s ≤ Egrowth := by
+      unfold weightedMovingHeatGrowth
+      dsimp [Egrowth, lam]
+      apply Real.exp_le_exp.mpr
+      calc
+        (eta ^ 2 - c * eta) * s ≤ |eta ^ 2 - c * eta| * s :=
+          mul_le_mul_of_nonneg_right (le_abs_self _) hspos.le
+        _ ≤ |eta ^ 2 - c * eta| * U :=
+          mul_le_mul_of_nonneg_left hsup (abs_nonneg _)
+    have hhess :
+        |deriv (fun u : ℝ => deriv (fun q : ℝ => heatKernel s q) u) w| ≤
+          Ch * em := by
+      simpa only [Ch, em, w] using
+        (ShenWork.PaperOne.ConvLeibniz.abs_secondDeriv_heatKernel_local_time_le
+          ht hs w)
+    have hgradModified :=
+      abs_wholeLineModifiedHeatGradientKernel_local_time_le ht hs w
+    have hexpTime : Real.exp s ≤ Etime := by
+      dsimp [Etime]
+      exact Real.exp_le_exp.mpr hsup
+    have hgrad :
+        |deriv (fun q : ℝ => heatKernel s q) w| ≤ Etime * Cg * em := by
+      calc
+        |deriv (fun q : ℝ => heatKernel s q) w| =
+            Real.exp s * |wholeLineModifiedHeatGradientKernel s w| := by
+          unfold wholeLineModifiedHeatGradientKernel
+          rw [abs_mul, abs_of_pos (Real.exp_pos _), ← mul_assoc,
+            ← Real.exp_add]
+          norm_num
+        _ ≤ Etime * (Cg * em) :=
+          mul_le_mul hexpTime (by simpa only [Cg, em] using hgradModified)
+            (abs_nonneg _) hEtime
+        _ = Etime * Cg * em := by ring
+    have hkernelModified :=
+      abs_wholeLineModifiedHeatKernel_local_time_le ht hs w
+    have hweakExp :
+        Real.exp (-(1 / (6 * t)) * w ^ 2) ≤ em := by
+      dsimp [em]
+      apply Real.exp_le_exp.mpr
+      have hwSq : 0 ≤ w ^ 2 := sq_nonneg _
+      have ht0 : t ≠ 0 := ne_of_gt ht
+      field_simp [ht0]
+      nlinarith
+    have hkernelModified' :
+        |wholeLineModifiedHeatKernel s w| ≤ Ck * em :=
+      hkernelModified.trans
+        (mul_le_mul_of_nonneg_left hweakExp hCk)
+    have hkernel : |heatKernel s w| ≤ Etime * Ck * em := by
+      calc
+        |heatKernel s w| = Real.exp s * |wholeLineModifiedHeatKernel s w| := by
+          unfold wholeLineModifiedHeatKernel
+          rw [abs_mul, abs_of_pos (Real.exp_pos _), ← mul_assoc,
+            ← Real.exp_add]
+          norm_num
+        _ ≤ Etime * (Ck * em) :=
+          mul_le_mul hexpTime hkernelModified' (abs_nonneg _) hEtime
+        _ = Etime * Ck * em := by ring
+    have hinside :
+        |deriv (fun u : ℝ => deriv (fun q : ℝ => heatKernel s q) u) w +
+            d * deriv (fun q : ℝ => heatKernel s q) w +
+            lam * heatKernel s w| ≤
+          (Ch + |d| * (Etime * Cg) + |lam| * (Etime * Ck)) * em := by
+      calc
+        _ ≤
+            |deriv (fun u : ℝ => deriv (fun q : ℝ => heatKernel s q) u) w| +
+              |d| * |deriv (fun q : ℝ => heatKernel s q) w| +
+              |lam| * |heatKernel s w| := by
+          calc
+            _ ≤
+                |deriv (fun u : ℝ => deriv (fun q : ℝ => heatKernel s q) u) w| +
+                  |d * deriv (fun q : ℝ => heatKernel s q) w| +
+                  |lam * heatKernel s w| :=
+              (abs_add_le _ _).trans
+                (add_le_add (abs_add_le _ _) le_rfl)
+            _ = _ := by rw [abs_mul, abs_mul]
+        _ ≤ Ch * em + |d| * (Etime * Cg * em) +
+              |lam| * (Etime * Ck * em) := by
+          exact add_le_add (add_le_add hhess
+            (mul_le_mul_of_nonneg_left hgrad (abs_nonneg d)))
+            (mul_le_mul_of_nonneg_left hkernel (abs_nonneg lam))
+        _ = (Ch + |d| * (Etime * Cg) + |lam| * (Etime * Ck)) * em := by
+          ring
+    have hmove : em ≤ Eshift * ef := by
+      simpa only [em, ef, Eshift, w, d, U] using
+        (exp_neg_moving_center_sq_local_time_le
+          (t := t) (s := s) (d := c - 2 * eta) (z := z) ht hs)
+    have hgrowthNN : 0 ≤ weightedMovingHeatGrowth eta c s := by
+      unfold weightedMovingHeatGrowth
+      positivity
+    unfold weightedMovingHeatGeneratorBase
+    rw [abs_mul, abs_of_nonneg hgrowthNN]
+    change weightedMovingHeatGrowth eta c s *
+        |deriv (fun u : ℝ => deriv (fun q : ℝ => heatKernel s q) u) w +
+          d * deriv (fun q : ℝ => heatKernel s q) w + lam * heatKernel s w| ≤
+      C * ef
+    calc
+      _ ≤ Egrowth *
+          ((Ch + |d| * (Etime * Cg) + |lam| * (Etime * Ck)) * em) :=
+        mul_le_mul hgrowth hinside (abs_nonneg _) hEgrowth
+      _ ≤ Egrowth *
+          ((Ch + |d| * (Etime * Cg) + |lam| * (Etime * Ck)) *
+            (Eshift * ef)) := by
+        gcongr
+      _ = C * ef := by
+        dsimp [C]
+        ring
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -2074,6 +2230,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatL2Generator_comp_semigroup_add
 #print axioms weightedMovingHeatFullKernel_hasDerivAt
 #print axioms exp_neg_moving_center_sq_local_time_le
+#print axioms weightedMovingHeatFullGenerator_local_integrable_bound
 
 end AxiomAudit
 
