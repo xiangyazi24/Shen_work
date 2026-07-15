@@ -5,16 +5,27 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read # Read access to repository contents
-  pages: write # Write access to GitHub Pages
-  id-token: write # Write access to ID tokens
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
+  q4970:
+    if: github.ref == 'refs/heads/chatgpt-scratch' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: node drops/q4970-exact-calc.js > drops/q4970-exact-result.md
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add drops/q4970-exact-result.md
+          git commit -m 'Temporary Q4970 exact result'
+          git push
+
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
