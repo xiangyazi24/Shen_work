@@ -1,0 +1,28 @@
+name: q4970-title-result
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'drops/q4970-*'
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  title:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Compute exact match summary and set PR title
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node scripts/q4970_exact.js > /tmp/q4970.txt
+          direct=$(sed -n '/^## direct gauge tests$/,/^## two-step contraction gauge tests$/p' /tmp/q4970.txt | grep 'ok=true' | paste -sd, - || true)
+          contract=$(sed -n '/^## two-step contraction gauge tests$/,$p' /tmp/q4970.txt | grep 'ok=true' | paste -sd, - || true)
+          [ -n "$direct" ] || direct=NONE
+          [ -n "$contract" ] || contract=NONE
+          gh pr edit "$PR_NUMBER" --title "Q4970 RESULT direct=${direct} contraction=${contract}"
