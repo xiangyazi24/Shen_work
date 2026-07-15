@@ -1,0 +1,28 @@
+name: q4970-pdf-result
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'drops/q4970-exact-result.pdf'
+permissions:
+  contents: write
+jobs:
+  pdf:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Compute exact output and render PDF
+        run: |
+          mkdir -p drops
+          node scripts/q4970_exact.js > /tmp/q4970.txt
+          node scripts/q4970_text_to_pdf.js /tmp/q4970.txt drops/q4970-exact-result.pdf
+      - name: Commit PDF audit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add drops/q4970-exact-result.pdf
+          git commit -m 'Record Q4970 exact audit PDF' || exit 0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
