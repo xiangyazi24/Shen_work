@@ -120,6 +120,106 @@ theorem capWeight_shift_sq_integrable_and_integral_le
           ∫ x : ℝ, capWeight eta R x * |f x| ^ 2 := by
       rw [integral_const_mul]
 
+/-- A positive differentiable profile with bounded logarithmic derivative
+has a globally Lipschitz logarithm. -/
+theorem abs_log_profile_sub_le_of_logDerivative_bound
+    {U : ℝ → ℝ} {B : ℝ}
+    (hUpos : ∀ x, 0 < U x)
+    (hUdiff : Differentiable ℝ U)
+    (hlog : ∀ x, |deriv U x / U x| ≤ B) :
+    ∀ x y, |Real.log (U y) - Real.log (U x)| ≤ B * |y - x| := by
+  have hgderiv : ∀ z,
+      HasDerivAt (fun q => Real.log (U q)) (deriv U z / U z) z := by
+    intro z
+    have hcomp := (Real.hasDerivAt_log (ne_of_gt (hUpos z))).comp z
+      (hUdiff z).hasDerivAt
+    convert hcomp using 1
+    field_simp
+  intro x y
+  have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+    (𝕜 := ℝ) (G := ℝ) (f := fun q => Real.log (U q))
+    (s := Set.univ) (x := x) (y := y) (C := B)
+    (fun z _ => (hgderiv z).differentiableAt)
+    (fun z _ => by
+      rw [(hgderiv z).deriv, Real.norm_eq_abs]
+      exact hlog z)
+    convex_univ (Set.mem_univ x) (Set.mem_univ y)
+  simpa [Real.norm_eq_abs] using hmv
+
+/-- Exponentiating the logarithmic Lipschitz estimate gives the relative
+two-point value bound. -/
+theorem profile_value_le_exp_mul_of_logDerivative_bound
+    {U : ℝ → ℝ} {B : ℝ}
+    (hUpos : ∀ x, 0 < U x)
+    (hUdiff : Differentiable ℝ U)
+    (hlog : ∀ x, |deriv U x / U x| ≤ B) :
+    ∀ x y, U y ≤ Real.exp (B * |y - x|) * U x := by
+  intro x y
+  have hlogs :=
+    abs_log_profile_sub_le_of_logDerivative_bound hUpos hUdiff hlog x y
+  have hlogle : Real.log (U y) - Real.log (U x) ≤ B * |y - x| :=
+    (le_abs_self _).trans hlogs
+  have hexp := Real.exp_le_exp.mpr hlogle
+  rw [Real.exp_sub, Real.exp_log (hUpos y), Real.exp_log (hUpos x)] at hexp
+  exact (div_le_iff₀ (hUpos x)).mp hexp
+
+/-- Relative spatial increment supplied by a logarithmic-derivative bound.
+This is the cancellation factor needed for the singular `1 < m < 2`
+four-profile secant estimate. -/
+theorem profile_shift_sub_abs_le_mul_self_of_logDerivative_bound
+    {U : ℝ → ℝ} {B : ℝ}
+    (hB : 0 ≤ B)
+    (hUpos : ∀ x, 0 < U x)
+    (hUdiff : Differentiable ℝ U)
+    (hlog : ∀ x, |deriv U x / U x| ≤ B) :
+    ∀ x h,
+      |U (x + h) - U x| ≤
+        B * Real.exp (B * |h|) * |h| * U x := by
+  intro x h
+  let I : Set ℝ := Set.uIcc x (x + h)
+  have hdist : ∀ y ∈ I, |y - x| ≤ |h| := by
+    intro y hy
+    rw [mem_uIcc] at hy
+    rcases hy with hy | hy
+    · have hh0 : 0 ≤ h := by linarith [hy.1, hy.2]
+      rw [abs_of_nonneg hh0, abs_of_nonneg (sub_nonneg.mpr hy.1)]
+      linarith
+    · have hh0 : h ≤ 0 := by linarith [hy.1, hy.2]
+      rw [abs_of_nonpos hh0, abs_of_nonpos (sub_nonpos.mpr hy.2)]
+      linarith
+  have hUratio : ∀ y ∈ I,
+      U y ≤ Real.exp (B * |h|) * U x := by
+    intro y hy
+    have hbase :=
+      profile_value_le_exp_mul_of_logDerivative_bound hUpos hUdiff hlog x y
+    have hexp : Real.exp (B * |y - x|) ≤ Real.exp (B * |h|) :=
+      Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left (hdist y hy) hB)
+    exact hbase.trans
+      (mul_le_mul_of_nonneg_right hexp (hUpos x).le)
+  have hderiv : ∀ y ∈ I,
+      ‖deriv U y‖ ≤ B * Real.exp (B * |h|) * U x := by
+    intro y hy
+    have hdiv := hlog y
+    have hUy := hUpos y
+    have habsderiv : |deriv U y| ≤ B * U y := by
+      have hmul := mul_le_mul_of_nonneg_right hdiv hUy.le
+      rw [abs_div, abs_of_pos hUy,
+        div_mul_cancel₀ _ (ne_of_gt hUy)] at hmul
+      exact hmul
+    rw [Real.norm_eq_abs]
+    exact habsderiv.trans (by
+      simpa [mul_assoc] using
+        (mul_le_mul_of_nonneg_left (hUratio y hy) hB))
+  have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+    (𝕜 := ℝ) (G := ℝ) (f := U) (s := I)
+    (x := x) (y := x + h)
+    (C := B * Real.exp (B * |h|) * U x)
+    (fun y _ => hUdiff y) hderiv (by
+      dsimp only [I]
+      exact convex_uIcc x (x + h))
+    left_mem_uIcc right_mem_uIcc
+  simpa [Real.norm_eq_abs, mul_assoc, mul_comm, mul_left_comm] using hmv
+
 private theorem spatialDifferenceQuotient_rescale_sq
     {h : ℝ} (hh : h ≠ 0) (f : ℝ → ℝ) (x : ℝ) :
     h ^ 2 * |spatialDifferenceQuotient h f x| ^ 2 =
@@ -320,6 +420,9 @@ section AxiomAudit
 #print axioms paper5MovingFrameHeatOp_eval_shift_eq_input_shift
 #print axioms paper5MovingFrameHeatGradOp_eval_shift_eq_input_shift
 #print axioms capWeight_shift_sq_integrable_and_integral_le
+#print axioms abs_log_profile_sub_le_of_logDerivative_bound
+#print axioms profile_value_le_exp_mul_of_logDerivative_bound
+#print axioms profile_shift_sub_abs_le_mul_self_of_logDerivative_bound
 
 end AxiomAudit
 
