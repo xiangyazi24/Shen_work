@@ -1,0 +1,955 @@
+import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
+import ShenWork.Paper1.Theorem12WeightedFiniteness
+import ShenWork.Paper1.WholeLineWeightedRegularityCap
+import ShenWork.PaperOne.WholeLineConvolutionDifferentiation
+import ShenWork.PDE.HeatKernelLpEstimates
+
+open Filter MeasureTheory Set Topology
+
+noncomputable section
+
+namespace ShenWork.Paper1
+
+/-!
+# The conjugated moving heat flow on whole-line `L²`
+
+This file realizes the positive-time conjugated moving heat kernel as a
+bounded operator on `WholeLineRealL2`.  The construction uses the concrete
+Schur estimate already available for the kernel, rather than adding an
+abstract semigroup assumption.
+-/
+
+/-- The conjugated moving heat kernel sends the canonical representative of
+an `L²` class to another square-integrable measurable function. -/
+theorem weightedMovingHeatEta_l2_data
+    {eta c t : ℝ} (ht : 0 < t) (Z : WholeLineRealL2) :
+    AEStronglyMeasurable
+        (weightedMovingHeatEta eta c t (Z : ℝ → ℝ)) volume ∧
+      Integrable
+        (fun x => weightedMovingHeatEta eta c t (Z : ℝ → ℝ) x ^ 2) ∧
+      (∫ x : ℝ, weightedMovingHeatEta eta c t (Z : ℝ → ℝ) x ^ 2) ≤
+        weightedMovingHeatGrowth eta c t ^ 2 *
+          ∫ x : ℝ, (Z x) ^ 2 := by
+  have hZmeas : Measurable (Z : ℝ → ℝ) :=
+    (Lp.stronglyMeasurable Z).measurable
+  have hZsq : Integrable (fun x : ℝ => (Z x) ^ 2) :=
+    (memLp_two_iff_integrable_sq (Lp.memLp Z).1).1 (Lp.memLp Z)
+  have hout := weighted_moving_heat_L2eta_bounded
+    (eta := eta) (c := c) ht hZmeas hZsq
+  have hstrong : StronglyMeasurable
+      (weightedMovingHeatEta eta c t (Z : ℝ → ℝ)) := by
+    unfold weightedMovingHeatEta
+    apply StronglyMeasurable.const_mul
+    apply StronglyMeasurable.integral_prod_right
+    exact ((weightedMovingHeatMarkovKernel_measurable eta c t).mul
+      (hZmeas.comp measurable_snd)).stronglyMeasurable
+  exact ⟨hstrong.aestronglyMeasurable, hout.1, hout.2⟩
+
+/-- Positive-time conjugated moving heat flow on `L²`, before packaging
+linearity and continuity. -/
+def weightedMovingHeatL2Fun
+    (eta c t : ℝ) (ht : 0 < t) (Z : WholeLineRealL2) : WholeLineRealL2 :=
+  wholeLineRealL2OfSqIntegrable
+    (weightedMovingHeatEta eta c t (Z : ℝ → ℝ))
+    (weightedMovingHeatEta_l2_data ht Z).1
+    (weightedMovingHeatEta_l2_data ht Z).2.1
+
+/-- The positive-time `L²` lift has the expected concrete kernel
+representative. -/
+theorem weightedMovingHeatL2Fun_coe_ae
+    {eta c t : ℝ} (ht : 0 < t) (Z : WholeLineRealL2) :
+    ((weightedMovingHeatL2Fun eta c t ht Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      weightedMovingHeatEta eta c t (Z : ℝ → ℝ) := by
+  exact wholeLineRealL2OfSqIntegrable_coe_ae _ _ _
+
+/-- A positive-time translated Gaussian row is in `L²`. -/
+theorem weightedMovingHeatMarkovKernel_memLp_two
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) :
+    MemLp (weightedMovingHeatMarkovKernel eta c t x) 2 volume := by
+  simpa [weightedMovingHeatMarkovKernel] using
+    (heatKernel_translated_memLp (p := 2) ht (by norm_num)
+      (x + (c - 2 * eta) * t))
+
+/-- A translated Gaussian row times an `L²` representative is integrable.
+This justifies the ordinary Bochner-integral linearity used below. -/
+theorem weightedMovingHeatMarkovKernel_mul_integrable
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) (Z : WholeLineRealL2) :
+    Integrable
+      (fun y => weightedMovingHeatMarkovKernel eta c t x y * Z y) volume := by
+  have hmul := (weightedMovingHeatMarkovKernel_memLp_two
+    (eta := eta) (c := c) ht x).integrable_mul (Lp.memLp Z)
+  simpa [Pi.mul_apply] using hmul
+
+/-- The concrete positive-time heat lift is additive on `L²`. -/
+theorem weightedMovingHeatL2Fun_add
+    {eta c t : ℝ} (ht : 0 < t) (Z W : WholeLineRealL2) :
+    weightedMovingHeatL2Fun eta c t ht (Z + W) =
+      weightedMovingHeatL2Fun eta c t ht Z +
+        weightedMovingHeatL2Fun eta c t ht W := by
+  rw [Lp.ext_iff]
+  have hZW : ((Z + W : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun y => Z y + W y := Lp.coeFn_add Z W
+  have hleft := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) ht (Z + W)
+  have hrightZ := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) ht Z
+  have hrightW := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) ht W
+  have hright := Lp.coeFn_add
+    (weightedMovingHeatL2Fun eta c t ht Z)
+    (weightedMovingHeatL2Fun eta c t ht W)
+  filter_upwards [hleft, hrightZ, hrightW, hright] with x hx hxZ hxW hxR
+  rw [hx, hxR]
+  change weightedMovingHeatEta eta c t ((Z + W : WholeLineRealL2) : ℝ → ℝ) x =
+    ((weightedMovingHeatL2Fun eta c t ht Z : WholeLineRealL2) : ℝ → ℝ) x +
+      ((weightedMovingHeatL2Fun eta c t ht W : WholeLineRealL2) : ℝ → ℝ) x
+  rw [hxZ, hxW]
+  unfold weightedMovingHeatEta
+  rw [show (∫ y : ℝ,
+        weightedMovingHeatMarkovKernel eta c t x y * (Z + W) y) =
+      ∫ y : ℝ,
+        weightedMovingHeatMarkovKernel eta c t x y * (Z y + W y) by
+    apply integral_congr_ae
+    filter_upwards [hZW] with y hy
+    rw [hy]]
+  rw [show (fun y : ℝ =>
+      weightedMovingHeatMarkovKernel eta c t x y * (Z y + W y)) =
+      (fun y => weightedMovingHeatMarkovKernel eta c t x y * Z y) +
+        (fun y => weightedMovingHeatMarkovKernel eta c t x y * W y) by
+    funext y
+    simp only [Pi.add_apply]
+    ring]
+  have hadd :
+      integral volume
+        ((fun y : ℝ => weightedMovingHeatMarkovKernel eta c t x y * Z y) +
+          (fun y : ℝ => weightedMovingHeatMarkovKernel eta c t x y * W y)) =
+        (∫ y : ℝ, weightedMovingHeatMarkovKernel eta c t x y * Z y) +
+          ∫ y : ℝ, weightedMovingHeatMarkovKernel eta c t x y * W y :=
+    integral_add
+      (weightedMovingHeatMarkovKernel_mul_integrable
+        (eta := eta) (c := c) ht x Z)
+      (weightedMovingHeatMarkovKernel_mul_integrable
+        (eta := eta) (c := c) ht x W)
+  rw [hadd]
+  ring
+
+/-- The concrete positive-time heat lift respects real scalar
+multiplication. -/
+theorem weightedMovingHeatL2Fun_smul
+    {eta c t : ℝ} (ht : 0 < t) (a : ℝ) (Z : WholeLineRealL2) :
+    weightedMovingHeatL2Fun eta c t ht (a • Z) =
+      a • weightedMovingHeatL2Fun eta c t ht Z := by
+  rw [Lp.ext_iff]
+  have haZ : ((a • Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun y => a * Z y := by
+    simpa only [Pi.smul_apply, smul_eq_mul] using Lp.coeFn_smul a Z
+  have hleft := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) ht (a • Z)
+  have hrightZ := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) ht Z
+  have hright := Lp.coeFn_smul a (weightedMovingHeatL2Fun eta c t ht Z)
+  filter_upwards [hleft, hrightZ, hright] with x hx hxZ hxR
+  rw [hx, hxR]
+  change weightedMovingHeatEta eta c t ((a • Z : WholeLineRealL2) : ℝ → ℝ) x =
+    a * ((weightedMovingHeatL2Fun eta c t ht Z : WholeLineRealL2) : ℝ → ℝ) x
+  rw [hxZ]
+  unfold weightedMovingHeatEta
+  have hreplace :
+      (∫ y : ℝ, weightedMovingHeatMarkovKernel eta c t x y * (a • Z) y) =
+        ∫ y : ℝ, a *
+          (weightedMovingHeatMarkovKernel eta c t x y * Z y) := by
+    apply integral_congr_ae
+    filter_upwards [haZ] with y hy
+    rw [hy]
+    ring
+  rw [hreplace, integral_const_mul]
+  ring
+
+/-- Concrete integral formula for the square of the whole-line `L²` norm. -/
+theorem wholeLineRealL2_norm_sq_eq_integral (Z : WholeLineRealL2) :
+    ‖Z‖ ^ 2 = ∫ x : ℝ, Z x ^ 2 := by
+  have hinner := wholeLineIntegral_mul_eq_inner_of_aeEq
+    Z Z (EventuallyEq.rfl) (EventuallyEq.rfl)
+  rw [real_inner_self_eq_norm_sq] at hinner
+  simpa only [pow_two] using hinner.symm
+
+/-- Sharp positive-time operator bound inherited from the concrete Schur
+estimate. -/
+theorem weightedMovingHeatL2Fun_norm_le
+    {eta c t : ℝ} (ht : 0 < t) (Z : WholeLineRealL2) :
+    ‖weightedMovingHeatL2Fun eta c t ht Z‖ ≤
+      weightedMovingHeatGrowth eta c t * ‖Z‖ := by
+  have houtSq :
+      ‖weightedMovingHeatL2Fun eta c t ht Z‖ ^ 2 =
+        ∫ x : ℝ, weightedMovingHeatEta eta c t (Z : ℝ → ℝ) x ^ 2 := by
+    simpa only [weightedMovingHeatL2Fun] using
+      wholeLineRealL2OfSqIntegrable_norm_sq
+        (weightedMovingHeatEta eta c t (Z : ℝ → ℝ))
+        (weightedMovingHeatEta_l2_data ht Z).1
+        (weightedMovingHeatEta_l2_data ht Z).2.1
+  have hraw := (weightedMovingHeatEta_l2_data
+    (eta := eta) (c := c) ht Z).2.2
+  rw [← wholeLineRealL2_norm_sq_eq_integral Z, ← houtSq] at hraw
+  have hgrowth : 0 ≤ weightedMovingHeatGrowth eta c t :=
+    Real.exp_nonneg _
+  have hright : 0 ≤ weightedMovingHeatGrowth eta c t * ‖Z‖ :=
+    mul_nonneg hgrowth (norm_nonneg _)
+  apply (sq_le_sq₀ (norm_nonneg _) hright).mp
+  nlinarith
+
+/-- The positive-time kernel operator as a real linear map. -/
+def weightedMovingHeatL2LinearMap
+    (eta c t : ℝ) (ht : 0 < t) :
+    WholeLineRealL2 →ₗ[ℝ] WholeLineRealL2 where
+  toFun := weightedMovingHeatL2Fun eta c t ht
+  map_add' := weightedMovingHeatL2Fun_add ht
+  map_smul' := weightedMovingHeatL2Fun_smul ht
+
+/-- The positive-time conjugated moving heat operator on whole-line `L²`. -/
+def weightedMovingHeatL2CLM
+    (eta c t : ℝ) (ht : 0 < t) :
+    WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+  (weightedMovingHeatL2LinearMap eta c t ht).mkContinuous
+    (weightedMovingHeatGrowth eta c t)
+    (weightedMovingHeatL2Fun_norm_le ht)
+
+@[simp]
+theorem weightedMovingHeatL2CLM_apply
+    {eta c t : ℝ} (ht : 0 < t) (Z : WholeLineRealL2) :
+    weightedMovingHeatL2CLM eta c t ht Z =
+      weightedMovingHeatL2Fun eta c t ht Z := rfl
+
+/-- Operator-norm bound for the concrete positive-time realization. -/
+theorem weightedMovingHeatL2CLM_norm_le
+    {eta c t : ℝ} (ht : 0 < t) :
+    ‖weightedMovingHeatL2CLM eta c t ht‖ ≤
+      weightedMovingHeatGrowth eta c t := by
+  exact LinearMap.mkContinuous_norm_le _ (Real.exp_nonneg _)
+    (weightedMovingHeatL2Fun_norm_le ht)
+
+/-- Totalized semigroup family: identity at time zero, the concrete heat
+operator at positive time, and zero at negative time.  Only its restriction
+to nonnegative time is used by the cancellation argument. -/
+def weightedMovingHeatL2Semigroup (eta c t : ℝ) :
+    WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+  if ht : 0 < t then weightedMovingHeatL2CLM eta c t ht
+  else if t = 0 then 1 else 0
+
+theorem weightedMovingHeatL2Semigroup_of_pos
+    {eta c t : ℝ} (ht : 0 < t) :
+    weightedMovingHeatL2Semigroup eta c t =
+      weightedMovingHeatL2CLM eta c t ht := by
+  simp only [weightedMovingHeatL2Semigroup, dif_pos ht]
+
+@[simp]
+theorem weightedMovingHeatL2Semigroup_zero (eta c : ℝ) :
+    weightedMovingHeatL2Semigroup eta c 0 = 1 := by
+  simp [weightedMovingHeatL2Semigroup]
+
+theorem weightedMovingHeatL2Semigroup_norm_le_of_pos
+    {eta c t : ℝ} (ht : 0 < t) :
+    ‖weightedMovingHeatL2Semigroup eta c t‖ ≤
+      weightedMovingHeatGrowth eta c t := by
+  rw [weightedMovingHeatL2Semigroup_of_pos ht]
+  exact weightedMovingHeatL2CLM_norm_le ht
+
+/-! ## A reusable signed-kernel `L²` operator -/
+
+/-- Concrete data for a signed integral kernel with equal absolute row and
+column masses.  The final field is deliberately explicit: it is precisely
+what licenses pointwise integral linearity on chosen `L²` representatives.
+For the Gaussian derivative kernels it follows from their own `L²` row
+bounds. -/
+structure WholeLineL2SchurKernelData (L : ℝ → ℝ → ℝ) (C : ℝ) : Prop where
+  mass_nonneg : 0 ≤ C
+  kernel_measurable : Measurable (Function.uncurry L)
+  absKernel_measurable : Measurable (Function.uncurry (fun x y => |L x y|))
+  abs_row_integrable : ∀ x, Integrable (fun y => |L x y|) volume
+  abs_row_mass : ∀ x, ∫ y : ℝ, |L x y| = C
+  abs_col_integrable : ∀ y, Integrable (fun x => |L x y|) volume
+  abs_col_mass : ∀ y, ∫ x : ℝ, |L x y| = C
+  row_mul_l2_integrable : ∀ x (Z : WholeLineRealL2),
+    Integrable (fun y => L x y * Z y) volume
+
+theorem WholeLineL2SchurKernelData.output_l2_data
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z : WholeLineRealL2) :
+    AEStronglyMeasurable (fun x => ∫ y : ℝ, L x y * Z y) volume ∧
+      Integrable (fun x => (∫ y : ℝ, L x y * Z y) ^ 2) volume ∧
+      (∫ x : ℝ, (∫ y : ℝ, L x y * Z y) ^ 2) ≤
+        C ^ 2 * ∫ y : ℝ, Z y ^ 2 := by
+  have hZmeas : Measurable (Z : ℝ → ℝ) :=
+    (Lp.stronglyMeasurable Z).measurable
+  have hZsq : Integrable (fun y : ℝ => Z y ^ 2) :=
+    (memLp_two_iff_integrable_sq (Lp.memLp Z).1).1 (Lp.memLp Z)
+  have hbound := absKernel_l2_contraction_of_dominated_envelope
+    L (fun x y => |L x y|) (fun x y => |L x y|) (Z : ℝ → ℝ) C
+    hK.mass_nonneg hK.kernel_measurable hK.absKernel_measurable
+    (fun _ _ => abs_nonneg _) (fun _ _ => rfl) (fun _ _ => le_rfl)
+    hK.absKernel_measurable (fun _ _ => abs_nonneg _)
+    hK.abs_row_integrable hK.abs_row_mass
+    hK.abs_col_integrable hK.abs_col_mass hZmeas hZsq
+  have hstrong : StronglyMeasurable (fun x => ∫ y : ℝ, L x y * Z y) := by
+    apply StronglyMeasurable.integral_prod_right
+    exact (hK.kernel_measurable.mul
+      (hZmeas.comp measurable_snd)).stronglyMeasurable
+  exact ⟨hstrong.aestronglyMeasurable, hbound.1, hbound.2⟩
+
+/-- The `L²` lift of a signed Schur kernel. -/
+def WholeLineL2SchurKernelData.toL2Fun
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z : WholeLineRealL2) :
+    WholeLineRealL2 :=
+  wholeLineRealL2OfSqIntegrable
+    (fun x => ∫ y : ℝ, L x y * Z y)
+    (hK.output_l2_data Z).1 (hK.output_l2_data Z).2.1
+
+theorem WholeLineL2SchurKernelData.toL2Fun_coe_ae
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z : WholeLineRealL2) :
+    ((hK.toL2Fun Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun x => ∫ y : ℝ, L x y * Z y := by
+  exact wholeLineRealL2OfSqIntegrable_coe_ae _ _ _
+
+theorem WholeLineL2SchurKernelData.toL2Fun_add
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z W : WholeLineRealL2) :
+    hK.toL2Fun (Z + W) = hK.toL2Fun Z + hK.toL2Fun W := by
+  rw [Lp.ext_iff]
+  have hZW : ((Z + W : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun y => Z y + W y := Lp.coeFn_add Z W
+  have hleft := hK.toL2Fun_coe_ae (Z + W)
+  have hrightZ := hK.toL2Fun_coe_ae Z
+  have hrightW := hK.toL2Fun_coe_ae W
+  have hright := Lp.coeFn_add (hK.toL2Fun Z) (hK.toL2Fun W)
+  filter_upwards [hleft, hrightZ, hrightW, hright] with x hx hxZ hxW hxR
+  rw [hx, hxR]
+  change (∫ y : ℝ, L x y * (Z + W) y) =
+    ((hK.toL2Fun Z : WholeLineRealL2) : ℝ → ℝ) x +
+      ((hK.toL2Fun W : WholeLineRealL2) : ℝ → ℝ) x
+  rw [hxZ, hxW]
+  rw [show (∫ y : ℝ, L x y * (Z + W) y) =
+      ∫ y : ℝ, L x y * (Z y + W y) by
+    apply integral_congr_ae
+    filter_upwards [hZW] with y hy
+    rw [hy]]
+  have hadd := integral_add (hK.row_mul_l2_integrable x Z)
+    (hK.row_mul_l2_integrable x W)
+  rw [show (fun y : ℝ => L x y * (Z y + W y)) =
+      (fun y => L x y * Z y) + (fun y => L x y * W y) by
+    funext y
+    simp only [Pi.add_apply]
+    ring]
+  exact hadd
+
+theorem WholeLineL2SchurKernelData.toL2Fun_smul
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (a : ℝ) (Z : WholeLineRealL2) :
+    hK.toL2Fun (a • Z) = a • hK.toL2Fun Z := by
+  rw [Lp.ext_iff]
+  have haZ : ((a • Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun y => a * Z y := by
+    simpa only [Pi.smul_apply, smul_eq_mul] using Lp.coeFn_smul a Z
+  have hleft := hK.toL2Fun_coe_ae (a • Z)
+  have hrightZ := hK.toL2Fun_coe_ae Z
+  have hright := Lp.coeFn_smul a (hK.toL2Fun Z)
+  filter_upwards [hleft, hrightZ, hright] with x hx hxZ hxR
+  rw [hx, hxR]
+  change (∫ y : ℝ, L x y * (a • Z) y) =
+    a * ((hK.toL2Fun Z : WholeLineRealL2) : ℝ → ℝ) x
+  rw [hxZ]
+  rw [show (∫ y : ℝ, L x y * (a • Z) y) =
+      ∫ y : ℝ, a * (L x y * Z y) by
+    apply integral_congr_ae
+    filter_upwards [haZ] with y hy
+    rw [hy]
+    ring]
+  rw [integral_const_mul]
+
+theorem WholeLineL2SchurKernelData.toL2Fun_norm_le
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z : WholeLineRealL2) :
+    ‖hK.toL2Fun Z‖ ≤ C * ‖Z‖ := by
+  have houtSq : ‖hK.toL2Fun Z‖ ^ 2 =
+      ∫ x : ℝ, (∫ y : ℝ, L x y * Z y) ^ 2 := by
+    simpa only [WholeLineL2SchurKernelData.toL2Fun] using
+      wholeLineRealL2OfSqIntegrable_norm_sq
+        (fun x => ∫ y : ℝ, L x y * Z y)
+        (hK.output_l2_data Z).1 (hK.output_l2_data Z).2.1
+  have hraw := (hK.output_l2_data Z).2.2
+  rw [← wholeLineRealL2_norm_sq_eq_integral Z, ← houtSq] at hraw
+  have hright : 0 ≤ C * ‖Z‖ :=
+    mul_nonneg hK.mass_nonneg (norm_nonneg _)
+  apply (sq_le_sq₀ (norm_nonneg _) hright).mp
+  nlinarith
+
+/-- The continuous `L²` operator associated with signed Schur-kernel
+data. -/
+def WholeLineL2SchurKernelData.toCLM
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) :
+    WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+  ({ toFun := hK.toL2Fun
+     map_add' := hK.toL2Fun_add
+     map_smul' := hK.toL2Fun_smul } :
+      WholeLineRealL2 →ₗ[ℝ] WholeLineRealL2).mkContinuous C hK.toL2Fun_norm_le
+
+@[simp]
+theorem WholeLineL2SchurKernelData.toCLM_apply
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) (Z : WholeLineRealL2) :
+    hK.toCLM Z = hK.toL2Fun Z := rfl
+
+theorem WholeLineL2SchurKernelData.toCLM_norm_le
+    {L : ℝ → ℝ → ℝ} {C : ℝ}
+    (hK : WholeLineL2SchurKernelData L C) : ‖hK.toCLM‖ ≤ C := by
+  exact LinearMap.mkContinuous_norm_le _ hK.mass_nonneg hK.toL2Fun_norm_le
+
+/-! ## Gaussian generator rows -/
+
+/-- An absolutely integrable continuous function with a uniform pointwise
+bound belongs to `L²`. -/
+theorem memLp_two_of_continuous_of_abs_integrable_of_bound
+    {f : ℝ → ℝ} {M : ℝ} (_hM : 0 ≤ M)
+    (hfcont : Continuous f) (hfabs : Integrable (fun x => |f x|) volume)
+    (hbound : ∀ x, |f x| ≤ M) : MemLp f 2 volume := by
+  have hdom : Integrable (fun x => M * |f x|) volume := hfabs.const_mul M
+  have hsq : Integrable (fun x => f x ^ 2) volume := by
+    refine hdom.mono' (hfcont.pow 2).aestronglyMeasurable ?_
+    filter_upwards with x
+    rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
+    calc
+      f x ^ 2 = |f x| * |f x| := by rw [← sq_abs, pow_two]
+      _ ≤ M * |f x| :=
+        mul_le_mul_of_nonneg_right (hbound x) (abs_nonneg _)
+  exact (memLp_two_iff_integrable_sq hfcont.aestronglyMeasurable).2 hsq
+
+/-- Positive-time heat-gradient rows belong to `L²`. -/
+theorem heatKernel_deriv_memLp_two {t : ℝ} (ht : 0 < t) :
+    MemLp (fun x : ℝ => deriv (fun z : ℝ => heatKernel t z) x) 2 volume := by
+  let M : ℝ :=
+    ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+      (Real.sqrt (1 / (4 * t)))⁻¹
+  have hM : 0 ≤ M := by dsimp [M]; positivity
+  exact memLp_two_of_continuous_of_abs_integrable_of_bound hM
+    (ShenWork.IntervalNeumannFullKernel.continuous_deriv_heatKernel ht)
+    (heatKernel_deriv_abs_integrable ht)
+    (heatKernel_deriv_pointwise_bound ht)
+
+/-- Positive-time heat-Hessian rows belong to `L²`. -/
+theorem heatKernel_secondDeriv_memLp_two {t : ℝ} (ht : 0 < t) :
+    MemLp
+      (fun x : ℝ => deriv (fun u : ℝ =>
+        deriv (fun z : ℝ => heatKernel t z) u) x) 2 volume := by
+  let M := ShenWork.IntervalNeumannFullKernel.heatHessPointwiseBound t
+  have hM : 0 ≤ M :=
+    ShenWork.IntervalNeumannFullKernel.heatHessPointwiseBound_nonneg ht
+  apply memLp_two_of_continuous_of_abs_integrable_of_bound hM
+    (ShenWork.IntervalNeumannFullKernel.continuous_secondDeriv_heatKernel ht)
+    (ShenWork.IntervalNeumannFullKernel.secondDeriv_heatKernel_abs_integrable ht)
+  intro x
+  have hraw := ShenWork.IntervalNeumannFullKernel.abs_secondDeriv_heatKernel_le ht x
+  refine hraw.trans ?_
+  have hexp : Real.exp (-x ^ 2 / (4 * (2 * t))) ≤ 1 := by
+    rw [← Real.exp_zero]
+    apply Real.exp_le_exp.mpr
+    have hden : 0 ≤ 4 * (2 * t) := by positivity
+    have hq : 0 ≤ x ^ 2 / (4 * (2 * t)) := div_nonneg (sq_nonneg _) hden
+    calc
+      -x ^ 2 / (4 * (2 * t)) = -(x ^ 2 / (4 * (2 * t))) := by ring
+      _ ≤ 0 := neg_nonpos.mpr hq
+  exact mul_le_of_le_one_right hM hexp
+
+/-- The scalar kernel of the time derivative of the conjugated moving heat
+flow. -/
+def weightedMovingHeatGeneratorBase (eta c t z : ℝ) : ℝ :=
+  weightedMovingHeatGrowth eta c t *
+    (deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z +
+      (c - 2 * eta) * deriv (fun w : ℝ => heatKernel t w) z +
+      (eta ^ 2 - c * eta) * heatKernel t z)
+
+/-- Integral-kernel form of the positive-time conjugated heat generator. -/
+def weightedMovingHeatGeneratorKernel (eta c t x y : ℝ) : ℝ :=
+  weightedMovingHeatGeneratorBase eta c t
+    (x + (c - 2 * eta) * t - y)
+
+/-- Absolute row/column mass of the generator kernel. -/
+def weightedMovingHeatGeneratorMass (eta c t : ℝ) : ℝ :=
+  ∫ z : ℝ, |weightedMovingHeatGeneratorBase eta c t z|
+
+/-- Explicit `L¹` mass majorant for the generator kernel. -/
+def weightedMovingHeatGeneratorMassBound (eta c t : ℝ) : ℝ :=
+  weightedMovingHeatGrowth eta c t *
+    ((5 * Real.sqrt 2 / 2) * t ^ (-(1 : ℝ)) +
+      |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi * t)) +
+      |eta ^ 2 - c * eta|)
+
+theorem weightedMovingHeatGeneratorBase_continuous
+    {eta c t : ℝ} (ht : 0 < t) :
+    Continuous (weightedMovingHeatGeneratorBase eta c t) := by
+  have h2 :=
+    ShenWork.IntervalNeumannFullKernel.continuous_secondDeriv_heatKernel ht
+  have h1 := ShenWork.IntervalNeumannFullKernel.continuous_deriv_heatKernel ht
+  have h0 : Continuous (heatKernel t) := by
+    unfold heatKernel
+    fun_prop
+  unfold weightedMovingHeatGeneratorBase
+  exact continuous_const.mul
+    ((h2.add (continuous_const.mul h1)).add (continuous_const.mul h0))
+
+theorem weightedMovingHeatGeneratorBase_integrable
+    {eta c t : ℝ} (ht : 0 < t) :
+    Integrable (weightedMovingHeatGeneratorBase eta c t) volume := by
+  have h2 : Integrable
+      (fun z : ℝ => deriv (fun u : ℝ =>
+        deriv (fun w : ℝ => heatKernel t w) u) z) volume := by
+    have hmeas : AEStronglyMeasurable
+        (fun z : ℝ => deriv (fun u : ℝ =>
+          deriv (fun w : ℝ => heatKernel t w) u) z) volume :=
+      (ShenWork.IntervalNeumannFullKernel.continuous_secondDeriv_heatKernel ht).aestronglyMeasurable
+    apply (integrable_norm_iff hmeas).mp
+    simpa only [Real.norm_eq_abs] using
+      (ShenWork.IntervalNeumannFullKernel.secondDeriv_heatKernel_abs_integrable ht)
+  have h1 : Integrable
+      (fun z : ℝ => deriv (fun w : ℝ => heatKernel t w) z) volume :=
+    heatKernel_deriv_integrable ht
+  have h0 : Integrable (heatKernel t) volume := heatKernel_integrable ht
+  simpa only [weightedMovingHeatGeneratorBase] using
+    ((h2.add (h1.const_mul (c - 2 * eta))).add
+      (h0.const_mul (eta ^ 2 - c * eta))).const_mul
+        (weightedMovingHeatGrowth eta c t)
+
+theorem weightedMovingHeatGeneratorBase_abs_integrable
+    {eta c t : ℝ} (ht : 0 < t) :
+    Integrable (fun z => |weightedMovingHeatGeneratorBase eta c t z|) volume := by
+  simpa only [Real.norm_eq_abs] using
+    (weightedMovingHeatGeneratorBase_integrable (eta := eta) (c := c) ht).norm
+
+theorem weightedMovingHeatGeneratorBase_memLp_two
+    {eta c t : ℝ} (ht : 0 < t) :
+    MemLp (weightedMovingHeatGeneratorBase eta c t) 2 volume := by
+  have h2 := heatKernel_secondDeriv_memLp_two ht
+  have h1 := heatKernel_deriv_memLp_two ht
+  have h0 : MemLp (heatKernel t) 2 volume := by
+    simpa using heatKernel_memLp (p := 2) ht (by norm_num)
+  simpa only [weightedMovingHeatGeneratorBase] using
+    ((h2.add (h1.const_mul (c - 2 * eta))).add
+      (h0.const_mul (eta ^ 2 - c * eta))).const_mul
+        (weightedMovingHeatGrowth eta c t)
+
+theorem weightedMovingHeatGeneratorKernel_measurable
+    {eta c t : ℝ} (ht : 0 < t) :
+    Measurable (Function.uncurry
+      (weightedMovingHeatGeneratorKernel eta c t)) := by
+  have hb := (weightedMovingHeatGeneratorBase_continuous
+    (eta := eta) (c := c) ht).measurable
+  unfold weightedMovingHeatGeneratorKernel Function.uncurry
+  exact hb.comp (by fun_prop)
+
+theorem weightedMovingHeatGeneratorKernel_abs_measurable
+    {eta c t : ℝ} (ht : 0 < t) :
+    Measurable (Function.uncurry
+      (fun x y => |weightedMovingHeatGeneratorKernel eta c t x y|)) := by
+  exact (weightedMovingHeatGeneratorKernel_measurable
+    (eta := eta) (c := c) ht).abs
+
+theorem weightedMovingHeatGeneratorKernel_abs_row_integrable
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) :
+    Integrable
+      (fun y => |weightedMovingHeatGeneratorKernel eta c t x y|) volume := by
+  let a := x + (c - 2 * eta) * t
+  have hbase := weightedMovingHeatGeneratorBase_abs_integrable
+    (eta := eta) (c := c) ht
+  have htrans := hbase.comp_neg.comp_add_right (-a)
+  convert htrans using 1
+  ext y
+  unfold weightedMovingHeatGeneratorKernel
+  dsimp [a]
+  congr 2
+  ring
+
+theorem weightedMovingHeatGeneratorKernel_abs_row_mass
+    {eta c t : ℝ} (_ht : 0 < t) (x : ℝ) :
+    (∫ y : ℝ, |weightedMovingHeatGeneratorKernel eta c t x y|) =
+      weightedMovingHeatGeneratorMass eta c t := by
+  let a := x + (c - 2 * eta) * t
+  let G : ℝ → ℝ := fun z => |weightedMovingHeatGeneratorBase eta c t z|
+  calc
+    (∫ y : ℝ, |weightedMovingHeatGeneratorKernel eta c t x y|) =
+        ∫ y : ℝ, G (-(y - a)) := by
+      apply integral_congr_ae
+      filter_upwards with y
+      unfold weightedMovingHeatGeneratorKernel
+      dsimp [G, a]
+      congr 2
+      ring
+    _ = ∫ q : ℝ, G (-q) :=
+      integral_sub_right_eq_self (fun q => G (-q)) a
+    _ = ∫ z : ℝ, G z := integral_neg_eq_self G volume
+    _ = weightedMovingHeatGeneratorMass eta c t := rfl
+
+theorem weightedMovingHeatGeneratorKernel_abs_col_integrable
+    {eta c t : ℝ} (ht : 0 < t) (y : ℝ) :
+    Integrable
+      (fun x => |weightedMovingHeatGeneratorKernel eta c t x y|) volume := by
+  have hbase := weightedMovingHeatGeneratorBase_abs_integrable
+    (eta := eta) (c := c) ht
+  have htrans := hbase.comp_add_right ((c - 2 * eta) * t - y)
+  convert htrans using 1
+  ext x
+  unfold weightedMovingHeatGeneratorKernel
+  congr 2
+  ring
+
+theorem weightedMovingHeatGeneratorKernel_abs_col_mass
+    {eta c t : ℝ} (_ht : 0 < t) (y : ℝ) :
+    (∫ x : ℝ, |weightedMovingHeatGeneratorKernel eta c t x y|) =
+      weightedMovingHeatGeneratorMass eta c t := by
+  let G : ℝ → ℝ := fun z => |weightedMovingHeatGeneratorBase eta c t z|
+  calc
+    (∫ x : ℝ, |weightedMovingHeatGeneratorKernel eta c t x y|) =
+        ∫ x : ℝ, G (x + ((c - 2 * eta) * t - y)) := by
+      apply integral_congr_ae
+      filter_upwards with x
+      unfold weightedMovingHeatGeneratorKernel
+      dsimp [G]
+      congr 2
+      ring
+    _ = ∫ z : ℝ, G z := integral_add_right_eq_self _ _
+    _ = weightedMovingHeatGeneratorMass eta c t := rfl
+
+theorem weightedMovingHeatGeneratorKernel_row_memLp_two
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) :
+    MemLp (weightedMovingHeatGeneratorKernel eta c t x) 2 volume := by
+  let a := x + (c - 2 * eta) * t
+  have hmpNeg : MeasurePreserving (fun y : ℝ => -y) volume volume :=
+    Measure.measurePreserving_neg volume
+  have hmpAdd : MeasurePreserving (fun y : ℝ => a + y) volume volume :=
+    measurePreserving_add_left volume a
+  have hcomp := (weightedMovingHeatGeneratorBase_memLp_two
+    (eta := eta) (c := c) ht).comp_measurePreserving (hmpAdd.comp hmpNeg)
+  convert hcomp using 1
+
+theorem weightedMovingHeatGeneratorKernel_row_mul_l2_integrable
+    {eta c t : ℝ} (ht : 0 < t) (x : ℝ) (Z : WholeLineRealL2) :
+    Integrable
+      (fun y => weightedMovingHeatGeneratorKernel eta c t x y * Z y) volume := by
+  have hmul := (weightedMovingHeatGeneratorKernel_row_memLp_two
+    (eta := eta) (c := c) ht x).integrable_mul (Lp.memLp Z)
+  simpa only [Pi.mul_apply] using hmul
+
+theorem weightedMovingHeatGeneratorMass_nonneg (eta c t : ℝ) :
+    0 ≤ weightedMovingHeatGeneratorMass eta c t := by
+  exact integral_nonneg fun _ => abs_nonneg _
+
+theorem weightedMovingHeatGeneratorMass_le_bound
+    {eta c t : ℝ} (ht : 0 < t) :
+    weightedMovingHeatGeneratorMass eta c t ≤
+      weightedMovingHeatGeneratorMassBound eta c t := by
+  let H2 : ℝ → ℝ := fun z =>
+    |deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z|
+  let H1 : ℝ → ℝ := fun z =>
+    |deriv (fun w : ℝ => heatKernel t w) z|
+  let H0 : ℝ → ℝ := fun z => heatKernel t z
+  let G : ℝ → ℝ := fun z =>
+    weightedMovingHeatGrowth eta c t *
+      (H2 z + |c - 2 * eta| * H1 z +
+        |eta ^ 2 - c * eta| * H0 z)
+  have hGint : Integrable G volume := by
+    have h2 :=
+      ShenWork.IntervalNeumannFullKernel.secondDeriv_heatKernel_abs_integrable ht
+    have h1 := heatKernel_deriv_abs_integrable ht
+    have h0 := heatKernel_integrable ht
+    dsimp only [G, H2, H1, H0]
+    exact ((h2.add (h1.const_mul |c - 2 * eta|)).add
+      (h0.const_mul |eta ^ 2 - c * eta|)).const_mul
+        (weightedMovingHeatGrowth eta c t)
+  have hbaseInt := weightedMovingHeatGeneratorBase_abs_integrable
+    (eta := eta) (c := c) ht
+  have hpoint : ∀ z,
+      |weightedMovingHeatGeneratorBase eta c t z| ≤ G z := by
+    intro z
+    have hg : 0 ≤ weightedMovingHeatGrowth eta c t := Real.exp_nonneg _
+    have hk : 0 ≤ heatKernel t z := heatKernel_nonneg ht z
+    unfold weightedMovingHeatGeneratorBase
+    rw [abs_mul, abs_of_nonneg hg]
+    dsimp only [G, H2, H1, H0]
+    apply mul_le_mul_of_nonneg_left _ hg
+    calc
+      |deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z +
+          (c - 2 * eta) * deriv (fun w : ℝ => heatKernel t w) z +
+          (eta ^ 2 - c * eta) * heatKernel t z| ≤
+          |deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z| +
+            |(c - 2 * eta) * deriv (fun w : ℝ => heatKernel t w) z| +
+            |(eta ^ 2 - c * eta) * heatKernel t z| := by
+        exact (abs_add_le _ _).trans
+          (add_le_add (abs_add_le _ _) le_rfl)
+      _ = |deriv (fun u : ℝ => deriv (fun w : ℝ => heatKernel t w) u) z| +
+            |c - 2 * eta| * |deriv (fun w : ℝ => heatKernel t w) z| +
+            |eta ^ 2 - c * eta| * heatKernel t z := by
+        rw [abs_mul, abs_mul, abs_of_nonneg hk]
+  have hmono : weightedMovingHeatGeneratorMass eta c t ≤ ∫ z : ℝ, G z := by
+    unfold weightedMovingHeatGeneratorMass
+    exact integral_mono hbaseInt hGint hpoint
+  have h2int : Integrable H2 volume :=
+    ShenWork.IntervalNeumannFullKernel.secondDeriv_heatKernel_abs_integrable ht
+  have h1int : Integrable H1 volume := heatKernel_deriv_abs_integrable ht
+  have h0int : Integrable H0 volume := heatKernel_integrable ht
+  have hG_eval :
+      (∫ z : ℝ, G z) = weightedMovingHeatGrowth eta c t *
+        ((∫ z : ℝ, H2 z) +
+          |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi * t)) +
+          |eta ^ 2 - c * eta|) := by
+    have hadd12 :
+        (∫ z : ℝ, H2 z + |c - 2 * eta| * H1 z) =
+          (∫ z : ℝ, H2 z) +
+            ∫ z : ℝ, |c - 2 * eta| * H1 z :=
+      integral_add h2int (h1int.const_mul |c - 2 * eta|)
+    have hadd120 :
+        (∫ z : ℝ,
+            (H2 z + |c - 2 * eta| * H1 z) +
+              |eta ^ 2 - c * eta| * H0 z) =
+          (∫ z : ℝ, H2 z + |c - 2 * eta| * H1 z) +
+            ∫ z : ℝ, |eta ^ 2 - c * eta| * H0 z :=
+      integral_add (h2int.add (h1int.const_mul |c - 2 * eta|))
+        (h0int.const_mul |eta ^ 2 - c * eta|)
+    dsimp only [G]
+    rw [integral_const_mul]
+    rw [hadd120, hadd12]
+    rw [integral_const_mul, integral_const_mul,
+      heatKernel_deriv_abs_integral ht,
+      heatKernel_integral_eq_one ht, mul_one]
+  rw [hG_eval] at hmono
+  unfold weightedMovingHeatGeneratorMassBound
+  refine hmono.trans ?_
+  apply mul_le_mul_of_nonneg_left _ (Real.exp_nonneg _)
+  have h2bound :=
+    ShenWork.IntervalNeumannFullKernel.secondDeriv_heatKernel_abs_integral_le ht
+  linarith
+
+/-- Concrete Schur data for the positive-time generator kernel. -/
+def weightedMovingHeatGeneratorSchurData
+    (eta c t : ℝ) (ht : 0 < t) :
+    WholeLineL2SchurKernelData
+      (weightedMovingHeatGeneratorKernel eta c t)
+      (weightedMovingHeatGeneratorMass eta c t) where
+  mass_nonneg := weightedMovingHeatGeneratorMass_nonneg eta c t
+  kernel_measurable := weightedMovingHeatGeneratorKernel_measurable ht
+  absKernel_measurable := weightedMovingHeatGeneratorKernel_abs_measurable ht
+  abs_row_integrable := weightedMovingHeatGeneratorKernel_abs_row_integrable ht
+  abs_row_mass := weightedMovingHeatGeneratorKernel_abs_row_mass ht
+  abs_col_integrable := weightedMovingHeatGeneratorKernel_abs_col_integrable ht
+  abs_col_mass := weightedMovingHeatGeneratorKernel_abs_col_mass ht
+  row_mul_l2_integrable := weightedMovingHeatGeneratorKernel_row_mul_l2_integrable ht
+
+/-- Positive-time generator-smoothed heat operator on whole-line `L²`. -/
+def weightedMovingHeatGeneratorL2CLM
+    (eta c t : ℝ) (ht : 0 < t) :
+    WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+  (weightedMovingHeatGeneratorSchurData eta c t ht).toCLM
+
+theorem weightedMovingHeatGeneratorL2CLM_norm_le
+    {eta c t : ℝ} (ht : 0 < t) :
+    ‖weightedMovingHeatGeneratorL2CLM eta c t ht‖ ≤
+      weightedMovingHeatGeneratorMass eta c t :=
+  (weightedMovingHeatGeneratorSchurData eta c t ht).toCLM_norm_le
+
+/-! ## Uniform generator bounds on a finite positive-time window -/
+
+/-- On `(0,h]`, the inverse square-root singularity is dominated by the
+inverse-time singularity with coefficient `sqrt h`. -/
+theorem rpow_neg_half_le_sqrt_mul_rpow_neg_one
+    {r h : ℝ} (hr : 0 < r) (hrh : r ≤ h) :
+    r ^ (-(1 / 2 : ℝ)) ≤ Real.sqrt h * r ^ (-(1 : ℝ)) := by
+  have hr0 : 0 ≤ r := hr.le
+  have hh0 : 0 ≤ h := hr.le.trans hrh
+  have hsqrt : Real.sqrt r ≤ Real.sqrt h := Real.sqrt_le_sqrt hrh
+  have hinv0 : 0 ≤ r ^ (-(1 : ℝ)) := Real.rpow_nonneg hr0 _
+  have hfactor :
+      r ^ (-(1 / 2 : ℝ)) =
+        Real.sqrt r * r ^ (-(1 : ℝ)) := by
+    calc
+      r ^ (-(1 / 2 : ℝ)) =
+          r ^ ((1 / 2 : ℝ) + (-(1 : ℝ))) := by congr 1; ring
+      _ = r ^ (1 / 2 : ℝ) * r ^ (-(1 : ℝ)) := by
+        rw [Real.rpow_add hr]
+      _ = Real.sqrt r * r ^ (-(1 : ℝ)) := by
+        rw [Real.sqrt_eq_rpow]
+  rw [hfactor]
+  exact mul_le_mul_of_nonneg_right hsqrt hinv0
+
+/-- On `(0,h]`, a constant is dominated by `h / r`. -/
+theorem one_le_mul_rpow_neg_one
+    {r h : ℝ} (hr : 0 < r) (hrh : r ≤ h) :
+    1 ≤ h * r ^ (-(1 : ℝ)) := by
+  rw [Real.rpow_neg_one]
+  exact (le_div_iff₀ hr).2 (by simpa using hrh)
+
+/-- An explicit horizon-dependent coefficient for the positive-time
+generator bound.  Its three summands respectively control the Gaussian
+Hessian, drift-gradient, and zeroth-order conjugation terms. -/
+def weightedMovingHeatGeneratorHorizonConst (eta c h : ℝ) : ℝ :=
+  Real.exp (|eta ^ 2 - c * eta| * h) *
+    ((5 * Real.sqrt 2 / 2) +
+      |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi)) * Real.sqrt h +
+      |eta ^ 2 - c * eta| * h)
+
+theorem weightedMovingHeatGeneratorHorizonConst_nonneg
+    {eta c h : ℝ} (hh : 0 ≤ h) :
+    0 ≤ weightedMovingHeatGeneratorHorizonConst eta c h := by
+  unfold weightedMovingHeatGeneratorHorizonConst
+  positivity
+
+/-- The explicit generator mass majorant has the native analytic-semigroup
+`r⁻¹` bound on every finite window `(0,h]`. -/
+theorem weightedMovingHeatGeneratorMassBound_le_horizon
+    {eta c r h : ℝ} (hr : 0 < r) (hrh : r ≤ h) :
+    weightedMovingHeatGeneratorMassBound eta c r ≤
+      weightedMovingHeatGeneratorHorizonConst eta c h *
+        r ^ (-(1 : ℝ)) := by
+  have hr0 : 0 ≤ r := hr.le
+  have hh0 : 0 ≤ h := hr.le.trans hrh
+  have hlambda :
+      (eta ^ 2 - c * eta) * r ≤ |eta ^ 2 - c * eta| * h := by
+    calc
+      (eta ^ 2 - c * eta) * r ≤ |eta ^ 2 - c * eta| * r :=
+        mul_le_mul_of_nonneg_right (le_abs_self _) hr0
+      _ ≤ |eta ^ 2 - c * eta| * h :=
+        mul_le_mul_of_nonneg_left hrh (abs_nonneg _)
+  have hgrowth :
+      weightedMovingHeatGrowth eta c r ≤
+        Real.exp (|eta ^ 2 - c * eta| * h) := by
+    unfold weightedMovingHeatGrowth
+    exact Real.exp_le_exp.mpr hlambda
+  have hhalf := rpow_neg_half_le_sqrt_mul_rpow_neg_one hr hrh
+  have hone := one_le_mul_rpow_neg_one hr hrh
+  have hgradCoeff :
+      0 ≤ |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi)) := by
+    positivity
+  have hzeroCoeff : 0 ≤ |eta ^ 2 - c * eta| := abs_nonneg _
+  have hgrad := mul_le_mul_of_nonneg_left hhalf hgradCoeff
+  have hgrad' :
+      |c - 2 * eta| *
+          ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) ≤
+        (|c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi))) *
+          (Real.sqrt h * r ^ (-(1 : ℝ))) := by
+    simpa only [mul_assoc] using hgrad
+  have hzero := mul_le_mul_of_nonneg_left hone hzeroCoeff
+  have hzero' :
+      |eta ^ 2 - c * eta| ≤
+        |eta ^ 2 - c * eta| * (h * r ^ (-(1 : ℝ))) := by
+    simpa only [mul_one] using hzero
+  have hbracket :
+      (5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+          |c - 2 * eta| *
+            ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) +
+          |eta ^ 2 - c * eta| ≤
+        ((5 * Real.sqrt 2 / 2) +
+            |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi)) * Real.sqrt h +
+            |eta ^ 2 - c * eta| * h) * r ^ (-(1 : ℝ)) := by
+    calc
+      (5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+            |c - 2 * eta| *
+              ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) +
+            |eta ^ 2 - c * eta| ≤
+          (5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+            (|c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi))) *
+              (Real.sqrt h * r ^ (-(1 : ℝ))) +
+            |eta ^ 2 - c * eta| *
+              (h * r ^ (-(1 : ℝ))) := by
+        exact add_le_add (add_le_add le_rfl hgrad') hzero'
+      _ = ((5 * Real.sqrt 2 / 2) +
+            |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi)) * Real.sqrt h +
+            |eta ^ 2 - c * eta| * h) * r ^ (-(1 : ℝ)) := by ring
+  have hraw0 :
+      0 ≤ (5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+          |c - 2 * eta| *
+            ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) +
+          |eta ^ 2 - c * eta| := by
+    positivity
+  unfold weightedMovingHeatGeneratorMassBound
+  rw [two_div_sqrt_four_pi_mul_eq_rpow_cauchy hr]
+  calc
+    weightedMovingHeatGrowth eta c r *
+          ((5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+            |c - 2 * eta| *
+              ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) +
+            |eta ^ 2 - c * eta|) ≤
+        Real.exp (|eta ^ 2 - c * eta| * h) *
+          ((5 * Real.sqrt 2 / 2) * r ^ (-(1 : ℝ)) +
+            |c - 2 * eta| *
+              ((2 / Real.sqrt (4 * Real.pi)) * r ^ (-(1 / 2 : ℝ))) +
+            |eta ^ 2 - c * eta|) :=
+      mul_le_mul_of_nonneg_right hgrowth hraw0
+    _ ≤ Real.exp (|eta ^ 2 - c * eta| * h) *
+          (((5 * Real.sqrt 2 / 2) +
+              |c - 2 * eta| * (2 / Real.sqrt (4 * Real.pi)) * Real.sqrt h +
+              |eta ^ 2 - c * eta| * h) * r ^ (-(1 : ℝ))) :=
+      mul_le_mul_of_nonneg_left hbracket (Real.exp_nonneg _)
+    _ = weightedMovingHeatGeneratorHorizonConst eta c h *
+          r ^ (-(1 : ℝ)) := by
+      unfold weightedMovingHeatGeneratorHorizonConst
+      ring
+
+/-- Native `r⁻¹` operator-norm input for the abstract generator-cancellation
+lemma, now discharged by the concrete conjugated Gaussian kernel. -/
+theorem weightedMovingHeatGeneratorL2CLM_norm_le_horizon
+    {eta c r h : ℝ} (hr : 0 < r) (hrh : r ≤ h) :
+    ‖weightedMovingHeatGeneratorL2CLM eta c r hr‖ ≤
+      weightedMovingHeatGeneratorHorizonConst eta c h *
+        r ^ (-(1 : ℝ)) := by
+  exact (weightedMovingHeatGeneratorL2CLM_norm_le hr).trans
+    ((weightedMovingHeatGeneratorMass_le_bound hr).trans
+      (weightedMovingHeatGeneratorMassBound_le_horizon hr hrh))
+
+/-- The concrete representative of the generator-smoothed `L²` class is the
+signed Gaussian generator convolution. -/
+theorem weightedMovingHeatGeneratorL2CLM_coe_ae
+    {eta c r : ℝ} (hr : 0 < r) (Z : WholeLineRealL2) :
+    (((weightedMovingHeatGeneratorL2CLM eta c r hr) Z :
+        WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume]
+      fun x => ∫ y : ℝ,
+        weightedMovingHeatGeneratorKernel eta c r x y * Z y := by
+  exact (weightedMovingHeatGeneratorSchurData eta c r hr).toL2Fun_coe_ae Z
+
+/-- Totalized generator family.  The singular cancellation argument only
+uses positive times, but this packaging gives it a proof-independent map
+`ℝ → (L² →L L²)`. -/
+def weightedMovingHeatL2Generator (eta c r : ℝ) :
+    WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+  if hr : 0 < r then weightedMovingHeatGeneratorL2CLM eta c r hr else 0
+
+theorem weightedMovingHeatL2Generator_of_pos
+    {eta c r : ℝ} (hr : 0 < r) :
+    weightedMovingHeatL2Generator eta c r =
+      weightedMovingHeatGeneratorL2CLM eta c r hr := by
+  simp only [weightedMovingHeatL2Generator, dif_pos hr]
+
+@[simp]
+theorem weightedMovingHeatL2Generator_zero (eta c : ℝ) :
+    weightedMovingHeatL2Generator eta c 0 = 0 := by
+  simp [weightedMovingHeatL2Generator]
+
+/-- Directly packaged `hA` input for
+`generator_holder_remainder_pointwise` and its integral corollaries. -/
+theorem weightedMovingHeatL2Generator_norm_le_horizon
+    (eta c h : ℝ) :
+    ∀ r ∈ Ioc (0 : ℝ) h,
+      ‖weightedMovingHeatL2Generator eta c r‖ ≤
+        weightedMovingHeatGeneratorHorizonConst eta c h *
+          r ^ (-(1 : ℝ)) := by
+  intro r hr
+  rw [weightedMovingHeatL2Generator_of_pos hr.1]
+  exact weightedMovingHeatGeneratorL2CLM_norm_le_horizon hr.1 hr.2
+
+section AxiomAudit
+
+#print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
+#print axioms weightedMovingHeatGeneratorMass_le_bound
+#print axioms weightedMovingHeatGeneratorL2CLM_norm_le_horizon
+#print axioms weightedMovingHeatGeneratorL2CLM_coe_ae
+#print axioms weightedMovingHeatL2Generator_norm_le_horizon
+
+end AxiomAudit
+
+end ShenWork.Paper1
