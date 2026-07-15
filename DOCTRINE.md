@@ -486,3 +486,22 @@ stays conditional exactly as Prop 1.1's GlobalExistenceField does).
 
 **Status:** interface + assembly banked (0f711a67, 89875747, clean-3). Slab mirror +
 propagation dispatched to Codex#2 (CODEX_SPEC_paper1_floor.md).
+
+---
+
+## Scope verdict (2026-07-15): Prop 1.2 ∀-form uniqueness = imported [39], NOT dischargeable elementarily
+
+- Paper 1 §1.2 imports existence+uniqueness "by [39, Thm 1.1]" (Salako–Shen JDE 2017,
+  arXiv:1608.02031). Uniqueness mechanism = BUC/mild Duhamel + heat-semigroup (t-s)^{-1/2}
+  gradient estimate + weakly-singular Volterra inequality on ‖u₁−u₂‖_∞. NO separate numbered
+  theorem in Paper 1; NOT a comparison-principle proof. (Source read + ChatGPT Q5047 concur.)
+- Our `IsGlobalClassicalSolution` = pointwise-classical only (no BUC time-path / no resolver
+  identity for v), so imported uniqueness does NOT apply to this broader class without a
+  BUC-mild bridge. → Structurally identical to the Henry 7.1.3 hcore situation: imported
+  textbook analytic infra, out of scope for reproducing the paper. Mathlib lacks it.
+- DECISION (default, matches repo's existing Prop 1.1 stance where GlobalExistenceField stays
+  conditional): canonical-solution branch `Proposition_1_2_negative_branch` is the faithful
+  REAL deliverable; official ∀-form stays conditional on the imported uniqueness bridge, now
+  machine-explicit as `Proposition_1_2_hconv_neg_of_canonicalUniqueness` (891dd8b7).
+- DO NOT open a Grönwall–Volterra uniqueness campaign unless Xiang authorizes it as separate
+  infra work (parallel to a hypothetical Henry campaign).
