@@ -623,3 +623,18 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   = doubly confirmed.
 - Outstanding: Q5051 (Prop1.2 floor adversarial audit, shen3) + shen2 (targeted Grönwall-weight
   closure verify of the floor crux) still on SOL. Then both committed results fully verify-closed.
+
+### 2026-07-15 03:05 — Prop 1.2(1) floor DOUBLE-CONFIRMED (Grönwall-weight audit + code check)
+- ChatGPT Q5059 verified the load-bearing Gronwall-exponential-weight closure: (1) reaction
+  absorption with D=Lip+1 sufficient, NO long-time exponential-loss factor; (2) fixed-slab +
+  restart gluing valid, e^{-Dt}>0 makes q<=0 <=> B<=u so no degradation; (3) the nonlocal term is
+  NOT pointwise-favorable at a whole-line APPROX minimum (only at a true attained min) — the
+  correct proof needs the quantitative error Kchem*(L-q). Audit verdict: "the landed Lean proof
+  contains the required error estimate". CODE-CONFIRMED: WholeLineCauchyLongTimeFloor.lean:158
+  G r = Kchem*(L-r) + (Kreact+D)*max(-r)0 - max r 0, with chemotaxis error Kchem*(L-q t x)
+  (line 311/341) — exactly the required quantitative term, not a pointwise discard. The only thing
+  the audit rejected was my informal slogan, not the proof.
+- Prop 1.2(1) χ≤0 now DOUBLY verified: independent build+axiom gate (clean-3) AND Gronwall-weight
+  adversarial audit + code check.
+- BOTH committed cruxes fully verify-closed: Prop 1.2(1) χ≤0 (Fable-attacked crux) + Paper 2 Thm
+  1.3 χ≤0 general-m. Remaining cooking verifies (Q5051 floor-broad, Q5052 uniqueness) confirmatory.
