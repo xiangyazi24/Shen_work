@@ -457,3 +457,32 @@ interval FTC regularity.  Remaining honest scalar-regularity inputs are:
 - time-zero right-continuity of `H1energy`, unless a future theorem derives it
   from initial-trace/parabolic regularity;
 - the upstream analytic `H1UxxL1ContBefore` itself.
+
+---
+
+## Avenue (2026-07-14): Paper 1 Prop 1.2(1) — floor campaign (χ ≤ 0 two-sided)
+
+**Goal:** `Proposition_1_2_negative_branch` — for Paper data (BUC, nonneg, uniformly
+positive) and χ≤0, the canonical solution converges uniformly to 1 (mirrors the shape of
+the proved `Proposition_1_1_negative_branch`; the weak-datum ∀-quantified official def
+stays conditional exactly as Prop 1.1's GlobalExistenceField does).
+
+**Design (doubly verified: own derivation + ChatGPT Q5041; both converged):**
+- Barrier: `wholeLineCauchyExpFloor c lam t = 1 + (c-1)e^{-lam·t}`, `0 < lam ≤ c ≤ 1`.
+  Rate decoupled from level. The naive rate-1 mirror of the ceiling is FALSE at α=1
+  (`-(1-B)² ≥ 0`). Key arithmetic `expFloor_reaction_dominates` is machine-checked.
+- At almost-min: drift absorbed as in ceiling; nonlocal `−χu^m(V−u^γ) ≥ 0` via
+  `frozenElliptic_ge_of_rpow_ge`; reaction dominates `lam(1−B)`.
+- No separate positivity-persistence needed (barrier supplies its own floor). Restart
+  keeps rate, moves level (`wholeLineCauchyExpFloor_restart`).
+- Paper's own §3.2 route (order interval + translate compactness) NOT used — the moving
+  barrier avoids compactness, same as the banked ceiling route avoided it for (1.9).
+
+**Terminal conditions:**
+- SUCCESS: `wholeLineCauchyGlobal_uniformLiminfGe_one_of_chi_nonpos` clean-3 + the two
+  carried hyps of `Proposition_1_2_negative_branch_of_floor` (banked 89875747) discharge.
+- FAILURE-PROOF: a specific slab-lemma step where the almost-min machinery genuinely
+  lacks a mirror (would surface as a named missing lemma in codex#2's wall report).
+
+**Status:** interface + assembly banked (0f711a67, 89875747, clean-3). Slab mirror +
+propagation dispatched to Codex#2 (CODEX_SPEC_paper1_floor.md).
