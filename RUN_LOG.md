@@ -509,3 +509,18 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - end: finiteness avenue at faithful terminal state; next → outstanding mechanical headlines.
 - final result: Paper1 stability = faithful conditional-on-Henry; scope decision (formalize Henry
   vs accept conditional) surfaced for Xiang; proceeding to next avenue without stopping.
+
+## Run 2026-07-14 22:40 (Fable, shen window, fresh session via handoff)
+- doctrine version: handoff /tmp/zinan_handoff_shen.md (consumed+deleted) + CODEX_SPEC_paper2_lp.md @ e659f199
+- approval: /automode + "读 handoff 恢复上下文，继续工作，不要等指示" (terminal; shen window has no TG chat binding — notices go to terminal + labeled one-liner in DM)
+- starting avenue: Paper 2 Thm 1.2/1.3 main Lᵖ frontier (spec steps 1–5), Codex dispatch
+- infra: uisai2 stale-clone hazard AVOIDED — dedicated staging /dev/shm/lean/Shen_work-p2lp @ e659f199
+  (cp from cold-build staging, 13G warm .lake, manifest revs match mini HEAD; ~/repos/Shen_work on uisai2
+  untouched, its 6 unpushed commits preserved for Xiang's call)
+- ChatGPT: shen1–4 saturated at start — Q(seed p0 derivation), Q(Prop 1.2 two-sided route),
+  Q(P3 Thm 2.1 strong-max DAG), Q(adversarial audit of Lᵖ route)
+- parallel self line: Paper 1 Prop 1.2 two-sided (UniformLimsupLe → UniformConvergesToConstant)
+- note: untracked leftovers CODEX_SPEC_paper1_hcore.md + ShenWork/Paper1/Theorem12TentWeightFiniteness.lean
+  left in place (hcore is terminal conditional-on-Henry; do NOT dispatch that spec)
+- end: <open>
+- final result: <open>
