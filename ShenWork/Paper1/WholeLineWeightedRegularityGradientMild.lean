@@ -159,10 +159,34 @@ theorem exists_capWeightedMovingHeatGradient_truncatedReactionL2_le_kernel
       dsimp [L]
       ring
 
+/-- Once the differentiated fixed-point identity identifies the three-leg
+sum with the weighted population gradient, its L² representative immediately
+gives the desired `hWx2` integrability. -/
+theorem paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
+    {eta c t : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {f₀ fG fR : ℝ → ℝ}
+    (hsum : ∃ Z : WholeLineRealL2,
+      ((Z : ℝ → ℝ) =ᵐ[volume] fun x => f₀ x + fG x + fR x))
+    (hgrad_eq : ∀ x,
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x =
+        f₀ x + fG x + fR x) :
+    Integrable (fun x =>
+      paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2) volume := by
+  rcases hsum with ⟨Z, hrep⟩
+  have hZmeas : Measurable (Z : ℝ → ℝ) :=
+    (Lp.stronglyMeasurable Z).measurable
+  have hZsq : Integrable (fun x => (Z x) ^ 2) :=
+    (memLp_two_iff_integrable_sq (Lp.memLp Z).1).1 (Lp.memLp Z)
+  refine hZsq.congr ?_
+  filter_upwards [hrep] with x hx
+  rw [hx, hgrad_eq x]
+
+
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
 #print axioms exists_capWeightedGradientDuhamelSumL2
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2_le_kernel
+#print axioms paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
 end AxiomAudit
 
 end ShenWork.Paper1
