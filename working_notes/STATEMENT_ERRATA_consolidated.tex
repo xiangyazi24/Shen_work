@@ -1,0 +1,352 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Om}{\Omega}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\Tmax}{T_{\max}}
+\newcommand{\Linf}{L^{\infty}}
+\newcommand{\code}[1]{\texttt{\seqsplit{#1}}}
+\usepackage{seqsplit}
+\sloppy
+\emergencystretch=3em
+\newcommand{\genfalse}{\textcolor{red!70!black}{\textbf{GENUINE-FALSE}}}
+\newcommand{\stmtfix}{\textsc{Statement-Fix}}
+
+\newlist{fields}{description}{1}
+\setlist[fields]{leftmargin=1.4em,style=nextline,font=\normalfont\itshape}
+
+\title{Consolidated Statement Errata\\[2pt]
+\large Chen--Ruau--Shen chemotaxis trilogy}
+\author{Internal research note for the \code{ShenWork} Lean~4 formalization}
+\date{15 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note consolidates the \emph{statement-level} discrepancies found while
+formalizing the three papers in Lean~4. Every item is backed by a
+machine-checked Lean theorem that is \code{sorry}-free and depends only on the
+standard axioms \code{propext}, \code{Classical.choice}, \code{Quot.sound}.
+Items are separated into (A) genuine paper-statement issues worth the authors'
+attention, and (B) excluded items --- Lean-formalization artifacts that are
+\emph{not} paper errors, listed for transparency. Full technical write-ups live
+in the per-theorem files \code{working\_notes/paper\{1,2,3\}\_*\_amendment}; this
+note is the index and summary.
+\end{abstract}
+
+\section*{Papers and conventions}
+
+\begin{fields}
+\item[TW] ``Traveling waves for repulsion/attraction chemotaxis with logistic
+  source'' (arXiv:2605.04401); repo \code{ShenWork/Paper1/}.
+\item[Part I] ``\ldots with signal-dependent sensitivity and a logistic-type
+  source, I: Boundedness and global existence'' (arXiv:2512.14858); repo
+  \code{ShenWork/Paper2/}.
+\item[Part II] ``\ldots, II: Persistence and stabilization'' (arXiv:2604.02599);
+  repo \code{ShenWork/Paper3/}.
+\end{fields}
+
+\medskip
+\noindent\textbf{Severity legend.} \genfalse{} --- the printed conclusion is
+false on an admissible parameter regime (a hypothesis must be added).
+\stmtfix{} --- the conclusion is true once a stated condition is added or the
+wording corrected (the printed form is over-stated, ill-posed, or has a proof
+gap, but is repairable).
+
+\section{Genuine paper-statement issues}
+
+\subsection*{A1 --- TW, Theorems 1.2 \& 1.3 (nonlinear orbital stability):
+the stability weight window is over-stated. \stmtfix{} (with a genuine local proof gap)}
+
+\begin{fields}
+\item[Location] Theorem~1.2 statement and eqs.~(1.21)/(1.22); Theorem~1.3 tail
+  hypothesis $\kappa_1>\kappa$. Proof steps (5.18),(5.19),(5.23),(5.27),
+  (5.29)--(5.33),(5.35); Lemmas~5.2/5.3.
+\item[What is wrong] Seven independent defects in the \S5 energy argument. The
+  load-bearing ones:
+  \begin{enumerate}[leftmargin=1.6em,itemsep=1pt]
+  \item \textbf{(5.35) root comparison is in the wrong direction.} With
+    $q(\kappa)=A\kappa+B>0$, $\kappa$ is \emph{not} between the two roots of $q$;
+    it lies strictly below the lower perturbed root. The energy computation
+    therefore does not establish decay for all $\eta>\kappa$ --- the printed
+    window $\kappa<\eta$ is over-stated.
+  \item \textbf{(1.21) uses the wrong spatial coordinate:} it prints the
+    laboratory-frame weight $e^{2\eta x}$, but \S5 estimates the \emph{co-moving}
+    weight; the two differ by $e^{2\eta ct}$.
+  \item \textbf{(5.35) exponential sign:} for $\lambda<0$ the text writes
+    $e^{-\lambda t}\to0$, but $e^{-\lambda t}$ grows; the decay factor should be
+    $e^{\lambda t}$.
+  \item \textbf{(5.18)/(5.19):} two chemotaxis sign errors (the $a_{m+\gamma}$
+    term and the $b_4z$ term).
+  \item \textbf{(5.27) $J_1$ Young term drops a $b_1$:} should be $b_1^2$, not
+    $b_1$; on the negative-$\chi$ branch $|\chi|$ may be arbitrarily large, so the
+    replacement is not an upper bound.
+  \item \textbf{(5.29)--(5.30) drop an $M^{2(\gamma-1)}$ resolver factor:} on the
+    positive-$\chi$ branch $M_\chi$ can exceed~$1$, so that power is not
+    identically~$1$.
+  \item \textbf{Lemma~5.2 is one-sided but (5.23) uses a two-sided bound:} the
+    lemma gives $U_x/U\le C$, while (5.23) uses $|U_x/U|\le C$; for a decreasing
+    wave $U_x/U\le0$ the negative part is uncontrolled.
+  \end{enumerate}
+\item[Correction] Use the corrected budget $A_\chi,B_\chi$ (carrying
+  $|\chi|^2B_1^2/2$ and a common resolver factor $K$); the proven weight window is
+  the narrower $\kappa_-<\eta<1/(1+|\chi|^{1/6})$; state (1.21) in co-moving form;
+  Theorem~1.3's tail exponent should require $\kappa_1>\kappa_-$.
+\item[Lean evidence] \code{Theorem12RootObstruction.lean}
+  (\code{paper531\_kappa\_not\_between\_perturbed\_roots},
+  \code{paper531\_kappa\_lt\_rootMinus},
+  \code{paper531\_positive\_inside\_stated\_weight\_window},
+  \code{paper531\_printed\_decay\_factor\_tendsto\_atTop},
+  \code{paper531\_corrected\_decay\_factor\_tendsto\_zero});
+  \code{Theorem12CoordinateAudit.lean}; \code{Theorem12MeanCoefficients.lean};
+  \code{Theorem12WeightedEnergy.lean}; \code{Theorem12LogDerivative.lean}.
+  Full note: \code{paper1\_theorem12\_statement\_amendment}.
+\item[Severity] Mixed. Defects~2--6 are \stmtfix. Defects~\textbf{1+7} leave a
+  genuine gap: the printed window $\kappa<\eta$ is not proven by \S5 on a sliver
+  just above $\kappa$ (not a counterexample, but a real gap absent a new
+  localized-coercivity argument). The corrected narrower window is true.
+\end{fields}
+
+\subsection*{A2 --- Part I, Theorem 1.2: missing $\neg(a>0\wedge b=0)$ guard;
+the mixed branch is false. \genfalse}
+
+\begin{fields}
+\item[Location] Theorem~1.2(1) and (1.2)(2); Remark~1.4(2). Hypotheses read only
+  $a,b\ge0,\ \beta\ge1$, which admits the mixed branch $a>0,\ b=0$.
+\item[Counterexample] The constant-in-space solution $u(t,x)=c\,e^{at}$,
+  $v=(\nu/\mu)u^\gamma$, has all spatial derivatives and the chemotaxis divergence
+  equal to zero and solves $u_t=au$; it is a global positive classical solution
+  with $\norm{u(t)}_\infty=c\,e^{at}\to\infty$. Equivalently the Neumann mass
+  identity gives $M'(t)=aM(t)$, forcing exponential growth when $a>0$. So (1) is
+  false on this branch; (2) is already false at $m=1,\beta=1,\chi_0=0$. The
+  \S4.2/4.3 proof relies on Proposition~2.4's mass bound, which only covers
+  $a=b=0$ or $a,b>0$.
+\item[Correction] Replace the hypothesis by $(a=0)\vee(b>0)$ (exclude
+  $a>0\wedge b=0$); or, conservatively, $(a=b=0)\vee(a>0\wedge b>0)$. Remark~1.4(2)
+  should say both parameters may vanish \emph{together}, not arbitrary mixed
+  nonnegatives.
+\item[Lean evidence] \code{IntervalDomainTheorem12Refutation.lean}
+  (\code{not\_Theorem\_1\_2\_intervalDomain\_when\_a\_pos\_b\_zero}). Verified:
+  $\neg\,\mathrm{Theorem\_1\_2}$ on a concrete parameter set. Full note:
+  \code{paper2\_theorem12\_statement\_amendment}.
+\item[Severity] \genfalse{} on the $a>0,\,b=0$ regime.
+\end{fields}
+
+\subsection*{A3 --- Part I, Theorem 1.3, alternative (iv): missing exponent-domain
+condition. \stmtfix{} (proof gap)}
+
+\begin{fields}
+\item[Location] Theorem~1.3 alternative~(iv) ($\beta\ge1/2,\ \alpha=2m+\gamma-2$);
+  \S5.4 invokes Proposition~2.2.
+\item[What is wrong] \S5.4 needs $s(P)=(P+\alpha)/\gamma>1$, i.e.\ $P>2-2m$ at the
+  critical identity; but the seed exponent $q_*=\max\{1,N\alpha/2\}$ chosen in the
+  proof does not guarantee $q_*>2-2m$.
+\item[Counterexample (parameter wedge)] $N=1,\ m=1/4,\ \gamma=7/2,\ \alpha=2,\
+  \beta=1$: then $\alpha=2m+\gamma-2$, $q_*=1$, $s(q_*)=6/7<1$, and the first
+  disjunct of (1.25) holds automatically (no $\chi_0$ smallness), yet
+  Proposition~2.2 needs $P>3/2$. The written proof does not reach these
+  parameters.
+\item[Correction] Add to (iv) the condition $\max\{1,N\alpha/2\}>2-2m$ (in 1-D:
+  $\max\{1,\alpha/2\}>2-2m$). Alternative~(iii) ($\alpha=m+\gamma-1$) does not have
+  this gap.
+\item[Lean evidence]
+  \code{IntervalDomainTheorem13Critical\{Constants,Seed,Threshold,Bootstrap\}.lean}
+  (\code{boundedBefore\_critical\_case\_iv\_corrected}). Full note:
+  \code{paper2\_theorem13\_case\_iv\_amendment}.
+\item[Severity] \stmtfix{} --- a proof gap, not a counterexample to the
+  conclusion; holds after adding the condition.
+\end{fields}
+
+\subsection*{A4 --- Part I, Proposition 1.1: the finite-horizon alternative should
+hang on a maximal continuation. \stmtfix{} (wording)}
+
+\begin{fields}
+\item[Location] Proposition~1.1's continuation / maximal-time alternative
+  (cf.\ (1.14)/(1.15)).
+\item[What is wrong] Read literally as ``for every finite local horizon $\Tmax$,
+  the maximal-time alternative (finite-time blow-up or decay-to-zero) holds,'' the
+  statement is false: the positive logistic equilibrium is a classical solution on
+  every finite horizon yet neither blows up nor decays. The intended content is the
+  existence of a \emph{distinguished maximal continuation}, not a dichotomy for
+  arbitrary finite horizons.
+\item[Counterexample] The constant equilibrium $c=(a/b)^{1/\alpha}$ ($a,b>0$)
+  refutes ``every finite local witness satisfies the maximal-time alternative,''
+  already on the unit horizon.
+\item[Correction] State the alternative on the maximal-continuation carrier:
+  either a finite branch carrying (1.14)/(1.15), or a global branch; the
+  finite-$\Tmax$ dichotomy appears only when the reachable horizon is bounded.
+\item[Lean evidence] \code{IntervalDomainCorrectedProposition11.lean}
+  (\code{not\_legacyFiniteHorizonAlternativeProducer\_of\_positive\_equilibrium};
+  corrected \code{correctedProposition\_1\_1\_of\_standardContinuation\_and\_gluing}).
+\item[Severity] \stmtfix{} --- a wording over-statement; offered to the authors to
+  decide whether the printed phrasing needs clarifying.
+\end{fields}
+
+\subsection*{A5 --- Part II, Theorem 2.1(1) (uniform persistence): missing the
+$a=0<b$ pure-decay regime; the conclusion is false there. \genfalse}
+
+\begin{fields}
+\item[Location] Theorem~2.1 part~(1), \S4.1 proof. Hypothesis reads only $m\ge1$
+  and asserts $\liminf_{t\to\infty}\inf_x u>0$, but \S4.1 splits only into
+  $a=b=0$ and $a>0\wedge b>0$, omitting the admissible $a=0<b$.
+\item[Counterexample] With $a=0,\ b>0$, the constant-in-space solution
+  $u(t,x)=(c^{-\alpha}+\alpha bt)^{-1/\alpha}$, $v=(\nu/\mu)u^\gamma$, solves
+  $u_t=-bu^{1+\alpha}$; it is global, positive, and bounded by $c$, yet
+  $\liminf_x u=0$. Simplest instance $\alpha=\gamma=m=\mu=\nu=b=1,\ a=\chi_0=0$:
+  $u=v=1/(1+t)$.
+\item[Correction] Add to part~(1) the split actually used in \S4.1:
+  $(a=b=0)\vee(a>0\wedge b>0)$. The remaining $a>0,\ b=0$ branch makes the
+  persistence hypothesis vacuous (mass $M'=aM$ grows exponentially, so no global
+  bounded solution exists), so no third branch is needed.
+\item[Lean evidence] \code{IntervalDomainPersistencePart1StatementObstruction.lean}
+  (\code{not\_Theorem\_2\_1\_part1\_intervalDomain\_pureDecay}; corrected
+  \code{Theorem\_2\_1\_part1\_corrected}). Verified: $\neg\,\mathrm{Theorem\_2\_1\_part1}$
+  with the explicit decaying orbit. Full note:
+  \code{paper3\_theorem21\_statement\_amendment}.
+\item[Severity] \genfalse{} on the $a=0<b$ regime.
+\end{fields}
+
+\subsection*{A6 --- Part II, Theorem 2.2(1) (linear stability/instability): the
+all-time $C^1$ estimate (2.12) is over-stated. \stmtfix}
+
+\begin{fields}
+\item[Location] Theorem~2.2 part~(1), third assertion --- printed (2.12) --- which
+  claims the $C^1$ exponential estimate for all $t\ge0$ (including $t=0$) while the
+  initial hypothesis (1.8) only requires $u_0\in C(\overline\Om)$ positive.
+\item[What is wrong] Smallness is in $\Linf$ but the conclusion is in $C^1$ and
+  demands $t=0$; the two are unrelated at $t=0$. $u_0$ may have
+  $\norm{u_0-u^*}_{C^1}=\infty$, making the $t=0$ instance meaningless; even for
+  $C^1$ data, the $C^1$ norm inside an $\Linf$-ball can be arbitrarily large, so no
+  single constant $C$ controls $t=0$.
+\item[Counterexample] On $(0,1)$ with Neumann BC,
+  $u_{0,N}=u^*+N^{-1/2}\cos(N\pi x)$: $\norm{u_{0,N}-u^*}_\infty=N^{-1/2}\to0$
+  (mass exactly $u^*$ in the minimal model) but
+  $\norm{u_{0,N}-u^*}_{C^1}=N^{1/2}\pi\to\infty$.
+\item[Correction] Split the single printed assertion into the two the proof
+  actually gives: \textbf{(A) strong-norm, all-time} --- $X^\alpha$-small
+  ($\alpha\in(3/4,1)$) $\Rightarrow$ all-time exponential decay in $X^\alpha$
+  (Henry sectorial theory); \textbf{(B) $\Linf$-small, eventual} --- there is a
+  data-dependent $t_0(u_0)>0$ such that $C^1$ exponential decay holds for
+  $t\ge t_0$. The linear stability/instability dichotomy itself is unaffected and
+  correct.
+\item[Side note] The sufficient stability bound $\kappa<(\sqrt\mu+\sqrt{a\alpha})^2$
+  is a continuous infimum; on a bounded Neumann domain the spectrum is discrete, so
+  the sharp stability boundary should be governed by the discrete infimum
+  $\min_{n\ge1}\sigma_n<0$ (the continuous bound is only sufficient and may be
+  strictly stronger).
+\item[Lean evidence] \code{Statements.lean}
+  (\code{not\_SectorialLocalExponentialRaw\_constant\_c1Distance});
+  \code{IntervalDomainSectorialCorrectedObstruction.lean}. Full note:
+  \code{paper3\_theorem22\_statement\_amendment}.
+\item[Severity] \stmtfix{} --- true after splitting into A+B; only the printed
+  (2.12) form is not well-posed.
+\end{fields}
+
+\subsection*{A7 --- Part II, Theorem 2.5 (minimal model $a=b=0$ stability):
+the same all-time $C^1$ over-statement. \stmtfix}
+
+\begin{fields}
+\item[Location] Theorem~2.5: one pair of exponential constants is quantified
+  before all bounded positive global solutions, and the $C^1$ estimate is required
+  for all $t\ge0$.
+\item[What is wrong] Same all-time $t=0$ $C^1$ issue as A6, in the minimal-model +
+  mass-constrained version: $\Linf$/mass-small data cannot give a uniform $C^1$
+  bound at $t=0$.
+\item[Correction] State it in eventual form: orbit-dependent constants + an
+  orbit-dependent entry time $t_0$.
+\item[Lean evidence] \code{IntervalDomainSectorialCorrectedObstruction.lean}
+  (\code{not\_intervalDomain\_Theorem\_2\_5\_original\_allTime}); corrected
+  \code{intervalDomain\_Theorem\_2\_5\_EventualGlobalStabilityFormula}. (The Lean
+  refutation also layers in a $v_0$-anchoring interface detail --- a Lean-interface
+  matter, see~B5 --- but the all-time $C^1$ over-statement itself is at the paper
+  level.)
+\item[Severity] \stmtfix{} --- true in eventual form.
+\end{fields}
+
+\section{Summary}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{@{}clll@{}}
+\toprule
+\# & Paper & Statement & Issue / severity\\
+\midrule
+\endhead
+A1 & TW & Thm 1.2 / 1.3 & weight window $\kappa<\eta$ over-stated (7 defects;
+  2 leave a real gap) --- \stmtfix{}+gap\\
+A2 & Part I & Thm 1.2 & missing $\neg(a>0\wedge b=0)$; false there --- \genfalse\\
+A3 & Part I & Thm 1.3(iv) & missing $\max\{1,N\alpha/2\}>2-2m$ --- \stmtfix\\
+A4 & Part I & Prop 1.1 & alternative should hang on maximal continuation --- \stmtfix\\
+A5 & Part II & Thm 2.1(1) & missing $a=0<b$ regime; false there --- \genfalse\\
+A6 & Part II & Thm 2.2(1) & all-time $C^1$ (2.12) over-stated --- \stmtfix\\
+A7 & Part II & Thm 2.5 & same all-time $C^1$ over-statement --- \stmtfix\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\noindent The two \genfalse{} items (A2, A5) have been verified against explicit
+$\neg[\text{theorem}]$ refutations with concrete counterexample orbits. The
+remaining five are \stmtfix{}: the conclusion holds after the stated correction.
+
+\section{Excluded: Lean-formalization artifacts (not paper errors)}
+
+Listed so the authors know these were examined and ruled out as paper-level
+issues.
+
+\begin{enumerate}[leftmargin=1.6em,itemsep=2pt]
+\item \textbf{TW \code{not\_forall\_Lemma\_2\_1}}: refutes an \emph{abstract}
+  semigroup-estimate structure with fake data; the paper's Lemma~2.1 is about the
+  \emph{concrete} heat semigroup. Scaffolding only.
+\item \textbf{TW Lemmas 4.1 / 4.2 / Remark 4.2}: all use one degenerate trap-set
+  profile. A formalization-strength issue (the barrier lemma holds for the actual
+  strictly-positive constructed wave; the Lean version over-quantifies over the
+  whole trap set), not a paper error.
+\item \textbf{Part I Lemmas 2.1--2.4} (\code{one\_not\_bounded\_by\_exp\_decay}):
+  scalar facts showing the current Lean \emph{undamped} heat-helper route cannot
+  recover the $e^{-\delta t}$ damping and sharp $1+t^{-1/2}$ factors by tuning
+  constants. The paper's exponential decay comes from the equation's built-in
+  damping (the $-u$ term) and is sharp and correct; the Lean route uses a bare
+  undamped helper. Internal-route boundary, not a paper error.
+\item \textbf{\code{not\_paper2\_theorem\_1\_1\_implies\_paper3\_proposition\_1\_2}}:
+  an artificial single-point abstract domain shows the finite-$\Tmax$ bound of
+  Part~I Thm~1.1 does not imply Part~II Prop~1.2's eventual boundedness
+  \emph{under the abstract API}. A proof-dependency remark, not a statement
+  counterexample.
+\item \textbf{Part II Thm 2.1(4) mass interface \& Thm 2.2/2.5 $v_0$ re-anchoring}:
+  \code{HasInitialMass}/\code{InitialTrace} constrain only the $t\to0^+$ limit, not
+  the stored zero-time slice. These are documented Lean-interface amendments
+  (correct interface: \code{HasEquilibriumMassOnPositiveTimes}), not paper
+  falsities.
+\item \textbf{\code{PositiveInitialDatum} too weak}: Lean once wrote initial
+  positivity as open-interior pointwise positivity (admitting $\inf=0$), while the
+  papers' (1.11)/(1.8) require the uniform floor $\inf_\Om u_0>0$. The \emph{paper
+  hypothesis is correct}; the Lean predicate was too weak (now fixed). TW stated
+  positivity correctly.
+\item \textbf{TW Proposition 1.1 ``Cauchy solution''}: Lean used strictly-positive
+  data, while the paper quantifies over arbitrary \emph{nonnegative} BUC data
+  (including the zero solution); fixed. Lean definition was too strong; paper
+  correct.
+\item \textbf{Part II Thm 2.2(nonlinear) / 2.3 / 2.4 for $m>1$}: the Lean closers
+  currently gate $m=1$, whereas the papers assert $m\ge1$ and advertise extending
+  the Lyapunov-functional method from $m=1$ to $m>1$. This is this formalization's
+  not-yet-covered frontier, not a refutation of the papers' $m\ge1$ claims.
+\end{enumerate}
+
+\vfill
+\noindent\footnotesize\emph{Maintained as the project's consolidated
+statement-errata index. New statement-level findings should be appended here (with
+a \code{sorry}-free Lean witness) before forwarding to the authors.}
+
+\end{document}
