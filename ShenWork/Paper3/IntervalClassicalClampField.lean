@@ -84,6 +84,117 @@ theorem classicalClampField_eq_lift
     classicalClampField u t x = intervalDomainLift (u t) x :=
   liftRepr_eq_on_Icc hx
 
+theorem classicalClampField_eq_solution
+    {u : ℝ → intervalDomainPoint → ℝ} {t x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    classicalClampField u t x = u t ⟨x, hx⟩ := by
+  rw [classicalClampField_eq_lift hx, intervalDomainLift, dif_pos hx]
+
+/-- Genuine real-line differentiability of the clamp representative at every
+closed interval point. -/
+theorem classicalClampField_space_hasDerivAt
+    {p : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt (classicalClampField u t)
+      (deriv (classicalClampField u t) x) x := by
+  rcases eq_or_lt_of_le hx.1 with rfl | hx0
+  · have h := liftRepr_hasDerivAt_zero_of_neumann
+      ((hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1.of_le (by norm_num))
+      (derivWithin_left_zero hsol ht0 htT u (Or.inl rfl))
+    simpa [classicalClampField, h.deriv] using h
+  rcases eq_or_lt_of_le hx.2 with rfl | hx1
+  · have h := liftRepr_hasDerivAt_one_of_neumann
+      ((hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1.of_le (by norm_num))
+      (derivWithin_right_zero hsol ht0 htT u (Or.inl rfl))
+    simpa [classicalClampField, h.deriv] using h
+  · have hxint : x ∈ Set.Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+    have hdiff : DifferentiableAt ℝ (intervalDomainLift (u t)) x :=
+      ((hsol.regularity.1 t ⟨ht0, htT⟩).1.differentiableOn (by norm_num))
+        |>.differentiableAt (isOpen_Ioo.mem_nhds hxint)
+    have hev : classicalClampField u t =ᶠ[𝓝 x]
+        intervalDomainLift (u t) := by
+      filter_upwards [isOpen_Ioo.mem_nhds hxint] with y hy
+      exact classicalClampField_eq_lift (Set.Ioo_subset_Icc_self hy)
+    have h := hdiff.hasDerivAt.congr_of_eventuallyEq hev
+    simpa [hev.deriv_eq] using h
+
+theorem classicalClampField_deriv_eq_lift
+    {u : ℝ → intervalDomainPoint → ℝ} {t x : ℝ}
+    (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (classicalClampField u t) x =
+      deriv (intervalDomainLift (u t)) x := by
+  have hev : classicalClampField u t =ᶠ[𝓝 x]
+      intervalDomainLift (u t) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+    exact classicalClampField_eq_lift (Set.Ioo_subset_Icc_self hy)
+  exact hev.deriv_eq
+
+/-- The first derivative of the clamp representative is differentiable at
+every open interior point. -/
+theorem classicalClampField_space_second_hasDerivAt
+    {p : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt (fun y : ℝ => deriv (classicalClampField u t) y)
+      (deriv (fun y : ℝ => deriv (classicalClampField u t) y) x) x := by
+  have hpair := ShenWork.MinPersistenceAtoms.contDiffOn_two_hasDerivAt_pair
+    isOpen_Ioo (hsol.regularity.1 t ⟨ht0, htT⟩).1 hx
+  have hevD : (fun y : ℝ => deriv (classicalClampField u t) y) =ᶠ[𝓝 x]
+      (fun y : ℝ => deriv (intervalDomainLift (u t)) y) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+    have hev : classicalClampField u t =ᶠ[𝓝 y]
+        intervalDomainLift (u t) := by
+      filter_upwards [isOpen_Ioo.mem_nhds hy] with z hz
+      exact classicalClampField_eq_lift (Set.Ioo_subset_Icc_self hz)
+    exact hev.deriv_eq
+  have h := hpair.2.congr_of_eventuallyEq hevD
+  simpa [hevD.deriv_eq] using h
+
+theorem classicalClampField_secondDeriv_eq_lift
+    {u : ℝ → intervalDomainPoint → ℝ} {t x : ℝ}
+    (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (fun y : ℝ => deriv (classicalClampField u t) y) x =
+      deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) x := by
+  have hevD : (fun y : ℝ => deriv (classicalClampField u t) y) =ᶠ[𝓝 x]
+      (fun y : ℝ => deriv (intervalDomainLift (u t)) y) := by
+    filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+    exact classicalClampField_deriv_eq_lift hy
+  exact hevD.deriv_eq
+
+/-- Time differentiability of the clamp representative at a fixed physical
+point follows directly from the classical closed-domain time regularity. -/
+theorem classicalClampField_time_hasDerivAt
+    {p : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt (fun r : ℝ => classicalClampField u r x)
+      (deriv (fun r : ℝ => classicalClampField u r x) t) t := by
+  let X : intervalDomainPoint := ⟨x, hx⟩
+  have hfun : (fun r : ℝ => classicalClampField u r x) =
+      (fun r : ℝ => u r X) := by
+    funext r
+    exact classicalClampField_eq_solution hx
+  rw [hfun]
+  obtain ⟨_, hTime, _, _, _, _, _⟩ := hsol.regularity
+  exact ((hTime X t ⟨ht0, htT⟩).1.1).hasDerivAt
+
+/-- Joint continuity of the physical clamp field on the positive classical
+strip. -/
+theorem classicalClampField_jointContinuousOn
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v) :
+    ContinuousOn (Function.uncurry (classicalClampField u))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  obtain ⟨_, _, _, _, _, _, hJoint⟩ := hsol.regularity
+  exact hJoint.1.congr (by
+    intro q hq
+    exact classicalClampField_eq_lift hq.2)
+
 /-- A faithful classical solution gives genuine endpoint Neumann derivatives
 for the globally continuous clamp representative. -/
 theorem classicalClampField_neumann
