@@ -1,0 +1,76 @@
+Unable to find image 'sagemath/sagemath:latest' locally
+latest: Pulling from sagemath/sagemath
+b40150c1c271: Pulling fs layer
+69b39b8eac99: Pulling fs layer
+5ce8a764fad7: Pulling fs layer
+29601274f8cf: Pulling fs layer
+cbb85fd2d3b7: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+834905ae3193: Pulling fs layer
+a0064b7fff11: Pulling fs layer
+aadd16a2161b: Pulling fs layer
+cbb85fd2d3b7: Waiting
+4f4fb700ef54: Waiting
+aadd16a2161b: Waiting
+834905ae3193: Waiting
+a0064b7fff11: Waiting
+29601274f8cf: Waiting
+69b39b8eac99: Verifying Checksum
+69b39b8eac99: Download complete
+5ce8a764fad7: Verifying Checksum
+5ce8a764fad7: Download complete
+cbb85fd2d3b7: Download complete
+b40150c1c271: Verifying Checksum
+b40150c1c271: Download complete
+4f4fb700ef54: Verifying Checksum
+4f4fb700ef54: Download complete
+a0064b7fff11: Verifying Checksum
+a0064b7fff11: Download complete
+29601274f8cf: Verifying Checksum
+29601274f8cf: Download complete
+aadd16a2161b: Verifying Checksum
+aadd16a2161b: Download complete
+b40150c1c271: Pull complete
+69b39b8eac99: Pull complete
+834905ae3193: Verifying Checksum
+834905ae3193: Download complete
+5ce8a764fad7: Pull complete
+29601274f8cf: Pull complete
+cbb85fd2d3b7: Pull complete
+4f4fb700ef54: Pull complete
+834905ae3193: Pull complete
+a0064b7fff11: Pull complete
+aadd16a2161b: Pull complete
+Digest: sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667
+Status: Downloaded newer image for sagemath/sagemath:latest
+Q4911 MARKOV / SIGMA-ORTHOGONAL COMPUTATION
+rho = -12*rt2 + 17 approximately 0.02943725152272
+lambda_plus = 12*rt2 + 17 approximately 33.97056274848
+
+Traceback (most recent call last):
+  File "/work/scratch/q4911_markov.sage.py", line 56, in <module>
+    Q = [monic_op(n, m_sigma) for n in range(N_SINGLE+_sage_const_1 )]
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/work/scratch/q4911_markov.sage.py", line 42, in monic_op
+    H = matrix(QQ, deg, deg, lambda i, j: moment(i+j))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "sage/matrix/constructor.pyx", line 673, in sage.matrix.constructor.matrix
+  File "sage/matrix/args.pyx", line 809, in sage.matrix.args.MatrixArgs.element
+  File "sage/matrix/args.pyx", line 758, in sage.matrix.args.MatrixArgs.matrix
+  File "sage/structure/parent.pyx", line 901, in sage.structure.parent.Parent.__call__
+  File "sage/structure/coerce_maps.pyx", line 120, in sage.structure.coerce_maps.DefaultConvertMap_unique._call_with_args
+  File "sage/structure/coerce_maps.pyx", line 110, in sage.structure.coerce_maps.DefaultConvertMap_unique._call_with_args
+  File "/home/sage/sage/local/var/lib/sage/venv-python3.12/lib/python3.12/site-packages/sage/matrix/matrix_space.py", line 1155, in _element_constructor_
+    return self.element_class(self, entries, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "sage/matrix/matrix_rational_dense.pyx", line 190, in sage.matrix.matrix_rational_dense.Matrix_rational_dense.__init__
+  File "sage/matrix/args.pyx", line 637, in iter
+  File "/work/scratch/q4911_markov.sage.py", line 42, in <lambda>
+    H = matrix(QQ, deg, deg, lambda i, j: moment(i+j))
+                                          ^^^^^^^^^^^
+  File "/work/scratch/q4911_markov.sage.py", line 25, in m_sigma
+    return QQ(_sage_const_1 , (_sage_const_2 *k + _sage_const_1 )**_sage_const_2 )
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "sage/structure/parent.pyx", line 901, in sage.structure.parent.Parent.__call__
+  File "sage/categories/map.pyx", line 856, in sage.categories.map.Map._call_with_args
+NotImplementedError: _call_with_args not overridden to accept arguments for <class 'sage.rings.rational.Z_to_Q'>
