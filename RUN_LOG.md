@@ -524,3 +524,18 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   left in place (hcore is terminal conditional-on-Henry; do NOT dispatch that spec)
 - end: <open>
 - final result: <open>
+
+### 2026-07-14 23:30 mid-run infra note
+- Codex#1 (Paper2 Lp, dispatched 22:45) DIED AT STARTUP: log stopped at "Reading additional
+  input from stdin..." (39 bytes), process gone, zero work. Infrastructure failure, NOT a
+  difficulty verdict (learned-tactic: completed-producer-can-be-API-death). Root-cause guess:
+  heredoc + "$(cat file)" arg interaction in the same background compound command.
+- Re-dispatched 23:28 with the invocation style proven by Codex#2 (short inline prompt →
+  spec file in repo; new CODEX_OPS_remote_build.md carries the rsync/ssh protocol).
+- Codex#2 (Paper1 floor) healthy: streaming file reads, building the slab minimum mirror.
+- Self line banked: 0f711a67 (toolkit, clean-3) + 89875747 (end-to-end conditional assembly,
+  clean-3). Floor design DOUBLY verified (my derivation + ChatGPT Q5041 independent audit
+  converged: slowed-linear barrier, rate lam <= level C, no separate positivity persistence).
+- ChatGPT: Q5036 (Prop1.2 route, landed), Q5041 (floor audit, landed), in flight: seed p0
+  (shen1), P3 strong-max DAG (shen3), Lp route adversarial audit (shen4), P2 maximal-time
+  alternative (shen2 refill).
