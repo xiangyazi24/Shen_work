@@ -181,12 +181,42 @@ theorem paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
   filter_upwards [hrep] with x hx
   rw [hx, hgrad_eq x]
 
+/-- Algebraic pointwise bridge for the differentiated fixed-point identity.
+The three scalar legs can be instantiated with the homogeneous, chemotactic,
+and reaction gradient Duhamel terms supplied by the C² bootstrap. -/
+theorem capWeightedPopulationX_eq_three_gradient_legs
+    {eta R c t x : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {q₀ qG qR : ℝ}
+    (hderiv : eta * (coMovingPath c u t x - U x) +
+      deriv (coMovingPath c u t) x - deriv U x = q₀ + qG + qR) :
+    capWeightSqrt eta R x *
+        paper5WeightedPopulationX eta (coMovingPath c u) U t x =
+      capWeightSqrt eta R x * Real.exp (eta * x) * q₀ +
+      capWeightSqrt eta R x * Real.exp (eta * x) * qG +
+      capWeightSqrt eta R x * Real.exp (eta * x) * qR := by
+  unfold paper5WeightedPopulationX paper5WeightedPopulation
+  calc
+    capWeightSqrt eta R x *
+        (eta * (Real.exp (eta * x) *
+          (coMovingPath c u t x - U x)) +
+          Real.exp (eta * x) *
+            (deriv (coMovingPath c u t) x - deriv U x)) =
+      capWeightSqrt eta R x * Real.exp (eta * x) *
+        (eta * (coMovingPath c u t x - U x) +
+          deriv (coMovingPath c u t) x - deriv U x) := by ring
+    _ = capWeightSqrt eta R x * Real.exp (eta * x) *
+        (q₀ + qG + qR) := by rw [hderiv]
+    _ = capWeightSqrt eta R x * Real.exp (eta * x) * q₀ +
+        capWeightSqrt eta R x * Real.exp (eta * x) * qG +
+        capWeightSqrt eta R x * Real.exp (eta * x) * qR := by ring
+
 
 section AxiomAudit
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2
 #print axioms exists_capWeightedGradientDuhamelSumL2
 #print axioms exists_capWeightedMovingHeatGradient_truncatedReactionL2_le_kernel
 #print axioms paper5WeightedPopulationX_sq_integrable_of_gradientDuhamelSum
+#print axioms capWeightedPopulationX_eq_three_gradient_legs
 end AxiomAudit
 
 end ShenWork.Paper1
