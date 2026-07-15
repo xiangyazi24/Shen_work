@@ -1,8 +1,11 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityDuhamel
 import ShenWork.Paper1.Theorem12WeightedFiniteness
 import ShenWork.Paper1.WholeLineWeightedRegularityCap
+import ShenWork.Paper1.WholeLineCauchySemigroupRestart
+import ShenWork.Paper1.WholeLineCauchyBUCHeatContinuity
 import ShenWork.PaperOne.WholeLineConvolutionDifferentiation
 import ShenWork.PDE.HeatKernelLpEstimates
+import Mathlib.Analysis.Normed.Lp.SmoothApprox
 
 open Filter MeasureTheory Set Topology
 
@@ -252,6 +255,211 @@ theorem weightedMovingHeatL2Semigroup_norm_le_of_pos
       weightedMovingHeatGrowth eta c t := by
   rw [weightedMovingHeatL2Semigroup_of_pos ht]
   exact weightedMovingHeatL2CLM_norm_le ht
+
+/-! ## Concrete semigroup law on `L²` -/
+
+/-- The translated Markov kernels compose with addition of the two positive
+times.  The drift translation is additive, so this is exactly the ordinary
+Gaussian convolution identity. -/
+theorem weightedMovingHeatMarkovKernel_convolution_add
+    {eta c r q x z : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    (∫ y : ℝ,
+        weightedMovingHeatMarkovKernel eta c r x y *
+          weightedMovingHeatMarkovKernel eta c q y z) =
+      weightedMovingHeatMarkovKernel eta c (r + q) x z := by
+  unfold weightedMovingHeatMarkovKernel
+  rw [show (fun y : ℝ =>
+      heatKernel r (x + (c - 2 * eta) * r - y) *
+        heatKernel q (y + (c - 2 * eta) * q - z)) =
+      fun y : ℝ =>
+        heatKernel r ((x + (c - 2 * eta) * r) - y) *
+          heatKernel q (y - (z - (c - 2 * eta) * q)) by
+    funext y
+    congr 2 <;> ring]
+  rw [heatKernel_convolution_add hr hq]
+  congr 1
+  ring
+
+/-- The double kernel occurring in the positive-time composition is
+absolutely integrable for every `L²` datum.  This is the Fubini input that
+lets the concrete kernel identity descend to `WholeLineRealL2`. -/
+theorem weightedMovingHeatMarkovKernel_comp_integrable
+    {eta c r q x : ℝ} (hr : 0 < r) (hq : 0 < q)
+    (Z : WholeLineRealL2) :
+    Integrable
+      (fun p : ℝ × ℝ =>
+        weightedMovingHeatMarkovKernel eta c r x p.1 *
+          weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2)
+      (volume.prod volume) := by
+  let J : ℝ × ℝ → ℝ := fun p =>
+    weightedMovingHeatMarkovKernel eta c r x p.1 *
+      weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2
+  have hJmeas : AEStronglyMeasurable J (volume.prod volume) := by
+    apply Measurable.aestronglyMeasurable
+    dsimp [J]
+    exact (((weightedMovingHeatMarkovKernel_measurable eta c r).comp
+        (measurable_const.prodMk measurable_fst)).mul
+      ((weightedMovingHeatMarkovKernel_measurable eta c q).comp
+        (measurable_fst.prodMk measurable_snd))).mul
+      ((Lp.stronglyMeasurable Z).measurable.comp measurable_snd)
+  have hsum : 0 < r + q := add_pos hr hq
+  have hsections : ∀ z : ℝ, Integrable (fun y : ℝ => J (y, z)) := by
+    intro z
+    have hbound : ∀ y : ℝ,
+        |weightedMovingHeatMarkovKernel eta c q y z * Z z| ≤
+          (1 / Real.sqrt (4 * Real.pi * q)) * |Z z| := by
+      intro y
+      rw [abs_mul, abs_of_nonneg
+        (weightedMovingHeatMarkovKernel_nonneg hq eta c y z)]
+      exact mul_le_mul_of_nonneg_right
+        (by
+          unfold weightedMovingHeatMarkovKernel
+          exact heatKernel_pointwise_bound hq _)
+        (abs_nonneg _)
+    have hmeas : AEStronglyMeasurable
+        (fun y : ℝ =>
+          weightedMovingHeatMarkovKernel eta c q y z * Z z) volume := by
+      apply Measurable.aestronglyMeasurable
+      exact ((weightedMovingHeatMarkovKernel_measurable eta c q).comp
+        (measurable_id.prodMk measurable_const)).mul measurable_const
+    simpa [J, mul_assoc] using
+      (weightedMovingHeatMarkovKernel_row_integrable hr eta c x).mul_bdd
+        hmeas (by
+          simpa [Real.norm_eq_abs] using
+            (Filter.Eventually.of_forall hbound))
+  have hnorm_sections :
+      (fun z : ℝ => ∫ y : ℝ, ‖J (y, z)‖) =
+        fun z : ℝ =>
+          ‖weightedMovingHeatMarkovKernel eta c (r + q) x z * Z z‖ := by
+    funext z
+    calc
+      (∫ y : ℝ, ‖J (y, z)‖) =
+          |Z z| *
+            (∫ y : ℝ,
+              weightedMovingHeatMarkovKernel eta c r x y *
+                weightedMovingHeatMarkovKernel eta c q y z) := by
+        rw [← integral_const_mul]
+        apply integral_congr_ae
+        filter_upwards with y
+        rw [Real.norm_eq_abs]
+        dsimp [J]
+        rw [abs_mul, abs_mul,
+          abs_of_nonneg
+            (weightedMovingHeatMarkovKernel_nonneg hr eta c x y),
+          abs_of_nonneg
+            (weightedMovingHeatMarkovKernel_nonneg hq eta c y z)]
+        ring
+      _ = |Z z| *
+          weightedMovingHeatMarkovKernel eta c (r + q) x z := by
+        rw [weightedMovingHeatMarkovKernel_convolution_add hr hq]
+      _ = ‖weightedMovingHeatMarkovKernel eta c (r + q) x z * Z z‖ := by
+        rw [Real.norm_eq_abs, abs_mul,
+          abs_of_nonneg
+            (weightedMovingHeatMarkovKernel_nonneg hsum eta c x z)]
+        ring
+  refine (integrable_prod_iff' hJmeas).2
+    ⟨Filter.Eventually.of_forall hsections, ?_⟩
+  rw [hnorm_sections]
+  exact (weightedMovingHeatMarkovKernel_mul_integrable hsum x Z).norm
+
+/-- Positive-time semigroup law for the concrete `L²` heat operators. -/
+theorem weightedMovingHeatL2CLM_comp_add
+    {eta c r q : ℝ} (hr : 0 < r) (hq : 0 < q) :
+    (weightedMovingHeatL2CLM eta c r hr).comp
+        (weightedMovingHeatL2CLM eta c q hq) =
+      weightedMovingHeatL2CLM eta c (r + q) (add_pos hr hq) := by
+  ext Z
+  simp only [ContinuousLinearMap.comp_apply, weightedMovingHeatL2CLM_apply]
+  have houter := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) hr
+    (weightedMovingHeatL2Fun eta c q hq Z)
+  have hinner := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) hq Z
+  have hright := weightedMovingHeatL2Fun_coe_ae
+    (eta := eta) (c := c) (add_pos hr hq) Z
+  filter_upwards [houter, hright] with x hxOuter hxRight
+  rw [hxOuter, hxRight]
+  unfold weightedMovingHeatEta
+  have hreplace :
+      (∫ y : ℝ,
+          weightedMovingHeatMarkovKernel eta c r x y *
+            ((weightedMovingHeatL2Fun eta c q hq Z : WholeLineRealL2) :
+              ℝ → ℝ) y) =
+        ∫ y : ℝ,
+          weightedMovingHeatMarkovKernel eta c r x y *
+            weightedMovingHeatEta eta c q (Z : ℝ → ℝ) y := by
+    apply integral_congr_ae
+    filter_upwards [hinner] with y hy
+    rw [hy]
+  rw [hreplace]
+  unfold weightedMovingHeatEta
+  let J : ℝ × ℝ → ℝ := fun p =>
+    weightedMovingHeatMarkovKernel eta c r x p.1 *
+      weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2
+  have hswap := MeasureTheory.integral_integral_swap
+    (f := fun y z : ℝ => J (y, z))
+    (weightedMovingHeatMarkovKernel_comp_integrable
+      (eta := eta) (c := c) (x := x) hr hq Z)
+  rw [show
+      (∫ y : ℝ,
+          weightedMovingHeatMarkovKernel eta c r x y *
+            (weightedMovingHeatGrowth eta c q *
+              ∫ z : ℝ,
+                weightedMovingHeatMarkovKernel eta c q y z * Z z)) =
+        weightedMovingHeatGrowth eta c q *
+          ∫ y : ℝ, ∫ z : ℝ, J (y, z) by
+    rw [← integral_const_mul]
+    apply integral_congr_ae
+    filter_upwards with y
+    rw [show
+        (∫ z : ℝ, J (y, z)) =
+          weightedMovingHeatMarkovKernel eta c r x y *
+            ∫ z : ℝ,
+              weightedMovingHeatMarkovKernel eta c q y z * Z z by
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with z
+      dsimp [J]
+      ring]
+    ring]
+  rw [hswap]
+  rw [show
+      (∫ z : ℝ, ∫ y : ℝ, J (y, z)) =
+        ∫ z : ℝ,
+          weightedMovingHeatMarkovKernel eta c (r + q) x z * Z z by
+    apply integral_congr_ae
+    filter_upwards with z
+    dsimp [J]
+    rw [integral_mul_const,
+      weightedMovingHeatMarkovKernel_convolution_add hr hq]]
+  rw [show weightedMovingHeatGrowth eta c r *
+      (weightedMovingHeatGrowth eta c q *
+        ∫ z : ℝ,
+          weightedMovingHeatMarkovKernel eta c (r + q) x z * Z z) =
+      weightedMovingHeatGrowth eta c (r + q) *
+        ∫ z : ℝ,
+          weightedMovingHeatMarkovKernel eta c (r + q) x z * Z z by
+    unfold weightedMovingHeatGrowth
+    rw [← mul_assoc, ← Real.exp_add]
+    congr 2
+    ring]
+
+/-- Semigroup law in the totalized nonnegative-time interface. -/
+theorem weightedMovingHeatL2Semigroup_add
+    {eta c r q : ℝ} (hr : 0 ≤ r) (hq : 0 ≤ q) :
+    (weightedMovingHeatL2Semigroup eta c r).comp
+        (weightedMovingHeatL2Semigroup eta c q) =
+      weightedMovingHeatL2Semigroup eta c (r + q) := by
+  rcases hr.eq_or_lt with rfl | hr
+  · simp only [weightedMovingHeatL2Semigroup_zero, zero_add]
+    rfl
+  rcases hq.eq_or_lt with rfl | hq
+  · simp only [weightedMovingHeatL2Semigroup_zero, add_zero]
+    rfl
+  rw [weightedMovingHeatL2Semigroup_of_pos hr,
+    weightedMovingHeatL2Semigroup_of_pos hq,
+    weightedMovingHeatL2Semigroup_of_pos (add_pos hr hq)]
+  exact weightedMovingHeatL2CLM_comp_add hr hq
 
 /-! ## A reusable signed-kernel `L²` operator -/
 
@@ -945,6 +1153,7 @@ theorem weightedMovingHeatL2Generator_norm_le_horizon
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
+#print axioms weightedMovingHeatL2Semigroup_add
 #print axioms weightedMovingHeatGeneratorMass_le_bound
 #print axioms weightedMovingHeatGeneratorL2CLM_norm_le_horizon
 #print axioms weightedMovingHeatGeneratorL2CLM_coe_ae
