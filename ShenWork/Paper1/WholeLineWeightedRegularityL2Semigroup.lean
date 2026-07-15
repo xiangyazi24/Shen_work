@@ -1928,6 +1928,89 @@ theorem weightedMovingHeatL2Generator_comp_semigroup_add
       weightedMovingHeatL2Generator_of_pos (add_pos hr hq)]
     exact weightedMovingHeatGeneratorL2CLM_comp_heat hr hq
 
+/-! ## Positive-time differentiation of the weighted kernel -/
+
+/-- Translation-invariant scalar kernel underlying the weighted moving heat
+semigroup. -/
+def weightedMovingHeatFullKernel (eta c t z : ℝ) : ℝ :=
+  weightedMovingHeatGrowth eta c t *
+    heatKernel t (z + (c - 2 * eta) * t)
+
+/-- Pointwise positive-time derivative of the full weighted moving heat
+kernel. -/
+theorem weightedMovingHeatFullKernel_hasDerivAt
+    {eta c t : ℝ} (ht : 0 < t) (z : ℝ) :
+    HasDerivAt (fun s => weightedMovingHeatFullKernel eta c s z)
+      (weightedMovingHeatGeneratorBase eta c t
+        (z + (c - 2 * eta) * t)) t := by
+  let d : ℝ := c - 2 * eta
+  let lam : ℝ := eta ^ 2 - c * eta
+  let w : ℝ → ℝ := fun s => z + d * s
+  let coeff : ℝ → ℝ := fun s => 1 / Real.sqrt (4 * Real.pi * s)
+  let arg : ℝ → ℝ := fun s => -(w s) ^ 2 / (4 * s)
+  have hw : HasDerivAt w d t := by
+    dsimp [w]
+    convert (hasDerivAt_const t z).add ((hasDerivAt_id t).const_mul d) using 1 <;>
+      ring
+  have hlin : HasDerivAt (fun s : ℝ => 4 * Real.pi * s) (4 * Real.pi) t := by
+    convert (hasDerivAt_id t).const_mul (4 * Real.pi) using 1 <;> ring
+  have hlin0 : 4 * Real.pi * t ≠ 0 := by positivity
+  have hsqrt := hlin.sqrt hlin0
+  have hsqrt0 : Real.sqrt (4 * Real.pi * t) ≠ 0 := by positivity
+  have hcoeff0 := (hasDerivAt_const t (1 : ℝ)).div hsqrt hsqrt0
+  have hcoeff : HasDerivAt coeff
+      (-(1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) t := by
+    dsimp [coeff]
+    convert hcoeff0 using 1
+    have hsquare : Real.sqrt (4 * Real.pi * t) ^ 2 = 4 * Real.pi * t :=
+      Real.sq_sqrt (by positivity)
+    have hsquare' : Real.sqrt (t * 4 * Real.pi) ^ 2 = 4 * Real.pi * t := by
+      rw [show t * 4 * Real.pi = 4 * Real.pi * t by ring]
+      exact hsquare
+    field_simp [hsqrt0, hlin0]
+    rw [hsquare']
+    ring
+  have hnum := (hw.pow 2).neg
+  have hden : HasDerivAt (fun s : ℝ => 4 * s) 4 t := by
+    convert (hasDerivAt_id t).const_mul 4 using 1 <;> ring
+  have ht4 : 4 * t ≠ 0 := by positivity
+  have harg0 := hnum.div hden ht4
+  have harg : HasDerivAt arg
+      ((w t) ^ 2 / (4 * t ^ 2) - d * (w t) / (2 * t)) t := by
+    dsimp [arg]
+    convert harg0 using 1
+    dsimp [w]
+    norm_num
+    field_simp [ne_of_gt ht]
+    ring
+  have hheat0 := hcoeff.mul harg.exp
+  have hheat1 := hheat0.congr_of_eventuallyEq (show
+      (fun s => heatKernel s (w s)) =ᶠ[nhds t]
+        coeff * fun s => Real.exp (arg s) by
+    filter_upwards [Ioi_mem_nhds ht] with s hs
+    rfl)
+  have hheat : HasDerivAt (fun s => heatKernel s (w s))
+      (heatKernel t (w t) *
+        ((w t) ^ 2 / (4 * t ^ 2) - 1 / (2 * t) - d * (w t) / (2 * t))) t := by
+    apply hheat1.congr_deriv
+    unfold heatKernel
+    dsimp [coeff, arg]
+    field_simp [ne_of_gt ht]
+    ring
+  have hgrowth : HasDerivAt (fun s : ℝ => Real.exp (lam * s))
+      (lam * Real.exp (lam * t)) t := by
+    simpa [Function.comp_def, mul_comm] using
+      ((hasDerivAt_id t).const_mul lam).exp
+  have hprod := hgrowth.mul hheat
+  dsimp [weightedMovingHeatFullKernel, weightedMovingHeatGeneratorBase,
+    weightedMovingHeatGrowth]
+  apply hprod.congr_deriv
+  dsimp [lam, d, w] at hprod ⊢
+  rw [ShenWork.IntervalNeumannFullKernel.deriv_deriv_heatKernel ht]
+  rw [deriv_heatKernel ht]
+  field_simp [ne_of_gt ht]
+  ring
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -1939,6 +2022,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatGeneratorKernel_comp_integrable
 #print axioms weightedMovingHeatGeneratorL2CLM_comp_heat
 #print axioms weightedMovingHeatL2Generator_comp_semigroup_add
+#print axioms weightedMovingHeatFullKernel_hasDerivAt
 
 end AxiomAudit
 
