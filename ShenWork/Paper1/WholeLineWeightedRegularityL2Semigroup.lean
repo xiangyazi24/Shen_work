@@ -1731,6 +1731,115 @@ theorem weightedMovingHeatGeneratorKernel_convolution_add
   dsimp [X, A, d, k]
   ring_nf
 
+/-- Absolute integrability of the generator/heat double kernel against an
+arbitrary `L²` datum. -/
+theorem weightedMovingHeatGeneratorKernel_comp_integrable
+    {eta c r q x : ℝ} (hr : 0 < r) (hq : 0 < q)
+    (Z : WholeLineRealL2) :
+    Integrable
+      (fun p : ℝ × ℝ =>
+        weightedMovingHeatGeneratorKernel eta c r x p.1 *
+          weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2)
+      (volume.prod volume) := by
+  let J : ℝ × ℝ → ℝ := fun p =>
+    weightedMovingHeatGeneratorKernel eta c r x p.1 *
+      weightedMovingHeatMarkovKernel eta c q p.1 p.2 * Z p.2
+  let K : ℝ :=
+    (∫ z : ℝ,
+        weightedMovingHeatMarkovKernel eta c q (0 : ℝ) z ^ (2 : ℝ)) ^
+          (1 / (2 : ℝ)) *
+      (∫ z : ℝ, Z z ^ (2 : ℝ)) ^ (1 / (2 : ℝ))
+  have hJmeas : AEStronglyMeasurable J (volume.prod volume) := by
+    apply Measurable.aestronglyMeasurable
+    dsimp [J]
+    exact (((weightedMovingHeatGeneratorKernel_measurable
+      (eta := eta) (c := c) hr).comp
+        (measurable_const.prodMk measurable_fst)).mul
+      ((weightedMovingHeatMarkovKernel_measurable eta c q).comp
+        (measurable_fst.prodMk measurable_snd))).mul
+      ((Lp.stronglyMeasurable Z).measurable.comp measurable_snd)
+  have hsections : ∀ y : ℝ, Integrable (fun z : ℝ => J (y, z)) := by
+    intro y
+    have hraw := (weightedMovingHeatMarkovKernel_mul_integrable
+      (eta := eta) (c := c) hq y Z).const_mul
+        (weightedMovingHeatGeneratorKernel eta c r x y)
+    simpa [J, mul_assoc] using hraw
+  have hrowSq : ∀ y : ℝ,
+      (∫ z : ℝ,
+          weightedMovingHeatMarkovKernel eta c q y z ^ (2 : ℝ)) =
+        ∫ z : ℝ,
+          weightedMovingHeatMarkovKernel eta c q (0 : ℝ) z ^ (2 : ℝ) := by
+    intro y
+    unfold weightedMovingHeatMarkovKernel
+    have hshift (a : ℝ) :
+        (∫ z : ℝ, heatKernel q (a - z) ^ (2 : ℝ)) =
+          ∫ z : ℝ, heatKernel q z ^ (2 : ℝ) := by
+      calc
+        (∫ z : ℝ, heatKernel q (a - z) ^ (2 : ℝ)) =
+            ∫ z : ℝ, (fun w : ℝ => heatKernel q w ^ (2 : ℝ))
+              (z + (-a)) := by
+                apply integral_congr_ae
+                filter_upwards with z
+                rw [← heatKernel_neg]
+                congr 3
+                ring
+        _ = ∫ z : ℝ, heatKernel q z ^ (2 : ℝ) :=
+          MeasureTheory.integral_add_right_eq_self
+            (μ := (volume : Measure ℝ))
+            (fun w : ℝ => heatKernel q w ^ (2 : ℝ)) (-a)
+    rw [hshift (y + (c - 2 * eta) * q)]
+    simpa only [zero_add] using (hshift ((c - 2 * eta) * q)).symm
+  have hholder : ∀ y : ℝ,
+      ∫ z : ℝ, ‖weightedMovingHeatMarkovKernel eta c q y z‖ * ‖Z z‖ ≤ K := by
+    intro y
+    have hheat : MemLp (weightedMovingHeatMarkovKernel eta c q y)
+        (ENNReal.ofReal (2 : ℝ)) volume := by
+      simpa using weightedMovingHeatMarkovKernel_memLp_two
+        (eta := eta) (c := c) hq y
+    have hZ : MemLp (Z : ℝ → ℝ) (ENNReal.ofReal (2 : ℝ)) volume := by
+      simpa using Lp.memLp Z
+    have hraw := MeasureTheory.integral_mul_norm_le_Lp_mul_Lq
+      (p := (2 : ℝ)) (q := (2 : ℝ)) (μ := volume)
+      (f := weightedMovingHeatMarkovKernel eta c q y) (g := (Z : ℝ → ℝ))
+      Real.HolderConjugate.two_two hheat hZ
+    calc
+      ∫ z : ℝ, ‖weightedMovingHeatMarkovKernel eta c q y z‖ * ‖Z z‖ ≤
+          (∫ z : ℝ,
+              weightedMovingHeatMarkovKernel eta c q y z ^ (2 : ℝ)) ^
+                (1 / (2 : ℝ)) *
+            (∫ z : ℝ, Z z ^ (2 : ℝ)) ^ (1 / (2 : ℝ)) := by
+        simpa only [Real.norm_eq_abs, Real.rpow_two, sq_abs] using hraw
+      _ = K := by rw [hrowSq y]
+  have hsecMeas : AEStronglyMeasurable
+      (fun y : ℝ => ∫ z : ℝ, ‖J (y, z)‖) volume :=
+    hJmeas.norm.integral_prod_right'
+  have hmajorInt : Integrable
+      (fun y : ℝ => K *
+        |weightedMovingHeatGeneratorKernel eta c r x y|) volume :=
+    (weightedMovingHeatGeneratorKernel_abs_row_integrable
+      (eta := eta) (c := c) hr x).const_mul K
+  have hsecBound : ∀ y : ℝ,
+      (∫ z : ℝ, ‖J (y, z)‖) ≤
+        K * |weightedMovingHeatGeneratorKernel eta c r x y| := by
+    intro y
+    rw [show (∫ z : ℝ, ‖J (y, z)‖) =
+        |weightedMovingHeatGeneratorKernel eta c r x y| *
+          ∫ z : ℝ,
+            ‖weightedMovingHeatMarkovKernel eta c q y z‖ * ‖Z z‖ by
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with z
+      dsimp [J]
+      simp only [abs_mul]
+      ring]
+    rw [mul_comm K]
+    exact mul_le_mul_of_nonneg_left (hholder y) (abs_nonneg _)
+  exact (integrable_prod_iff hJmeas).2
+    ⟨Eventually.of_forall hsections,
+      hmajorInt.mono' hsecMeas (Eventually.of_forall fun y => by
+        rw [Real.norm_eq_abs, abs_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
+        exact hsecBound y)⟩
+
 section AxiomAudit
 
 #print axioms weightedMovingHeatL2Semigroup_norm_le_of_pos
@@ -1739,6 +1848,7 @@ section AxiomAudit
 #print axioms weightedMovingHeatGeneratorL2CLM_norm_le_horizon
 #print axioms weightedMovingHeatGeneratorL2CLM_coe_ae
 #print axioms weightedMovingHeatL2Generator_norm_le_horizon
+#print axioms weightedMovingHeatGeneratorKernel_comp_integrable
 
 end AxiomAudit
 
