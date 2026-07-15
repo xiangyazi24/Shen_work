@@ -1,27 +1,42 @@
-# ⚠️ 2026-07-15 SIGNATURE-LEVEL SNAPSHOT (supersedes the 06-15 matrix below; verified by reading proving-theorem signatures, 3 parallel surveyors)
+# ⚠️ 2026-07-15 LIVE-TARGET SNAPSHOT v2 (compiler-verified; REPLACES the v1 snapshot committed earlier today which wrongly measured against dead original defs)
 
-**57 headline defs total** (P1:14, P2:18, P3:25). Repo 0 sorry / 0 custom axiom throughout — status below is about CONDITIONALITY, not sorries.
+**Method**: probe file on uisai2 (`#check @closer` + `#print axioms`) against the built tree @ d24d0837. Every ✅ below = compiler-printed signature + [propext, Classical.choice, Quot.sound] only. KEY STRUCTURE: several original Statements.lean defs are REFUTED-and-SUPERSEDED (committed `not_*` theorems); the live faithful targets are the `_corrected`/`Eventual` defs. Measuring against original defs (v1's mistake) double-counts dead statements as open work.
 
-| status | count | items |
+## 22 numbered main results — 16 closed in live form
+
+| paper | result | live status |
 |---|---|---|
-| ✅ UNCONDITIONAL | 14 | P1: Lem2.5, Lem2.5J, Lem5.3, **Thm1.1(双支非空)** · P2: Prop2.1–2.5, Lem3.1, **Thm1.1(χ₀≤0双支+m≥1 global)** · P3: Prop1.4, Lem3.1, Prop1.2(logistic a,b>0 slice) |
-| 🌗 BRANCH-ONLY | 4 | P1 Prop1.1(χ≤0✓/χ>0✗), P1 Prop1.2(χ≤0✓但 datum 强于 def—见下), P2 Thm1.3(χ₀≤0 all m≥1✓/χ₀>0 strong-logistic✗), P3 Thm2.2(线性二分✓/非线性半✗) |
-| 🟡 CONDITIONAL(真 frontier) | 26 | P1: Lem5.1, Lem5.2(+explicit), Thm1.2, Thm1.3 · P2: Lem2.6, Cor2.1, Lem4.1, Prop1.1, Thm1.2(仅剩0<m<1残支; m=1 critical 支无条件) · P3: Prop1.3, Thm2.1+parts1–4, Thm2.3/2.4/2.5, Lem3.2, Lem3.4, LemA.2/A.3/A.4, LemA.7/A.8 |
-| 🔴 TAUTOLOGY-only | 6 | P2 Lem2.7 · P3 Lem3.3, Lem3.5, Cor5.1, Lem7.1, LemA.1 |
-| ⛔ 无非空证明(仅 impostor/nonsharp) | 4 | P2 Lem2.1–2.4(≡0 impostor + nonsharp 变体; 且有 obstruction 定理证 exp-decay 因子对当前 semigroup data 不可达) |
-| ❌ DISPROVED as stated | 3 | P1 Lem2.1(∀S 形式已证伪), P1 Lem4.1, P1 Lem4.2(not_Lemma_4_1/4_2 已提交) |
+| P1 | Thm 1.1 (wave existence) | ✅ `Theorem_1_1.unconditional` — both branches χ≤0 AND 0≤χ<min(½,χ*), non-vacuous |
+| P1 | Prop 1.1 | 🌗 χ≤0 ✅ `Proposition_1_1_negative_branch`; χ>0 branch = positive-sensitivity lane (Xiang) |
+| P1 | Prop 1.2 | 🌗 χ≤0 ∃-form ✅ `Proposition_1_2_negative_branch` (∀-uniqueness form = imported [39], Q5060 scope verdict); χ>0 open (Xiang lane) |
+| P1 | Thm 1.2 (stability) | ⛰ conditional on `Paper1MainlineExistence` (Henry-class §5: energy dissipation, L²→uniform, c** spec) — imported-infra terminal |
+| P1 | Thm 1.3 (uniqueness) | ⛰ same package + cauchyUnique |
+| P2 | Thm 1.1 | ✅ `paper2_chiNonpos` (χ₀≤0 both signs, logistic, m≥1 global conjunct) |
+| P2 | Thm 1.2 | ✅ live `CorrectedTheorem_1_2`: m=1 critical branch unconditional; 0<m<1 residual = OPEN IN PAPER (Q5042), carried as named residual |
+| P2 | Thm 1.3 | ✅ both halves: χ₀≤0 all m≥1 (`Theorem_1_3_intervalDomainM_chiNonpos_m_ge_one`) + χ₀>0 strong-logistic corrected (`correctedTheorem13_intervalDomainM`, N=1) |
+| P2 | Prop 1.1 | 🟡 conditional: finite-horizon-alternative frontier (χ₀=0 local existence internal; χ₀>0 local inhabitation inside corrected Thm1.3) |
+| P2 | Prop 2.1–2.5 | ✅ all five (2.5 on intervalDomainM), real proofs, tautologies long replaced |
+| P3 | Prop 1.2 | ✅ χ₀≤0 m≥1 logistic (`proposition_1_2_intervalDomain_chiNonpos`); minimal a=b=0 slice unverified vs paper scope |
+| P3 | Prop 1.3 | ✅ corrected (`correctedProposition13_intervalDomainM`, N=1) |
+| P3 | Prop 1.4 | ✅ `intervalDomain_Proposition_1_4_unconditional` |
+| P3 | Thm 2.1 (persistence) | ✅ FULL corrected: `Theorem_2_1_corrected_intervalDomainM` = part1_corrected ∧ part2 ∧ part3 ∧ part4_physicalMass; original part1-pureDecay + part4-anyConstants REFUTED (committed obstructions) |
+| P3 | Thm 2.2 | ✅ live Eventual form, m=1, concrete non-vacuous constants (`intervalDomain_Theorem_2_2_Eventual_concrete_unconditional`); linear threshold unconditional standalone |
+| P3 | Thm 2.3 | ✅ Eventual, m=1 gate (`intervalDomain_Theorem_2_3_EventualGlobalStability`) |
+| P3 | Thm 2.4 | ✅ Eventual formula-level, m=1 gate |
+| P3 | Thm 2.5 | ✅ Eventual formula (N=1); ORIGINAL all-time statement REFUTED (`not_intervalDomain_Theorem_2_5_original_allTime`) |
 
-**Frontier 聚类**（26 conditional 收敛到 ~8 个共享 frontier）:
-1. P2 Lem2.1–2.4 semigroup 衰减估计(喂 P3 LemA.2–A.4) — 有 statement-level obstruction，先修陈述
-2. P1 §5 stability 包 Paper1MainlineExistence(energy dissipation + L²→uniform + Cauchy unique) → Thm1.2/1.3 — Q5060 判 imported [39] Henry 级
-3. P1 χ>0 正支(Prop1.1/1.2 positive branch) — Xiang lane
-4. P1 wave 单调性(Lem5.2 crux) + Lem5.1 的 5 个 frontier fields
-5. P2 局部适定引擎(Prop1.1: hlocal+blow-up alternative = brick-1 深水区)
-6. P2 Thm1.2 slow 残支 0<m<1 — paper 本身 open
-7. P3 persistence frontiers(§4.1 compactness+strong-max) → Thm2.1 全家; contactSmallCeiling 关的是 intervalDomainM 上的 _corrected 变体，headline part1 未接线
-8. P3 nonlinear stability/sectorial(exp-upgrade+global) → Thm2.2 非线性半+2.3–2.5+Cor5.1
+## Genuinely remaining (matches the 07-15 board + Q5060 exhaustion audit)
+1. **P1 Thm 1.2/1.3** — Henry-class §5 stability machinery (+ Lem 5.1/5.2 frontier data feeding them). Imported-infra scale.
+2. **P1 χ>0 branches** of Prop 1.1/1.2 — positive-sensitivity lane (Xiang).
+3. **P2 0<m<1 floor-loss** — open in the paper itself; carried as named residual.
+4. **P2 Prop 1.1 finite-horizon alternative** — engine glue frontier.
+5. **Statement-level errata without corrected forms yet**: P2 Lem 2.1–2.4 sharp semigroup estimates (obstruction theorem committed: exp-decay factor unattainable for undamped data) + P3 Lem A.2–A.4 riding on them; P1 Lem 2.1(∀S)/4.1/4.2 refuted-as-stated (content routed around inside closed Thm 1.1).
+6. **Interior bookkeeping off critical path**: tautology shims (P2 Lem2.7; P3 Lem3.3/3.5/7.1/A.1/Cor5.1), P3 Lem3.2/3.4/A.7/A.8 + P2 Lem2.6/Cor2.1/Lem4.1 conditionals — headline chains close without them.
 
-**已知 caveat**: P1 Prop1.2 negative branch 定理要求 PaperNonnegativeInitialDatum，但 def 负支只给弱的 NonnegativeInitialDatum——standalone 定理插不进 def 原文（待决：改 def 或降 datum）。
+## Open sliver-checks (paper-facing, cheap)
+- P3 Thm 2.2–2.4 Eventual closers gate `m = 1` — confirm the paper's stability section is m=1 (if it claims m>1 the sliver is real).
+- P3 Prop 1.2 minimal (a=b=0) slice vs paper's standing assumptions.
+- P1 Prop 1.2 negative-branch datum (`PaperNonnegativeInitialDatum`+`UniformlyPositive`) vs def branch predicate — wiring seam.
 
 ---
 
