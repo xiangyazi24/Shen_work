@@ -711,4 +711,150 @@ theorem exists_high_slow_lp_power_bounded_before
   exact slow_lp_power_bounded_before hguard hu₀ hsol htrace hbeta hm1
     hpdef (lt_of_le_of_lt (le_max_left _ _) hp)
 
+/-- The slow-branch damping constant can be chosen once for a global
+solution.  The finite-descent coefficient, the Agmon constant, and the mass
+cap are all fixed before the observation time; only the classical restriction
+to `(0,t+1)` varies with `t`. -/
+theorem slow_lp_energy_damping_global
+    {p : CM2Params} {pExp : ℝ} {steps : ℕ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hguard : p.a = 0 ∨ 0 < p.b)
+    (hu₀ : PositiveInitialDatum intervalDomainM u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomainM p u v)
+    (htrace : InitialTrace intervalDomainM u₀ u)
+    (hbeta : 1 ≤ p.β) (hm1 : p.m < 1)
+    (hpdef : pExp = (2 : ℝ) ^ (steps + 1) * (1 - p.m))
+    (hp : 1 < pExp) :
+    ∃ K, 0 ≤ K ∧ ∀ t, 0 < t →
+      (1 / pExp) * deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        intervalDomainLpEnergy pExp u t ≤ K := by
+  let A : ℝ := slowDescentClosedCoeff p pExp steps
+  have hsol1 : IsPaper2ClassicalSolution intervalDomainM p 1 u v :=
+    hglobal.classical (by norm_num)
+  have hdescent1 := slow_cross_finite_descent_closed_uniform
+    hsol1 hbeta hm1 hpdef hp
+  have hA : 0 ≤ A := by simpa [A] using hdescent1.1
+  let delta : ℝ := (pExp - 1) / ((steps : ℝ) + 2)
+  have hdelta : 0 < delta := by
+    dsimp [delta]
+    exact div_pos (by linarith) (by positivity)
+  let B : ℝ := p.a + A + 1
+  have hB : 0 < B := by dsimp [B]; linarith [p.ha]
+  let Cmass : ℝ := uniformMassBoundConstant p u₀
+  have hCmass : 0 ≤ Cmass := by
+    dsimp [Cmass]
+    exact uniformMassBoundConstant_nonneg p u₀
+  obtain ⟨Cagmon, hCagmon, hagmon⟩ :=
+    unitIntervalPositiveAgmonInterpolation pExp hp (delta / B)
+      (div_pos hdelta hB)
+  let K : ℝ := A + B * Cagmon * Cmass ^ pExp
+  have hK : 0 ≤ K := by
+    dsimp [K]
+    exact add_nonneg hA
+      (mul_nonneg (mul_nonneg hB.le hCagmon.le)
+        (Real.rpow_nonneg hCmass _))
+  refine ⟨K, hK, ?_⟩
+  intro t ht0
+  let T : ℝ := t + 1
+  have hT : 0 < T := by dsimp [T]; linarith
+  have htT : t < T := by dsimp [T]; linarith
+  have hsol : IsPaper2ClassicalSolution intervalDomainM p T u v :=
+    hglobal.classical hT
+  have hdescent := slow_cross_finite_descent_closed_uniform
+    hsol hbeta hm1 hpdef hp
+  let Y : ℝ := intervalDomainLpEnergy pExp u t
+  let G : ℝ := intervalDomainLpWeightedGradientDissipation pExp u t
+  let Z : ℝ := intervalDomain.integral (fun x => (u t x) ^ (pExp + p.α))
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hYeq : Y = ∫ x in (0 : ℝ)..1,
+      intervalDomainLift (u t) x ^ pExp := by
+    dsimp [Y]
+    exact lpEnergy_eq_lift_power_of_solution hsol ht0 htT
+  have hGeq : G = ∫ x in (0 : ℝ)..1,
+      intervalDomainLift (u t) x ^ (pExp - 2) *
+        |deriv (intervalDomainLift (u t)) x| ^ 2 := by
+    dsimp [G]
+    exact weightedDissipation_eq_lift pExp u t
+  have hYdomain : Y =
+      intervalDomain.integral (fun x => (u t x) ^ pExp) := by
+    rw [hYeq]
+    exact (intervalDomain_integral_rpow_eq_lift_integral
+      (q := pExp) (f := u t)).symm
+  have hYnonneg : 0 ≤ Y := by
+    rw [hYeq]
+    exact intervalIntegral.integral_nonneg (by norm_num) (fun x hx =>
+      Real.rpow_nonneg (solution_lift_pos_Icc hsol ht x hx).le _)
+  have hGnonneg : 0 ≤ G := by
+    rw [hGeq]
+    exact intervalIntegral.integral_nonneg (by norm_num) (fun x hx =>
+      mul_nonneg
+        (Real.rpow_nonneg (solution_lift_pos_Icc hsol ht x hx).le _)
+        (sq_nonneg _))
+  have hZnonneg : 0 ≤ Z := by
+    dsimp [Z]
+    unfold intervalDomain intervalDomainIntegral
+    exact intervalIntegral.integral_nonneg (by norm_num) (fun x hx => by
+      simp only [intervalDomainLift, hx, dif_pos]
+      exact Real.rpow_nonneg (u_pos hsol ht0 htT ⟨x, hx⟩).le _)
+  have hmass_t : intervalDomain.integral (u t) ≤ Cmass := by
+    dsimp [Cmass]
+    exact mass_le_uniformMassBoundConstant_of_guard
+      hguard hu₀ hsol htrace t ht0 htT
+  have hmass_nonneg : 0 ≤ intervalDomain.integral (u t) :=
+    (mass_pos hsol ht).le
+  have hmass_pow : (intervalDomain.integral (u t)) ^ pExp ≤
+      Cmass ^ pExp :=
+    Real.rpow_le_rpow hmass_nonneg hmass_t (by linarith : 0 ≤ pExp)
+  have hC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
+  have hag := hagmon (u t) (fun x => u_pos hsol ht0 htT x) hC2
+  have hag' : Y ≤ (delta / B) * G +
+      Cagmon * (intervalDomain.integral (u t)) ^ pExp := by
+    rw [hYdomain]
+    simpa [G, intervalDomainLpWeightedGradientDissipation] using hag
+  have habsorb : B * Y ≤ delta * G +
+      B * Cagmon * Cmass ^ pExp := by
+    have hmul := mul_le_mul_of_nonneg_left hag' hB.le
+    have hpowmul := mul_le_mul_of_nonneg_left hmass_pow
+      (mul_nonneg hB.le hCagmon.le)
+    calc
+      B * Y ≤ B * ((delta / B) * G +
+          Cagmon * (intervalDomain.integral (u t)) ^ pExp) := hmul
+      _ = delta * G +
+          B * Cagmon * (intervalDomain.integral (u t)) ^ pExp := by
+        field_simp [ne_of_gt hB]
+      _ ≤ delta * G + B * Cagmon * Cmass ^ pExp := by
+        linarith
+  have hcross :
+      p.χ₀ * (pExp - 1) * lpSignedCrossIntegralM p pExp u v t ≤
+        ((steps : ℝ) + 1) * ((pExp - 1) / ((steps : ℝ) + 2)) * G +
+          A * (Y + 1) := by
+    simpa [A, hYeq, hGeq] using hdescent.2 t ht0 htT
+  have henergy := weightedLpEnergy_identity
+    (p := p) (T := T) (t := t) (pExp := pExp)
+    (u := u) (v := v) (ne_of_gt (lt_trans zero_lt_one hp))
+    hsol ht0 htT
+  rw [← hYdomain] at henergy
+  change (1 / pExp) * deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+      (pExp - 1) * G + p.b * Z =
+        p.χ₀ * (pExp - 1) * lpSignedCrossIntegralM p pExp u v t +
+          p.a * Y at henergy
+  have hcoeff : (pExp - 1) -
+      ((steps : ℝ) + 1) * ((pExp - 1) / ((steps : ℝ) + 2)) =
+        delta := by
+    dsimp [delta]
+    field_simp
+    ring
+  have hpre :
+      (1 / pExp) * deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        delta * G ≤ (p.a + A) * Y + A := by
+    have hbZ : 0 ≤ p.b * Z := mul_nonneg p.hb hZnonneg
+    nlinarith
+  dsimp [Y] at hpre habsorb ⊢
+  dsimp [K, B]
+  nlinarith
+
+#print axioms slow_lp_energy_damping_global
+
 end ShenWork.Paper2.IntervalDomainM
