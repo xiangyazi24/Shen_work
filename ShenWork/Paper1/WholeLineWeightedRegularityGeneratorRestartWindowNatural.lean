@@ -3,6 +3,8 @@ import ShenWork.Paper1.WholeLineWeightedRegularitySemigroupHistoryNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityForcingContinuityNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityBoundedDriftRestart
 import ShenWork.Paper1.WholeLineWeightedRegularityRawDQProfile
+import ShenWork.Paper1.WholeLineWeightedRegularityBoundedStateHistory
+import ShenWork.Paper1.WholeLineWeightedRegularityCandidateContinuity
 
 open Filter MeasureTheory Set Topology
 open scoped Interval
@@ -603,6 +605,80 @@ theorem wholeLineCauchyBUCMildFixedPoint_weighted_generator_restart
       (eta := eta) (c := c) (s := s)
       p hM hT Traj Uw Vw hstripS y)
 
+/-- A pointwise full-generator restart lifts directly to `L²` under
+joint measurability, a uniform forcing square budget, and measurable `L²`
+realizations.  Neither the state nor the forcing trajectory is assumed
+continuous in time. -/
+theorem weightedMovingHeatFullGeneratorCandidate_eq_of_pointwise_restart_bounded_measurable
+    {eta c a r Cf : ℝ} (har : a < r) (hCf : 0 ≤ Cf)
+    {z f : ℝ → ℝ → ℝ} {F : ℝ → WholeLineRealL2}
+    (hz_joint : Measurable (Function.uncurry z))
+    (hf_joint : Measurable (Function.uncurry f))
+    (hz_sq : ∀ q ∈ Set.Icc a r,
+      Integrable (fun x : ℝ => z q x ^ 2) volume)
+    (hf_sq : ∀ q ∈ Set.Icc a r,
+      Integrable (fun x : ℝ => f q x ^ 2) volume)
+    (hf_le : ∀ q ∈ Set.Icc a r,
+      (∫ x : ℝ, f q x ^ 2) ≤ Cf)
+    (hFrep : ∀ q ∈ Set.Icc a r,
+      (((F q : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] f q))
+    (hFtime : AEStronglyMeasurable F volume)
+    (hpoint : ∀ᵐ x ∂volume,
+      z r x = weightedMovingHeatEta eta c (r - a) (z a) x +
+        ∫ q in a..r,
+          weightedMovingHeatEta eta c (r - q) (f q) x) :
+    wholeLineRealL2Total (z r) =
+      weightedMovingHeatFullGeneratorCandidate eta c a
+        (wholeLineRealL2Total (z a)) F r := by
+  have hz_meas : ∀ q ∈ Set.Icc a r,
+      AEStronglyMeasurable (z q) volume := by
+    intro q hq
+    exact hz_joint.of_uncurry_left.aestronglyMeasurable
+  have hf_meas : ∀ q ∈ Set.Icc a r,
+      AEStronglyMeasurable (f q) volume := by
+    intro q hq
+    exact hf_joint.of_uncurry_left.aestronglyMeasurable
+  have hFeq : ∀ q ∈ Set.Icc a r,
+      wholeLineRealL2Total (f q) = F q := by
+    intro q hq
+    apply Lp.ext
+    filter_upwards [wholeLineRealL2Total_coe_ae (f q)
+        (hf_meas q hq) (hf_sq q hq), hFrep q hq]
+      with x htotal hrep
+    rw [htotal, hrep]
+  have hhistF : AEStronglyMeasurable
+      (fun q => weightedMovingHeatL2Semigroup eta c (r - q) (F q))
+      (volume.restrict (Set.Icc a r)) :=
+    weightedMovingHeatL2Semigroup_terminal_history_aestronglyMeasurable_of_aestronglyMeasurable
+      (eta := eta) (c := c) (tau := r) (a := a) (r := r) hFtime
+  have hhistTotal : AEStronglyMeasurable
+      (fun q => weightedMovingHeatL2Semigroup eta c (r - q)
+        (wholeLineRealL2Total (f q)))
+      (volume.restrict (Set.Icc a r)) := by
+    apply hhistF.congr
+    filter_upwards [ae_restrict_mem measurableSet_Icc] with q hq
+    rw [hFeq q hq]
+  have hjointHeat : AEStronglyMeasurable
+      (fun w : ℝ × ℝ =>
+        weightedMovingHeatEta eta c (r - w.1) (f w.1) w.2)
+      ((volume.restrict (Set.Ioc a r)).prod volume) :=
+    (weightedMovingHeatEta_history_stronglyMeasurable_of_joint_measurable_bounded
+      (eta := eta) (c := c) (tau := r) hf_joint).aestronglyMeasurable
+  have hraw :=
+    weightedMovingHeatL2Semigroup_mild_restart_eq_of_pointwise_total_of_uniform_square_bound
+      (eta := eta) (c := c) har hCf hz_meas hz_sq hf_meas hf_sq
+        hf_le hhistTotal hjointHeat hpoint
+  rw [hraw]
+  unfold weightedMovingHeatFullGeneratorCandidate
+  congr 1
+  apply intervalIntegral.integral_congr
+  intro q hq
+  rw [Set.uIcc_of_le har.le] at hq
+  change weightedMovingHeatL2Semigroup eta c (r - q)
+      (wholeLineRealL2Total (f q)) =
+    weightedMovingHeatL2Semigroup eta c (r - q) (F q)
+  rw [hFeq q hq]
+
 /-- Joint measurability of a scalar source gives joint measurability of its
 moving weighted-heat history.  This is the only measurability input needed
 by the local Fubini step; the Gaussian convolution is assembled here. -/
@@ -1033,6 +1109,8 @@ end ShenWork.Paper1
   ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_coMoving_wavePerturbation_drift_restart
 #print axioms
   ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weighted_generator_restart
+#print axioms
+  ShenWork.Paper1.weightedMovingHeatFullGeneratorCandidate_eq_of_pointwise_restart_bounded_measurable
 #print axioms
   ShenWork.Paper1.weightedMovingHeat_actualState_damped_history_intervalIntegrable_of_continuous
 #print axioms
