@@ -120,6 +120,59 @@ theorem wholeLineRealL2Total_increment_eq_of_continuous_velocity
   · exact hlocal s
   · exact hscalar s
 
+/-- Pointwise continuous velocities and ordinary scalar derivatives supply
+the scalar increment identity on every oriented interval. -/
+theorem pointwise_intervalIntegral_eq_sub_of_continuous_derivative
+    {phi g : ℝ → ℝ → ℝ}
+    (hg : ∀ x, Continuous (fun q => g q x))
+    (hderiv : ∀ x q, HasDerivAt (fun r => phi r x) (g q x) q) :
+    ∀ t s x, ∫ q in t..s, g q x = phi s x - phi t x := by
+  intro t s x
+  exact intervalIntegral.integral_eq_sub_of_hasDerivAt
+    (fun q _hq => hderiv x q) ((hg x).intervalIntegrable t s)
+
+/-- Natural strong-trajectory closure: a continuous canonical `L²`
+velocity, its pointwise representatives, local space-time Fubini data, and
+the scalar derivative identity imply differentiability of the canonical
+`L²` trajectory. -/
+theorem wholeLineRealL2Total_hasDerivAt_of_continuous_velocity
+    {phi g : ℝ → ℝ → ℝ} {G : ℝ → WholeLineRealL2}
+    {t : ℝ}
+    (hphi_meas : ∀ q, AEStronglyMeasurable (phi q) volume)
+    (hphi_sq : ∀ q, Integrable (fun x : ℝ => phi q x ^ 2) volume)
+    (hG : Continuous G)
+    (hGrep : ∀ q,
+      (((G q : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] g q))
+    (hlocal : ∀ s, ∀ A : Set ℝ, MeasurableSet A →
+      (volume : Measure ℝ) A < ⊤ →
+      Integrable
+        (fun z : ℝ × ℝ => A.indicator (g z.1) z.2)
+        ((volume.restrict (Set.uIoc t s)).prod volume))
+    (hg : ∀ x, Continuous (fun q => g q x))
+    (hderiv : ∀ x q, HasDerivAt (fun r => phi r x) (g q x) q) :
+    HasDerivAt (fun s => wholeLineRealL2Total (phi s)) (G t) t := by
+  have hincAll := wholeLineRealL2Total_increment_eq_of_continuous_velocity
+    hphi_meas hphi_sq hG hGrep hlocal
+      (fun s => Eventually.of_forall fun x =>
+        pointwise_intervalIntegral_eq_sub_of_continuous_derivative
+          hg hderiv t s x)
+  have hinc :
+      (fun s => wholeLineRealL2Total (phi s)) =ᶠ[nhds t]
+        fun s => wholeLineRealL2Total (phi t) + ∫ q in t..s, G q :=
+    Eventually.of_forall hincAll
+  have hprim : HasDerivAt (fun s => ∫ q in t..s, G q) (G t) t :=
+    intervalIntegral.integral_hasDerivAt_right
+      (hG.intervalIntegrable t t)
+      hG.aestronglyMeasurable.stronglyMeasurableAtFilter
+      hG.continuousAt
+  have hrhs : HasDerivAt
+      (fun s => wholeLineRealL2Total (phi t) + ∫ q in t..s, G q)
+      (G t) t := by
+    convert (hasDerivAt_const t
+      (wholeLineRealL2Total (phi t))).add hprim using 1 <;>
+      simp only [zero_add]
+  exact hinc.hasDerivAt_iff.mpr hrhs
+
 section AxiomAudit
 
 #print axioms
@@ -128,6 +181,8 @@ section AxiomAudit
   wholeLineRealL2Total_increment_eq_of_pointwise_intervalIntegral
 #print axioms
   wholeLineRealL2Total_increment_eq_of_continuous_velocity
+#print axioms pointwise_intervalIntegral_eq_sub_of_continuous_derivative
+#print axioms wholeLineRealL2Total_hasDerivAt_of_continuous_velocity
 
 end AxiomAudit
 
