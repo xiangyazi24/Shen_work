@@ -44,6 +44,100 @@ theorem continuousOn_ge_Icc_of_ge_Ioo
   · rwa [closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)]
   · exact hx'
 
+private theorem solution_slice_le_closed_of_inside_M
+    {p : CM2Params} {T t B : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hinside : ∀ x : intervalDomainPoint,
+      x ∈ intervalDomainM.inside → u t x ≤ B) :
+    ∀ x : intervalDomainPoint, u t x ≤ B := by
+  have hcont :=
+    ShenWork.Paper2.IntervalDomainM.solution_lift_continuousOn_Icc
+      hsol ⟨ht0, htT⟩
+  have hIoo : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ B := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
+    have hyinside :
+        (⟨y, hyIcc⟩ : intervalDomainPoint) ∈ intervalDomainM.inside := by
+      simpa [intervalDomainM] using hy
+    simpa [intervalDomainLift, hyIcc] using
+      hinside ⟨y, hyIcc⟩ hyinside
+  have hclosed := continuousOn_le_Icc_of_le_Ioo hcont hIoo
+  intro x
+  simpa [intervalDomainLift, x.2] using hclosed x.1 x.2
+
+private theorem solution_slice_ge_closed_of_inside_M
+    {p : CM2Params} {T t c : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hinside : ∀ x : intervalDomainPoint,
+      x ∈ intervalDomainM.inside → c ≤ u t x) :
+    ∀ x : intervalDomainPoint, c ≤ u t x := by
+  have hcont :=
+    ShenWork.Paper2.IntervalDomainM.solution_lift_continuousOn_Icc
+      hsol ⟨ht0, htT⟩
+  have hIoo : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      c ≤ intervalDomainLift (u t) y := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
+    have hyinside :
+        (⟨y, hyIcc⟩ : intervalDomainPoint) ∈ intervalDomainM.inside := by
+      simpa [intervalDomainM] using hy
+    simpa [intervalDomainLift, hyIcc] using
+      hinside ⟨y, hyIcc⟩ hyinside
+  have hclosed := continuousOn_ge_Icc_of_ge_Ioo hcont hIoo
+  intro x
+  simpa [intervalDomainLift, x.2] using hclosed x.1 x.2
+
+/-- Failure of finite-time upper blow-up supplies the uniform sup-norm bound
+needed by the continuation theorem. -/
+theorem boundedBeforeM_of_not_mgeOneFiniteHorizonAlternative
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hnot :
+      ¬ MGeOneFiniteHorizonAlternative intervalDomainM T u) :
+    IsPaper2BoundedBefore intervalDomainM T u := by
+  unfold MGeOneFiniteHorizonAlternative at hnot
+  push Not at hnot
+  obtain ⟨M, hM⟩ := hnot
+  refine ⟨M, ?_⟩
+  intro t ht0 htT
+  change intervalDomainSupNorm (u t) ≤ M
+  unfold intervalDomainSupNorm
+  apply csSup_le
+  · exact ⟨|u t ⟨0, Set.left_mem_Icc.mpr zero_le_one⟩|,
+      ⟨⟨0, Set.left_mem_Icc.mpr zero_le_one⟩, rfl⟩⟩
+  · rintro _ ⟨x, rfl⟩
+    change |u t x| ≤ M
+    rw [abs_of_pos
+      (ShenWork.Paper2.IntervalDomainM.u_pos hsol ht0 htT x)]
+    exact solution_slice_le_closed_of_inside_M hsol ht0 htT
+      (fun y hy => hM t y ht0 htT hy) x
+
+/-- Failure of the floor-collapse branch supplies one positive floor on every
+closed spatial slice before the horizon. -/
+theorem uniformFloorM_of_not_floorCollapseAlternative
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (hnot :
+      ¬ (∀ δ > 0, ∃ t x,
+        0 < t ∧ t < T ∧
+        x ∈ intervalDomainM.inside ∧ u t x < δ)) :
+    ∃ c > 0,
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomainPoint, c ≤ u t x := by
+  push Not at hnot
+  obtain ⟨c, hc, hfloorInside⟩ := hnot
+  refine ⟨c, hc, ?_⟩
+  intro t ht0 htT x
+  exact solution_slice_ge_closed_of_inside_M hsol ht0 htT
+    (fun y hy => hfloorInside t y ht0 htT hy) x
+
 /-! ## Continuation from explicit upper and lower controls -/
 
 /-- A bounded faithful branch with a uniform positive floor can be continued
@@ -158,6 +252,8 @@ section AxiomAudit
 
 #print axioms continuousOn_le_Icc_of_le_Ioo
 #print axioms continuousOn_ge_Icc_of_ge_Ioo
+#print axioms boundedBeforeM_of_not_mgeOneFiniteHorizonAlternative
+#print axioms uniformFloorM_of_not_floorCollapseAlternative
 #print axioms reachablePastM_of_bounded_and_uniform_floor
 
 end AxiomAudit
