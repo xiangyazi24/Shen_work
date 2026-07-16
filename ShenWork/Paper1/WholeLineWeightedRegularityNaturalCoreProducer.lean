@@ -7,6 +7,7 @@ import ShenWork.Paper1.WholeLineWeightedRegularityGradientCandidateNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityForcingHolderAssemblyNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityCoefficientWindowNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorShortWindow
+import ShenWork.Paper1.WholeLineWeightedRegularityChiZeroForcingNatural
 
 open Filter MeasureTheory Real Set Topology
 
@@ -110,7 +111,6 @@ theorem
       (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
         Set.Icc (0 : ℝ) M)
     {U V : ℝ → ℝ}
-    (hchi : p.χ ≠ 0)
     (hc : paper5CorrectedCStarStar p p.χ < c)
     (hTW : IsTravelingWave p c U V)
     (hbound : HasWaveUpperTailBound p c U)
@@ -194,12 +194,48 @@ theorem
         |coMovingPath c u q x - U x| ^ 2) ≤ EW ^ 2 := by
     intro q hq
     simpa only [u, Traj, coMovingPath] using hfullRaw q hq
-  obtain ⟨Cf, hCf, hforcing⟩ :=
-    exists_uniform_weightedGeneratorForcing_square_bound_mildFixedPoint_wave
-      p hM hT hL0 hLb hbT (show 0 ≤ Blog from hBlog) heta
-        heta_one hetaCap u₀ hsmall hstrip hchi hc hTW hbound hreg hMChi
-        hlog hD hFD hB hUd hUdd hUddcont hflux hfluxd hflux_has
-        hfluxd_cont hreact hreact_cont hgrad_int hdata_full
+  have hUM : ∀ x, U x ∈ Set.Icc (0 : ℝ) M := fun x =>
+    ⟨(hTW.U_pos x).le, (hbound.le_MChi x).trans hMChi⟩
+  have huC : ∀ q ∈ Set.Icc L b, IsCUnifBdd (coMovingPath c u q) := by
+    intro q hq
+    refine ⟨(hu2 q hq).continuous, ⟨M, fun x => ?_⟩⟩
+    rw [abs_of_nonneg (huM q hq x).1]
+    exact (huM q hq x).2
+  have hUC : IsCUnifBdd U := by
+    refine ⟨hreg.U_cont, ⟨M, fun x => ?_⟩⟩
+    rw [abs_of_nonneg (hUM x).1]
+    exact (hUM x).2
+  have hforcing_exists : ∃ Cf : ℝ, 0 ≤ Cf ∧
+      ∀ q ∈ Set.Icc L b,
+        Integrable (fun x : ℝ =>
+          paper5WeightedGeneratorForcing p eta
+            (coMovingPath c u) (coMovingPath c v) U V q x ^ 2) ∧
+        (∫ x : ℝ, paper5WeightedGeneratorForcing p eta
+          (coMovingPath c u) (coMovingPath c v) U V q x ^ 2) ≤ Cf := by
+    by_cases hchi0 : p.χ = 0
+    · let Cf : ℝ := reactionLip p.α M ^ 2 * EW ^ 2
+      have hCf : 0 ≤ Cf := by
+        dsimp only [Cf]
+        positivity
+      refine ⟨Cf, hCf, ?_⟩
+      intro q hq
+      have hqfull : q ∈ Set.Icc (0 : ℝ) T :=
+        ⟨hL0.le.trans hq.1, hq.2.trans hbT.le⟩
+      have hraw := paper5WeightedGeneratorForcing_chi_zero_l2_data
+        p hchi0 (u := coMovingPath c u) (v := coMovingPath c v)
+          (U := U) (V := V) hM (huC q hq) hUC (huM q hq) hUM
+          (hfull q hqfull).1
+      exact ⟨hraw.1, hraw.2.trans (by
+        dsimp only [Cf]
+        gcongr
+        exact (hfull q hqfull).2)⟩
+    · exact
+        exists_uniform_weightedGeneratorForcing_square_bound_mildFixedPoint_wave
+          p hM hT hL0 hLb hbT (show 0 ≤ Blog from hBlog) heta
+            heta_one hetaCap u₀ hsmall hstrip hchi0 hc hTW hbound hreg
+            hMChi hlog hD hFD hB hUd hUdd hUddcont hflux hfluxd
+            hflux_has hfluxd_cont hreact hreact_cont hgrad_int hdata_full
+  obtain ⟨Cf, hCf, hforcing⟩ := hforcing_exists
   obtain ⟨alpha, Hraw, Draw, halpha, _halpha1, hHraw, hDraw,
       hrawCont, hrawHolder, hrawBound, hrawJoint, hfJoint, hfactor⟩ :=
     exists_paper5CanonicalGeneratorForcingRaw_positive_window_natural_data
@@ -563,7 +599,7 @@ theorem wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_natural
   have htrajectory :=
     exists_wholeLineCauchyBUCMildFixedPoint_weighted_population_H1_trajectory_data
       p hM hT hL0 hLa har hrT hdiam hBlog heta heta_one hetaCap
-        u₀ hsmall hstrip hchi hc hTW hbound hreg hMChi hlog hD hFD hB
+        u₀ hsmall hstrip hc hTW hbound hreg hMChi hlog hD hFD hB
         hUd hUdd hUddcont hflux hfluxd hflux_has hfluxd_cont hreact
         hreact_cont hgrad_int hdata_full
   dsimp only at htrajectory
