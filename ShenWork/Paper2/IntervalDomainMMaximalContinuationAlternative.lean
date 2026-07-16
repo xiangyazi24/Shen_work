@@ -303,6 +303,86 @@ theorem mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
     reachablePastM_of_bounded p hm hu₀ hsol.1 hsol htrace hbounded
   exact not_reachablePast_finiteMaximalReachableHorizonM hbdd hpast
 
+/-! ## Faithful Proposition 1.1 -/
+
+/-- The canonical continuation dichotomy for the faithful general-`m`
+equation.  Unlike the compatibility carrier, this proposition records in its
+statement that the finite branch is realized exactly at the supremum of the
+reachable horizons. -/
+def CanonicalMaximalContinuationM
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  (¬ BddAbove (reachableClassicalHorizonSetM p u₀) ∧
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomainM p u v ∧
+      InitialTrace intervalDomainM u₀ u) ∨
+  (BddAbove (reachableClassicalHorizonSetM p u₀) ∧
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomainM p
+        (finiteMaximalReachableHorizonM p u₀) u v ∧
+      InitialTrace intervalDomainM u₀ u ∧
+      FiniteHorizonAlternative intervalDomainM
+        (finiteMaximalReachableHorizonM p u₀) u ∧
+      (1 ≤ p.m →
+        MGeOneFiniteHorizonAlternative intervalDomainM
+          (finiteMaximalReachableHorizonM p u₀) u))
+
+/-- Every paper-positive datum has the canonical finite/global continuation
+dichotomy for all positive exponents in `CM2Params`. -/
+theorem canonicalMaximalContinuationM
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀) :
+    CanonicalMaximalContinuationM p u₀ := by
+  obtain ⟨T, hT, u, v, hsol, htrace⟩ :=
+    intervalDomainM_localExistence_paperPositive_allExponents p u₀ hu₀
+  have hne : (reachableClassicalHorizonSetM p u₀).Nonempty :=
+    ⟨T, hT, u, v, hsol, htrace⟩
+  have huniq : IntervalMClassicalSolutionOverlapUniqueAt p u₀ :=
+    intervalMClassicalSolutionOverlapUniqueAt_of_paperPositive hu₀
+  by_cases hbdd : BddAbove (reachableClassicalHorizonSetM p u₀)
+  · refine Or.inr ⟨hbdd, ?_⟩
+    obtain ⟨U, V, hsolMax, htraceMax⟩ :=
+      realize_at_finiteMaximalReachableHorizonM_of_overlapUnique
+        huniq hbdd hne
+    refine ⟨U, V, hsolMax, htraceMax, ?_, ?_⟩
+    · exact finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
+        hu₀ hbdd hsolMax htraceMax
+    · intro hm
+      exact mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
+        hu₀ hm hbdd hsolMax htraceMax
+  · refine Or.inl ⟨hbdd, ?_⟩
+    have hreach := reachableArbitrarilyLongM_of_not_bddAbove hbdd
+    obtain ⟨U, V, hglobal, htraceGlobal⟩ :=
+      globalSolutionM_of_reachableArbitrarilyLong_of_overlapUniqueAt
+        huniq hreach
+    exact ⟨U, V, hglobal, htraceGlobal⟩
+
+/-- Corrected Paper 2 Proposition 1.1 on the paper-faithful interval model. -/
+def CorrectedProposition_1_1_intervalDomainM (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomainPoint → ℝ,
+    PaperPositiveInitialDatum intervalDomainM u₀ →
+      CanonicalMaximalContinuationM p u₀
+
+/-- Unconditional, non-vacuous realization of corrected Proposition 1.1. -/
+theorem correctedProposition_1_1_intervalDomainM
+    (p : CM2Params) :
+    CorrectedProposition_1_1_intervalDomainM p := by
+  intro u₀ hu₀
+  exact canonicalMaximalContinuationM p u₀ hu₀
+
+/-- Compatibility with the maximal-continuation carrier consumed by the
+corrected Paper 2 headline theorems. -/
+theorem paper2MaximalContinuation_intervalDomainM_nonempty
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀) :
+    Nonempty (Paper2MaximalContinuation intervalDomainM p u₀) := by
+  rcases canonicalMaximalContinuationM p u₀ hu₀ with
+    ⟨_hnbdd, U, V, hglobal, htrace⟩ |
+      ⟨_hbdd, U, V, hsol, htrace, halt, hmge⟩
+  · exact ⟨Paper2MaximalContinuation.global U V hglobal htrace⟩
+  · exact ⟨Paper2MaximalContinuation.finite
+      (finiteMaximalReachableHorizonM p u₀) U V hsol.1
+      hsol htrace halt hmge⟩
+
 section AxiomAudit
 
 #print axioms continuousOn_le_Icc_of_le_Ioo
@@ -312,6 +392,9 @@ section AxiomAudit
 #print axioms reachablePastM_of_bounded_and_uniform_floor
 #print axioms finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
 #print axioms mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
+#print axioms canonicalMaximalContinuationM
+#print axioms correctedProposition_1_1_intervalDomainM
+#print axioms paper2MaximalContinuation_intervalDomainM_nonempty
 
 end AxiomAudit
 
