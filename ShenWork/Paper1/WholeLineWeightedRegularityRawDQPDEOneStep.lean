@@ -363,7 +363,221 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identit
     hZGrep hZRrep hidentity
   simpa only [gG, gR, rawDQHomogeneousMajorant, abs_neg] using hmain
 
+/-- Canonical BUC realization of the traveling-wave population profile. -/
+def wholeLineTravelingWavePopulationBUC
+    (p : CMParams) {c : ℝ} {Uw Vw : ℝ → ℝ}
+    (hTW : IsTravelingWave p c Uw Vw)
+    (hbound : HasWaveUpperTailBound p c Uw)
+    (hreg : TravelingWaveRegularity p c Uw Vw) : WholeLineBUC :=
+  wholeLineBUCOfUniformBound Uw
+    (travelingWave_U_uniformContinuous hTW hreg.U_cont) (MChi p) (fun y => by
+      rw [abs_of_pos (hbound.pos y)]
+      exact hbound.le_MChi y)
+
+@[simp] theorem wholeLineTravelingWavePopulationBUC_apply
+    (p : CMParams) {c x : ℝ} {Uw Vw : ℝ → ℝ}
+    (hTW : IsTravelingWave p c Uw Vw)
+    (hbound : HasWaveUpperTailBound p c Uw)
+    (hreg : TravelingWaveRegularity p c Uw Vw) :
+    (wholeLineTravelingWavePopulationBUC p hTW hbound hreg).1 x = Uw x := rfl
+
+/-- Concrete fixed-point/wave specialization of the one-step PDE estimate.
+The weighted restart identity is discharged by the canonical mild fixed point,
+rather than carried as a hypothesis. -/
+theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
+    (p : CMParams)
+    {M T Brel DU eta R c h a r X0 F D E Kflux FD B : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (hBrel : 0 ≤ Brel) (hDU : 0 ≤ DU)
+    (heta0 : 0 ≤ eta) (heta1 : eta < 1)
+    (hh : h ≠ 0) (habs : |h| ≤ 1)
+    (ha : 0 < a) (har : a < r) (hrT : r ≤ T)
+    (hX0 : 0 ≤ X0) (hF : 0 ≤ F)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    {Uw Vw : ℝ → ℝ}
+    (hTW : IsTravelingWave p c Uw Vw)
+    (hbound : HasWaveUpperTailBound p c Uw)
+    (hreg : TravelingWaveRegularity p c Uw Vw)
+    (hMChi : MChi p ≤ M)
+    (hD : 0 ≤ D) (hFD : 0 ≤ FD) (hB : 0 ≤ B)
+    (hUd : ∀ y, |deriv Uw y| ≤ D)
+    (hUdd : ∀ y, |deriv (deriv Uw) y| ≤ E)
+    (hUddcont : Continuous (deriv (deriv Uw)))
+    (hflux : ∀ y, |wholeLineTravelingWaveFlux p Uw Vw y| ≤ Kflux)
+    (hfluxd : ∀ y,
+      |deriv (wholeLineTravelingWaveFlux p Uw Vw) y| ≤ FD)
+    (hflux_has : ∀ y, HasDerivAt
+      (wholeLineTravelingWaveFlux p Uw Vw)
+      (deriv (wholeLineTravelingWaveFlux p Uw Vw) y) y)
+    (hfluxd_cont : Continuous
+      (deriv (wholeLineTravelingWaveFlux p Uw Vw)))
+    (hreact : ∀ y, |wholeLineCauchyShiftedReaction p Uw y| ≤ B)
+    (hreact_cont : Continuous (wholeLineCauchyShiftedReaction p Uw))
+    (hgrad_int : ∀ x, IntervalIntegrable
+      (fun q : ℝ => paper5MovingFrameHeatGradOp c q
+        (wholeLineTravelingWaveFlux p Uw Vw) x) volume 0 (r - a))
+    (hbase : ∀ x, |(Uw (x + h) - Uw x) / h| ≤ DU)
+    (hrelative : ∀ x, ∀ theta ∈ Set.Icc (0 : ℝ) 1,
+      |(Uw (x + h) - Uw x) / h| ≤
+        Brel * (theta * Uw (x + h) + (1 - theta) * Uw x))
+    (hvalue : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+              (x + c * s) - Uw x| ^ 2))
+    (hraw : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (x + c * s) - Uw x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (y + c * s) - Uw y) x| ^ 2))
+    (hraw_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (x + c * s) - Uw x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (y + c * s) - Uw y) x| ^ 2) ≤ X0 ^ 2)
+    (hvalue_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+              (x + c * s) - Uw x| ^ 2) ≤ F ^ 2) :
+    let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let W := wholeLineTravelingWavePopulationBUC p hTW hbound hreg
+    let hr0 : 0 ≤ r := ha.le.trans har.le
+    let hraw' : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x : ℝ =>
+        capWeight eta R x *
+          |rawSpatialDifferenceQuotient eta h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) volume := by
+      intro s hs
+      simpa only [rawSpatialDifferenceQuotient,
+        wholeLineTravelingWavePopulationBUC_apply] using hraw s hs
+    let hP2 := capWeightedCoMovingRawDQBUCHistoryIcc_sq_integrable
+      hT hr0 eta R c h heta0 Traj W hraw'
+    let P := capWeightedCoMovingRawDQL2ProfileIcc
+      hT hr0 eta R c h heta0 Traj W hP2
+    ‖P r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+      |p.χ| * (∫ s in a..r,
+        rawDQFluxMajorant p M Brel DU eta c T h ‖P s‖ F (r - s)) +
+      ∫ s in a..r,
+        rawDQReactionMajorant p M DU eta c T ‖P s‖ F := by
+  dsimp only
+  let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let W := wholeLineTravelingWavePopulationBUC p hTW hbound hreg
+  have hWmem : ∀ x, W.1 x ∈ Set.Icc (0 : ℝ) M := by
+    intro x
+    exact ⟨(hbound.pos x).le, (hbound.le_MChi x).trans hMChi⟩
+  have hWpos : ∀ x, 0 < W.1 x := by
+    intro x
+    exact hbound.pos x
+  have hbaseW : ∀ x, |(W.1 (x + h) - W.1 x) / h| ≤ DU := by
+    simpa only [W, wholeLineTravelingWavePopulationBUC_apply] using hbase
+  have hrelativeW : ∀ x, ∀ theta ∈ Set.Icc (0 : ℝ) 1,
+      |(W.1 (x + h) - W.1 x) / h| ≤
+        Brel * (theta * W.1 (x + h) + (1 - theta) * W.1 x) := by
+    simpa only [W, wholeLineTravelingWavePopulationBUC_apply] using hrelative
+  have hvalueW : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) := by
+    simpa only [Traj, W, wholeLineTravelingWavePopulationBUC_apply] using hvalue
+  have hrawW : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) := by
+    simpa only [Traj, W, wholeLineTravelingWavePopulationBUC_apply] using hraw
+  have hrawEnergyW : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) ≤ X0 ^ 2 := by
+    simpa only [Traj, W, wholeLineTravelingWavePopulationBUC_apply] using
+      hraw_energy
+  have hvalueEnergyW : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) ≤ F ^ 2 := by
+    simpa only [Traj, W, wholeLineTravelingWavePopulationBUC_apply] using
+      hvalue_energy
+  have hidentity : ∀ x,
+      capWeightSqrt eta R x *
+          rawSpatialDifferenceQuotient eta h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj r).1 (y + c * r) -
+              W.1 y) x =
+        capWeightSqrt eta R x *
+          paper5MovingFrameHeatOp c (r - a)
+            (rawSpatialDifferenceQuotient eta h (fun y =>
+              (wholeLineBUCTrajectoryExtend hT Traj a).1 (y + c * a) -
+                W.1 y)) x +
+        (-p.χ) * (∫ s in a..r,
+          capWeightSqrt eta R x *
+            paper5MovingFrameHeatGradOp c (r - s)
+              (rawSpatialDifferenceQuotient eta h (fun y =>
+                wholeLineCauchyCoMovingFluxSource p c hM hT Traj s y -
+                  wholeLineChemotaxisFlux p W.1 y)) x) +
+        ∫ s in a..r,
+          capWeightSqrt eta R x *
+            paper5MovingFrameHeatOp c (r - s)
+              (rawSpatialDifferenceQuotient eta h (fun y =>
+                wholeLineCauchyCoMovingReactionSource p c hM hT Traj s y -
+                  wholeLineCauchyShiftedReaction p W.1 y)) x := by
+    intro x
+    have hq : 0 < r - a := sub_pos.mpr har
+    have haq : a + (r - a) ≤ T := by linarith
+    have haT : a ∈ Set.Icc (0 : ℝ) T :=
+      ⟨ha.le, (har.le.trans hrT)⟩
+    have hrmem : r ∈ Set.Icc (0 : ℝ) T :=
+      ⟨ha.le.trans har.le, hrT⟩
+    have hCF (s : ℝ) :
+        wholeLineCauchyCoMovingFluxSource p c hM hT Traj s =
+          fun y => wholeLineChemotaxisFlux p
+            (fun z => (wholeLineBUCTrajectoryExtend hT Traj s).1
+              (z + c * s)) y := by
+      simpa only using
+        wholeLineCauchyCoMovingFluxSource_eq_genuineFlux_of_strip
+          p c hM hT Traj hstrip s
+    have hCR (s : ℝ) :
+        wholeLineCauchyCoMovingReactionSource p c hM hT Traj s =
+          fun y => wholeLineCauchyShiftedReaction p
+            (fun z => (wholeLineBUCTrajectoryExtend hT Traj s).1
+              (z + c * s)) y := by
+      simpa only using
+        wholeLineCauchyCoMovingReactionSource_eq_genuineReaction_of_strip
+          p c hM hT Traj hstrip s
+    have hw :=
+      wholeLineCauchyBUCMildFixedPoint_coMoving_wavePerturbation_restart_capWeightedRawSpatialDQ_identity
+        p hM hT u₀ hsmall ha hq haq hstrip hTW hbound hreg
+          hD hFD hB hUd hUdd hUddcont hflux hfluxd hflux_has
+          hfluxd_cont hreact hreact_cont (hgrad_int x) (hgrad_int (x + h))
+          (eta := eta) (R := R) (c := c) (d := h) (x := x)
+    dsimp only at hw
+    rw [wholeLineBUCTrajectoryExtend_eq hT Traj haT,
+      wholeLineBUCTrajectoryExtend_eq hT Traj hrmem]
+    simpa only [show a + (r - a) = r by ring, W,
+      wholeLineTravelingWavePopulationBUC_apply, hCF, hCR] using hw
+  exact capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
+    p hM hT hBrel hDU heta0 heta1 hh habs ha.le har hrT hX0 hF
+      Traj hstrip W hWmem hWpos hbaseW hrelativeW hvalueW hrawW
+      hrawEnergyW hvalueEnergyW hidentity
+
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
 
 end ShenWork.Paper1
