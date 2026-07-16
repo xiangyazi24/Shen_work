@@ -1,23 +1,21 @@
 import ShenWork.Paper3.IntervalDomainMEntropyStrong2Global
 import ShenWork.Paper3.IntervalDomainMRectangleGlobal
+import ShenWork.Paper3.IntervalDomainMNegativeSensitivity
 import ShenWork.Paper3.IntervalDomainTheorem24Eventual
 
 /-!
 # Faithful eventual Theorem 2.4 for the general-`m` equation: assembly layer
 
 All four branches of the faithful general-`m` eventual Theorem 2.4 are proved
-with no `p.m = 1` hypothesis:
+UNCONDITIONALLY with no `p.m = 1` hypothesis and no carried hypotheses:
 
 * branches one and two (`chiStrong1`, `chiStrong2`): the §7 entropy Lyapunov
   route (`IntervalDomainMEntropyStrong1Global` / `…Strong2Global`);
 * branches three and four (`chiStrong3`, `chiStrong4`): the rectangle
-  log-gap route (`IntervalDomainMRectangleGlobal`), for strictly attractive
-  sensitivity `χ₀ > 0`.
-
-The only residual is the neutral / repulsive case `χ₀ ≤ 0` of the two rectangle
-branches, whose faithful general-`m` proof needs the mass-floor + max-decay
-chain rebuilt for the `u^m` flux (a separate scoped frontier).  It enters the
-final headline as the single hypothesis `hchiNonpos`.
+  log-gap route (`IntervalDomainMRectangleGlobal`) for strictly attractive
+  sensitivity `χ₀ > 0`, and the mass-floor / max-decay attraction chain
+  (`IntervalDomainMNegativeSensitivity`) for the neutral / repulsive case
+  `χ₀ ≤ 0`.
 -/
 
 namespace ShenWork.Paper3
@@ -85,14 +83,16 @@ the two rectangle branches (a scoped general-`m` frontier); the entropy
 branches and the strictly attractive `χ₀ > 0` rectangle branches are
 unconditional. -/
 theorem intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula
-    (p : CM2Params)
-    (hchiNonpos : ∀ (ha : 0 < p.a) (hb : 0 < p.b), p.χ₀ ≤ 0 →
-      GloballyAsymptoticallyStableNonminimal intervalDomainM p
-        (positiveEquilibrium p ⟨ha, hb⟩).1
-        (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    (p : CM2Params) :
     Theorem_2_4_EventualGlobalStabilityFormula intervalDomainM p
       intervalDomainMSectorialStabilityNorms
       (unitIntervalNormalizedResolverGradientConstant p) := by
+  have hchiNonpos : ∀ (ha : 0 < p.a) (hb : 0 < p.b), p.χ₀ ≤ 0 →
+      GloballyAsymptoticallyStableNonminimal intervalDomainM p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    fun ha hb hχ =>
+      intervalDomainM_chiNonpos_globallyAsymptoticallyStableNonminimal p hχ ha hb
   refine intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula_of_rectangle_frontiers
     p ?_ ?_
   · intro ha hb hm hγ hrel hχ
