@@ -867,3 +867,4 @@ import ShenWork.Paper1.WholeLineWeightedRegularityChiNonposHeadlineNatural
 import ShenWork.Paper1.Theorem13ChiNonposNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityStabilityNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityChiZeroStabilityNatural
+import ShenWork.Paper2.IntervalDomainMMaximalContinuationAlternative
