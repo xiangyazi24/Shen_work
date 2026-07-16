@@ -90,6 +90,27 @@ theorem weightedMovingHeatL2Generator_apply_fullGeneratorCandidate_lag
     hat heps hhist]
   rw [intervalIntegral_weightedMovingHeatL2Generator_shift_eq_lag]
 
+/-- Translating the positive generator regularization from the lag variable
+to the generator-time variable.  The forcing acquires the matching forward
+time shift `eps`. -/
+theorem intervalIntegral_weightedMovingHeatL2Generator_add_lag_eq_shift
+    {eta c h t eps : ℝ} {F : ℝ → WholeLineRealL2} :
+    (∫ r in (0 : ℝ)..h,
+        weightedMovingHeatL2Generator eta c (eps + r) (F (t - r))) =
+      ∫ q in eps..h + eps,
+        weightedMovingHeatL2Generator eta c q (F (t + eps - q)) := by
+  let G : ℝ → WholeLineRealL2 := fun q =>
+    weightedMovingHeatL2Generator eta c q (F (t + eps - q))
+  have hchange := intervalIntegral.integral_comp_add_right
+    (f := G) (a := (0 : ℝ)) (b := h) eps
+  have hleft : (fun r : ℝ => G (r + eps)) = fun r =>
+      weightedMovingHeatL2Generator eta c (eps + r) (F (t - r)) := by
+    funext r
+    dsimp only [G]
+    congr 2 <;> ring
+  rw [hleft] at hchange
+  simpa only [G, zero_add] using hchange
+
 section AxiomAudit
 
 #print axioms
@@ -98,6 +119,8 @@ section AxiomAudit
   intervalIntegral_weightedMovingHeatL2Generator_shift_eq_lag
 #print axioms
   weightedMovingHeatL2Generator_apply_fullGeneratorCandidate_lag
+#print axioms
+  intervalIntegral_weightedMovingHeatL2Generator_add_lag_eq_shift
 
 end AxiomAudit
 
