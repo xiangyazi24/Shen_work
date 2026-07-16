@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorRestartNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorClosure
+import ShenWork.Paper1.WholeLineWeightedRegularityDuhamelHolder
 
 open Filter MeasureTheory Set Topology
 open scoped Interval
@@ -171,6 +172,70 @@ theorem intervalIntegral_weightedMovingHeatL2Generator_shift_decomposition
   dsimp only [Full, Base, Err] at hsplit hhead ⊢
   rw [← hsplit, hhead]
 
+/-- The forcing-translation error in the shifted generator history has the
+expected `eps^theta * log (h/eps)` bound. -/
+theorem intervalIntegral_weightedMovingHeatL2Generator_translation_error_norm_le
+    {eta c h t eps theta C H : ℝ}
+    (hh : 0 < h) (heps : 0 < eps) (hepsh : eps ≤ h)
+    (hC : 0 ≤ C) (hH : 0 ≤ H)
+    {F : ℝ → WholeLineRealL2}
+    (hA : ∀ q ∈ Set.Ioc (0 : ℝ) h,
+      ‖weightedMovingHeatL2Generator eta c q‖ ≤ C * q⁻¹)
+    (hF : ∀ q ∈ Set.Icc eps h,
+      ‖F (t + eps - q) - F (t - q)‖ ≤ H * eps ^ theta)
+    (herr : IntervalIntegrable
+      (fun q => weightedMovingHeatL2Generator eta c q
+        (F (t + eps - q) - F (t - q))) volume eps h) :
+    ‖∫ q in eps..h,
+        weightedMovingHeatL2Generator eta c q
+          (F (t + eps - q) - F (t - q))‖ ≤
+      C * H * eps ^ theta * Real.log (h / eps) := by
+  let M : ℝ := C * H * eps ^ theta
+  have hM : 0 ≤ M := by
+    dsimp only [M]
+    positivity
+  have hinv : IntervalIntegrable (fun q : ℝ => q⁻¹) volume eps h := by
+    apply intervalIntegral.intervalIntegrable_inv
+    · intro q hq
+      rw [Set.uIcc_of_le hepsh] at hq
+      exact ne_of_gt (heps.trans_le hq.1)
+    · exact continuous_id.continuousOn
+  have hmajor : IntervalIntegrable (fun q : ℝ => M * q⁻¹)
+      volume eps h := hinv.const_mul M
+  have hpoint : ∀ q ∈ Set.Icc eps h,
+      ‖weightedMovingHeatL2Generator eta c q
+        (F (t + eps - q) - F (t - q))‖ ≤ M * q⁻¹ := by
+    intro q hq
+    have hqpos : 0 < q := heps.trans_le hq.1
+    have hAnorm := hA q ⟨hqpos, hq.2⟩
+    have happly := (weightedMovingHeatL2Generator eta c q).le_opNorm
+      (F (t + eps - q) - F (t - q))
+    calc
+      ‖weightedMovingHeatL2Generator eta c q
+          (F (t + eps - q) - F (t - q))‖ ≤
+          ‖weightedMovingHeatL2Generator eta c q‖ *
+            ‖F (t + eps - q) - F (t - q)‖ := happly
+      _ ≤ (C * q⁻¹) * (H * eps ^ theta) := by
+        exact mul_le_mul hAnorm (hF q hq) (norm_nonneg _)
+          (mul_nonneg hC (inv_nonneg.mpr hqpos.le))
+      _ = M * q⁻¹ := by
+        dsimp only [M]
+        ring
+  calc
+    ‖∫ q in eps..h,
+        weightedMovingHeatL2Generator eta c q
+          (F (t + eps - q) - F (t - q))‖ ≤
+        ∫ q in eps..h,
+          ‖weightedMovingHeatL2Generator eta c q
+            (F (t + eps - q) - F (t - q))‖ :=
+      intervalIntegral.norm_integral_le_integral_norm hepsh
+    _ ≤ ∫ q in eps..h, M * q⁻¹ :=
+      intervalIntegral.integral_mono_on hepsh herr.norm hmajor hpoint
+    _ = M * ∫ q in eps..h, q⁻¹ := by
+      rw [intervalIntegral.integral_const_mul]
+    _ = C * H * eps ^ theta * Real.log (h / eps) := by
+      rw [integral_inv_of_pos heps hh]
+
 section AxiomAudit
 
 #print axioms
@@ -183,6 +248,8 @@ section AxiomAudit
   intervalIntegral_weightedMovingHeatL2Generator_add_lag_eq_shift
 #print axioms
   intervalIntegral_weightedMovingHeatL2Generator_shift_decomposition
+#print axioms
+  intervalIntegral_weightedMovingHeatL2Generator_translation_error_norm_le
 
 end AxiomAudit
 
