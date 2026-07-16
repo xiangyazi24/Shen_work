@@ -360,6 +360,7 @@ theorem canonicalMaximalContinuationM
 def CorrectedProposition_1_1_intervalDomainM (p : CM2Params) : Prop :=
   ∀ u₀ : intervalDomainPoint → ℝ,
     PaperPositiveInitialDatum intervalDomainM u₀ →
+      IntervalMClassicalSolutionOverlapUniqueAt p u₀ ∧
       CanonicalMaximalContinuationM p u₀
 
 /-- Unconditional, non-vacuous realization of corrected Proposition 1.1. -/
@@ -367,7 +368,29 @@ theorem correctedProposition_1_1_intervalDomainM
     (p : CM2Params) :
     CorrectedProposition_1_1_intervalDomainM p := by
   intro u₀ hu₀
-  exact canonicalMaximalContinuationM p u₀ hu₀
+  exact ⟨intervalMClassicalSolutionOverlapUniqueAt_of_paperPositive hu₀,
+    canonicalMaximalContinuationM p u₀ hu₀⟩
+
+/-- The corrected headline is genuinely inhabited: the constant datum `1`
+is paper-positive and has a canonical maximal continuation. -/
+theorem canonicalMaximalContinuationM_nonvacuous
+    (p : CM2Params) :
+    ∃ u₀ : intervalDomainPoint → ℝ,
+      PaperPositiveInitialDatum intervalDomainM u₀ ∧
+      IntervalMClassicalSolutionOverlapUniqueAt p u₀ ∧
+      CanonicalMaximalContinuationM p u₀ := by
+  let u₀ : intervalDomainPoint → ℝ := fun _ => 1
+  have hu₀ : PaperPositiveInitialDatum intervalDomainM u₀ := by
+    constructor
+    · constructor
+      · refine ⟨1, ?_⟩
+        rintro _ ⟨x, rfl⟩
+        simp [u₀]
+      · exact continuous_const
+    · exact ⟨1, by norm_num, fun _ => le_rfl⟩
+  exact ⟨u₀, hu₀,
+    intervalMClassicalSolutionOverlapUniqueAt_of_paperPositive hu₀,
+    canonicalMaximalContinuationM p u₀ hu₀⟩
 
 /-- Compatibility with the maximal-continuation carrier consumed by the
 corrected Paper 2 headline theorems. -/
@@ -394,6 +417,7 @@ section AxiomAudit
 #print axioms mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
 #print axioms canonicalMaximalContinuationM
 #print axioms correctedProposition_1_1_intervalDomainM
+#print axioms canonicalMaximalContinuationM_nonvacuous
 #print axioms paper2MaximalContinuation_intervalDomainM_nonempty
 
 end AxiomAudit
