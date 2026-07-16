@@ -1004,6 +1004,168 @@ theorem capWeightedCoMovingReactionRawDQL2History_intervalIntegrable_of_majorant
         p hM hT heta hr Traj W)
       hF2 hq_int hq_nonneg hmajor'
 
+/-- The canonical flux raw-DQ `L²(ℝ)` history is Bochner interval
+integrable under uniform cap-energy bounds. -/
+theorem capWeightedCoMovingFluxRawDQL2History_intervalIntegrable_of_uniform_cap
+    (p : CMParams) {M T Brel DU eta R h c r X F : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (hBrel : 0 ≤ Brel) (hDU : 0 ≤ DU)
+    (heta0 : 0 ≤ eta) (heta1 : eta < 1) (hh : h ≠ 0)
+    (hr : 0 < r) (hrT : r ≤ T) (hX : 0 ≤ X) (hF : 0 ≤ F)
+    (Traj : WholeLineBUCTrajectory T)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (Traj z).1 x ∈ Set.Icc (0 : ℝ) M)
+    (W : WholeLineBUC)
+    (hWmem : ∀ x, W.1 x ∈ Set.Icc (0 : ℝ) M)
+    (hWpos : ∀ x, 0 < W.1 x)
+    (hbase : ∀ x, |(W.1 (x + h) - W.1 x) / h| ≤ DU)
+    (hrelative : ∀ x, ∀ theta ∈ Set.Icc (0 : ℝ) 1,
+      |(W.1 (x + h) - W.1 x) / h| ≤
+        Brel * (theta * W.1 (x + h) + (1 - theta) * W.1 x))
+    (hvalue : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2))
+    (hraw : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2))
+    (hraw_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) ≤ X ^ 2)
+    (hvalue_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) ≤ F ^ 2) :
+    let hF2 := capWeightedCoMovingFluxRawDQBUCHistoryClampedIio_sq_integrable
+      p hM hT hBrel hDU heta0 heta1 hh hr hrT hX hF Traj hstrip W
+        hWmem hWpos hbase hrelative hvalue hraw hraw_energy hvalue_energy
+    IntervalIntegrable
+      (capWeightedCoMovingFluxRawDQL2History
+        p hM hT eta R c h heta0 Traj W r hF2) volume 0 r := by
+  dsimp only
+  let hF2 := capWeightedCoMovingFluxRawDQBUCHistoryClampedIio_sq_integrable
+    p hM hT hBrel hDU heta0 heta1 hh hr hrT hX hF Traj hstrip W
+      hWmem hWpos hbase hrelative hvalue hraw hraw_energy hvalue_energy
+  let C0 : ℝ := 2 * capMildGrowthBound eta c T * eta
+  let C1 : ℝ := 2 * capMildGrowthBound eta c T *
+    (2 / Real.sqrt (4 * Real.pi))
+  let B : ℝ :=
+    Real.sqrt (matchedFluxRawQSquareConstant p M eta) * X +
+      Real.sqrt
+        (matchedFluxRawWSquareConstant p M Brel DU eta h) * F
+  let q : ℝ → ℝ := fun s =>
+    (C0 + C1 * (r - s) ^ (-(1 / 2 : ℝ))) * B
+  have hC0 : 0 ≤ C0 := by
+    dsimp only [C0, capMildGrowthBound]
+    positivity
+  have hC1 : 0 ≤ C1 := by
+    dsimp only [C1, capMildGrowthBound]
+    positivity
+  have hB : 0 ≤ B := by
+    dsimp only [B]
+    exact add_nonneg
+      (mul_nonneg (Real.sqrt_nonneg _) hX)
+      (mul_nonneg (Real.sqrt_nonneg _) hF)
+  have hq_int : IntervalIntegrable q volume 0 r := by
+    dsimp only [q]
+    exact (intervalIntegrable_const_add_mul_invSqrt_sub
+      (t := r) (C0 := C0) (C1 := C1)).mul_const B
+  have hq_nonneg : ∀ s ∈ Set.Icc (0 : ℝ) r, 0 ≤ q s := by
+    intro s hs
+    exact mul_nonneg
+      (add_nonneg hC0
+        (mul_nonneg hC1
+          (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _))) hB
+  apply capWeightedCoMovingFluxRawDQL2History_intervalIntegrable_of_majorant
+    p hM hT heta0 hr Traj W hF2 hq_int hq_nonneg
+  intro s hs hsr
+  have hnorm := capWeightedCoMovingFluxRawDQL2History_norm_le
+    p hM hT hBrel hDU heta0 heta1 hh hrT hX hF Traj hstrip W
+      hWmem hWpos hbase hrelative (hvalue s hs) (hraw s hs)
+      (hraw_energy s hs) (hvalue_energy s hs) hF2 ⟨hs.1, hsr⟩
+  simpa only [q, C0, C1, B] using hnorm
+
+/-- The canonical reaction raw-DQ `L²(ℝ)` history is Bochner interval
+integrable under uniform cap-energy bounds. -/
+theorem capWeightedCoMovingReactionRawDQL2History_intervalIntegrable_of_uniform_cap
+    (p : CMParams) {M T DU eta R h c r X F : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (hDU : 0 ≤ DU)
+    (heta0 : 0 ≤ eta) (hh : h ≠ 0)
+    (hr : 0 < r) (hrT : r ≤ T) (hX : 0 ≤ X) (hF : 0 ≤ F)
+    (Traj : WholeLineBUCTrajectory T)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (Traj z).1 x ∈ Set.Icc (0 : ℝ) M)
+    (W : WholeLineBUC)
+    (hWmem : ∀ x, W.1 x ∈ Set.Icc (0 : ℝ) M)
+    (hWquot : ∀ x, |spatialDifferenceQuotient h W.1 x| ≤ DU)
+    (hvalue : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2))
+    (hraw : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2))
+    (hraw_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) ≤ X ^ 2)
+    (hvalue_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) ≤ F ^ 2) :
+    let hF2 :=
+      capWeightedCoMovingReactionRawDQBUCHistoryClampedIio_sq_integrable
+        p hM hT hDU heta0 hh hr hrT hX hF Traj hstrip W hWmem hWquot
+          hvalue hraw hraw_energy hvalue_energy
+    IntervalIntegrable
+      (capWeightedCoMovingReactionRawDQL2History
+        p hM hT eta R c h heta0 Traj W r hF2) volume 0 r := by
+  dsimp only
+  let hF2 :=
+    capWeightedCoMovingReactionRawDQBUCHistoryClampedIio_sq_integrable
+      p hM hT hDU heta0 hh hr hrT hX hF Traj hstrip W hWmem hWquot
+        hvalue hraw hraw_energy hvalue_energy
+  let C : ℝ := 2 * capMildGrowthBound eta c T
+  let B : ℝ :=
+    Real.sqrt (matchedShiftedReactionRawQSquareConstant p M) * X +
+      Real.sqrt
+        (matchedShiftedReactionRawWSquareConstant p M eta DU) * F
+  let q : ℝ → ℝ := fun _s => C * B
+  have hC : 0 ≤ C := by
+    dsimp only [C, capMildGrowthBound]
+    positivity
+  have hB : 0 ≤ B := by
+    dsimp only [B]
+    exact add_nonneg
+      (mul_nonneg (Real.sqrt_nonneg _) hX)
+      (mul_nonneg (Real.sqrt_nonneg _) hF)
+  have hq_int : IntervalIntegrable q volume 0 r := intervalIntegrable_const
+  have hq_nonneg : ∀ s ∈ Set.Icc (0 : ℝ) r, 0 ≤ q s := by
+    intro _s _hs
+    exact mul_nonneg hC hB
+  apply capWeightedCoMovingReactionRawDQL2History_intervalIntegrable_of_majorant
+    p hM hT heta0 hr Traj W hF2 hq_int hq_nonneg
+  intro s hs hsr
+  have hnorm := capWeightedCoMovingReactionRawDQL2History_norm_le
+    p hM hT hDU heta0 hh hrT hX hF Traj hstrip W hWmem hWquot
+      (hvalue s hs) (hraw s hs) (hraw_energy s hs)
+      (hvalue_energy s hs) hF2 ⟨hs.1, hsr⟩
+  simpa only [q, C, B] using hnorm
+
 theorem wholeLineBUCRawSpatialDifferenceQuotientCLM_norm_le
     (eta h : ℝ) (u : WholeLineBUC) :
     ‖wholeLineBUCRawSpatialDifferenceQuotientCLM eta h u‖ ≤
@@ -1330,6 +1492,56 @@ theorem capWeightedCoMovingReactionRawDQL2History_integral_rep
       if_pos hsr, Fh]
   simpa only [Ztot, Zbase, Fh, hintEq] using hrep
 
+/-- Fubini representation for the flux raw-DQ history with its `BUC`
+norm-integrability discharged by the explicit heat-gradient majorant. -/
+theorem capWeightedCoMovingFluxRawDQL2History_integral_rep_auto
+    (p : CMParams) {M T eta R c h r : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (heta : 0 ≤ eta) (hr : 0 < r)
+    (Traj : WholeLineBUCTrajectory T) (W : WholeLineBUC)
+    (hF2 : ∀ s, Integrable (fun x : ℝ =>
+      (capWeightedCoMovingFluxRawDQBUCHistoryClampedIio
+        p hM hT eta R c h heta Traj W r s).1 x ^ 2) volume)
+    (hZint : IntervalIntegrable
+      (capWeightedCoMovingFluxRawDQL2History
+        p hM hT eta R c h heta Traj W r hF2) volume 0 r) :
+    ((((∫ s in (0 : ℝ)..r,
+        capWeightedCoMovingFluxRawDQL2History
+          p hM hT eta R c h heta Traj W r hF2 s) : WholeLineRealL2) :
+          ℝ → ℝ) =ᵐ[volume] fun x =>
+      ∫ s in (0 : ℝ)..r,
+        (capWeightedCoMovingFluxRawDQBUCHistoryClampedIio
+          p hM hT eta R c h heta Traj W r s).1 x) := by
+  exact capWeightedCoMovingFluxRawDQL2History_integral_rep
+    p hM hT heta hr Traj W hF2
+      (capWeightedCoMovingFluxRawDQBUCHistoryClampedIio_norm_integrable
+        p hM hT heta hr Traj W)
+      hZint
+
+/-- Fubini representation for the reaction raw-DQ history with its `BUC`
+norm-integrability discharged by the explicit constant majorant. -/
+theorem capWeightedCoMovingReactionRawDQL2History_integral_rep_auto
+    (p : CMParams) {M T eta R c h r : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (heta : 0 ≤ eta) (hr : 0 < r)
+    (Traj : WholeLineBUCTrajectory T) (W : WholeLineBUC)
+    (hF2 : ∀ s, Integrable (fun x : ℝ =>
+      (capWeightedCoMovingReactionRawDQBUCHistoryClampedIio
+        p hM hT eta R c h heta Traj W r s).1 x ^ 2) volume)
+    (hZint : IntervalIntegrable
+      (capWeightedCoMovingReactionRawDQL2History
+        p hM hT eta R c h heta Traj W r hF2) volume 0 r) :
+    ((((∫ s in (0 : ℝ)..r,
+        capWeightedCoMovingReactionRawDQL2History
+          p hM hT eta R c h heta Traj W r hF2 s) : WholeLineRealL2) :
+          ℝ → ℝ) =ᵐ[volume] fun x =>
+      ∫ s in (0 : ℝ)..r,
+        (capWeightedCoMovingReactionRawDQBUCHistoryClampedIio
+          p hM hT eta R c h heta Traj W r s).1 x) := by
+  exact capWeightedCoMovingReactionRawDQL2History_integral_rep
+    p hM hT heta hr Traj W hF2
+      (capWeightedCoMovingReactionRawDQBUCHistoryClampedIio_norm_integrable
+        p hM hT heta hr Traj W)
+      hZint
+
 theorem capWeightedCoMovingFluxRawDQBUCHistoryIio_continuousOn_Iio
     (p : CMParams) {M T eta R c h r : ℝ}
     (hM : 0 ≤ M) (hT : 0 ≤ T) (heta : 0 ≤ eta)
@@ -1406,3 +1618,19 @@ end ShenWork.Paper1
   ShenWork.Paper1.capWeightedCoMovingFluxRawDQBUCHistoryIio_aestronglyMeasurable
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingReactionRawDQBUCHistoryIio_aestronglyMeasurable
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingFluxRawDQBUCHistoryClampedIio_sq_integrable
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingReactionRawDQBUCHistoryClampedIio_sq_integrable
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingFluxRawDQL2History_intervalIntegrable_of_uniform_cap
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingReactionRawDQL2History_intervalIntegrable_of_uniform_cap
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingFluxRawDQBUCHistoryClampedIio_norm_integrable
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingReactionRawDQBUCHistoryClampedIio_norm_integrable
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingFluxRawDQL2History_integral_rep_auto
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingReactionRawDQL2History_integral_rep_auto
