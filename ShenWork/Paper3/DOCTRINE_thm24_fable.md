@@ -124,3 +124,21 @@ Status legend: [ ] not started, [WIP], [DONE = cold-built clean-3 on uisai2].
 
 Remote only (`rsync → uisai2:/dev/shm/lean/Shen_work-qc`, `lake build ShenWork.Paper3.<Mod>`);
 `#print axioms` = `[propext, Classical.choice, Quot.sound]` per theorem; no sorry/axiom/native_decide.
+
+## [2026-07-16 主循环补充] rectangle 港配方(已验证,Fable 17:10 照此快推)
+
+Fable 系被 429 卡到 17:10 期间,主循环把 rectangle 港路端到端验通。三件已验 green:
+- `IntervalDomainMRectangleInteriorSlopes.lean` — clean-3(4 slope 定理)。
+- `IntervalDomainMRectangleSignalBounds.lean` — green。
+- `IntervalDomainMRectangleBoundarySlopes.lean` — **`boundary_left_balance` 已写并 build green**(crux)。
+
+**精确港配方(每个 m=1 rectangle 文件照此改)**:
+1. **open 头**(关键,少了 `boundaryChemDivMReal` 会解析成 sorry):
+   `open Set Filter Topology` / `open ShenWork.IntervalDomain ShenWork.PDE ShenWork.Paper2` /
+   `open ShenWork.MinPersistenceAtoms ShenWork.MaxPrincipleAtoms` /
+   `open ShenWork.Paper2.IntervalDomainMMinPersistence`
+2. `IsPaper2ClassicalSolution intervalDomain` → `intervalDomainM`;PDE 里 `intervalDomain.timeDeriv/laplacian/chemotaxisDiv` → `intervalDomainM.*`(**timeDeriv 也要 M**,否则 rw 找不到)。
+3. **内部极值点**:用 `chemDivM_at_critical`(需 `deriv U x=0`)把 `intervalDomainChemotaxisDivM` 分解成 `U^m·coeff`;scalar flux-coeff 引理已在 InteriorSlopes M 里(`rectangleM_fluxCoefficient_{lower,upper}_of_weight`)。
+4. **端点(Neumann)**:`Cfun := boundaryChemDivMReal p (u t)(v t)`;`echem` 用 `show intervalDomainChemotaxisDivM ... xp = boundaryChemDivMReal ... x; unfold boundaryChemDivMReal; rw [dif_pos (Ioo_subset_Icc_self hx)]`。**精确端点极限**不要用 `boundaryChemDivM_left_limit_factor`(那个 g 是存在量词、只给 bound);要用 `classicalChemDivMPhysicalRep_continuousOn_Icc`(连续性)+ `boundaryChemDivMReal_eq_physicalRep_eventually`(近端点相等)+ 端点值 `classicalChemDivMPhysicalRep ... 0` 用 `deriv U 0=deriv V 0=0`(`hClosed.1.2.1`/`.2.2.1`)simp+ring 算出 = `CL = U0^m·(1+V0)^{-β}(μV0−νU0^γ)`。右端点对称(端点 1,`derivWithin_right_zero`,`nhdsWithin 1 (Iio 1)`)。
+5. **conclusion prefactor** `χ₀·U·(...)` → `χ₀·U^m·(...)`;r-limit 符号引理 `Lemma31Closure.boundary_max_deriv2_rlimit_nonpos` / `boundary_min_deriv2_rlimit_nonneg` 原样复用(和 m=1 同)。
+6. 剩余文件序:BoundarySlopes(right_balance + 8 wrapper)→ ExtremumSlopes(纯 dispatcher,拆 interior/left/right)→ LogGap(PDE-light,port hsol-taking 引理,scalar 层原样)→ Global(decay coeff + Dini + logGap→sup)→ χ₀≤0 子情形(需 general-m mass floor + max decay,未 scope)。
