@@ -890,3 +890,5 @@ import ShenWork.Paper3.IntervalDomainMSectorial
 import ShenWork.Paper3.IntervalDomainStrongDuhamelL2StartGeneralM
 import ShenWork.Paper3.IntervalDomainMExplicitPositiveTimeC1
 import ShenWork.Paper3.IntervalDomainStrongStageBGeneralM
+import ShenWork.Paper3.IntervalDomainMWeakSupBootstrap
+import ShenWork.Paper3.IntervalDomainFiniteStrongBootstrapGeneralM
