@@ -248,6 +248,61 @@ theorem reachablePastM_of_bounded_and_uniform_floor
       simpa [intervalDomainM, heq] using htr t ht0 htd'
     exact ⟨T', by dsimp [T']; linarith, hT', _, _, hsol', htrace'⟩
 
+/-! ## The alternatives at the canonical finite maximal horizon -/
+
+/-- At the supremum of the faithful reachable horizons, either the population
+becomes arbitrarily large or its positive floor collapses. -/
+theorem finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
+    {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀)
+    (hbdd : BddAbove (reachableClassicalHorizonSetM p u₀))
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p
+      (finiteMaximalReachableHorizonM p u₀) u v)
+    (htrace : InitialTrace intervalDomainM u₀ u) :
+    FiniteHorizonAlternative intervalDomainM
+      (finiteMaximalReachableHorizonM p u₀) u := by
+  by_contra halt
+  have hnotUpper :
+      ¬ MGeOneFiniteHorizonAlternative intervalDomainM
+        (finiteMaximalReachableHorizonM p u₀) u :=
+    fun h => halt (Or.inl h)
+  have hnotFloor :
+      ¬ (∀ δ > 0, ∃ t x,
+        0 < t ∧ t < finiteMaximalReachableHorizonM p u₀ ∧
+        x ∈ intervalDomainM.inside ∧ u t x < δ) :=
+    fun h => halt (Or.inr h)
+  have hbounded :=
+    boundedBeforeM_of_not_mgeOneFiniteHorizonAlternative hsol hnotUpper
+  obtain ⟨c, hc, hfloor⟩ :=
+    uniformFloorM_of_not_floorCollapseAlternative hsol hnotFloor
+  have hpast :=
+    reachablePastM_of_bounded_and_uniform_floor
+      p hu₀ hsol.1 hsol htrace hbounded ⟨c, hc, hfloor⟩
+  exact not_reachablePast_finiteMaximalReachableHorizonM hbdd hpast
+
+/-- When `m ≥ 1`, the committed minimum-persistence theorem rules out floor
+collapse, so a finite maximal horizon forces upper blow-up. -/
+theorem mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
+    {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomainM u₀)
+    (hm : 1 ≤ p.m)
+    (hbdd : BddAbove (reachableClassicalHorizonSetM p u₀))
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p
+      (finiteMaximalReachableHorizonM p u₀) u v)
+    (htrace : InitialTrace intervalDomainM u₀ u) :
+    MGeOneFiniteHorizonAlternative intervalDomainM
+      (finiteMaximalReachableHorizonM p u₀) u := by
+  by_contra hnot
+  have hbounded :=
+    boundedBeforeM_of_not_mgeOneFiniteHorizonAlternative hsol hnot
+  have hpast :=
+    reachablePastM_of_bounded p hm hu₀ hsol.1 hsol htrace hbounded
+  exact not_reachablePast_finiteMaximalReachableHorizonM hbdd hpast
+
 section AxiomAudit
 
 #print axioms continuousOn_le_Icc_of_le_Ioo
@@ -255,6 +310,8 @@ section AxiomAudit
 #print axioms boundedBeforeM_of_not_mgeOneFiniteHorizonAlternative
 #print axioms uniformFloorM_of_not_floorCollapseAlternative
 #print axioms reachablePastM_of_bounded_and_uniform_floor
+#print axioms finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
+#print axioms mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
 
 end AxiomAudit
 
