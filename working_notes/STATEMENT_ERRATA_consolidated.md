@@ -125,6 +125,16 @@ ill-posed / has a proof gap, but is repairable).
 - **Lean evidence.** `ShenWork/Paper2/IntervalDomainCorrectedProposition11.lean`
   (`not_legacyFiniteHorizonAlternativeProducer_of_positive_equilibrium`; corrected
   `CorrectedProposition_1_1` / `correctedProposition_1_1_of_standardContinuation_and_gluing`).
+  The faithful realization is now the headline
+  `correctedProposition_1_1_intervalDomainM` in
+  `ShenWork/Paper2/IntervalDomainMMaximalContinuationAlternative.lean`: it states the
+  alternative as an **endpoint-tail** dichotomy — for every threshold `M` and every
+  `S < Tmax`, the tail `(S, Tmax)` still carries a witness above `M` (`UpperEndpointTail`)
+  or below any floor (`FloorEndpointTail`), i.e. the genuine `t ↑ Tmax` blow-up/decay of
+  (1.14)/(1.15), realized exactly at the sSup reachable horizon. The literal
+  "some finite `t < Tmax`" form survives only inside a forgetful compatibility adapter and
+  does not enter the headline. Unconditional (takes only the parameter record), non-vacuous
+  (`u₀ ≡ 1` witness), sorry/axiom-free (clean-3). This resolves the wording over-statement.
 - **Severity.** `STATEMENT-FIX` — a wording over-statement at the boundary between "there
   exists a maximal continuation" and "every finite horizon satisfies the dichotomy." Offered
   to the authors to decide whether the printed phrasing needs clarifying.
