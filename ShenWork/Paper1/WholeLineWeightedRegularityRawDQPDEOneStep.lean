@@ -79,6 +79,47 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_eq_of_le
     norm_nonneg (capWeightedCoMovingRawDQL2ProfileIcc
       hT hH0 eta R c h heta0 Traj W hraw2H s)]
 
+/-- A one-step bound written with a terminal-dependent profile can be
+rewritten with any fixed history whose norms agree on the restart window. -/
+theorem rawDQOneStep_bound_fixed_profile_of_norm_eq
+    (p : CMParams)
+    {M Brel DU eta c T h a r F : ℝ}
+    (ha0 : 0 ≤ a) (har : a < r)
+    (Pr PH : ℝ → WholeLineRealL2)
+    (hmain :
+      ‖Pr r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+        |p.χ| * (∫ s in a..r,
+          rawDQFluxMajorant p M Brel DU eta c T h ‖Pr s‖ F (r - s)) +
+        ∫ s in a..r,
+          rawDQReactionMajorant p M DU eta c T ‖Pr s‖ F)
+    (hnorm : ∀ s ∈ Set.Icc (0 : ℝ) r, ‖Pr s‖ = ‖PH s‖) :
+      ‖PH r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+        |p.χ| * (∫ s in a..r,
+          rawDQFluxMajorant p M Brel DU eta c T h ‖PH s‖ F (r - s)) +
+        ∫ s in a..r,
+          rawDQReactionMajorant p M DU eta c T ‖PH s‖ F := by
+  have hr0 : 0 ≤ r := ha0.trans har.le
+  have hflux :
+      (∫ s in a..r,
+          rawDQFluxMajorant p M Brel DU eta c T h ‖Pr s‖ F (r - s)) =
+        ∫ s in a..r,
+          rawDQFluxMajorant p M Brel DU eta c T h ‖PH s‖ F (r - s) := by
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [] with s hs
+    rw [Set.uIoc_of_le har.le] at hs
+    rw [hnorm s ⟨ha0.trans hs.1.le, hs.2⟩]
+  have hreaction :
+      (∫ s in a..r,
+          rawDQReactionMajorant p M DU eta c T ‖Pr s‖ F) =
+        ∫ s in a..r,
+          rawDQReactionMajorant p M DU eta c T ‖PH s‖ F := by
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [] with s hs
+    rw [Set.uIoc_of_le har.le] at hs
+    rw [hnorm s ⟨ha0.trans hs.1.le, hs.2⟩]
+  rw [← hnorm r ⟨hr0, le_rfl⟩, ← hflux, ← hreaction]
+  exact hmain
+
 /-- One-step raw-DQ estimate from the exact weighted restart identity.  All
 `L²` representatives, history integrability, and physical Fubini formulas are
 constructed internally. -/
@@ -397,6 +438,164 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identit
         wholeLineBUCTranslate_apply] using hx)
     hZGrep hZRrep hidentity
   simpa only [gG, gR, rawDQHomogeneousMajorant, abs_neg] using hmain
+
+/-- Fixed-horizon form of the one-step raw-DQ estimate.  The canonical
+profile is constructed once with terminal horizon `H`; every restart ending
+at `r ≤ H` is measured against this same history. -/
+theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity_fixedProfile
+    (p : CMParams) {M T Brel DU eta R c h a r H X0 F : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (hBrel : 0 ≤ Brel) (hDU : 0 ≤ DU)
+    (heta0 : 0 ≤ eta) (heta1 : eta < 1)
+    (hh : h ≠ 0) (habs : |h| ≤ 1)
+    (ha0 : 0 ≤ a) (har : a < r) (hrH : r ≤ H) (hHT : H ≤ T)
+    (hX0 : 0 ≤ X0) (hF : 0 ≤ F)
+    (Traj : WholeLineBUCTrajectory T)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (Traj z).1 x ∈ Set.Icc (0 : ℝ) M)
+    (W : WholeLineBUC)
+    (hWmem : ∀ x, W.1 x ∈ Set.Icc (0 : ℝ) M)
+    (hWpos : ∀ x, 0 < W.1 x)
+    (hbase : ∀ x, |(W.1 (x + h) - W.1 x) / h| ≤ DU)
+    (hrelative : ∀ x, ∀ theta ∈ Set.Icc (0 : ℝ) 1,
+      |(W.1 (x + h) - W.1 x) / h| ≤
+        Brel * (theta * W.1 (x + h) + (1 - theta) * W.1 x))
+    (hvalue : ∀ s ∈ Set.Icc (0 : ℝ) H, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2))
+    (hraw : ∀ s ∈ Set.Icc (0 : ℝ) H, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2))
+    (hraw_energy : ∀ s ∈ Set.Icc (0 : ℝ) H,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) ≤ X0 ^ 2)
+    (hvalue_energy : ∀ s ∈ Set.Icc (0 : ℝ) H,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) ≤ F ^ 2)
+    (hidentity : ∀ x,
+      capWeightSqrt eta R x *
+          rawSpatialDifferenceQuotient eta h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj r).1 (y + c * r) -
+              W.1 y) x =
+        capWeightSqrt eta R x *
+          paper5MovingFrameHeatOp c (r - a)
+            (rawSpatialDifferenceQuotient eta h (fun y =>
+              (wholeLineBUCTrajectoryExtend hT Traj a).1 (y + c * a) -
+                W.1 y)) x +
+        (-p.χ) * (∫ s in a..r,
+          capWeightSqrt eta R x *
+            paper5MovingFrameHeatGradOp c (r - s)
+              (rawSpatialDifferenceQuotient eta h (fun y =>
+                wholeLineCauchyCoMovingFluxSource p c hM hT Traj s y -
+                  wholeLineChemotaxisFlux p W.1 y)) x) +
+        ∫ s in a..r,
+          capWeightSqrt eta R x *
+            paper5MovingFrameHeatOp c (r - s)
+              (rawSpatialDifferenceQuotient eta h (fun y =>
+                wholeLineCauchyCoMovingReactionSource p c hM hT Traj s y -
+                  wholeLineCauchyShiftedReaction p W.1 y)) x) :
+    let hH0 : 0 ≤ H := ha0.trans (har.le.trans hrH)
+    let hraw' : ∀ s ∈ Set.Icc (0 : ℝ) H, Integrable (fun x : ℝ =>
+        capWeight eta R x *
+          |rawSpatialDifferenceQuotient eta h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) volume := by
+      intro s hs
+      simpa only [rawSpatialDifferenceQuotient] using hraw s hs
+    let hP2 := capWeightedCoMovingRawDQBUCHistoryIcc_sq_integrable
+      hT hH0 eta R c h heta0 Traj W hraw'
+    let P := capWeightedCoMovingRawDQL2ProfileIcc
+      hT hH0 eta R c h heta0 Traj W hP2
+    ‖P r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+      |p.χ| * (∫ s in a..r,
+        rawDQFluxMajorant p M Brel DU eta c T h ‖P s‖ F (r - s)) +
+      ∫ s in a..r,
+        rawDQReactionMajorant p M DU eta c T ‖P s‖ F := by
+  dsimp only
+  have hr0 : 0 ≤ r := ha0.trans har.le
+  have hH0 : 0 ≤ H := hr0.trans hrH
+  have hrT : r ≤ T := hrH.trans hHT
+  have toH : ∀ {s : ℝ}, s ∈ Set.Icc (0 : ℝ) r →
+      s ∈ Set.Icc (0 : ℝ) H := by
+    intro s hs
+    exact ⟨hs.1, hs.2.trans hrH⟩
+  have hvalueR : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) := by
+    intro s hs
+    exact hvalue s (toH hs)
+  have hrawR : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) := by
+    intro s hs
+    exact hraw s (toH hs)
+  have hrawEnergyR : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+            W.1 x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) ≤ X0 ^ 2 := by
+    intro s hs
+    exact hraw_energy s (toH hs)
+  have hvalueEnergyR : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT Traj s).1 (x + c * s) -
+          W.1 x| ^ 2) ≤ F ^ 2 := by
+    intro s hs
+    exact hvalue_energy s (toH hs)
+  let hrawR' : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x : ℝ =>
+      capWeight eta R x *
+        |rawSpatialDifferenceQuotient eta h (fun y =>
+          (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+            W.1 y) x| ^ 2) volume := by
+    intro s hs
+    simpa only [rawSpatialDifferenceQuotient] using hrawR s hs
+  let hPR2 := capWeightedCoMovingRawDQBUCHistoryIcc_sq_integrable
+    hT hr0 eta R c h heta0 Traj W hrawR'
+  let Pr := capWeightedCoMovingRawDQL2ProfileIcc
+    hT hr0 eta R c h heta0 Traj W hPR2
+  let hrawH' : ∀ s ∈ Set.Icc (0 : ℝ) H, Integrable (fun x : ℝ =>
+      capWeight eta R x *
+        |rawSpatialDifferenceQuotient eta h (fun y =>
+          (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+            W.1 y) x| ^ 2) volume := by
+    intro s hs
+    simpa only [rawSpatialDifferenceQuotient] using hraw s hs
+  let hPH2 := capWeightedCoMovingRawDQBUCHistoryIcc_sq_integrable
+    hT hH0 eta R c h heta0 Traj W hrawH'
+  let PH := capWeightedCoMovingRawDQL2ProfileIcc
+    hT hH0 eta R c h heta0 Traj W hPH2
+  have hmain :
+      ‖Pr r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+        |p.χ| * (∫ s in a..r,
+          rawDQFluxMajorant p M Brel DU eta c T h ‖Pr s‖ F (r - s)) +
+        ∫ s in a..r,
+          rawDQReactionMajorant p M DU eta c T ‖Pr s‖ F := by
+    exact capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
+      p hM hT hBrel hDU heta0 heta1 hh habs ha0 har hrT hX0 hF
+        Traj hstrip W hWmem hWpos hbase hrelative hvalueR hrawR
+        hrawEnergyR hvalueEnergyR hidentity
+  have hnorm : ∀ s ∈ Set.Icc (0 : ℝ) r, ‖Pr s‖ = ‖PH s‖ := by
+    intro s hs
+    exact capWeightedCoMovingRawDQL2ProfileIcc_norm_eq_of_le
+      hT hr0 hH0 hrH eta R c h heta0 Traj W hPR2 hPH2 hs
+  exact rawDQOneStep_bound_fixed_profile_of_norm_eq
+    p ha0 har Pr PH hmain hnorm
 
 /-- Canonical BUC realization of the traveling-wave population profile. -/
 def wholeLineTravelingWavePopulationBUC
@@ -730,7 +929,11 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave_of_
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_eq_of_le
 #print axioms
+  ShenWork.Paper1.rawDQOneStep_bound_fixed_profile_of_norm_eq
+#print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity_fixedProfile
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
 #print axioms
