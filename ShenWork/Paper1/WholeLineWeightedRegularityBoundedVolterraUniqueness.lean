@@ -138,9 +138,144 @@ theorem weightedMovingHeat_dampedRestart_unique_of_bounded_short
   intro t ht
   exact sub_eq_zero.mp (hDzero t ht)
 
+/-- Ambient-window damping removal with a bounded actual trajectory.  All
+candidate histories and its compact-window bound are constructed from the
+uniform forcing budget.  Unlike the earlier wrapper, this theorem does not
+assume continuity of the actual exact-weight state. -/
+theorem
+    weightedMovingHeat_fullGenerator_restart_of_damped_uniform_forcing_ambient_bounded_of_short
+    {eta c L R a r K BZ : ℝ}
+    {Z F : ℝ → WholeLineRealL2} {Z₀ : WholeLineRealL2}
+    (hLa : L < a) (har : a ≤ r) (hrR : r < R)
+    (hK : 0 ≤ K)
+    (hF : ∀ q ∈ Set.Icc L R, ‖F q‖ ≤ K)
+    (hhist_meas : ∀ t : ℝ, AEStronglyMeasurable
+      (fun q => weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+      (volume.restrict (Set.uIoc L R)))
+    (hZbound : ∀ t ∈ Set.Icc a r, ‖Z t‖ ≤ BZ)
+    (hZint : ∀ t ∈ Set.Icc a r, IntervalIntegrable
+      (fun q => Real.exp (-(t - q)) •
+        weightedMovingHeatL2Semigroup eta c (t - q) (Z q + F q))
+      volume a t)
+    (hZdamped : ∀ t ∈ Set.Icc a r,
+      Z t = Real.exp (-(t - a)) •
+          weightedMovingHeatL2Semigroup eta c (t - a) Z₀ +
+        ∫ q in a..t, Real.exp (-(t - q)) •
+          weightedMovingHeatL2Semigroup eta c (t - q) (Z q + F q))
+    (hshort :
+      Real.exp (|eta ^ 2 - c * eta| * (r - a)) * (r - a) < 1) :
+    ∀ t ∈ Set.Icc a r,
+      Z t = weightedMovingHeatFullGeneratorCandidate eta c a Z₀ F t := by
+  have hFsmall : ∀ q ∈ Set.Icc a r, ‖F q‖ ≤ K := by
+    intro q hq
+    exact hF q ⟨hLa.le.trans hq.1, hq.2.trans hrR.le⟩
+  have hhist_small : ∀ t ∈ Set.Icc a r,
+      AEStronglyMeasurable
+        (fun q => weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+        (volume.restrict (Set.Icc a t)) := by
+    intro t ht
+    apply (hhist_meas t).mono_measure
+    apply Measure.restrict_mono
+    · intro q hq
+      rw [Set.uIoc_of_le (hLa.trans_le (har.trans hrR.le)).le]
+      exact ⟨hLa.trans_le hq.1, hq.2.trans (ht.2.trans hrR.le)⟩
+    · exact le_rfl
+  have hscalarHistories : ∀ t ∈ Set.Icc a r,
+      IntervalIntegrable
+          (fun q => Real.exp (-(t - q)) •
+            weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+          volume a t ∧
+        IntervalIntegrable
+          (fun q => (1 - Real.exp (-(t - q))) •
+            weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+          volume a t := by
+    intro t ht
+    exact weightedMovingHeat_damped_histories_intervalIntegrable_of_uniform_norm_bound
+      ht.1 hK (fun q hq => hF q
+        ⟨hLa.le.trans hq.1, hq.2.trans (ht.2.trans hrR.le)⟩)
+        (hhist_small t ht)
+  have hnested : ∀ t ∈ Set.Icc a r, IntervalIntegrable
+      (fun q => Real.exp (-(t - q)) •
+        weightedMovingHeatL2Semigroup eta c (t - q)
+          (∫ s in a..q,
+            weightedMovingHeatL2Semigroup eta c (q - s) (F s)))
+      volume a t := by
+    intro t ht
+    have hinner : ∀ q ∈ Set.Icc a t, IntervalIntegrable
+        (fun s => weightedMovingHeatL2Semigroup eta c (q - s) (F s))
+        volume a q := by
+      intro q hq
+      exact weightedMovingHeatL2Semigroup_intervalIntegrable_of_uniform_norm_bound
+        hq.1 hK (fun s hs => hF s
+          ⟨hLa.le.trans hs.1, hs.2.trans (hq.2.trans (ht.2.trans hrR.le))⟩)
+          (hhist_small q ⟨hq.1, hq.2.trans ht.2⟩)
+    have hterminal : AEStronglyMeasurable
+        (fun s => weightedMovingHeatL2Semigroup eta c (t - s) (F s))
+        (volume.restrict (Set.Ioc a t)) :=
+      (hhist_small t ht).mono_measure
+        (Measure.restrict_mono Set.Ioc_subset_Icc_self le_rfl)
+    have htriMeas :=
+      weightedMovingHeat_triangleKernel_aestronglyMeasurable_of_terminal_history
+        hterminal
+    have hproduct :=
+      weightedMovingHeat_triangleKernel_integrable_of_uniform_norm_bound
+        ht.1 hK (fun s hs => hF s
+          ⟨hLa.le.trans hs.1.le, hs.2.trans (ht.2.trans hrR.le)⟩) htriMeas
+    exact weightedMovingHeat_nested_damped_history_intervalIntegrable_of_triangleKernel
+      ht.1 hinner hproduct
+  have htriangle : ∀ t ∈ Set.Icc a r,
+      (∫ q in a..t, Real.exp (-(t - q)) •
+        weightedMovingHeatL2Semigroup eta c (t - q)
+          (∫ s in a..q,
+            weightedMovingHeatL2Semigroup eta c (q - s) (F s))) =
+      ∫ s in a..t, (1 - Real.exp (-(t - s))) •
+        weightedMovingHeatL2Semigroup eta c (t - s) (F s) := by
+    intro t ht
+    have hterminal : AEStronglyMeasurable
+        (fun s => weightedMovingHeatL2Semigroup eta c (t - s) (F s))
+        (volume.restrict (Set.Ioc a t)) :=
+      (hhist_small t ht).mono_measure
+        (Measure.restrict_mono Set.Ioc_subset_Icc_self le_rfl)
+    exact weightedMovingHeat_triangleFubini_of_uniform_norm_bound
+      ht.1 hK (fun s hs => hF s
+        ⟨hLa.le.trans hs.1, hs.2.trans (ht.2.trans hrR.le)⟩)
+      (fun q hq => hhist_small q ⟨hq.1, hq.2.trans ht.2⟩)
+      (weightedMovingHeat_triangleKernel_aestronglyMeasurable_of_terminal_history
+        hterminal)
+  let Y : ℝ → WholeLineRealL2 :=
+    weightedMovingHeatFullGeneratorCandidate eta c a Z₀ F
+  have hYcont : ContinuousOn Y (Set.Icc a r) := by
+    exact weightedMovingHeatFullGeneratorCandidate_continuousOn_of_uniform_norm_bound
+      (eta := eta) (c := c) hLa har hrR Z₀ hK hF hhist_meas
+  obtain ⟨C, hC⟩ := isCompact_Icc.bddAbove_image hYcont.norm
+  let BY : ℝ := max C 0
+  have hYbound : ∀ t ∈ Set.Icc a r, ‖Y t‖ ≤ BY := by
+    intro t ht
+    exact (hC (Set.mem_image_of_mem _ ht)).trans (le_max_left _ _)
+  have hYint : ∀ t ∈ Set.Icc a r, IntervalIntegrable
+      (fun q => Real.exp (-(t - q)) •
+        weightedMovingHeatL2Semigroup eta c (t - q) (Y q + F q))
+      volume a t := by
+    intro t ht
+    exact weightedMovingHeatFullGeneratorCandidate_damped_history_intervalIntegrable
+      ht.1 Z₀ (hnested t ht) (hscalarHistories t ht).1
+  have hYdamped : ∀ t ∈ Set.Icc a r,
+      Y t = Real.exp (-(t - a)) •
+          weightedMovingHeatL2Semigroup eta c (t - a) Z₀ +
+        ∫ q in a..t, Real.exp (-(t - q)) •
+          weightedMovingHeatL2Semigroup eta c (t - q) (Y q + F q) := by
+    intro t ht
+    exact weightedMovingHeatFullGeneratorCandidate_damped_resolvent_identity_of_triangleFubini
+      ht.1 Z₀ (hnested t ht) (hscalarHistories t ht).1
+        (hscalarHistories t ht).2 (htriangle t ht)
+  exact weightedMovingHeat_dampedRestart_unique_of_bounded_short har
+    hZbound hYbound hZint hYint hZdamped hYdamped hshort
+
 end ShenWork.Paper1
 
 #print axioms
   ShenWork.Paper1.weightedMovingHeat_dampedVolterra_eq_zero_of_bounded_short
 #print axioms
   ShenWork.Paper1.weightedMovingHeat_dampedRestart_unique_of_bounded_short
+#print axioms
+  ShenWork.Paper1.weightedMovingHeat_fullGenerator_restart_of_damped_uniform_forcing_ambient_bounded_of_short
