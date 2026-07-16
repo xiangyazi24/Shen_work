@@ -4,6 +4,9 @@ import ShenWork.Paper1.WholeLineWeightedRegularityForcingWindowNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityFullCandidateUniformHolder
 import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorRestartWindowNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityGradientCandidateNatural
+import ShenWork.Paper1.WholeLineWeightedRegularityForcingHolderAssemblyNatural
+import ShenWork.Paper1.WholeLineWeightedRegularityCoefficientWindowNatural
+import ShenWork.Paper1.WholeLineWeightedRegularityGeneratorShortWindow
 
 open Filter MeasureTheory Real Set Topology
 
@@ -457,7 +460,6 @@ theorem wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_of_realize
     let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
     let u : ℝ → ℝ → ℝ := fun s x =>
       (wholeLineBUCTrajectoryExtend hT Traj s).1 x
-    let v : ℝ → ℝ → ℝ := fun s => frozenElliptic p (u s)
     ContDiff ℝ 2 (coMovingPath c u t) ∧
       HasDerivAt (paper5WeightedHalfEnergy eta c u U)
         (∫ x : ℝ,
@@ -474,7 +476,6 @@ theorem wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_of_realize
     wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
   let u : ℝ → ℝ → ℝ := fun s x =>
     (wholeLineBUCTrajectoryExtend hT Traj s).1 x
-  let v : ℝ → ℝ → ℝ := fun s => frozenElliptic p (u s)
   obtain ⟨hsol, hu, hu2, hv2, _hWjoint, _hWmeas, _hFmeas, hpoint⟩ :=
     wholeLineCauchyBUCMildFixedPoint_positive_window_pointwise_data
       p hM hT ha (show a ≤ r from (hat.trans htr).le) hrT
@@ -489,9 +490,255 @@ theorem wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_of_realize
       hclose hWx2 hXrep hFrep
       (fun q hq x => hpoint q ⟨hq.1.le, hq.2.le⟩ x)
 
+/-- The canonical mild fixed point supplies the four regularity inputs of
+the exact weighted-energy identity at every positive interior time.  All
+Hilbert trajectories, their moduli, and the physical generator restart are
+constructed on an automatically selected compact window around the target
+time. -/
+theorem wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_natural
+    (p : CMParams)
+    {M T t Blog eta c D E Kflux FD B : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (ht0 : 0 < t) (htT : t < T)
+    (hBlog : 0 ≤ Blog) (heta : 0 < eta)
+    (heta_one : eta < 1) (hetaCap : eta < stabilityWeightCap p)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    {U V : ℝ → ℝ}
+    (hchi : p.χ ≠ 0)
+    (hc : paper5CorrectedCStarStar p p.χ < c)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hMChi : MChi p ≤ M)
+    (hlog : ∀ y, |deriv U y / U y| ≤ Blog)
+    (hD : 0 ≤ D) (hFD : 0 ≤ FD) (hB : 0 ≤ B)
+    (hUd : ∀ y, |deriv U y| ≤ D)
+    (hUdd : ∀ y, |deriv (deriv U) y| ≤ E)
+    (hUddcont : Continuous (deriv (deriv U)))
+    (hflux : ∀ y, |wholeLineTravelingWaveFlux p U V y| ≤ Kflux)
+    (hfluxd : ∀ y,
+      |deriv (wholeLineTravelingWaveFlux p U V) y| ≤ FD)
+    (hflux_has : ∀ y, HasDerivAt
+      (wholeLineTravelingWaveFlux p U V)
+      (deriv (wholeLineTravelingWaveFlux p U V) y) y)
+    (hfluxd_cont : Continuous
+      (deriv (wholeLineTravelingWaveFlux p U V)))
+    (hreact : ∀ y, |wholeLineCauchyShiftedReaction p U y| ≤ B)
+    (hreact_cont : Continuous (wholeLineCauchyShiftedReaction p U))
+    (hgrad_int : ∀ q, 0 < q → ∀ x, IntervalIntegrable
+      (fun r : ℝ => paper5MovingFrameHeatGradOp c r
+        (wholeLineTravelingWaveFlux p U V) x) volume 0 q)
+    (hdata_full : Integrable (fun y : ℝ => Real.exp (2 * eta * y) *
+      |u₀.1 y - U y| ^ 2)) :
+    let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let u : ℝ → ℝ → ℝ := fun s x =>
+      (wholeLineBUCTrajectoryExtend hT Traj s).1 x
+    ContDiff ℝ 2 (coMovingPath c u t) ∧
+      HasDerivAt (paper5WeightedHalfEnergy eta c u U)
+        (∫ x : ℝ,
+          paper5WeightedPopulation eta (coMovingPath c u) U t x *
+            paper5WeightedPopulationT eta
+              (paper5CoMovingMaterialTime c u) t x) t ∧
+      Integrable (fun x =>
+        paper5WeightedPopulation eta (coMovingPath c u) U t x *
+          paper5WeightedPopulationXX eta (coMovingPath c u) U t x) ∧
+      Integrable (fun x =>
+        paper5WeightedPopulationX eta (coMovingPath c u) U t x ^ 2) := by
+  dsimp only
+  obtain ⟨L, a, r, R, hL0, hLa, hat, htr, hrR, hRT, hdiamOuter, _hshort⟩ :=
+    exists_paper5WeightedGeneratorShortWindow
+      (eta := eta) (c := c) ht0 htT
+  have ha0 : 0 < a := hL0.trans hLa
+  have har : a ≤ r := (hat.trans htr).le
+  have hrT : r < T := hrR.trans hRT
+  have hdiam : r - a ≤ 1 := by linarith
+  let Traj : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let u : ℝ → ℝ → ℝ := fun s x =>
+    (wholeLineBUCTrajectoryExtend hT Traj s).1 x
+  let v : ℝ → ℝ → ℝ := fun s => frozenElliptic p (u s)
+  have htrajectory :=
+    exists_wholeLineCauchyBUCMildFixedPoint_weighted_population_H1_trajectory_data
+      p hM hT hL0 hLa har hrT hdiam hBlog heta heta_one hetaCap
+        u₀ hsmall hstrip hchi hc hTW hbound hreg hMChi hlog hD hFD hB
+        hUd hUdd hUddcont hflux hfluxd hflux_has hfluxd_cont hreact
+        hreact_cont hgrad_int hdata_full
+  dsimp only at htrajectory
+  obtain ⟨W, X, EW, EWx, HW, HWx, hEW, hEWx, hHW, hHWx,
+      hWrep, hXrep, hWx2, hWnorm, hXnorm, hXcont, hWmod, hXmod⟩ :=
+    htrajectory
+  obtain ⟨hsol, huM, hu2, hv2, hWjoint, hWmeas, _hFmeas, _hpoint⟩ :=
+    wholeLineCauchyBUCMildFixedPoint_positive_window_pointwise_data
+      (eta := eta) (c := c) p hM hT ha0 har hrT
+        u₀ hsmall hstrip hTW hreg
+  have hMone : 1 ≤ M :=
+    (MChi_ge_one_of_travelingWave hTW hbound).trans hMChi
+  have hU2 : ContDiff ℝ 2 U := hreg.U_contDiff_two hTW
+  have hV2 : ContDiff ℝ 2 V := hreg.V_contDiff_two hTW
+  have hvEq : ∀ q ∈ Set.Icc a r,
+      coMovingPath c v q = frozenElliptic p (coMovingPath c u q) := by
+    intro q hq
+    have hq0 : 0 ≤ q := ha0.le.trans hq.1
+    let zq : Set.Icc (0 : ℝ) T :=
+      ⟨q, hq0, hq.2.trans hrT.le⟩
+    have hext : wholeLineBUCTrajectoryExtend hT Traj q = Traj zq :=
+      wholeLineBUCTrajectoryExtend_eq hT Traj zq.2
+    have huC : IsCUnifBdd (u q) := by
+      simpa only [u, hext] using WholeLineBUC.isCUnifBdd (Traj zq)
+    have hu0 : ∀ x, 0 ≤ u q x := by
+      intro x
+      simpa only [u, hext, Traj] using (hstrip zq x).1
+    change (fun x => frozenElliptic p (u q) (x + c * q)) =
+      frozenElliptic p (fun x => u q (x + c * q))
+    exact (frozenElliptic_comp_add_const_fun p huC hu0 (c * q)).symm
+  obtain ⟨Hu, hHu, huHolderRaw⟩ :=
+    exists_wholeLineCauchyBUCMildFixedPoint_coMoving_time_sqrt_holder_positive_window
+      p c hM hT ha0 har hrT.le u₀ hsmall
+        (theta := (1 / 2 : ℝ)) (zeta := (1 / 4 : ℝ))
+        (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+        (by norm_num) hstrip
+  have huHolder : ∀ s ∈ Set.Icc a r, ∀ q ∈ Set.Icc a r, ∀ x,
+      |coMovingPath c u s x - coMovingPath c u q x| ≤
+        Hu * |s - q| ^ (1 / 2 : ℝ) := by
+    intro s hs q hq x
+    have hdist : |q - s| ≤ 1 := by
+      rw [abs_sub_le_iff]
+      constructor <;> linarith [hs.1, hs.2, hq.1, hq.2, hdiam]
+    simpa only [u, Traj, coMovingPath, abs_sub_comm] using
+      huHolderRaw s hs q hq x hdist
+  obtain ⟨Cf, hCf, hforcing⟩ :=
+    exists_uniform_weightedGeneratorForcing_square_bound_mildFixedPoint_wave
+      p hM hT ha0 har hrT hBlog heta heta_one hetaCap
+        u₀ hsmall hstrip hchi hc hTW hbound hreg hMChi hlog hD hFD hB
+        hUd hUdd hUddcont hflux hfluxd hflux_has hfluxd_cont hreact
+        hreact_cont hgrad_int hdata_full
+  let F : ℝ → WholeLineRealL2 :=
+    paper5WeightedGeneratorForcingNaturalPositiveWindowL2Trajectory
+      p eta c u v U V har
+  obtain ⟨H, hH, hFholder, hFcont, hFrep⟩ :=
+    exists_paper5WeightedGeneratorForcingNaturalPositiveWindowL2Trajectory_holder_data_of_population_H1_trajectories_and_classical_wave
+      p har hdiam ha0 hrT hMone heta heta_one hsol hchi hc hTW hreg
+        hbound hMChi hu2 hv2 hU2 hV2 huM hvEq hHu huHolder hBlog hlog
+        (fun q hq => (hforcing q hq).1) hEW hEWx hHW hHWx hWrep hXrep
+        hWnorm hXnorm hWmod hXmod
+  let K : ℝ := Real.sqrt Cf
+  have hK : 0 ≤ K := Real.sqrt_nonneg _
+  have hFbound : ∀ q ∈ Set.Icc a r, ‖F q‖ ≤ K := by
+    intro q hq
+    have hnormsq :=
+      wholeLineRealL2_norm_sq_eq_integral_sq_of_aeEq (F q) (hFrep q hq)
+    have hsquare : ‖F q‖ ^ 2 ≤ K ^ 2 := by
+      rw [hnormsq, show K ^ 2 = Cf by exact Real.sq_sqrt hCf]
+      exact (hforcing q hq).2
+    exact (sq_le_sq₀ (norm_nonneg _) hK).mp hsquare
+  have hWsq : ∀ q ∈ Set.Icc a r, Integrable (fun x : ℝ =>
+      paper5WeightedPopulation eta (coMovingPath c u) U q x ^ 2) := by
+    intro q hq
+    exact integrable_sq_of_wholeLineRealL2_ae_eq (W q) (hWrep q hq)
+  have hclose : ∀ q ∈ Set.Ioo a r, Integrable (fun x : ℝ =>
+      Real.exp (2 * eta * x) *
+        |coMovingPath c u q x - U x| ^ 2) := by
+    intro q hq
+    refine (hWsq q ⟨hq.1.le, hq.2.le⟩).congr
+      (Eventually.of_forall fun x => ?_)
+    unfold paper5WeightedPopulation
+    change (Real.exp (eta * x) * (coMovingPath c u q x - U x)) ^ 2 =
+      Real.exp (2 * eta * x) * |coMovingPath c u q x - U x| ^ 2
+    rw [mul_pow, sq_abs, pow_two, ← Real.exp_add]
+    congr 1
+    ring
+  obtain ⟨_alpha, _Hraw, _Draw, _halpha, _halpha1, _hHraw, _hDraw,
+      _hrawCont, _hrawHolder, _hrawBound, _hrawJoint, hfJoint, hfactor⟩ :=
+    exists_paper5CanonicalGeneratorForcingRaw_positive_window_natural_data
+      p hM hT ha0 har hrT u₀ hsmall hstrip hTW hbound hreg hMChi
+        hFD hfluxd
+  let f : ℝ → ℝ → ℝ :=
+    paper5WeightedGeneratorForcingPositiveWindowClamped
+      p eta c hM hT Traj U V har
+  have hf_sq : ∀ q ∈ Set.Icc a r,
+      Integrable (fun x : ℝ => f q x ^ 2) := by
+    intro q hq
+    refine (hforcing q hq).1.congr (Eventually.of_forall fun x => ?_)
+    simpa only [f, Traj, u, v] using
+      congrArg (fun z : ℝ => z ^ 2) (hfactor q hq x).symm
+  have hf_le : ∀ q ∈ Set.Icc a r, (∫ x : ℝ, f q x ^ 2) ≤ Cf := by
+    intro q hq
+    rw [show (∫ x : ℝ, f q x ^ 2) =
+        ∫ x : ℝ, paper5WeightedGeneratorForcing p eta
+          (coMovingPath c u) (coMovingPath c v) U V q x ^ 2 by
+      apply integral_congr_ae
+      filter_upwards with x
+      simpa only [f, Traj, u, v] using
+        congrArg (fun z : ℝ => z ^ 2) (hfactor q hq x)]
+    exact (hforcing q hq).2
+  have hFrepClamped : ∀ q ∈ Set.Icc a r,
+      (((F q : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] f q) := by
+    intro q hq
+    filter_upwards [hFrep q hq] with x hx
+    rw [hx]
+    simpa only [f, Traj, u, v] using (hfactor q hq x).symm
+  have hscalarRestart : ∀ q ∈ Set.Ioc a r, ∀ x,
+      paper5WeightedPopulation eta (coMovingPath c u) U q x =
+        weightedMovingHeatEta eta c (q - a)
+            (paper5WeightedPopulation eta (coMovingPath c u) U a) x +
+          weightedMovingHeatValueHistory eta c a q f x := by
+    intro q hq x
+    have hrawRestart :=
+      wholeLineCauchyBUCMildFixedPoint_weighted_generator_restart
+        (eta := eta) p hM hT ha0 hq.1 (hq.2.trans_lt hrT) u₀ hsmall
+          (theta := (1 / 2 : ℝ)) (zeta := (1 / 4 : ℝ))
+          (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+          (by norm_num) hstrip hTW hbound hreg hD
+          (show 0 ≤ E from le_trans (abs_nonneg (deriv (deriv U) 0))
+            (hUdd 0)) hUd hUdd hUddcont x
+    change paper5WeightedPopulation eta (coMovingPath c u) U q x = _
+    rw [show paper5WeightedPopulation eta (coMovingPath c u) U q x =
+        weightedMovingHeatEta eta c (q - a)
+            (paper5WeightedPopulation eta (coMovingPath c u) U a) x +
+          ∫ s in a..q, weightedMovingHeatEta eta c (q - s)
+            (paper5WeightedGeneratorForcing p eta
+              (coMovingPath c u) (coMovingPath c v) U V s) x by
+      simpa only [u, v, Traj] using hrawRestart]
+    congr 1
+    unfold weightedMovingHeatValueHistory
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards [Measure.ae_ne volume a, Measure.ae_ne volume q]
+      with s hsa hsq hs
+    rw [Set.uIoc_of_le hq.1.le] at hs
+    have hsIcc : s ∈ Set.Icc a r :=
+      ⟨hs.1.le, hs.2.trans hq.2⟩
+    rw [show f s = paper5WeightedGeneratorForcing p eta
+        (coMovingPath c u) (coMovingPath c v) U V s by
+      funext y
+      simpa only [f, Traj, u, v] using hfactor s hsIcc y]
+  have hactual : ∀ q ∈ Set.Icc a r,
+      wholeLineRealL2Total
+          (paper5WeightedPopulation eta (coMovingPath c u) U q) =
+        weightedMovingHeatFullGeneratorCandidate eta c a
+          (wholeLineRealL2Total
+            (paper5WeightedPopulation eta (coMovingPath c u) U a)) F q :=
+    weightedMovingHeatFullGeneratorCandidate_eq_on_window_of_pointwise_restart_bounded_measurable
+      (eta := eta) (c := c) (a := a) (r := r) (Cf := Cf) (F := F)
+        hCf hWjoint hfJoint hWsq hf_sq hf_le hFrepClamped
+        hFcont.aestronglyMeasurable
+        (fun q hq => Eventually.of_forall (hscalarRestart q hq))
+  exact
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_of_realized_window
+      p hM hT ha0 hat htr hrT (paper5ForcingTimeExponent_pos p) hH hK
+        u₀ hsmall hstrip hTW hreg hXcont hFcont hFbound hFholder
+        hactual hclose
+        (fun q hq => hWx2 q ⟨hq.1.le, hq.2.le⟩)
+        (fun q hq => hXrep q ⟨hq.1.le, hq.2.le⟩)
+        (fun q hq => hFrep q ⟨hq.1.le, hq.2.le⟩)
+
 end ShenWork.Paper1
 
 #print axioms
   ShenWork.Paper1.exists_wholeLineCauchyBUCMildFixedPoint_weighted_population_H1_trajectory_data
 #print axioms
   ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_of_realized_window
+#print axioms
+  ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedEnergy_regularInputs_natural
