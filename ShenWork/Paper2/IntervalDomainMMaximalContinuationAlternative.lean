@@ -1,7 +1,7 @@
 /-
   The faithful finite-horizon continuation alternative on `intervalDomainM`.
 -/
-import ShenWork.Paper2.IntervalDomainMContinuationExtension
+import ShenWork.Paper2.IntervalDomainMEndpointAlternative
 
 open Filter Set Topology
 open ShenWork.IntervalDomain ShenWork.Paper2
@@ -308,7 +308,8 @@ theorem mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
 /-- The canonical continuation dichotomy for the faithful general-`m`
 equation.  Unlike the compatibility carrier, this proposition records in its
 statement that the finite branch is realized exactly at the supremum of the
-reachable horizons. -/
+reachable horizons and that its blow-up/floor-collapse witnesses occur in
+every time tail approaching that endpoint. -/
 def CanonicalMaximalContinuationM
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
   (¬ BddAbove (reachableClassicalHorizonSetM p u₀) ∧
@@ -320,10 +321,10 @@ def CanonicalMaximalContinuationM
       IsPaper2ClassicalSolution intervalDomainM p
         (finiteMaximalReachableHorizonM p u₀) u v ∧
       InitialTrace intervalDomainM u₀ u ∧
-      FiniteHorizonAlternative intervalDomainM
+      EndpointFiniteHorizonAlternative intervalDomainM
         (finiteMaximalReachableHorizonM p u₀) u ∧
       (1 ≤ p.m →
-        MGeOneFiniteHorizonAlternative intervalDomainM
+        UpperEndpointTail intervalDomainM
           (finiteMaximalReachableHorizonM p u₀) u))
 
 /-- Every paper-positive datum has the canonical finite/global continuation
@@ -343,12 +344,17 @@ theorem canonicalMaximalContinuationM
     obtain ⟨U, V, hsolMax, htraceMax⟩ :=
       realize_at_finiteMaximalReachableHorizonM_of_overlapUnique
         huniq hbdd hne
-    refine ⟨U, V, hsolMax, htraceMax, ?_, ?_⟩
-    · exact finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
-        hu₀ hbdd hsolMax htraceMax
+    have halt := finiteHorizonAlternative_at_finiteMaximalReachableHorizonM
+      hu₀ hbdd hsolMax htraceMax
+    refine ⟨U, V, hsolMax, htraceMax,
+      endpointFiniteHorizonAlternative_of_finiteHorizonAlternativeM
+        hsolMax htraceMax hu₀ halt, ?_⟩
     · intro hm
-      exact mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
-        hu₀ hm hbdd hsolMax htraceMax
+      have hmge :=
+        mgeOneFiniteHorizonAlternative_at_finiteMaximalReachableHorizonM
+          hu₀ hm hbdd hsolMax htraceMax
+      exact endpointUpperTail_of_mgeOneFiniteHorizonAlternativeM
+        hsolMax htraceMax hu₀ hmge
   · refine Or.inl ⟨hbdd, ?_⟩
     have hreach := reachableArbitrarilyLongM_of_not_bddAbove hbdd
     obtain ⟨U, V, hglobal, htraceGlobal⟩ :=
@@ -356,7 +362,8 @@ theorem canonicalMaximalContinuationM
         huniq hreach
     exact ⟨U, V, hglobal, htraceGlobal⟩
 
-/-- Corrected Paper 2 Proposition 1.1 on the paper-faithful interval model. -/
+/-- Corrected Paper 2 Proposition 1.1 on the paper-faithful interval model,
+including uniqueness on overlaps and the endpoint-local maximal alternative. -/
 def CorrectedProposition_1_1_intervalDomainM (p : CM2Params) : Prop :=
   ∀ u₀ : intervalDomainPoint → ℝ,
     PaperPositiveInitialDatum intervalDomainM u₀ →
@@ -400,11 +407,15 @@ theorem paper2MaximalContinuation_intervalDomainM_nonempty
     Nonempty (Paper2MaximalContinuation intervalDomainM p u₀) := by
   rcases canonicalMaximalContinuationM p u₀ hu₀ with
     ⟨_hnbdd, U, V, hglobal, htrace⟩ |
-      ⟨_hbdd, U, V, hsol, htrace, halt, hmge⟩
+      ⟨_hbdd, U, V, hsol, htrace, haltEndpoint, hmgeEndpoint⟩
   · exact ⟨Paper2MaximalContinuation.global U V hglobal htrace⟩
   · exact ⟨Paper2MaximalContinuation.finite
       (finiteMaximalReachableHorizonM p u₀) U V hsol.1
-      hsol htrace halt hmge⟩
+      hsol htrace
+      (finiteHorizonAlternative_of_endpointFiniteHorizonAlternative
+        hsol.1 haltEndpoint)
+      (fun hm => mgeOneFiniteHorizonAlternative_of_upperEndpointTail
+        hsol.1 (hmgeEndpoint hm))⟩
 
 section AxiomAudit
 
