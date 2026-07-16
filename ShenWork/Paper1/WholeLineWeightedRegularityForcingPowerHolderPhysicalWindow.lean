@@ -100,6 +100,39 @@ theorem exists_paper5WeightedGeneratorForcingNaturalPositiveWindowL2Trajectory_h
     p hab ha hbT hsol hTW hu hu2 hv2 hU2 hV2]
   exact hholder
 
+/-- A positive power modulus on the physical window makes the time-clamped
+canonical trajectory globally continuous.  The metric projection onto the
+window is nonexpansive, so the same modulus holds after clamping. -/
+theorem wholeLineRealL2PositiveWindowTrajectory_continuous_of_holder
+    {a b theta H : ℝ} (hab : a ≤ b) (htheta : 0 < theta) (hH : 0 ≤ H)
+    {g : ℝ → ℝ → ℝ}
+    (hholder : ∀ s ∈ Set.Icc a b, ∀ t ∈ Set.Icc a b,
+      ‖wholeLineRealL2PositiveWindowTrajectory hab g s -
+          wholeLineRealL2PositiveWindowTrajectory hab g t‖ ≤
+        H * |s - t| ^ theta) :
+    Continuous (wholeLineRealL2PositiveWindowTrajectory hab g) := by
+  apply continuous_of_local_rpow_holder htheta
+  intro s t _hst
+  let ps : ℝ := (Set.projIcc a b hab s).1
+  let pt : ℝ := (Set.projIcc a b hab t).1
+  have hps : ps ∈ Set.Icc a b := (Set.projIcc a b hab s).2
+  have hpt : pt ∈ Set.Icc a b := (Set.projIcc a b hab t).2
+  have hproj : |ps - pt| ≤ |s - t| := by
+    have hraw := (LipschitzWith.projIcc hab).dist_le_mul s t
+    simpa only [NNReal.coe_one, one_mul, Real.dist_eq, ps, pt] using hraw
+  have hbase := hholder ps hps pt hpt
+  have hpow : |ps - pt| ^ theta ≤ |s - t| ^ theta :=
+    Real.rpow_le_rpow (abs_nonneg _) hproj htheta.le
+  calc
+    ‖wholeLineRealL2PositiveWindowTrajectory hab g s -
+        wholeLineRealL2PositiveWindowTrajectory hab g t‖ =
+      ‖wholeLineRealL2PositiveWindowTrajectory hab g ps -
+        wholeLineRealL2PositiveWindowTrajectory hab g pt‖ := by
+          simp only [wholeLineRealL2PositiveWindowTrajectory, ps, pt,
+            Set.projIcc_of_mem hab hps, Set.projIcc_of_mem hab hpt]
+    _ ≤ H * |ps - pt| ^ theta := hbase
+    _ ≤ H * |s - t| ^ theta := mul_le_mul_of_nonneg_left hpow hH
+
 end ShenWork.Paper1
 
 #print axioms
@@ -108,3 +141,5 @@ end ShenWork.Paper1
   ShenWork.Paper1.paper5WeightedGeneratorForcingNaturalPositiveWindowL2Trajectory_eq_expanded
 #print axioms
   ShenWork.Paper1.exists_paper5WeightedGeneratorForcingNaturalPositiveWindowL2Trajectory_holder_of_expanded
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2PositiveWindowTrajectory_continuous_of_holder
