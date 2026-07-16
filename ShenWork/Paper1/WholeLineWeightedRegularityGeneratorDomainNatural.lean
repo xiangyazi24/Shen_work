@@ -3,6 +3,7 @@ import ShenWork.Paper1.WholeLineWeightedRegularityL2Semigroup
 import Mathlib.Analysis.Calculus.FDeriv.Extend
 
 open Filter MeasureTheory Set Topology
+open scoped RealInnerProductSpace
 
 noncomputable section
 
@@ -152,12 +153,75 @@ theorem wholeLineRealL2Total_hasDerivWithinAt_coe_ae_of_pointwise
     simpa only [q, Function.comp_apply, smul_eq_mul] using hcomp
   exact wholeLineRealL2_limit_coe_ae_of_pointwise hQ hrep hq
 
+/-! ## Right derivative of the quadratic energy -/
+
+/-- Right-sided Hilbert differentiation of half the squared norm. -/
+theorem halfNormSq_hasDerivWithinAt_Ici
+    {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    {Z : ℝ → E} {V : E} {t : ℝ}
+    (hZ : HasDerivWithinAt Z V (Set.Ici t) t) :
+    HasDerivWithinAt (fun s => (1 / 2 : ℝ) * ‖Z s‖ ^ 2)
+      (⟪Z t, V⟫) (Set.Ici t) t := by
+  convert hZ.norm_sq.const_mul (1 / 2 : ℝ) using 1
+  ring
+
+/-- Right Hilbert differentiability gives the right derivative of the
+concrete whole-line quadratic energy.  Representative equality is needed
+only on the same one-sided germ. -/
+theorem wholeLineHalfEnergy_hasDerivWithinAt_Ici_of_L2
+    {phi phi_t : ℝ → ℝ → ℝ}
+    {Z : ℝ → WholeLineRealL2} {V : WholeLineRealL2} {t : ℝ}
+    (hZ : HasDerivWithinAt Z V (Set.Ici t) t)
+    (hrep : ∀ᶠ s in nhdsWithin t (Set.Ici t),
+      ((Z s : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] phi s)
+    (hVrep : ((V : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] phi_t t) :
+    HasDerivWithinAt (ShenWork.PaperOne.wholeLineHalfEnergy phi)
+      (∫ x : ℝ, phi t x * phi_t t x) (Set.Ici t) t := by
+  have hnorm := halfNormSq_hasDerivWithinAt_Ici hZ
+  have heq :
+      ShenWork.PaperOne.wholeLineHalfEnergy phi =ᶠ[
+        nhdsWithin t (Set.Ici t)]
+        fun s => (1 / 2 : ℝ) * ‖Z s‖ ^ 2 := by
+    filter_upwards [hrep] with s hs
+    exact wholeLineHalfEnergy_eq_halfNormSq_of_aeEq (Z s) hs
+  have hrep_t : ((Z t : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] phi t :=
+    hrep.self_of_nhdsWithin (Set.mem_Ici.mpr le_rfl)
+  have heq_t : ShenWork.PaperOne.wholeLineHalfEnergy phi t =
+      (1 / 2 : ℝ) * ‖Z t‖ ^ 2 :=
+    wholeLineHalfEnergy_eq_halfNormSq_of_aeEq (Z t) hrep_t
+  have henergy : HasDerivWithinAt
+      (ShenWork.PaperOne.wholeLineHalfEnergy phi) (⟪Z t, V⟫)
+      (Set.Ici t) t := (heq.hasDerivWithinAt_iff heq_t).mpr hnorm
+  rw [wholeLineIntegral_mul_eq_inner_of_aeEq (Z t) V
+    hrep_t hVrep]
+  exact henergy
+
+/-- Canonical-total specialization of the preceding right energy rule. -/
+theorem wholeLineHalfEnergy_hasDerivWithinAt_Ici_of_canonicalL2
+    {phi phi_t : ℝ → ℝ → ℝ} {V : WholeLineRealL2} {t : ℝ}
+    (hphi_meas : ∀ᶠ s in nhdsWithin t (Set.Ici t),
+      AEStronglyMeasurable (phi s) volume)
+    (hphi_sq : ∀ᶠ s in nhdsWithin t (Set.Ici t),
+      Integrable (fun x : ℝ => phi s x ^ 2) volume)
+    (hZ : HasDerivWithinAt
+      (fun s => wholeLineRealL2Total (phi s)) V (Set.Ici t) t)
+    (hVrep : ((V : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] phi_t t) :
+    HasDerivWithinAt (ShenWork.PaperOne.wholeLineHalfEnergy phi)
+      (∫ x : ℝ, phi t x * phi_t t x) (Set.Ici t) t := by
+  apply wholeLineHalfEnergy_hasDerivWithinAt_Ici_of_L2 hZ
+  · filter_upwards [hphi_meas, hphi_sq] with s hsmeas hssq
+    exact wholeLineRealL2Total_coe_ae (phi s) hsmeas hssq
+  · exact hVrep
+
 section AxiomAudit
 
 #print axioms
   weightedMovingHeatL2Semigroup_hasDerivWithinAt_zero_of_generator_tendsto
 #print axioms hasDerivWithinAt_Ici_forwardSlope_sequence
 #print axioms wholeLineRealL2Total_hasDerivWithinAt_coe_ae_of_pointwise
+#print axioms halfNormSq_hasDerivWithinAt_Ici
+#print axioms wholeLineHalfEnergy_hasDerivWithinAt_Ici_of_L2
+#print axioms wholeLineHalfEnergy_hasDerivWithinAt_Ici_of_canonicalL2
 
 end AxiomAudit
 
