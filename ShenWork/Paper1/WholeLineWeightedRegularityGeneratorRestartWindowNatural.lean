@@ -679,6 +679,79 @@ theorem weightedMovingHeatFullGeneratorCandidate_eq_of_pointwise_restart_bounded
     weightedMovingHeatL2Semigroup eta c (r - q) (F q)
   rw [hFeq q hq]
 
+/-- The exact-weight co-moving population built from the canonical BUC fixed
+point is jointly continuous in time and space.  This supplies the state-side
+joint measurability needed by the continuity-free `L²` restart lift. -/
+theorem wholeLineCauchyBUCMildFixedPoint_weightedPopulation_joint_continuous
+    (p : CMParams) {M T eta c : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    {Uw : ℝ → ℝ} (hUw : Continuous Uw) :
+    let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let u : ℝ → ℝ → ℝ := fun s y =>
+      (wholeLineBUCTrajectoryExtend hT Traj s).1 y
+    Continuous (Function.uncurry
+      (paper5WeightedPopulation eta (coMovingPath c u) Uw)) := by
+  dsimp only
+  let Traj : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+  let Ext : ℝ → WholeLineBUC := wholeLineBUCTrajectoryExtend hT Traj
+  have heval : Continuous (fun q : WholeLineBUC × ℝ => q.1.1 q.2) := by
+    fun_prop
+  have hu : Continuous (fun q : ℝ × ℝ =>
+      (Ext q.1).1 (q.2 + c * q.1)) := by
+    exact heval.comp
+      (Continuous.prodMk
+        ((wholeLineBUCTrajectoryExtend_continuous hT Traj).comp
+          continuous_fst)
+        (continuous_snd.add (continuous_const.mul continuous_fst)))
+  have hUw' : Continuous (fun q : ℝ × ℝ => Uw q.2) :=
+    hUw.comp continuous_snd
+  have hexp : Continuous (fun q : ℝ × ℝ =>
+      Real.exp (eta * q.2)) := by
+    fun_prop
+  simpa only [Traj, Ext, Function.uncurry, paper5WeightedPopulation,
+    coMovingPath] using hexp.mul (hu.sub hUw')
+
+/-- Closed-window form of the continuity-free pointwise-to-`L²` lift.  The
+left endpoint is the semigroup identity; every later terminal slice uses the
+same joint measurability, square budget, and measurable Hilbert forcing. -/
+theorem weightedMovingHeatFullGeneratorCandidate_eq_on_window_of_pointwise_restart_bounded_measurable
+    {eta c a r Cf : ℝ} (hCf : 0 ≤ Cf)
+    {z f : ℝ → ℝ → ℝ} {F : ℝ → WholeLineRealL2}
+    (hz_joint : Measurable (Function.uncurry z))
+    (hf_joint : Measurable (Function.uncurry f))
+    (hz_sq : ∀ q ∈ Set.Icc a r,
+      Integrable (fun x : ℝ => z q x ^ 2) volume)
+    (hf_sq : ∀ q ∈ Set.Icc a r,
+      Integrable (fun x : ℝ => f q x ^ 2) volume)
+    (hf_le : ∀ q ∈ Set.Icc a r,
+      (∫ x : ℝ, f q x ^ 2) ≤ Cf)
+    (hFrep : ∀ q ∈ Set.Icc a r,
+      (((F q : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] f q))
+    (hFtime : AEStronglyMeasurable F volume)
+    (hpoint : ∀ t ∈ Set.Ioc a r, ∀ᵐ x ∂volume,
+      z t x = weightedMovingHeatEta eta c (t - a) (z a) x +
+        ∫ q in a..t,
+          weightedMovingHeatEta eta c (t - q) (f q) x) :
+    ∀ t ∈ Set.Icc a r,
+      wholeLineRealL2Total (z t) =
+        weightedMovingHeatFullGeneratorCandidate eta c a
+          (wholeLineRealL2Total (z a)) F t := by
+  intro t ht
+  rcases ht.1.eq_or_lt with hta | hat
+  · subst t
+    simp [weightedMovingHeatFullGeneratorCandidate,
+      weightedMovingHeatL2Semigroup_zero]
+  · exact
+      weightedMovingHeatFullGeneratorCandidate_eq_of_pointwise_restart_bounded_measurable
+        hat hCf hz_joint hf_joint
+          (fun q hq => hz_sq q ⟨hq.1, hq.2.trans ht.2⟩)
+          (fun q hq => hf_sq q ⟨hq.1, hq.2.trans ht.2⟩)
+          (fun q hq => hf_le q ⟨hq.1, hq.2.trans ht.2⟩)
+          (fun q hq => hFrep q ⟨hq.1, hq.2.trans ht.2⟩)
+          hFtime (hpoint t ⟨hat, ht.2⟩)
+
 /-- Joint measurability of a scalar source gives joint measurability of its
 moving weighted-heat history.  This is the only measurability input needed
 by the local Fubini step; the Gaussian convolution is assembled here. -/
@@ -1111,6 +1184,10 @@ end ShenWork.Paper1
   ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weighted_generator_restart
 #print axioms
   ShenWork.Paper1.weightedMovingHeatFullGeneratorCandidate_eq_of_pointwise_restart_bounded_measurable
+#print axioms
+  ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedPopulation_joint_continuous
+#print axioms
+  ShenWork.Paper1.weightedMovingHeatFullGeneratorCandidate_eq_on_window_of_pointwise_restart_bounded_measurable
 #print axioms
   ShenWork.Paper1.weightedMovingHeat_actualState_damped_history_intervalIntegrable_of_continuous
 #print axioms
