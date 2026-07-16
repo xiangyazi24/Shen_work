@@ -83,10 +83,37 @@ theorem wholeLineRealL2_hasDerivAt_coe_ae_of_pointwise_along
       (hz x).tendsto_slope_zero.comp hepsWithin
   exact wholeLineRealL2_limit_coe_ae_of_pointwise hQ hrepQ hpointQ
 
+/-- Canonical-total specialization.  The fixed sequence `(n+1)⁻¹` is chosen
+internally, so a caller only supplies square-integrable measurable slices and
+the classical pointwise time derivative. -/
+theorem wholeLineRealL2Total_hasDerivAt_coe_ae_of_pointwise
+    {z : ℝ → ℝ → ℝ} {zt : ℝ → ℝ} {V : WholeLineRealL2} {t : ℝ}
+    (hz_meas : ∀ s, AEStronglyMeasurable (z s) volume)
+    (hz_sq : ∀ s, Integrable (fun x : ℝ => z s x ^ 2) volume)
+    (hZ : HasDerivAt (fun s => wholeLineRealL2Total (z s)) V t)
+    (hz : ∀ x, HasDerivAt (fun s => z s x) (zt x) t) :
+    (((V : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] zt) := by
+  let eps : ℕ → ℝ := fun n => ((n + 1 : ℕ) : ℝ)⁻¹
+  apply wholeLineRealL2_hasDerivAt_coe_ae_of_pointwise_along
+    (z := z) (zt := fun _ => zt) (eps := eps)
+  · simpa only [eps, Nat.cast_add, Nat.cast_one, one_div] using
+      (tendsto_one_div_add_atTop_nhds_zero_nat :
+        Tendsto (fun n : ℕ => (1 : ℝ) / ((n : ℝ) + 1)) atTop (𝓝 0))
+  · intro n
+    dsimp only [eps]
+    exact inv_ne_zero (by positivity)
+  · exact hZ
+  · intro n
+    exact wholeLineRealL2Total_coe_ae _
+      (hz_meas (t + eps n)) (hz_sq (t + eps n))
+  · exact wholeLineRealL2Total_coe_ae _ (hz_meas t) (hz_sq t)
+  · exact hz
+
 section AxiomAudit
 
 #print axioms wholeLineRealL2_limit_coe_ae_of_pointwise
 #print axioms wholeLineRealL2_hasDerivAt_coe_ae_of_pointwise_along
+#print axioms wholeLineRealL2Total_hasDerivAt_coe_ae_of_pointwise
 
 end AxiomAudit
 
