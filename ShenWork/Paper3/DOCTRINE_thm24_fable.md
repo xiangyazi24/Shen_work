@@ -81,11 +81,43 @@ Status legend: [ ] not started, [WIP], [DONE = cold-built clean-3 on uisai2].
 3. [DONE] `IntervalDomainMEntropyStrongDissipation.lean` — Young (−2m/−m) + elliptic + A.6 + coefficient
    ⟹ `slope ≤ −strongMEntropyCoefficient · θDissip`; coefficient positivity from chiStrong1.
 4. [DONE] `IntervalDomainMEntropyBasinEntry.lean` — late small-dissipation slices + AA contradiction ⟹ late supClose.
-5. [ ] `IntervalDomainMEntropyStrong1Global.lean` — strong1 branch: orbit-bound restart at late slice
+5. [DONE] `IntervalDomainMEntropyStrong1Global.lean` — strong1 branch: orbit-bound restart at late slice
    ⟹ eventual C¹ + `EventuallyGloballyExponentiallyStableNonminimal intervalDomainM`.
-6. [ ] strong2 branch (chiStrong2: signal floor / chiBar persistence) — analyze m=1 Strong2 chain first.
-7. [ ] strong3/4 (rectangle log-gap; committed `PersistenceGeneralM*` groundwork) — port `RectangleGlobal` to M.
-8. [ ] `IntervalDomainMTheorem24Eventual.lean` — headline
+6. [DONE] `IntervalDomainMEntropyStrong2Global.lean` — strong2: m=1 reverse bridge + legacy persistence;
+   m>1 faithful Thm 2.1(3) floor with strict-threshold slack (floor slightly below vAB keeps coefficient positive).
+7. [WIP] strong3/4 rectangle port to intervalDomainM.  Port map (m=1 sources → new M files):
+   - The m=1 rectangle chain has NO hm hypotheses because the legacy domain hardcodes the m=1 flux;
+     the port re-derives extremum slope bounds for the u^m flux.  KEY MATH: at a spatial max/min the
+     flux divergence (u^m φ v_x)_x = u^m (φ v_x)_x + m u^{m-1} u_x φ v_x and u_x = 0 at interior
+     extrema AND at Neumann endpoints, so only the factor u^{m-1} (= U^{m-1} at the argmax) threads
+     through; chiStrong3Formula's u*^{m+γ-1} (vs u*^γ at m=1) already reflects it.  The extra
+     X^{m-1} (X := U/u* ≥ 1) is absorbed by the scalar gap lemma
+     X^b (X^a − Y^a) ≤ X^{a+b} − Y^{a+b} (for X ≥ 1 ≥ Y > 0; proof: difference = Y^a(X^b − Y^b) ≥ 0),
+     consistent with the strengthened branch-3/4 exponent conditions α+1 ≥ m+γ+(β≠0)γ / α+1 ≥ m+2γ.
+   - `IntervalDomainRectangleSignalBounds.lean` (197) → M version (v-equation identical; only the
+     solution-predicate type changes).
+   - `IntervalDomainRectangleInteriorSlopes.lean` (420) + `IntervalDomainRectangleBoundarySlopes.lean`
+     (894) + `IntervalDomainRectangleExtremumSlopes.lean` (238) → M versions with the u^m flux
+     (`intervalDomain_rectangle_max_slope_of_argmax` analogue: u_t ≤ U(a − bU^α + χ₀ U^{m-1}(ν(U^γ−L^γ)
+     + β(Cν(U^γ−L^γ))²)) at the clamped max; dual for the min).
+   - `IntervalDomainRectangleLogGap.lean` (1398): choice-space/Dini layer is PDE-light; port the
+     hsol-taking lemmas (clampedLower_pos, choiceValue_mem_clamped, clampedUpper/Lower_logSlope, the
+     `_with_weight` variants) to M; scalar lemmas reusable as-is.
+   - `IntervalDomainRectangleGlobal.lean` (1103): strong3/4 decay coefficient + Dini contraction +
+     logGap→sup conversion; port the hsol/orbit lemmas; scalar layer reusable.
+   - χ₀ ≤ 0 sub-case of branches 3/4: m=1 used `intervalDomain_chiNonpos_uniform_u_converges`
+     (`NegativeSensitivityMass{Floor,Convergence}` + `MaxDecay` chain, m=1-gated) — needs a general-m
+     analogue on intervalDomainM (mass floor + max decay for u^m flux), OR reuse of the m>1 faithful
+     persistence + a repulsive-entropy argument.  NOT yet scoped in detail.
+   - Stage-B/eventual-C¹ part of branches 3/4 is DONE: from
+     `GloballyAsymptoticallyStableNonminimal intervalDomainM` late supClose is immediate and
+     `intervalDomainM_eventualC1_of_lateSupClose` applies.
+8. [DONE scaffold] `IntervalDomainMTheorem24Eventual.lean` —
+   `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula_of_rectangle_frontiers`: the full
+   four-branch headline with branches 1–2 discharged unconditionally and branches 3–4 as named
+   frontier hypotheses (repo `of_frontiers` idiom).  Final headline = apply it to the two rectangle
+   producers once file-7 lands; keep the name
+   `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula` for that final theorem
    `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula (p) : Theorem_2_4_EventualGlobalStabilityFormula intervalDomainM p intervalDomainMSectorialStabilityNorms M0`, NO hm.
 
 ## Build discipline
