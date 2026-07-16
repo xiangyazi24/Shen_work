@@ -1,0 +1,367 @@
+import ShenWork.Paper3.IntervalDomainMRectangleSignalBounds
+import ShenWork.Paper2.IntervalDomainMaxPointSolution
+import ShenWork.Paper2.IntervalDomainInteriorArgmin
+import ShenWork.Paper2.IntervalDomainInteriorDeriv2
+import ShenWork.Paper2.IntervalDomainMChemDivCritical
+
+/-!
+# Interior slope bounds for the faithful general-`m` interval rectangle argument
+
+This is the `intervalDomainM` counterpart of `IntervalDomainRectangleInteriorSlopes`.
+At an interior spatial extremum the derivative of the lifted population vanishes,
+so the faithful `u^m` chemotaxis divergence factors as `U^m · (elliptic
+coefficient)` (`chemDivM_at_critical`).  Consequently the chemotaxis prefactor of
+each rectangle slope bound is `U^m` in place of the legacy `U`; every other step
+of the proof is identical (the signal `v`-equation is common to both models).
+No `p.m = 1` hypothesis is used — only positivity of the slice.
+-/
+
+open Filter Set Topology
+open ShenWork.IntervalDomain ShenWork.PDE ShenWork.Paper2
+open ShenWork.MinPersistenceAtoms ShenWork.MaxPrincipleAtoms
+open ShenWork.Paper2.IntervalDomainMMinPersistence
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- Weighted lower flux-coefficient estimate (scalar; re-declared here because
+the legacy version is `private`). -/
+private theorem rectangleM_fluxCoefficient_lower_of_weight
+    {β V Vx Vxx D L q : ℝ}
+    (hβ : 0 ≤ β) (hV : 0 ≤ V) (hq : 0 ≤ q) (hD : 0 ≤ D)
+    (hφq : (1 + V) ^ (-β) ≤ q)
+    (hψq : (1 + V) ^ (-β - 1) ≤ q)
+    (hVx : |Vx| ≤ L) (hVxx : -D ≤ Vxx) :
+    -(q * (D + β * L ^ 2)) ≤
+      -β * (1 + V) ^ (-β - 1) * Vx ^ 2 +
+        (1 + V) ^ (-β) * Vxx := by
+  have hφ0 : 0 ≤ (1 + V) ^ (-β) :=
+    Real.rpow_nonneg (by linarith) _
+  have hψ0 : 0 ≤ (1 + V) ^ (-β - 1) :=
+    Real.rpow_nonneg (by linarith) _
+  have hVx_sq : Vx ^ 2 ≤ L ^ 2 := by
+    have habs := abs_le.mp hVx
+    nlinarith [sq_nonneg Vx, sq_nonneg L]
+  have hψVx : (1 + V) ^ (-β - 1) * Vx ^ 2 ≤ q * L ^ 2 := by
+    calc
+      (1 + V) ^ (-β - 1) * Vx ^ 2 ≤ q * Vx ^ 2 :=
+        mul_le_mul_of_nonneg_right hψq (sq_nonneg _)
+      _ ≤ q * L ^ 2 := mul_le_mul_of_nonneg_left hVx_sq hq
+  have hgrad : -q * β * L ^ 2 ≤
+      -β * (1 + V) ^ (-β - 1) * Vx ^ 2 := by
+    have hm := mul_le_mul_of_nonpos_left hψVx (by linarith : -β ≤ 0)
+    nlinarith
+  have hell : -q * D ≤ (1 + V) ^ (-β) * Vxx := by
+    by_cases hxx : 0 ≤ Vxx
+    · have hz : -q * D ≤ 0 := by nlinarith [mul_nonneg hq hD]
+      exact hz.trans (mul_nonneg hφ0 hxx)
+    · have hqxx : q * Vxx ≤ (1 + V) ^ (-β) * Vxx := by
+        simpa using mul_le_mul_of_nonpos_right hφq (le_of_not_ge hxx)
+      have hDxx : -q * D ≤ q * Vxx := by
+        have hm := mul_le_mul_of_nonneg_left hVxx hq
+        nlinarith
+      exact hDxx.trans hqxx
+  linarith
+
+/-- Weighted upper flux-coefficient estimate (scalar). -/
+private theorem rectangleM_fluxCoefficient_upper_of_weight
+    {β V Vx Vxx D q : ℝ}
+    (hβ : 0 ≤ β) (hV : 0 ≤ V) (hq : 0 ≤ q) (hD : 0 ≤ D)
+    (hφq : (1 + V) ^ (-β) ≤ q) (hVxx : Vxx ≤ D) :
+    -β * (1 + V) ^ (-β - 1) * Vx ^ 2 +
+        (1 + V) ^ (-β) * Vxx ≤ q * D := by
+  have hφ0 : 0 ≤ (1 + V) ^ (-β) :=
+    Real.rpow_nonneg (by linarith) _
+  have hψ0 : 0 ≤ (1 + V) ^ (-β - 1) :=
+    Real.rpow_nonneg (by linarith) _
+  have hgrad : -β * (1 + V) ^ (-β - 1) * Vx ^ 2 ≤ 0 := by
+    have : 0 ≤ β * ((1 + V) ^ (-β - 1) * Vx ^ 2) :=
+      mul_nonneg hβ (mul_nonneg hψ0 (sq_nonneg _))
+    nlinarith
+  have hell : (1 + V) ^ (-β) * Vxx ≤ q * D := by
+    by_cases hxx : Vxx ≤ 0
+    · exact (mul_nonpos_of_nonneg_of_nonpos hφ0 hxx).trans
+        (mul_nonneg hq hD)
+    · have hφxx : (1 + V) ^ (-β) * Vxx ≤ q * Vxx := by
+        simpa using mul_le_mul_of_nonneg_right hφq (le_of_not_ge hxx)
+      exact hφxx.trans (mul_le_mul_of_nonneg_left hVxx hq)
+  linarith
+
+/-- At an interior spatial maximum of a faithful general-`m` slice, uniform
+bounds on both sensitivity weights give the correspondingly weighted upper
+rectangle vector field, with chemotaxis prefactor `U^m`. -/
+theorem intervalDomainM_rectangle_interior_max_slope_with_weight
+    {p : CM2Params} {T t uMin : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) x.1) ^ (-p.β) ≤ q)
+    (hweightOne :
+      (1 + intervalDomainLift (v t) x.1) ^ (-p.β - 1) ≤ q)
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
+    (hint : x.1 ∈ Ioo (0 : ℝ) 1)
+    (hmax : ∀ y, u t y ≤ u t x)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      uMin ≤ intervalDomainLift (u t) y) :
+    intervalDomain.timeDeriv u t x ≤
+      intervalDomainLift (u t) x.1 *
+          (p.a - p.b * (intervalDomainLift (u t) x.1) ^ p.α) +
+        p.χ₀ * (intervalDomainLift (u t) x.1) ^ p.m *
+          (q * (p.ν * ((intervalDomainLift (u t) x.1) ^ p.γ - uMin ^ p.γ) +
+            p.β * (unitIntervalResolverGradientOscillationConstant p *
+              (p.ν * ((intervalDomainLift (u t) x.1) ^ p.γ -
+                uMin ^ p.γ))) ^ 2)) := by
+  have ht0 := ht.1
+  have htT := ht.2
+  obtain ⟨hC2, _, _, _, _, _, _⟩ := hsol.regularity
+  have huC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) :=
+    (hC2 t ht).1
+  have hvC2 : ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Ioo (0 : ℝ) 1) :=
+    (hC2 t ht).2
+  have hUeq : intervalDomainLift (u t) x.1 = u t x := by
+    rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+    congr
+  set U : ℝ := intervalDomainLift (u t) x.1 with hU_def
+  set D : ℝ := p.ν * (U ^ p.γ - uMin ^ p.γ) with hD_def
+  set L : ℝ := unitIntervalResolverGradientOscillationConstant p * D with hL_def
+  have hUpos : 0 < U := by
+    rw [hUeq]
+    exact hsol.u_pos' ht0 htT
+  have hUmpos : 0 < U ^ p.m := Real.rpow_pos_of_pos hUpos _
+  have hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ U := by
+    intro y hy
+    rw [hUeq, intervalDomainLift, dif_pos hy]
+    exact hmax ⟨y, hy⟩
+  have hD : 0 ≤ D := by
+    have hp : uMin ^ p.γ ≤ U ^ p.γ :=
+      Real.rpow_le_rpow huMin (hlo x.1 (Ioo_subset_Icc_self hint)) p.hγ.le
+    exact mul_nonneg p.hν.le (sub_nonneg.mpr hp)
+  have hL : 0 ≤ L := mul_nonneg
+    (unitIntervalResolverGradientOscillationConstant_nonneg p) hD
+  have hsig := intervalDomainM_solution_signal_bounds_of_population_box
+    p hsol ht huMin hlo hhi x.1 (Ioo_subset_Icc_self hint)
+  have hvnn : ∀ y, 0 ≤ intervalDomainLift (v t) y := by
+    intro y
+    unfold intervalDomainLift
+    split_ifs
+    · exact hsol.v_nonneg ht0 htT
+    · exact le_rfl
+  have hvpair := contDiffOn_two_hasDerivAt_pair isOpen_Ioo hvC2 hint
+  have hvxxEq : deriv (deriv (intervalDomainLift (v t))) x.1 =
+      p.μ * intervalDomainLift (v t) x.1 - p.ν * U ^ p.γ := by
+    have hpde := hsol.pde_v ht0 htT (x := x) hint
+    have hlap : intervalDomainM.laplacian (v t) x =
+        deriv (deriv (intervalDomainLift (v t))) x.1 := rfl
+    have hVeq : intervalDomainLift (v t) x.1 = v t x := by
+      rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+      congr
+    rw [hlap, ← hUeq, ← hVeq] at hpde
+    rw [hU_def]
+    linarith
+  have hvxxLower : -D ≤ deriv (deriv (intervalDomainLift (v t))) x.1 := by
+    have hmul := mul_le_mul_of_nonneg_left hsig.1 p.hμ.le
+    have hcancel : p.μ * (p.ν * uMin ^ p.γ / p.μ) =
+        p.ν * uMin ^ p.γ := by field_simp [ne_of_gt p.hμ]
+    rw [hcancel] at hmul
+    rw [hvxxEq]
+    rw [hD_def]
+    linarith
+  have hcoeffLower := rectangleM_fluxCoefficient_lower_of_weight p.hβ
+    (hvnn x.1) hq hD
+      (by simpa [hU_def] using hweight)
+      (by simpa [hU_def] using hweightOne)
+      (by simpa [hL_def, hD_def, hU_def] using hsig.2.2) hvxxLower
+  have hux0 := interior_argmax_deriv_zero hmax hint
+    ((contDiffOn_two_hasDerivAt_pair isOpen_Ioo huC2 hint).1.differentiableAt)
+  have hcd := chemDivM_at_critical (p := p) (u := u t) (v := v t) (x := x)
+    (by rw [← hU_def]; exact hUpos) hux0 hvpair.1 hvpair.2 hvnn
+  have hcdLower : -(U ^ p.m) * (q * (D + p.β * L ^ 2)) ≤
+      intervalDomainChemotaxisDivM p (u t) (v t) x := by
+    rw [hcd]
+    have hm := mul_le_mul_of_nonneg_left hcoeffLower hUmpos.le
+    rw [hU_def] at hm
+    convert hm using 1 <;> ring
+  have huxx := interior_argmax_deriv2_nonpos hmax hint huC2
+  have hpde : intervalDomain.timeDeriv u t x =
+      deriv (deriv (intervalDomainLift (u t))) x.1 -
+        p.χ₀ * intervalDomainChemotaxisDivM p (u t) (v t) x +
+        U * (p.a - p.b * U ^ p.α) := by
+    rw [hUeq]
+    exact hsol.pde_u ht0 htT hint
+  have hchem := mul_le_mul_of_nonpos_left hcdLower (by linarith : -p.χ₀ ≤ 0)
+  change intervalDomain.timeDeriv u t x ≤
+    U * (p.a - p.b * U ^ p.α) +
+      p.χ₀ * U ^ p.m * (q * (D + p.β * L ^ 2))
+  rw [hpde]
+  nlinarith
+
+/-- At an interior spatial maximum, the population slope is bounded by the
+upper rectangle vector field with the concrete resolver-gradient constant. -/
+theorem intervalDomainM_rectangle_interior_max_slope
+    {p : CM2Params} {T t uMin : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T) (huMin : 0 ≤ uMin)
+    (hint : x.1 ∈ Ioo (0 : ℝ) 1)
+    (hmax : ∀ y, u t y ≤ u t x)
+    (hlo : ∀ y ∈ Icc (0 : ℝ) 1,
+      uMin ≤ intervalDomainLift (u t) y) :
+    intervalDomain.timeDeriv u t x ≤
+      intervalDomainLift (u t) x.1 *
+          (p.a - p.b * (intervalDomainLift (u t) x.1) ^ p.α) +
+        p.χ₀ * (intervalDomainLift (u t) x.1) ^ p.m *
+          (p.ν * ((intervalDomainLift (u t) x.1) ^ p.γ - uMin ^ p.γ) +
+            p.β * (unitIntervalResolverGradientOscillationConstant p *
+              (p.ν * ((intervalDomainLift (u t) x.1) ^ p.γ -
+                uMin ^ p.γ))) ^ 2) := by
+  have hv : 0 ≤ intervalDomainLift (v t) x.1 := by
+    rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hbase : 1 ≤ 1 + intervalDomainLift (v t) x.1 := by linarith
+  have hweight : (1 + intervalDomainLift (v t) x.1) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos hbase (neg_nonpos.mpr p.hβ)
+  have hweightOne :
+      (1 + intervalDomainLift (v t) x.1) ^ (-p.β - 1) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos hbase (by linarith [p.hβ])
+  simpa using intervalDomainM_rectangle_interior_max_slope_with_weight
+    (p := p) (T := T) (t := t) (uMin := uMin) (u := u) (v := v) (x := x)
+      1 zero_le_one hweight hweightOne hχ hsol ht huMin hint hmax hlo
+
+/-- At an interior spatial minimum, a uniform sensitivity-weight bound gives
+the correspondingly weighted lower rectangle vector field with prefactor
+`U^m`. -/
+theorem intervalDomainM_rectangle_interior_min_slope_with_weight
+    {p : CM2Params} {T t uMax : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    (q : ℝ) (hq : 0 ≤ q)
+    (hweight : (1 + intervalDomainLift (v t) x.1) ^ (-p.β) ≤ q)
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hint : x.1 ∈ Ioo (0 : ℝ) 1)
+    (hmin : ∀ y, u t x ≤ u t y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ uMax) :
+    -p.χ₀ * q * (intervalDomainLift (u t) x.1) ^ p.m *
+          (p.ν * (uMax ^ p.γ -
+            (intervalDomainLift (u t) x.1) ^ p.γ)) +
+        intervalDomainLift (u t) x.1 *
+          (p.a - p.b * (intervalDomainLift (u t) x.1) ^ p.α) ≤
+      intervalDomain.timeDeriv u t x := by
+  have ht0 := ht.1
+  have htT := ht.2
+  obtain ⟨hC2, _, _, _, _, _, _⟩ := hsol.regularity
+  have huC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) :=
+    (hC2 t ht).1
+  have hvC2 : ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Ioo (0 : ℝ) 1) :=
+    (hC2 t ht).2
+  have hUeq : intervalDomainLift (u t) x.1 = u t x := by
+    rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+    congr
+  set U : ℝ := intervalDomainLift (u t) x.1 with hU_def
+  set D : ℝ := p.ν * (uMax ^ p.γ - U ^ p.γ) with hD_def
+  have hUpos : 0 < U := by
+    rw [hUeq]
+    exact hsol.u_pos' ht0 htT
+  have hUmpos : 0 < U ^ p.m := Real.rpow_pos_of_pos hUpos _
+  have hlo : ∀ y ∈ Icc (0 : ℝ) 1, U ≤ intervalDomainLift (u t) y := by
+    intro y hy
+    rw [hUeq, intervalDomainLift, dif_pos hy]
+    exact hmin ⟨y, hy⟩
+  have hD : 0 ≤ D := by
+    have hp : U ^ p.γ ≤ uMax ^ p.γ :=
+      Real.rpow_le_rpow hUpos.le (hhi x.1 (Ioo_subset_Icc_self hint)) p.hγ.le
+    exact mul_nonneg p.hν.le (sub_nonneg.mpr hp)
+  have hsig := intervalDomainM_solution_signal_bounds_of_population_box
+    p hsol ht hUpos.le hlo hhi x.1 (Ioo_subset_Icc_self hint)
+  have hvnn : ∀ y, 0 ≤ intervalDomainLift (v t) y := by
+    intro y
+    unfold intervalDomainLift
+    split_ifs
+    · exact hsol.v_nonneg ht0 htT
+    · exact le_rfl
+  have hvpair := contDiffOn_two_hasDerivAt_pair isOpen_Ioo hvC2 hint
+  have hvxxEq : deriv (deriv (intervalDomainLift (v t))) x.1 =
+      p.μ * intervalDomainLift (v t) x.1 - p.ν * U ^ p.γ := by
+    have hpde := hsol.pde_v ht0 htT (x := x) hint
+    have hlap : intervalDomainM.laplacian (v t) x =
+        deriv (deriv (intervalDomainLift (v t))) x.1 := rfl
+    have hVeq : intervalDomainLift (v t) x.1 = v t x := by
+      rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+      congr
+    rw [hlap, ← hUeq, ← hVeq] at hpde
+    rw [hU_def]
+    linarith
+  have hvxxUpper : deriv (deriv (intervalDomainLift (v t))) x.1 ≤ D := by
+    have hmul := mul_le_mul_of_nonneg_left hsig.2.1 p.hμ.le
+    have hcancel : p.μ * (p.ν * uMax ^ p.γ / p.μ) =
+        p.ν * uMax ^ p.γ := by field_simp [ne_of_gt p.hμ]
+    rw [hcancel] at hmul
+    rw [hvxxEq]
+    rw [hD_def]
+    linarith
+  have hcoeffUpper := rectangleM_fluxCoefficient_upper_of_weight
+    (Vx := deriv (intervalDomainLift (v t)) x.1)
+    p.hβ (hvnn x.1) hq hD (by simpa [hU_def] using hweight) hvxxUpper
+  have hux0 := interior_argmin_deriv_zero hmin hint
+    ((contDiffOn_two_hasDerivAt_pair isOpen_Ioo huC2 hint).1.differentiableAt)
+  have hcd := chemDivM_at_critical (p := p) (u := u t) (v := v t) (x := x)
+    (by rw [← hU_def]; exact hUpos) hux0 hvpair.1 hvpair.2 hvnn
+  have hcdUpper : intervalDomainChemotaxisDivM p (u t) (v t) x ≤
+      U ^ p.m * (q * D) := by
+    rw [hcd]
+    have hm := mul_le_mul_of_nonneg_left hcoeffUpper hUmpos.le
+    simpa [hU_def] using hm
+  have huxx := interior_argmin_deriv2_nonneg hmin hint huC2
+  have hpde : intervalDomain.timeDeriv u t x =
+      deriv (deriv (intervalDomainLift (u t))) x.1 -
+        p.χ₀ * intervalDomainChemotaxisDivM p (u t) (v t) x +
+        U * (p.a - p.b * U ^ p.α) := by
+    rw [hUeq]
+    exact hsol.pde_u ht0 htT hint
+  have hchem := mul_le_mul_of_nonpos_left hcdUpper (by linarith : -p.χ₀ ≤ 0)
+  change -p.χ₀ * q * U ^ p.m * D + U * (p.a - p.b * U ^ p.α) ≤
+    intervalDomain.timeDeriv u t x
+  rw [hpde]
+  nlinarith
+
+/-- At an interior spatial minimum, the population slope is bounded below by
+the lower rectangle vector field with prefactor `U^m`. -/
+theorem intervalDomainM_rectangle_interior_min_slope
+    {p : CM2Params} {T t uMax : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {x : intervalDomainPoint}
+    (hχ : 0 ≤ p.χ₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht : t ∈ Ioo (0 : ℝ) T)
+    (hint : x.1 ∈ Ioo (0 : ℝ) 1)
+    (hmin : ∀ y, u t x ≤ u t y)
+    (hhi : ∀ y ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (u t) y ≤ uMax) :
+    -p.χ₀ * (intervalDomainLift (u t) x.1) ^ p.m *
+          (p.ν * (uMax ^ p.γ -
+            (intervalDomainLift (u t) x.1) ^ p.γ)) +
+        intervalDomainLift (u t) x.1 *
+          (p.a - p.b * (intervalDomainLift (u t) x.1) ^ p.α) ≤
+      intervalDomain.timeDeriv u t x := by
+  have hv : 0 ≤ intervalDomainLift (v t) x.1 := by
+    rw [intervalDomainLift, dif_pos (Ioo_subset_Icc_self hint)]
+    exact hsol.v_nonneg ht.1 ht.2
+  have hbase : 1 ≤ 1 + intervalDomainLift (v t) x.1 := by linarith
+  have hweight : (1 + intervalDomainLift (v t) x.1) ^ (-p.β) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos hbase (neg_nonpos.mpr p.hβ)
+  simpa using intervalDomainM_rectangle_interior_min_slope_with_weight
+    (p := p) (T := T) (t := t) (uMax := uMax) (u := u) (v := v) (x := x)
+      1 zero_le_one hweight hχ hsol ht hint hmin hhi
+
+#print axioms intervalDomainM_rectangle_interior_max_slope
+#print axioms intervalDomainM_rectangle_interior_min_slope
+#print axioms intervalDomainM_rectangle_interior_max_slope_with_weight
+#print axioms intervalDomainM_rectangle_interior_min_slope_with_weight
+
+end
+
+end ShenWork.Paper3
