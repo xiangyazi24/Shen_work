@@ -2,6 +2,7 @@ import ShenWork.Paper1.WholeLineWeightedRegularityRawDQVolterraStep
 import ShenWork.Paper1.WholeLineWeightedRegularityRawDQIccProfile
 import ShenWork.Paper1.WholeLineWeightedRegularityRawDQLocalFubini
 import ShenWork.Paper1.WholeLineWeightedRegularityWeightedRawDQRestart
+import ShenWork.Paper1.WholeLineWeightedRegularityRawDQUniformWave
 
 open Filter MeasureTheory Real Set
 open scoped BoundedContinuousFunction Interval RealInnerProductSpace
@@ -575,9 +576,128 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
       Traj hstrip W hWmem hWpos hbaseW hrelativeW hvalueW hrawW
       hrawEnergyW hvalueEnergyW hidentity
 
+/-- The fixed-point/wave one-step bound with both wave difference-quotient
+premises produced from a single logarithmic-derivative bound. -/
+theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave_of_logDerivative
+    (p : CMParams)
+    {M T Blog eta R c h a r X0 F D E Kflux FD B : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (hBlog : 0 ≤ Blog)
+    (heta0 : 0 ≤ eta) (heta1 : eta < 1)
+    (hh : h ≠ 0) (habs : |h| ≤ 1)
+    (ha : 0 < a) (har : a < r) (hrT : r ≤ T)
+    (hX0 : 0 ≤ X0) (hF : 0 ≤ F)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    {Uw Vw : ℝ → ℝ}
+    (hTW : IsTravelingWave p c Uw Vw)
+    (hbound : HasWaveUpperTailBound p c Uw)
+    (hreg : TravelingWaveRegularity p c Uw Vw)
+    (hMChi : MChi p ≤ M)
+    (hlog : ∀ y, |deriv Uw y / Uw y| ≤ Blog)
+    (hD : 0 ≤ D) (hFD : 0 ≤ FD) (hB : 0 ≤ B)
+    (hUd : ∀ y, |deriv Uw y| ≤ D)
+    (hUdd : ∀ y, |deriv (deriv Uw) y| ≤ E)
+    (hUddcont : Continuous (deriv (deriv Uw)))
+    (hflux : ∀ y, |wholeLineTravelingWaveFlux p Uw Vw y| ≤ Kflux)
+    (hfluxd : ∀ y,
+      |deriv (wholeLineTravelingWaveFlux p Uw Vw) y| ≤ FD)
+    (hflux_has : ∀ y, HasDerivAt
+      (wholeLineTravelingWaveFlux p Uw Vw)
+      (deriv (wholeLineTravelingWaveFlux p Uw Vw) y) y)
+    (hfluxd_cont : Continuous
+      (deriv (wholeLineTravelingWaveFlux p Uw Vw)))
+    (hreact : ∀ y, |wholeLineCauchyShiftedReaction p Uw y| ≤ B)
+    (hreact_cont : Continuous (wholeLineCauchyShiftedReaction p Uw))
+    (hgrad_int : ∀ x, IntervalIntegrable
+      (fun q : ℝ => paper5MovingFrameHeatGradOp c q
+        (wholeLineTravelingWaveFlux p Uw Vw) x) volume 0 (r - a))
+    (hvalue : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+              (x + c * s) - Uw x| ^ 2))
+    (hraw : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x =>
+      capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (x + c * s) - Uw x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (y + c * s) - Uw y) x| ^ 2))
+    (hraw_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |eta * ((wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (x + c * s) - Uw x) +
+          spatialDifferenceQuotient h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT
+              (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+                (y + c * s) - Uw y) x| ^ 2) ≤ X0 ^ 2)
+    (hvalue_energy : ∀ s ∈ Set.Icc (0 : ℝ) r,
+      (∫ x : ℝ, capWeight eta R x *
+        |(wholeLineBUCTrajectoryExtend hT
+            (wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall) s).1
+              (x + c * s) - Uw x| ^ 2) ≤ F ^ 2) :
+    let Brel := Blog * Real.exp (2 * Blog)
+    let DU := Brel * M
+    let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
+    let W := wholeLineTravelingWavePopulationBUC p hTW hbound hreg
+    let hr0 : 0 ≤ r := ha.le.trans har.le
+    let hraw' : ∀ s ∈ Set.Icc (0 : ℝ) r, Integrable (fun x : ℝ =>
+        capWeight eta R x *
+          |rawSpatialDifferenceQuotient eta h (fun y =>
+            (wholeLineBUCTrajectoryExtend hT Traj s).1 (y + c * s) -
+              W.1 y) x| ^ 2) volume := by
+      intro s hs
+      simpa only [rawSpatialDifferenceQuotient,
+        wholeLineTravelingWavePopulationBUC_apply] using hraw s hs
+    let hP2 := capWeightedCoMovingRawDQBUCHistoryIcc_sq_integrable
+      hT hr0 eta R c h heta0 Traj W hraw'
+    let P := capWeightedCoMovingRawDQL2ProfileIcc
+      hT hr0 eta R c h heta0 Traj W hP2
+    ‖P r‖ ≤ rawDQHomogeneousMajorant eta c T (r - a) F +
+      |p.χ| * (∫ s in a..r,
+        rawDQFluxMajorant p M Brel DU eta c T h ‖P s‖ F (r - s)) +
+      ∫ s in a..r,
+        rawDQReactionMajorant p M DU eta c T ‖P s‖ F := by
+  dsimp only
+  let Brel : ℝ := Blog * Real.exp (2 * Blog)
+  let DU : ℝ := Brel * M
+  have hBrel : 0 ≤ Brel := by
+    dsimp only [Brel]
+    exact mul_nonneg hBlog (Real.exp_nonneg _)
+  have hDU : 0 ≤ DU := by
+    dsimp only [DU]
+    exact mul_nonneg hBrel hM
+  have hUdiff : Differentiable ℝ Uw := fun x => hreg.U_diff x
+  have hUle : ∀ x, Uw x ≤ M := by
+    intro x
+    exact (hbound.le_MChi x).trans hMChi
+  have hbase : ∀ x, |(Uw (x + h) - Uw x) / h| ≤ DU := by
+    have hq := profile_spatialDifferenceQuotient_le_of_logDerivative_bound
+      hBlog hbound.pos hUle hUdiff hlog hh habs
+    simpa only [spatialDifferenceQuotient, DU, Brel, mul_assoc] using hq
+  have hrelative : ∀ x, ∀ theta ∈ Set.Icc (0 : ℝ) 1,
+      |(Uw (x + h) - Uw x) / h| ≤
+        Brel * (theta * Uw (x + h) + (1 - theta) * Uw x) := by
+    have hq := profile_shift_quotient_le_convex_uniform_of_logDerivative_bound
+      hBlog hbound.pos hUdiff hlog hh habs
+    simpa only [Brel] using hq
+  exact capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
+    p hM hT hBrel hDU heta0 heta1 hh habs ha har hrT hX0 hF u₀ hsmall
+      hstrip hTW hbound hreg hMChi hD hFD hB hUd hUdd hUddcont hflux
+      hfluxd hflux_has hfluxd_cont hreact hreact_cont hgrad_int hbase
+      hrelative hvalue hraw hraw_energy hvalue_energy
+
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave_of_logDerivative
 
 end ShenWork.Paper1
