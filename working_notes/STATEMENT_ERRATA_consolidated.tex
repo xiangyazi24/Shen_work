@@ -190,8 +190,18 @@ hang on a maximal continuation. \stmtfix{} (wording)}
 \item[Lean evidence] \code{IntervalDomainCorrectedProposition11.lean}
   (\code{not\_legacyFiniteHorizonAlternativeProducer\_of\_positive\_equilibrium};
   corrected \code{correctedProposition\_1\_1\_of\_standardContinuation\_and\_gluing}).
-\item[Severity] \stmtfix{} --- a wording over-statement; offered to the authors to
-  decide whether the printed phrasing needs clarifying.
+  The faithful realization is now the headline
+  \code{correctedProposition\_1\_1\_intervalDomainM} in
+  \code{IntervalDomainMMaximalContinuationAlternative.lean}: it states the alternative as an
+  \emph{endpoint-tail} dichotomy --- for every threshold $M$ and every $S<\Tmax$, the tail
+  $(S,\Tmax)$ still carries a witness above $M$ (\code{UpperEndpointTail}) or below any floor
+  (\code{FloorEndpointTail}), i.e.\ the genuine $t\uparrow\Tmax$ blow-up/decay of
+  (1.14)/(1.15), realized exactly at the $\sup$ reachable horizon. The literal
+  ``some finite $t<\Tmax$'' form survives only inside a forgetful compatibility adapter and
+  never enters the headline. Unconditional (takes only the parameter record), non-vacuous
+  ($u_0\equiv1$ witness), sorry/axiom-free.
+\item[Severity] \stmtfix{} --- a wording over-statement, now resolved in the formalization;
+  offered to the authors to decide whether the printed phrasing needs clarifying.
 \end{fields}
 
 \subsection*{A5 --- Part II, Theorem 2.1(1) (uniform persistence): missing the
