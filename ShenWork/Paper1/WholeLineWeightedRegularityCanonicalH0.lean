@@ -102,7 +102,7 @@ theorem exists_capWeighted_coMoving_mildFixedPoint_differenceL2_le_of_closed_bal
 initial exact-weight energy supplies every finite logistic cap, while the
 closed-ball constant is cap-independent; monotone cap exhaustion therefore
 recovers the full exponential weight at the fixed-point slice. -/
-theorem coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_of_closed_ball
+theorem coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_and_integral_le_of_closed_ball
     (p : CMParams) {M T eta c B₀ B : ℝ}
     (hM : 0 ≤ M) (hT : 0 ≤ T) (heta : 0 < eta)
     (heta_one : eta < 1) (hB₀ : 0 ≤ B₀) (hB : 0 ≤ B)
@@ -119,9 +119,13 @@ theorem coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_of_closed_b
       |u₀₂.1 y - u₀₁.1 y| ^ 2) ≤ B₀ ^ 2)
     (z : Set.Icc (0 : ℝ) T) :
     Integrable (fun x : ℝ => Real.exp (2 * eta * x) *
-      |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀₂ hsmall z).1
-          (x + c * z.1) -
-        (W z).1 (x + c * z.1)| ^ 2) := by
+        |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀₂ hsmall z).1
+            (x + c * z.1) -
+          (W z).1 (x + c * z.1)| ^ 2) ∧
+      (∫ x : ℝ, Real.exp (2 * eta * x) *
+        |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀₂ hsmall z).1
+            (x + c * z.1) -
+          (W z).1 (x + c * z.1)| ^ 2) ≤ B ^ 2 := by
   let w : ℝ → ℝ := fun x =>
     (wholeLineCauchyBUCMildFixedPoint p hM hT u₀₂ hsmall z).1
         (x + c * z.1) -
@@ -157,19 +161,57 @@ theorem coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_of_closed_b
       exists_capWeighted_coMoving_mildFixedPoint_differenceL2_le_of_closed_ball
         p hM hT heta.le heta_one hB₀ hB hB₀B hball u₀₂ u₀₁ W hfixed
           hsmall hdata_cont.measurable hdata_cap hdata_cap_energy z
-  change Integrable (fun x : ℝ => Real.exp (2 * eta * x) * |w x| ^ 2)
-  apply fullWeightedL2_integrable_of_uniform_cap
-    (C := B ^ 2) heta hw
-  · intro n
+  have hcap_int : ∀ n : ℕ,
+      Integrable (fun x : ℝ => capWeight eta (n : ℝ) x * |w x| ^ 2) := by
+    intro n
     obtain ⟨Z, hZrep, hZnorm⟩ := hcap_rep n
     exact (capEnergy_of_wholeLineRealL2_rep hB Z hZrep hZnorm).1
-  · intro n
+  have hcap_bound : ∀ n : ℕ,
+      (∫ x : ℝ, capWeight eta (n : ℝ) x * |w x| ^ 2) ≤ B ^ 2 := by
+    intro n
     obtain ⟨Z, hZrep, hZnorm⟩ := hcap_rep n
     exact (capEnergy_of_wholeLineRealL2_rep hB Z hZrep hZnorm).2
+  have hfull : Integrable (fun x : ℝ =>
+      Real.exp (2 * eta * x) * |w x| ^ 2) :=
+    fullWeightedL2_integrable_of_uniform_cap
+      (C := B ^ 2) heta hw hcap_int hcap_bound
+  change Integrable (fun x : ℝ => Real.exp (2 * eta * x) * |w x| ^ 2) ∧
+    (∫ x : ℝ, Real.exp (2 * eta * x) * |w x| ^ 2) ≤ B ^ 2
+  refine ⟨hfull, ?_⟩
+  exact le_of_tendsto (tentEnergy_mono_limit heta hw hfull)
+    (Eventually.of_forall hcap_bound)
+
+/-- Integrability-only projection of the quantitative exact-weight restart
+propagator. -/
+theorem coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_of_closed_ball
+    (p : CMParams) {M T eta c B₀ B : ℝ}
+    (hM : 0 ≤ M) (hT : 0 ≤ T) (heta : 0 < eta)
+    (heta_one : eta < 1) (hB₀ : 0 ≤ B₀) (hB : 0 ≤ B)
+    (hB₀B : B₀ ≤ B)
+    (hball : 2 * capMildGrowthBound eta c T * B₀ +
+      (capMildKernelConstant p M eta c T * T +
+        2 * capMildKernelInvSqrtConstant p M eta c T * Real.sqrt T) * B ≤ B)
+    (u₀₂ u₀₁ : WholeLineBUC) (W : WholeLineBUCTrajectory T)
+    (hfixed : IsFixedPt (wholeLineCauchyBUCMildMap p hM hT u₀₁) W)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hdata_full : Integrable (fun y : ℝ => Real.exp (2 * eta * y) *
+      |u₀₂.1 y - u₀₁.1 y| ^ 2))
+    (hdata_energy : (∫ y : ℝ, Real.exp (2 * eta * y) *
+      |u₀₂.1 y - u₀₁.1 y| ^ 2) ≤ B₀ ^ 2)
+    (z : Set.Icc (0 : ℝ) T) :
+    Integrable (fun x : ℝ => Real.exp (2 * eta * x) *
+      |(wholeLineCauchyBUCMildFixedPoint p hM hT u₀₂ hsmall z).1
+          (x + c * z.1) -
+        (W z).1 (x + c * z.1)| ^ 2) :=
+  (coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_and_integral_le_of_closed_ball
+    p hM hT heta heta_one hB₀ hB hB₀B hball u₀₂ u₀₁ W hfixed hsmall
+      hdata_full hdata_energy z).1
 
 end ShenWork.Paper1
 
 #print axioms
   ShenWork.Paper1.exists_capWeighted_coMoving_mildFixedPoint_differenceL2_le_of_closed_ball
+#print axioms
+  ShenWork.Paper1.coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_and_integral_le_of_closed_ball
 #print axioms
   ShenWork.Paper1.coMoving_mildFixedPoint_difference_fullWeightedL2_integrable_of_closed_ball
