@@ -100,11 +100,36 @@ theorem chiNegKPPFloor_deriv_add_defect_le_reaction
     linarith [htimeBound]
   exact htimeDefect.trans (hbudget.trans hreactionBound)
 
+/-- Any fixed coefficient times the missing right-kernel mass can be made
+smaller than a prescribed positive reaction budget by taking a sufficiently
+wide buffer. -/
+theorem exists_nonneg_buffer_exp_defect_lt
+    {K budget : ℝ} (hbudget : 0 < budget) :
+    ∃ R : ℝ, 0 ≤ R ∧ K * (Real.exp (-R) / 2) < budget := by
+  have hneg : Tendsto (fun R : ℝ => -R) atTop atBot :=
+    tendsto_neg_atTop_atBot
+  have hexp : Tendsto (fun R : ℝ => Real.exp (-R)) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hscaled : Tendsto
+      (fun R : ℝ => (K / 2) * Real.exp (-R)) atTop (𝓝 0) := by
+    simpa using hexp.const_mul (K / 2)
+  have hsmall : ∀ᶠ R : ℝ in atTop,
+      (K / 2) * Real.exp (-R) < budget :=
+    hscaled (Iio_mem_nhds hbudget)
+  obtain ⟨R₀, hR₀⟩ := eventually_atTop.1 hsmall
+  let R : ℝ := max R₀ 0
+  refine ⟨R, le_max_right _ _, ?_⟩
+  have hraw := hR₀ R (le_max_left _ _)
+  calc
+    K * (Real.exp (-R) / 2) = (K / 2) * Real.exp (-R) := by ring
+    _ < budget := hraw
+
 section AxiomAudit
 
 #print axioms chiNegKPPFloorRate_pos
 #print axioms chiNegKPPFloorRate_mul_gap_add_defect_le
 #print axioms chiNegKPPFloor_deriv_add_defect_le_reaction
+#print axioms exists_nonneg_buffer_exp_defect_lt
 
 end AxiomAudit
 
