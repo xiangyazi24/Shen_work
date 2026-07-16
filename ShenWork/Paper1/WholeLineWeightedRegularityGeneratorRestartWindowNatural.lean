@@ -752,6 +752,42 @@ theorem weightedMovingHeatFullGeneratorCandidate_eq_on_window_of_pointwise_resta
           (fun q hq => hFrep q ⟨hq.1, hq.2.trans ht.2⟩)
           hFtime (hpoint t ⟨hat, ht.2⟩)
 
+/-- Equality with the full candidate transfers continuity to the actual
+weighted state when the forcing is uniformly bounded and merely strongly
+measurable in time.  The required terminal heat histories are constructed
+from measurability, not carried as extra hypotheses. -/
+theorem paper5WeightedPopulation_continuousOn_of_candidate_window_uniform_aestronglyMeasurable_forcing
+    {eta c L R a r K : ℝ}
+    (hLa : L < a) (har : a ≤ r) (hrR : r < R)
+    {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    {F : ℝ → WholeLineRealL2}
+    (hK : 0 ≤ K)
+    (hFbound : ∀ q ∈ Set.Icc L R, ‖F q‖ ≤ K)
+    (hFtime : AEStronglyMeasurable F volume)
+    (hactual : ∀ s ∈ Set.Icc a r,
+      wholeLineRealL2Total (paper5WeightedPopulation eta u U s) =
+        weightedMovingHeatFullGeneratorCandidate eta c a
+          (wholeLineRealL2Total
+            (paper5WeightedPopulation eta u U a)) F s) :
+    ContinuousOn
+      (fun s => wholeLineRealL2Total
+        (paper5WeightedPopulation eta u U s))
+      (Set.Icc a r) := by
+  have hLR : L ≤ R := hLa.le.trans (har.trans hrR.le)
+  have hhist : ∀ t : ℝ, AEStronglyMeasurable
+      (fun q => weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+      (volume.restrict (Set.uIoc L R)) := by
+    intro t
+    have hbase :=
+      weightedMovingHeatL2Semigroup_terminal_history_aestronglyMeasurable_of_aestronglyMeasurable
+        (eta := eta) (c := c) (tau := t) (a := L) (r := R) hFtime
+    rw [Set.uIoc_of_le hLR]
+    exact hbase.mono_measure
+      (Measure.restrict_mono_set volume Ioc_subset_Icc_self)
+  exact
+    paper5WeightedPopulation_continuousOn_of_candidate_window_uniform_forcing
+      hLa har hrR hK hFbound hhist hactual
+
 /-- Joint measurability of a scalar source gives joint measurability of its
 moving weighted-heat history.  This is the only measurability input needed
 by the local Fubini step; the Gaussian convolution is assembled here. -/
@@ -1188,6 +1224,8 @@ end ShenWork.Paper1
   ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedPopulation_joint_continuous
 #print axioms
   ShenWork.Paper1.weightedMovingHeatFullGeneratorCandidate_eq_on_window_of_pointwise_restart_bounded_measurable
+#print axioms
+  ShenWork.Paper1.paper5WeightedPopulation_continuousOn_of_candidate_window_uniform_aestronglyMeasurable_forcing
 #print axioms
   ShenWork.Paper1.weightedMovingHeat_actualState_damped_history_intervalIntegrable_of_continuous
 #print axioms
