@@ -111,6 +111,66 @@ theorem intervalIntegral_weightedMovingHeatL2Generator_add_lag_eq_shift
   rw [hleft] at hchange
   simpa only [G, zero_add] using hchange
 
+/-- Exact decomposition of a shifted generator history into the native
+truncated history, the forcing-translation error, and the short upper tail.
+This is the algebraic bridge missing from the unshifted endpoint-cancellation
+theorem. -/
+theorem intervalIntegral_weightedMovingHeatL2Generator_shift_decomposition
+    {eta c h t eps : ℝ} (heps : 0 ≤ eps) (hepsh : eps ≤ h)
+    {F : ℝ → WholeLineRealL2}
+    (hfull : IntervalIntegrable
+      (fun q => weightedMovingHeatL2Generator eta c q
+        (F (t + eps - q))) volume eps (h + eps))
+    (hbase : IntervalIntegrable
+      (fun q => weightedMovingHeatL2Generator eta c q
+        (F (t - q))) volume eps h) :
+    (∫ q in eps..h + eps,
+        weightedMovingHeatL2Generator eta c q (F (t + eps - q))) =
+      (∫ q in eps..h,
+          weightedMovingHeatL2Generator eta c q (F (t - q))) +
+        (∫ q in eps..h,
+          weightedMovingHeatL2Generator eta c q
+            (F (t + eps - q) - F (t - q))) +
+        ∫ q in h..h + eps,
+          weightedMovingHeatL2Generator eta c q (F (t + eps - q)) := by
+  let Full : ℝ → WholeLineRealL2 := fun q =>
+    weightedMovingHeatL2Generator eta c q (F (t + eps - q))
+  let Base : ℝ → WholeLineRealL2 := fun q =>
+    weightedMovingHeatL2Generator eta c q (F (t - q))
+  let Err : ℝ → WholeLineRealL2 := fun q =>
+    weightedMovingHeatL2Generator eta c q
+      (F (t + eps - q) - F (t - q))
+  have hepsTop : eps ≤ h + eps := by linarith
+  have hhTop : h ≤ h + eps := by linarith
+  have hfullHead : IntervalIntegrable Full volume eps h := by
+    apply hfull.mono_set
+    rw [Set.uIcc_of_le hepsTop, Set.uIcc_of_le hepsh]
+    exact Set.Icc_subset_Icc_right hhTop
+  have hfullTail : IntervalIntegrable Full volume h (h + eps) := by
+    apply hfull.mono_set
+    rw [Set.uIcc_of_le hepsTop, Set.uIcc_of_le hhTop]
+    exact Set.Icc_subset_Icc_left hepsh
+  have herr : IntervalIntegrable Err volume eps h := by
+    have hsub : IntervalIntegrable (fun q => Full q - Base q)
+        volume eps h := hfullHead.sub hbase
+    apply hsub.congr
+    intro q _hq
+    dsimp only [Err, Full, Base]
+    rw [map_sub]
+  have hsplit := intervalIntegral.integral_add_adjacent_intervals
+    hfullHead hfullTail
+  have hhead : (∫ q in eps..h, Full q) =
+      (∫ q in eps..h, Base q) + ∫ q in eps..h, Err q := by
+    have hadd := intervalIntegral.integral_add hbase herr
+    rw [← hadd]
+    apply intervalIntegral.integral_congr
+    intro q _hq
+    dsimp only [Full, Base, Err]
+    rw [map_sub]
+    abel
+  dsimp only [Full, Base, Err] at hsplit hhead ⊢
+  rw [← hsplit, hhead]
+
 section AxiomAudit
 
 #print axioms
@@ -121,6 +181,8 @@ section AxiomAudit
   weightedMovingHeatL2Generator_apply_fullGeneratorCandidate_lag
 #print axioms
   intervalIntegral_weightedMovingHeatL2Generator_add_lag_eq_shift
+#print axioms
+  intervalIntegral_weightedMovingHeatL2Generator_shift_decomposition
 
 end AxiomAudit
 
