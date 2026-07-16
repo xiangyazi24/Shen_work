@@ -1,18 +1,23 @@
 import ShenWork.Paper3.IntervalDomainMEntropyStrong2Global
+import ShenWork.Paper3.IntervalDomainMRectangleGlobal
 import ShenWork.Paper3.IntervalDomainTheorem24Eventual
 
 /-!
 # Faithful eventual Theorem 2.4 for the general-`m` equation: assembly layer
 
-The two entropy branches (`chiStrong1`, `chiStrong2`) of the faithful
-general-`m` eventual Theorem 2.4 are fully proved
-(`IntervalDomainMEntropyStrong1Global` / `IntervalDomainMEntropyStrong2Global`)
-with no `p.m = 1` hypothesis.  This file dispatches the four-branch formula
-condition: branches one and two are discharged unconditionally; the two
-rectangle branches (`chiStrong3`, `chiStrong4`) are exposed as explicit named
-frontiers, to be discharged by the general-`m` rectangle log-gap port (see
-`DOCTRINE_thm24_fable.md`).  When those two producers are proved, the final
-headline is this theorem applied to them.
+All four branches of the faithful general-`m` eventual Theorem 2.4 are proved
+with no `p.m = 1` hypothesis:
+
+* branches one and two (`chiStrong1`, `chiStrong2`): the §7 entropy Lyapunov
+  route (`IntervalDomainMEntropyStrong1Global` / `…Strong2Global`);
+* branches three and four (`chiStrong3`, `chiStrong4`): the rectangle
+  log-gap route (`IntervalDomainMRectangleGlobal`), for strictly attractive
+  sensitivity `χ₀ > 0`.
+
+The only residual is the neutral / repulsive case `χ₀ ≤ 0` of the two rectangle
+branches, whose faithful general-`m` proof needs the mass-floor + max-decay
+chain rebuilt for the `u^m` flux (a separate scoped frontier).  It enters the
+final headline as the single hypothesis `hchiNonpos`.
 -/
 
 namespace ShenWork.Paper3
@@ -70,6 +75,34 @@ theorem intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula_of_rectangle_
 
 #print axioms
   intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula_of_rectangle_frontiers
+
+
+/-- **Faithful eventual Theorem 2.4 for the general-`m` interval equation.**
+All four strong-logistic branches on the faithful `u^m`-flux domain, with NO
+`p.m = 1` hypothesis.  The single remaining input `hchiNonpos` supplies
+qualitative global attraction in the neutral / repulsive sub-case `χ₀ ≤ 0` of
+the two rectangle branches (a scoped general-`m` frontier); the entropy
+branches and the strictly attractive `χ₀ > 0` rectangle branches are
+unconditional. -/
+theorem intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula
+    (p : CM2Params)
+    (hchiNonpos : ∀ (ha : 0 < p.a) (hb : 0 < p.b), p.χ₀ ≤ 0 →
+      GloballyAsymptoticallyStableNonminimal intervalDomainM p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    Theorem_2_4_EventualGlobalStabilityFormula intervalDomainM p
+      intervalDomainMSectorialStabilityNorms
+      (unitIntervalNormalizedResolverGradientConstant p) := by
+  refine intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula_of_rectangle_frontiers
+    p ?_ ?_
+  · intro ha hb hm hγ hrel hχ
+    exact intervalDomainM_eventuallyGloballyExponentiallyStableNonminimal_strong3
+      p hm ha hb hγ hrel hχ (hchiNonpos ha hb)
+  · intro ha hb hm hβ hγ hrel hχ
+    exact intervalDomainM_eventuallyGloballyExponentiallyStableNonminimal_strong4
+      p hm ha hb hβ hγ hrel hχ (hchiNonpos ha hb)
+
+#print axioms intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula
 
 end
 
