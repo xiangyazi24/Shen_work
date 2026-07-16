@@ -58,10 +58,46 @@ theorem weightedMovingHeatL2Generator_apply_fullGeneratorCandidate
   unfold weightedMovingHeatFullGeneratorCandidate
   rw [map_add, hhom, hint]
 
+/-- Time reversal rewrites the shifted generator history in its native lag
+coordinate.  This is the coordinate used by the endpoint cancellation
+theorem. -/
+theorem intervalIntegral_weightedMovingHeatL2Generator_shift_eq_lag
+    {eta c a t eps : ℝ} {F : ℝ → WholeLineRealL2} :
+    (∫ q in a..t,
+        weightedMovingHeatL2Generator eta c (eps + (t - q)) (F q)) =
+      ∫ r in (0 : ℝ)..t - a,
+        weightedMovingHeatL2Generator eta c (eps + r) (F (t - r)) := by
+  let G : ℝ → WholeLineRealL2 := fun r =>
+    weightedMovingHeatL2Generator eta c (eps + r) (F (t - r))
+  have hchange := intervalIntegral.integral_comp_sub_left
+    (f := G) (a := a) (b := t) t
+  simpa only [G, sub_sub_cancel, sub_self] using hchange
+
+/-- Lag-coordinate form of positive generator regularization of the full
+mild candidate. -/
+theorem weightedMovingHeatL2Generator_apply_fullGeneratorCandidate_lag
+    {eta c a t eps : ℝ} (hat : a ≤ t) (heps : 0 < eps)
+    {F : ℝ → WholeLineRealL2} {Z₀ : WholeLineRealL2}
+    (hhist : IntervalIntegrable
+      (fun q => weightedMovingHeatL2Semigroup eta c (t - q) (F q))
+      volume a t) :
+    weightedMovingHeatL2Generator eta c eps
+        (weightedMovingHeatFullGeneratorCandidate eta c a Z₀ F t) =
+      weightedMovingHeatL2Generator eta c (eps + (t - a)) Z₀ +
+        ∫ r in (0 : ℝ)..t - a,
+          weightedMovingHeatL2Generator eta c (eps + r) (F (t - r)) := by
+  rw [weightedMovingHeatL2Generator_apply_fullGeneratorCandidate
+    hat heps hhist]
+  rw [intervalIntegral_weightedMovingHeatL2Generator_shift_eq_lag]
+
 section AxiomAudit
 
 #print axioms
   weightedMovingHeatL2Generator_apply_fullGeneratorCandidate
+#print axioms
+  intervalIntegral_weightedMovingHeatL2Generator_shift_eq_lag
+#print axioms
+  weightedMovingHeatL2Generator_apply_fullGeneratorCandidate_lag
 
 end AxiomAudit
 
