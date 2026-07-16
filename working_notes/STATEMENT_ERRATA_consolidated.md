@@ -183,7 +183,13 @@ ill-posed / has a proof gap, but is repairable).
   (`not_SectorialLocalExponentialRaw_constant_c1Distance`);
   `ShenWork/Paper3/IntervalDomainSectorialCorrectedObstruction.lean` (zero-time obstruction);
   corrected targets `IntervalDomainSpectralSemigroupOrbitBoundEventualEquilibriumWithoutMass`,
-  `LocallyExponentiallyStableFromSup`. Full note:
+  `LocallyExponentiallyStableFromSup`. The corrected **eventual** form (B) is now realized
+  **general-`m` (no `m=1` hypothesis)**, three-gate verified, in
+  `ShenWork/Paper3/IntervalDomainMFaithfulTheorem22.lean`:
+  `intervalDomainM_Theorem_2_2_Eventual_positiveLogistic_unconditional` proves
+  `Theorem_2_2_EventualExponentialStability` (C¹ exponential decay from an existential `t₀>0`,
+  the honest form for the paper's `C(Ω̄)` phase space (1.8)), UNCONDITIONAL and clean-3
+  (independent build 8941 jobs). Full note:
   `working_notes/paper3_theorem22_statement_amendment.{md,tex,pdf}`.
 - **Severity.** `STATEMENT-FIX` — true after splitting into A+B; only the printed (2.12) form
   is not well-posed.
