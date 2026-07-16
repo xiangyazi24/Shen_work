@@ -872,3 +872,4 @@ import ShenWork.Paper2.IntervalDomainMMaximalContinuationAlternative
 import ShenWork.Paper2.IntervalDomainMSlowGlobalBoundedness
 import ShenWork.Paper2.IntervalDomainMTheorem12Headline
 import ShenWork.Paper3.IntervalDomainChemotaxisRemainderModeGeneralM
+import ShenWork.Paper3.IntervalDomainFluxDerivativeIntegrabilityGeneralM
