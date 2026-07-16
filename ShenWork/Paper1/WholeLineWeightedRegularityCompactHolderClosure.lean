@@ -15,6 +15,29 @@ window.  This file packages that elementary final step with one fixed
 constant selected before the pair of times.
 -/
 
+/-- The square norm of a difference of two `L²` classes is the square
+integral of the difference of any chosen pointwise representatives. -/
+theorem wholeLineRealL2_norm_sub_sq_eq_integral_sub_sq_of_aeEq
+    (Z W : WholeLineRealL2) {f g : ℝ → ℝ}
+    (hZ : ((Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] f)
+    (hW : ((W : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] g) :
+    ‖Z - W‖ ^ 2 = ∫ x : ℝ, (f x - g x) ^ 2 := by
+  apply wholeLineRealL2_norm_sq_eq_integral_sq_of_aeEq
+  filter_upwards [Lp.coeFn_sub Z W, hZ, hW] with x hsub hzx hwx
+  rw [hsub]
+  simp only [Pi.sub_apply, hzx, hwx]
+
+/-- A Hilbert norm-difference estimate transfers to the corresponding
+pointwise square-integral estimate. -/
+theorem wholeLineIntegral_sub_sq_le_of_norm_sub_le
+    (Z W : WholeLineRealL2) {f g : ℝ → ℝ} {A : ℝ}
+    (hZ : ((Z : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] f)
+    (hW : ((W : WholeLineRealL2) : ℝ → ℝ) =ᵐ[volume] g)
+    (hA : 0 ≤ A) (hnorm : ‖Z - W‖ ≤ A) :
+    (∫ x : ℝ, (f x - g x) ^ 2) ≤ A ^ 2 := by
+  rw [← wholeLineRealL2_norm_sub_sq_eq_integral_sub_sq_of_aeEq Z W hZ hW]
+  exact (sq_le_sq₀ (norm_nonneg _) hA).2 hnorm
+
 /-- A local ordered square-root modulus and a uniform norm bound produce one
 square-root Hölder constant for every pair in the closed window. -/
 theorem exists_uniform_sqrt_holder_of_local_and_bound
@@ -116,6 +139,10 @@ theorem uniform_forcingExponent_holder_of_sqrt_holder
 
 end ShenWork.Paper1
 
+#print axioms
+  ShenWork.Paper1.wholeLineRealL2_norm_sub_sq_eq_integral_sub_sq_of_aeEq
+#print axioms
+  ShenWork.Paper1.wholeLineIntegral_sub_sq_le_of_norm_sub_le
 #print axioms
   ShenWork.Paper1.exists_uniform_sqrt_holder_of_local_and_bound
 #print axioms
