@@ -1,4 +1,4 @@
-import ShenWork.Paper1.WholeLineWeightedRegularityChiZeroEnergyNatural
+import ShenWork.Paper1.WholeLineWeightedRegularityChiZeroSharpEnergyNatural
 import ShenWork.Paper1.WholeLineWeightedRegularityCompactHolderClosure
 import ShenWork.Paper1.WholeLineWeightedRegularityGlobalEnergyNatural
 
@@ -64,7 +64,7 @@ theorem
     let u : ℝ → ℝ → ℝ := fun s x =>
       (wholeLineBUCTrajectoryExtend hT Traj s).1 x
     deriv (paper5WeightedEnergy eta c u U) t ≤
-      2 * (eta ^ 2 - c * eta + reactionLip p.α M) *
+      2 * (eta ^ 2 - c * eta + 1) *
         paper5WeightedEnergy eta c u U t := by
   dsimp only
   obtain ⟨L, a, r, R, hL0, hLa, hat, htr, hrR, hRT,
@@ -264,7 +264,7 @@ theorem
         hFcont.aestronglyMeasurable
         (fun q hq => Eventually.of_forall (hscalarRestart q hq))
   exact
-    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_of_realized_window
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_sharp_of_realized_window
       p hchi hM hT ha0 hat htr hrT (paper5ForcingTimeExponent_pos p)
         u₀ hsmall hstrip hTW hreg hUM hXcont hclose hclose_le hWdiff
         hWdiff_le hactual
@@ -308,8 +308,7 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
     (hinitial : WeightedL2InitialCloseness eta u₀.1 U) :
     deriv (paper5WeightedEnergy eta c
       (wholeLineCauchyGlobalU p u₀) U) t ≤
-      2 * (eta ^ 2 - c * eta +
-        reactionLip p.α (wholeLineCauchyGlobalClamp p u₀)) *
+      2 * (eta ^ 2 - c * eta + 1) *
         paper5WeightedEnergy eta c
           (wholeLineCauchyGlobalU p u₀) U t := by
   let M₀ := wholeLineCauchyGlobalClamp p u₀
@@ -382,11 +381,10 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
   rw [hderiv]
   calc
     deriv (paper5WeightedEnergy eta c u U) q ≤
-        2 * (eta ^ 2 - c * eta + reactionLip p.α M₀) *
+        2 * (eta ^ 2 - c * eta + 1) *
           paper5WeightedEnergy eta c u U q := by
       simpa only [u, Traj, M₀, H, q, datum] using hlocal
-    _ = 2 * (eta ^ 2 - c * eta +
-          reactionLip p.α (wholeLineCauchyGlobalClamp p u₀)) *
+    _ = 2 * (eta ^ 2 - c * eta + 1) *
           paper5WeightedEnergy eta c
             (wholeLineCauchyGlobalU p u₀) U t := by
       rw [henergy']
