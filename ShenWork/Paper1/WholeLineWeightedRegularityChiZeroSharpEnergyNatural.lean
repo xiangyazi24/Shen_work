@@ -228,7 +228,7 @@ theorem paper5WeightedEnergy_deriv_le_chi_zero_sharp_of_coreIntegrability
 The window construction is unchanged; only the final logistic pairing is
 strengthened from the bounded-box Lipschitz constant to one. -/
 theorem
-    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_sharp_of_realized_window
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_sharp_of_realized_window
     (p : CMParams) (hchi : p.χ = 0)
     {M T eta c a r t theta EW HW : ℝ}
     (hM : 0 ≤ M) (hT : 0 ≤ T)
@@ -304,9 +304,10 @@ theorem
     let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
     let u : ℝ → ℝ → ℝ := fun s x =>
       (wholeLineBUCTrajectoryExtend hT Traj s).1 x
-    deriv (paper5WeightedEnergy eta c u U) t ≤
-      2 * (eta ^ 2 - c * eta + 1) *
-        paper5WeightedEnergy eta c u U t := by
+    DifferentiableAt ℝ (paper5WeightedEnergy eta c u U) t ∧
+      deriv (paper5WeightedEnergy eta c u U) t ≤
+        2 * (eta ^ 2 - c * eta + 1) *
+          paper5WeightedEnergy eta c u U t := by
   dsimp only at hclose hclose_le hWdiff hWdiff_le hactual hWx2 hXrep ⊢
   let Traj : WholeLineBUCTrajectory T :=
     wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
@@ -375,6 +376,13 @@ theorem
     fun x => huMwin t ⟨le_rfl, le_rfl⟩ x
   have hv2 : ContDiff ℝ 2 (coMovingPath c v t) :=
     hv2win t ⟨le_rfl, le_rfl⟩
+  have henergy : HasDerivAt (paper5WeightedEnergy eta c u U)
+      (2 * ∫ x : ℝ,
+        paper5WeightedPopulation eta (coMovingPath c u) U t x *
+          paper5WeightedPopulationT eta
+            (paper5CoMovingMaterialTime c u) t x) t := by
+    simpa only [paper5WeightedEnergy] using hhalf.const_mul 2
+  refine ⟨henergy.differentiableAt, ?_⟩
   exact paper5WeightedEnergy_deriv_le_chi_zero_sharp_of_coreIntegrability
     p hchi hM hsol (ha.trans hat) (htr.trans hrT) hTW hu2 hv2
       (hreg.U_contDiff_two hTW) (hreg.V_contDiff_two hTW) huMt hUM
@@ -386,7 +394,7 @@ section AxiomAudit
 #print axioms paper5CorrectedRemainderIntegral_le_chi_zero_sharp
 #print axioms paper5WeightedEnergy_deriv_le_chi_zero_sharp_of_coreIntegrability
 #print axioms
-  wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_sharp_of_realized_window
+  wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_sharp_of_realized_window
 
 end AxiomAudit
 

@@ -23,7 +23,7 @@ energy inequality at every positive interior time when `chi = 0`.  All
 positive-window Hilbert trajectories and the physical restart are constructed
 internally. -/
 theorem
-    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_natural
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_natural
     (p : CMParams) (hchi : p.χ = 0)
     {M T t Blog eta c D E Kflux FD B : ℝ}
     (hM : 0 ≤ M) (hT : 0 ≤ T) (ht0 : 0 < t) (htT : t < T)
@@ -63,9 +63,10 @@ theorem
     let Traj := wholeLineCauchyBUCMildFixedPoint p hM hT u₀ hsmall
     let u : ℝ → ℝ → ℝ := fun s x =>
       (wholeLineBUCTrajectoryExtend hT Traj s).1 x
-    deriv (paper5WeightedEnergy eta c u U) t ≤
-      2 * (eta ^ 2 - c * eta + 1) *
-        paper5WeightedEnergy eta c u U t := by
+    DifferentiableAt ℝ (paper5WeightedEnergy eta c u U) t ∧
+      deriv (paper5WeightedEnergy eta c u U) t ≤
+        2 * (eta ^ 2 - c * eta + 1) *
+          paper5WeightedEnergy eta c u U t := by
   dsimp only
   obtain ⟨L, a, r, R, hL0, hLa, hat, htr, hrR, hRT,
       _hdiamOuter, _hshort⟩ :=
@@ -264,7 +265,7 @@ theorem
         hFcont.aestronglyMeasurable
         (fun q hq => Eventually.of_forall (hscalarRestart q hq))
   exact
-    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_sharp_of_realized_window
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_sharp_of_realized_window
       p hchi hM hT ha0 hat htr hrT (paper5ForcingTimeExponent_pos p)
         u₀ hsmall hstrip hTW hreg hUM hXcont hclose hclose_le hWdiff
         hWdiff_le hactual
@@ -275,7 +276,7 @@ theorem
 the canonical global Cauchy solution.  The coefficient uses the canonical
 global construction clamp; no nonzero-sensitivity coefficient package is
 present. -/
-theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
+theorem wholeLineCauchyGlobal_weightedEnergy_data_chi_zero_natural
     (p : CMParams) (hchi : p.χ = 0)
     (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
     {Blog eta c t D E Kflux FD B : ℝ}
@@ -306,13 +307,17 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
       (fun r : ℝ => paper5MovingFrameHeatGradOp c r
         (wholeLineTravelingWaveFlux p U V) x) volume 0 q)
     (hinitial : WeightedL2InitialCloseness eta u₀.1 U) :
-    deriv (paper5WeightedEnergy eta c
-      (wholeLineCauchyGlobalU p u₀) U) t ≤
-      2 * (eta ^ 2 - c * eta + 1) *
-        paper5WeightedEnergy eta c
-          (wholeLineCauchyGlobalU p u₀) U t := by
+    DifferentiableAt ℝ (paper5WeightedEnergy eta c
+      (wholeLineCauchyGlobalU p u₀) U) t ∧
+      deriv (paper5WeightedEnergy eta c
+        (wholeLineCauchyGlobalU p u₀) U) t ≤
+        2 * (eta ^ 2 - c * eta + 1) *
+          paper5WeightedEnergy eta c
+            (wholeLineCauchyGlobalU p u₀) U t := by
   let M₀ := wholeLineCauchyGlobalClamp p u₀
   let H := wholeLineCauchyGlobalSegmentTime p u₀
+  let a := (wholeLineCauchyGlobalIndex p u₀ t : ℝ) *
+    wholeLineCauchyGlobalStep p u₀
   let q := wholeLineCauchyGlobalLocalTime p u₀ t
   let d := wholeLineCauchyGlobalPreferredSpatialShift p u₀ c t
   let Base := wholeLineCauchyGlobalSegment p u₀
@@ -361,7 +366,7 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
         hreact_cont hgrad_int
         (by simpa only [WeightedL2InitialCloseness] using hinitial)
   have hlocal :=
-    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_natural
+    wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_natural
       p hchi hM₀ hH hq0 hqH hBlog heta heta_one hetaCap datum
         (wholeLineCauchyGlobalSegmentTime_rate p u₀) hstrip hc hTW
         hbound hreg hMChi₀ hlog hD hFD hB hUd hUdd hUddcont hflux
@@ -371,19 +376,30 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
     wholeLineCauchyGlobal_weightedEnergy_deriv_eq_preferredTranslated
       p hregime u₀ hu₀ (eta := eta) (c := c) (U := U) ht
   dsimp only at hderiv
-  have henergy :=
-    (wholeLineCauchyGlobal_weightedEnergy_eventuallyEq_preferredTranslated
-      p hregime u₀ hu₀ (eta := eta) (c := c) (U := U) ht).eq_of_nhds
+  have hshift : DifferentiableAt ℝ
+      (fun s => paper5WeightedEnergy eta c u U (s - a)) t := by
+    have hcomp := hlocal.1.comp t (differentiableAt_id.sub_const a)
+    simpa only [q, wholeLineCauchyGlobalLocalTime, a] using hcomp
+  have henergyEv :=
+    wholeLineCauchyGlobal_weightedEnergy_eventuallyEq_preferredTranslated
+      p hregime u₀ hu₀ (eta := eta) (c := c) (U := U) ht
+  dsimp only at henergyEv
+  have hglobalDiff : DifferentiableAt ℝ
+      (paper5WeightedEnergy eta c
+        (wholeLineCauchyGlobalU p u₀) U) t :=
+    henergyEv.differentiableAt_iff.mpr hshift
+  have henergy := henergyEv.eq_of_nhds
   have henergy' : paper5WeightedEnergy eta c u U q =
       paper5WeightedEnergy eta c (wholeLineCauchyGlobalU p u₀) U t := by
     simpa only [u, Traj, q, wholeLineCauchyGlobalLocalTime] using
       henergy.symm
+  refine ⟨hglobalDiff, ?_⟩
   rw [hderiv]
   calc
     deriv (paper5WeightedEnergy eta c u U) q ≤
         2 * (eta ^ 2 - c * eta + 1) *
           paper5WeightedEnergy eta c u U q := by
-      simpa only [u, Traj, M₀, H, q, datum] using hlocal
+      simpa only [u, Traj, M₀, H, q, datum] using hlocal.2
     _ = 2 * (eta ^ 2 - c * eta + 1) *
           paper5WeightedEnergy eta c
             (wholeLineCauchyGlobalU p u₀) U t := by
@@ -392,6 +408,6 @@ theorem wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
 end ShenWork.Paper1
 
 #print axioms
-  ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedEnergy_deriv_le_chi_zero_natural
+  ShenWork.Paper1.wholeLineCauchyBUCMildFixedPoint_weightedEnergy_data_chi_zero_natural
 #print axioms
-  ShenWork.Paper1.wholeLineCauchyGlobal_weightedEnergy_deriv_le_chi_zero_natural
+  ShenWork.Paper1.wholeLineCauchyGlobal_weightedEnergy_data_chi_zero_natural
