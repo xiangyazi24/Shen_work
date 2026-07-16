@@ -18,6 +18,17 @@ window, moves the restart face to `t-H`, and closes the resulting scalar
 Volterra inequality at the prescribed target time `t`.
 -/
 
+/-- Remove the fixed positive Henry scaling from a target-time norm bound.
+This elementary adapter is useful when the chosen window is shared by a
+family and its common unscaled norm ceiling must be exposed explicitly. -/
+theorem norm_le_div_sqrt_of_sqrt_mul_norm_le
+    {E : Type*} [SeminormedAddCommGroup E]
+    {H C : ℝ} {Z : E} (hH : 0 < H)
+    (h : Real.sqrt H * ‖Z‖ ≤ C) :
+    ‖Z‖ ≤ C / Real.sqrt H := by
+  rw [le_div_iff₀ (Real.sqrt_pos.2 hH)]
+  simpa only [mul_comm] using h
+
 /-- A restart inequality valid on every positive subinterval yields a
 step-independent raw-DQ norm bound at one prescribed positive target time,
 on any fixed Henry window satisfying the scalar smallness condition.  Keeping
@@ -200,6 +211,9 @@ theorem exists_shortWindow_target_norm_bound_of_restart_henry
       P hPint hPbound hXcrude hsmall hrestart
 
 end ShenWork.Paper1
+
+#print axioms
+  ShenWork.Paper1.norm_le_div_sqrt_of_sqrt_mul_norm_le
 
 #print axioms
   ShenWork.Paper1.target_norm_bound_of_restart_henry_on_fixed_window
