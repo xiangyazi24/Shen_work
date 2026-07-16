@@ -236,6 +236,71 @@ theorem intervalIntegral_weightedMovingHeatL2Generator_translation_error_norm_le
     _ = C * H * eps ^ theta * Real.log (h / eps) := by
       rw [integral_inv_of_pos heps hh]
 
+/-- A positive Hölder power absorbs the logarithmic loss produced by the
+shifted generator history. -/
+theorem rpow_mul_log_div_le_half_power
+    {h eps theta : ℝ} (hh : 0 < h) (heps : 0 < eps)
+    (htheta : 0 < theta) :
+    eps ^ theta * Real.log (h / eps) ≤
+      (2 / theta) * h ^ (theta / 2) * eps ^ (theta / 2) := by
+  let d : ℝ := theta / 2
+  have hd : 0 < d := by dsimp only [d]; linarith
+  have hratio : 0 ≤ h / eps := div_nonneg hh.le heps.le
+  have hlog := Real.log_le_rpow_div hratio hd
+  have hepspow : 0 ≤ eps ^ theta := Real.rpow_nonneg heps.le _
+  calc
+    eps ^ theta * Real.log (h / eps) ≤
+        eps ^ theta * ((h / eps) ^ d / d) :=
+      mul_le_mul_of_nonneg_left hlog hepspow
+    _ = (2 / theta) * h ^ (theta / 2) * eps ^ (theta / 2) := by
+      have hepsd : eps ^ d ≠ 0 := ne_of_gt (Real.rpow_pos_of_pos heps d)
+      have hdne : d ≠ 0 := ne_of_gt hd
+      rw [Real.div_rpow hh.le heps.le]
+      dsimp only [d]
+      field_simp [hdne, hepsd]
+      rw [show theta = theta / 2 + theta / 2 by ring,
+        Real.rpow_add heps]
+      ring
+
+/-- The short upper tail created by translating the regularized generator
+history is linear in the translation length. -/
+theorem intervalIntegral_weightedMovingHeatL2Generator_upper_tail_norm_le
+    {eta c h eps T C K : ℝ}
+    (hh : 0 < h) (heps : 0 ≤ eps) (hhT : h + eps ≤ T)
+    (hC : 0 ≤ C)
+    {F : ℝ → WholeLineRealL2} {t : ℝ}
+    (hA : ∀ q ∈ Set.Ioc (0 : ℝ) T,
+      ‖weightedMovingHeatL2Generator eta c q‖ ≤ C * q⁻¹)
+    (hF : ∀ q ∈ Set.Icc h (h + eps), ‖F (t + eps - q)‖ ≤ K) :
+    ‖∫ q in h..h + eps,
+        weightedMovingHeatL2Generator eta c q (F (t + eps - q))‖ ≤
+      C * h⁻¹ * K * eps := by
+  have hpoint : ∀ q ∈ Set.Icc h (h + eps),
+      ‖weightedMovingHeatL2Generator eta c q (F (t + eps - q))‖ ≤
+        C * h⁻¹ * K := by
+    intro q hq
+    have hqpos : 0 < q := hh.trans_le hq.1
+    have hqT : q ≤ T := hq.2.trans hhT
+    have hAnorm := hA q ⟨hqpos, hqT⟩
+    have hinv : q⁻¹ ≤ h⁻¹ := by
+      simpa only [one_div] using one_div_le_one_div_of_le hh hq.1
+    have hAcoarse :
+        ‖weightedMovingHeatL2Generator eta c q‖ ≤ C * h⁻¹ :=
+      hAnorm.trans (mul_le_mul_of_nonneg_left hinv hC)
+    calc
+      ‖weightedMovingHeatL2Generator eta c q (F (t + eps - q))‖ ≤
+          ‖weightedMovingHeatL2Generator eta c q‖ *
+            ‖F (t + eps - q)‖ :=
+        (weightedMovingHeatL2Generator eta c q).le_opNorm _
+      _ ≤ (C * h⁻¹) * K := by
+        exact mul_le_mul hAcoarse (hF q hq) (norm_nonneg _)
+          (mul_nonneg hC (inv_nonneg.mpr hh.le))
+      _ = C * h⁻¹ * K := rfl
+  have hbound := intervalIntegral_norm_le_const_mul_sub
+    (a := h) (b := h + eps) (C := C * h⁻¹ * K)
+    (le_add_of_nonneg_right heps) hpoint
+  simpa only [add_sub_cancel_left] using hbound
+
 section AxiomAudit
 
 #print axioms
@@ -250,6 +315,9 @@ section AxiomAudit
   intervalIntegral_weightedMovingHeatL2Generator_shift_decomposition
 #print axioms
   intervalIntegral_weightedMovingHeatL2Generator_translation_error_norm_le
+#print axioms rpow_mul_log_div_le_half_power
+#print axioms
+  intervalIntegral_weightedMovingHeatL2Generator_upper_tail_norm_le
 
 end AxiomAudit
 
