@@ -45,6 +45,40 @@ def rawDQReactionMajorant
       Real.sqrt
         (matchedShiftedReactionRawWSquareConstant p M eta DU) * F)
 
+/-- Canonical profiles built with two different terminal clamps have the same
+norm before the smaller terminal time.  Both norms are identified with the
+same physical cap energy. -/
+theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_eq_of_le
+    {T r H s : ℝ} (hT : 0 ≤ T) (hr0 : 0 ≤ r) (hH0 : 0 ≤ H)
+    (hrH : r ≤ H) (eta R c h : ℝ) (heta0 : 0 ≤ eta)
+    (Traj : WholeLineBUCTrajectory T) (W : WholeLineBUC)
+    (hraw2r : ∀ q, Integrable (fun x : ℝ =>
+      (capWeightedCoMovingRawDQBUCHistoryIcc
+        hT hr0 eta R c h heta0 Traj W q).1 x ^ 2) volume)
+    (hraw2H : ∀ q, Integrable (fun x : ℝ =>
+      (capWeightedCoMovingRawDQBUCHistoryIcc
+        hT hH0 eta R c h heta0 Traj W q).1 x ^ 2) volume)
+    (hs : s ∈ Set.Icc (0 : ℝ) r) :
+    ‖capWeightedCoMovingRawDQL2ProfileIcc
+        hT hr0 eta R c h heta0 Traj W hraw2r s‖ =
+      ‖capWeightedCoMovingRawDQL2ProfileIcc
+        hT hH0 eta R c h heta0 Traj W hraw2H s‖ := by
+  have hsH : s ∈ Set.Icc (0 : ℝ) H := ⟨hs.1, hs.2.trans hrH⟩
+  have hrEnergy := capWeightedCoMovingRawDQL2ProfileIcc_energy_eq_norm_sq
+    hT hr0 eta R c h heta0 Traj W hraw2r hs
+  have hHEnergy := capWeightedCoMovingRawDQL2ProfileIcc_energy_eq_norm_sq
+    hT hH0 eta R c h heta0 Traj W hraw2H hsH
+  have hsq :
+      ‖capWeightedCoMovingRawDQL2ProfileIcc
+          hT hr0 eta R c h heta0 Traj W hraw2r s‖ ^ 2 =
+        ‖capWeightedCoMovingRawDQL2ProfileIcc
+          hT hH0 eta R c h heta0 Traj W hraw2H s‖ ^ 2 :=
+    hrEnergy.symm.trans hHEnergy
+  nlinarith [norm_nonneg (capWeightedCoMovingRawDQL2ProfileIcc
+      hT hr0 eta R c h heta0 Traj W hraw2r s),
+    norm_nonneg (capWeightedCoMovingRawDQL2ProfileIcc
+      hT hH0 eta R c h heta0 Traj W hraw2H s)]
+
 /-- One-step raw-DQ estimate from the exact weighted restart identity.  All
 `L²` representatives, history integrability, and physical Fubini formulas are
 constructed internally. -/
@@ -693,6 +727,8 @@ theorem capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_fixedPoint_wave_of_
       hfluxd hflux_has hfluxd_cont hreact hreact_cont hgrad_int hbase
       hrelative hvalue hraw hraw_energy hvalue_energy
 
+#print axioms
+  ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_eq_of_le
 #print axioms
   ShenWork.Paper1.capWeightedCoMovingRawDQL2ProfileIcc_norm_le_restart_of_weighted_identity
 #print axioms
