@@ -877,3 +877,4 @@ import ShenWork.Paper3.IntervalDomainRouteAPowerBoundsGeneralM
 import ShenWork.Paper3.IntervalDomainRouteAFluxL2GeneralM
 import ShenWork.Paper3.IntervalDomainRouteANonlinearSnapshotGeneralM
 import ShenWork.Paper3.IntervalDomainSignalRegularityProducerGeneralM
+import ShenWork.Paper3.IntervalDomainStrongSliceNonlinearEstimateGeneralM
