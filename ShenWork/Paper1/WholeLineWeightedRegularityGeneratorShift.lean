@@ -301,6 +301,55 @@ theorem intervalIntegral_weightedMovingHeatL2Generator_upper_tail_norm_le
     (le_add_of_nonneg_right heps) hpoint
   simpa only [add_sub_cancel_left] using hbound
 
+/-- Positive-time generator regularizations form a strongly continuous
+orbit.  The proof factors a neighborhood of `h` through one fixed positive
+generator step and the strongly continuous heat orbit. -/
+theorem weightedMovingHeatL2Generator_orbit_continuousAt_of_pos
+    {eta c h : ℝ} (hh : 0 < h) (Z : WholeLineRealL2) :
+    ContinuousAt (fun q => weightedMovingHeatL2Generator eta c q Z) h := by
+  let r : ℝ := h / 2
+  let A : WholeLineRealL2 →L[ℝ] WholeLineRealL2 :=
+    weightedMovingHeatL2Generator eta c r
+  have hr : 0 < r := by dsimp only [r]; linarith
+  have hshift : ContinuousAt (fun q : ℝ => q - r) h :=
+    continuousAt_id.sub continuousAt_const
+  have hlag : h - r = r := by dsimp only [r]; ring
+  have hS : ContinuousAt
+      (fun q => weightedMovingHeatL2Semigroup eta c (q - r) Z) h := by
+    have horbit :=
+      (weightedMovingHeatL2Semigroup_orbit_hasDerivAt
+        (eta := eta) (c := c) hr Z).continuousAt
+    have hshift' := hshift
+    change Tendsto (fun q : ℝ => q - r) (𝓝 h) (𝓝 (h - r)) at hshift'
+    rw [hlag] at hshift'
+    have hc := Filter.Tendsto.comp horbit hshift'
+    change Tendsto
+      (fun q => weightedMovingHeatL2Semigroup eta c (q - r) Z)
+      (𝓝 h) (𝓝 (weightedMovingHeatL2Semigroup eta c r Z)) at hc
+    change Tendsto
+      (fun q => weightedMovingHeatL2Semigroup eta c (q - r) Z)
+      (𝓝 h) (𝓝 (weightedMovingHeatL2Semigroup eta c (h - r) Z))
+    rw [hlag]
+    exact hc
+  have hfixed : ContinuousAt
+      (fun q => A (weightedMovingHeatL2Semigroup eta c (q - r) Z)) h :=
+    A.continuous.continuousAt.comp hS
+  have hevent : ∀ᶠ q : ℝ in 𝓝 h, r < q := Ioi_mem_nhds (by
+    dsimp only [r]
+    linarith)
+  have heq : (fun q => A
+      (weightedMovingHeatL2Semigroup eta c (q - r) Z)) =ᶠ[𝓝 h]
+      fun q => weightedMovingHeatL2Generator eta c q Z := by
+    filter_upwards [hevent] with q hq
+    have hqr : 0 ≤ q - r := sub_nonneg.mpr hq.le
+    have hcomp := weightedMovingHeatL2Generator_comp_semigroup_add
+      (eta := eta) (c := c) hr hqr
+    have happ := DFunLike.congr_fun hcomp Z
+    dsimp only [A]
+    simpa only [ContinuousLinearMap.comp_apply,
+      show r + (q - r) = q by ring] using happ
+  exact hfixed.congr_of_eventuallyEq heq.symm
+
 section AxiomAudit
 
 #print axioms
@@ -318,6 +367,7 @@ section AxiomAudit
 #print axioms rpow_mul_log_div_le_half_power
 #print axioms
   intervalIntegral_weightedMovingHeatL2Generator_upper_tail_norm_le
+#print axioms weightedMovingHeatL2Generator_orbit_continuousAt_of_pos
 
 end AxiomAudit
 
