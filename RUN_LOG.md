@@ -1,5 +1,24 @@
 # Shen Trilogy Formalization — RUN LOG
 
+## Run 2026-07-17 (automode, 5-frontier grind on uisai1)
+- doctrine version: fresh DOCTRINE.md written this session
+- approval: Xiang direct terminal, "/automode, I will be driving"
+- starting avenue: (a) Paper 1 Thm 1.2 tail asymptotics
+- infra: mini DOWN, all work on uisai1; /dev/shm/lean/Shen_work-active lake build in progress
+- initial audit:
+  - (c) P3 Thm 2.5: ALREADY DONE (0 sorry, faithful to paper, m=1 is paper's own)
+  - (e) General-N: 19.5K intervalDomain refs, no infra, Mathlib gaps — architectural only
+  - (b) P3 Thm 2.3: Paper3 dir 0 sorry; general-m nonminimal attractor done; need minimal port + assembly
+  - (a) P1 Thm 1.2: audit in progress
+  - (d) P2 supporting: audit in progress
+- avenue (b) resumed: close 1 sorry at intervalDomainM_chiNonpos_globallyAsymptoticallyStableMinimal
+- attack: χ₀=0 via heat semigroup (intervalDomainM_classical_bform_restart_pointwise), χ₀<0 via signal gap port
+- avenue (b) CLOSED: commit 1897737a — IntervalDomainMMinimalChiNonposConvergence.lean (1045 lines),
+  IntervalDomainMTheorem23Eventual.lean rewired, all axiom-clean, 0 sorry
+- moving to avenue (a): Paper 1 Thm 1.2 audit
+- end: <open>
+- final result: <open>
+
 ## Run 2026-07-08 (automode, Paper 2 Theorem 1.1 unconditional)
 - doctrine: Close all remaining sorry in Paper 2 formalization
 - approval: automode continuation from prior session

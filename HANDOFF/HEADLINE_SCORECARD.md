@@ -16,6 +16,7 @@ Thm1.2 a>0/b=0; Thm2.2 (2.12); Thm1.3 case-(iv) q_*>2−2m — all safe (strengt
 | Refutation Thm1.2 a>0,b=0 | IntervalDomainTheorem12Refutation | REAL, sorry-free (mass-ODE M'=aM). |
 | Refutation Paper3 sup-C¹ | IntervalDomainSectorialCorrectedObstruction | REAL, 3 concrete counterexamples. |
 | **Paper3 Thm 2.2 eventual** | `intervalDomain_Theorem_2_2_Eventual_positiveLogistic_unconditional` (+_concrete, +positiveEventual_branch) | hexist DISCHARGED by linear-spectral producer; non-circular (linear gap + local existence + open-interval Henry X^σ barrier + gluing; no stability output consumed). |
+| **Paper3 Thm 2.3 general-m (FULL)** | `intervalDomainM_Theorem_2_3_EventualGlobalStability (p)` (IntervalDomainMTheorem23Eventual.lean) | UNCONDITIONAL (only p). Both branches: nonminimal (rectangle global attractor → eventual C1) + minimal χ₀≤0 (signal gap + heat bridge + Gronwall → uniform sup → basin entry → C1). Commit 1897737a, clean-3. |
 
 ## ✅ Henry a-priori engine — DONE + VERIFIED, DO NOT RESTART (anti-zombie)
 The whole-line weighted-L² regularity / **Henry tower** (20+ `WholeLineWeightedRegularity*` files, incl. the hard
@@ -36,7 +37,7 @@ stability** (Thm 1.2 co-moving weighted-L² + uniform-frame stability) and **Thm
 
 ## STILL OPEN (1D)
 - Paper1 **Thm 1.2** (tail asymptotics, Lemma 2.5 + §5) — C3.
-- Paper3 **Thm 2.3/2.4/2.5** global stability (ride Thm2.2 producer for χ₀≤0; discharge Paper3Constants/StabilityNorms package fields with genuine analytic proofs on concrete domain — arbitrary-domain obstruction) — C2. (Thm 2.1 ✅ done+verified this session — see above.)
+- Paper3 **Thm 2.3** general-m: ✅ DONE (commit 1897737a). Thm 2.4 ✅ DONE. Thm 2.5 ✅ DONE (m=1 is paper's own scope).
 - Paper2 supporting **Prop 2.2/2.4/2.5, Lemma 2.6, Cor 2.1** (Prop 2.1 ✓ 7b401459, Prop 2.3 ✓ 47771511) — C1.
 - General-N versions of all headlines (the open frontier beyond 1D).
 
