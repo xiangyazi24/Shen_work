@@ -36,9 +36,9 @@ stability** (Thm 1.2 co-moving weighted-L² + uniform-frame stability) and **Thm
 - **Paper3 Thm 2.4 general-m (m>1) FULL 4-branch, zero-hyp** `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula (p)` (IntervalDomainMTheorem24Eventual.lean:85; commit a1d56b47) — UNCONDITIONAL (only p, no hm, no carried frontier), clean-3 (independent 9011 jobs). GLOBAL asymptotic stability (∀ positive global bounded solution → UniformConvergesInSup, not local small-data). 4 strong-logistic branches (entropy strong1/2 α+1≥2γ + rectangle strong3/4 α+1≥m+γ+(β≠0)γ / α+1≥m+2γ); chiStrong3/4 carry uStar^(m+γ-1); χ₀≤0 sub-case discharged internally (max-decay + mass→capacity + Hölder-1/2 tail into static coercivity, no fake bridge); gap lemma rpow_mul_gap_le_gap_add proved. eventual form = errata A6/A7.
 
 ## STILL OPEN (1D)
-- Paper1 **Thm 1.2** (tail asymptotics, Lemma 2.5 + §5) — C3.
+- Paper1 **Thm 1.2** (tail asymptotics, Lemma 2.5 + §5) — C3. AT TERMINAL: 0 sorry in Paper1/; χ≤0 unconditional; full conditional only on Henry semigroup (out of Mathlib scope). All 7 errata certified.
 - Paper3 **Thm 2.3** general-m: ✅ DONE (commit 1897737a). Thm 2.4 ✅ DONE. Thm 2.5 ✅ DONE (m=1 is paper's own scope).
-- Paper2 supporting **Prop 2.2/2.4/2.5, Lemma 2.6, Cor 2.1** (Prop 2.1 ✓ 7b401459, Prop 2.3 ✓ 47771511) — C1.
+- Paper2 supporting **Prop 2.2/2.4/2.5, Lemma 2.6, Cor 2.1** (Prop 2.1 ✓ 7b401459, Prop 2.3 ✓ 47771511) — ✅ ALL DONE (all 5 proved, axiom-clean builds; verified 2026-07-17).
 - General-N versions of all headlines (the open frontier beyond 1D).
 
 ## AUDIT DISCIPLINE (enforced): every capstone verified against its COMMITTED build (own #print axioms + independent

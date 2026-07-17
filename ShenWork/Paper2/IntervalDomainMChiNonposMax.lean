@@ -594,4 +594,263 @@ theorem max_point_slope_bound_M
     rw [hx10, htd]
     exact hb
 
+/-- Left-boundary strict signal: retains the chemotaxis physical representative
+instead of dropping it (cf. `boundary_max_point_left_M`). -/
+theorem boundary_max_point_left_M_strict
+    {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hmaxlift : ∀ y, intervalDomainLift (u t) y ≤
+      intervalDomainLift (u t) 0) :
+    deriv (fun r => intervalDomainLift (u r) 0) t ≤
+      intervalDomainLift (u t) 0 *
+        (p.a - p.b * intervalDomainLift (u t) 0 ^ p.α) -
+      p.χ₀ * classicalChemDivMPhysicalRep p u v t 0 := by
+  have htmem : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  obtain ⟨hC2, _, _, hNeu, hClosed, hJDt, _⟩ := hsol.regularity
+  set U : ℝ → ℝ := intervalDomainLift (u t) with hU_def
+  have hu_c2 : ContDiffOn ℝ 2 U (Set.Ioo (0 : ℝ) 1) :=
+    (hC2 t htmem).1
+  have hu_cont : ContinuousOn U (Set.Icc (0 : ℝ) 1) :=
+    (hClosed t htmem).1.1.continuousOn
+  have hNeuU0 : Tendsto (deriv U) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) :=
+    (hNeu t htmem).1.1
+  have h0Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨le_rfl, zero_le_one⟩
+  have h01 : (0 : ℝ) < 1 := by norm_num
+  set G : ℝ → ℝ := fun x =>
+    deriv (fun r => intervalDomainLift (u r) x) t with hG_def
+  set R : ℝ → ℝ := fun x =>
+    U x * (p.a - p.b * U x ^ p.α) with hR_def
+  set Cfun : ℝ → ℝ :=
+    boundaryChemDivMReal p (u t) (v t) with hCfun_def
+  have hfilter : nhdsWithin (0 : ℝ) (Set.Ioo 0 1) =
+      nhdsWithin 0 (Set.Ioi 0) := nhdsWithin_Ioo_eq_nhdsGT h01
+  have hG_lim : Tendsto G (nhdsWithin 0 (Set.Ioi 0)) (nhds (G 0)) := by
+    have hmaps : Set.MapsTo (fun w => (t, w)) (Set.Icc (0 : ℝ) 1)
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+      fun w hw => ⟨htmem, hw⟩
+    have hcomp : ContinuousOn G (Set.Icc (0 : ℝ) 1) :=
+      hJDt.1.comp (Continuous.continuousOn
+        (by fun_prop : Continuous fun w : ℝ => (t, w))) hmaps
+    rw [← hfilter]
+    exact (hcomp 0 h0Icc).mono_left
+      (nhdsWithin_mono 0 Set.Ioo_subset_Icc_self)
+  have hR_lim : Tendsto R (nhdsWithin 0 (Set.Ioi 0)) (nhds (R 0)) := by
+    have hRcont : ContinuousOn R (Set.Icc (0 : ℝ) 1) :=
+      hu_cont.mul (continuousOn_const.sub (continuousOn_const.mul
+        (hu_cont.rpow_const (fun _ _ => Or.inr p.hα.le))))
+    rw [← hfilter]
+    exact (hRcont 0 h0Icc).mono_left
+      (nhdsWithin_mono 0 Set.Ioo_subset_Icc_self)
+  have hUxx_eq : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      deriv (deriv U) x = G x - R x + p.χ₀ * Cfun x := by
+    intro x hx
+    have hpu := hsol.pde_u ht0 htT
+      (show (⟨x, Set.Ioo_subset_Icc_self hx⟩ : intervalDomainPoint) ∈
+        intervalDomainM.inside from hx)
+    have e_td : intervalDomainM.timeDeriv u t
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = G x := by
+      show deriv (fun r => u r ⟨x, Set.Ioo_subset_Icc_self hx⟩) t = G x
+      simp only [hG_def]
+      congr 1
+      funext r
+      rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hx)]
+    have e_lap : intervalDomainM.laplacian (u t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = deriv (deriv U) x := rfl
+    have e_cd : intervalDomainM.chemotaxisDiv p (u t) (v t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = Cfun x := by
+      change intervalDomainChemotaxisDivM p (u t) (v t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = Cfun x
+      simp [hCfun_def, boundaryChemDivMReal, Set.Ioo_subset_Icc_self hx]
+    have e_u : u t (⟨x, Set.Ioo_subset_Icc_self hx⟩ :
+        intervalDomainPoint) = U x := by
+      rw [hU_def, intervalDomainLift,
+        dif_pos (Set.Ioo_subset_Icc_self hx)]
+    rw [e_td, e_lap, e_cd, e_u] at hpu
+    rw [hR_def]
+    linarith
+  set CL : ℝ := classicalChemDivMPhysicalRep p u v t 0 with hCL_def
+  have hC_lim : Tendsto Cfun (nhdsWithin 0 (Set.Ioi 0)) (nhds CL) := by
+    have hcont := classicalChemDivMPhysicalRep_continuousOn_Icc
+      hsol ht0 htT
+    have hlim : Tendsto (classicalChemDivMPhysicalRep p u v t)
+        (nhdsWithin (0 : ℝ) (Set.Ioo (0 : ℝ) 1))
+        (nhds (classicalChemDivMPhysicalRep p u v t 0)) :=
+      (hcont 0 h0Icc).mono_left
+        (nhdsWithin_mono 0 Set.Ioo_subset_Icc_self)
+    have heq : (fun y => boundaryChemDivMReal p (u t) (v t) y) =ᶠ[
+        nhdsWithin (0 : ℝ) (Set.Ioo (0 : ℝ) 1)]
+          classicalChemDivMPhysicalRep p u v t := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      simp only [boundaryChemDivMReal,
+        dif_pos (Set.Ioo_subset_Icc_self hy)]
+      exact intervalDomainMChemotaxisDiv_eq_physicalRep_interior
+        hsol ht0 htT hy
+    have hlim' := Filter.Tendsto.congr' heq.symm hlim
+    rw [hfilter] at hlim'
+    simpa [hCfun_def, hCL_def] using hlim'
+  set Vlim : ℝ := G 0 - R 0 + p.χ₀ * CL with hVlim_def
+  have hUxx_lim : Tendsto (deriv (deriv U))
+      (nhdsWithin 0 (Set.Ioi 0)) (nhds Vlim) := by
+    refine ((hG_lim.sub hR_lim).add (hC_lim.const_mul p.χ₀)).congr' ?_
+    rw [← hfilter]
+    filter_upwards [self_mem_nhdsWithin] with x hx
+    exact (hUxx_eq x hx).symm
+  have hwcont : ContinuousWithinAt U (Set.Ici 0) 0 := by
+    refine (hu_cont 0 h0Icc).mono_of_mem_nhdsWithin ?_
+    have hIcc_eq : Set.Icc (0 : ℝ) 1 =
+        Set.Ici (0 : ℝ) ∩ Set.Iic 1 := by
+      ext z
+      simp [Set.mem_Icc, Set.mem_Ici, Set.mem_Iic]
+    rw [hIcc_eq]
+    exact Filter.inter_mem self_mem_nhdsWithin
+      (mem_nhdsWithin_of_mem_nhds (Iic_mem_nhds h01))
+  have hd1U : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt U (deriv U x) x :=
+    fun x hx => (contDiffOn_two_hasDerivAt_pair isOpen_Ioo hu_c2 hx).1
+  have hd2U : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt (deriv U) (deriv (deriv U) x) x :=
+    fun x hx => (contDiffOn_two_hasDerivAt_pair isOpen_Ioo hu_c2 hx).2
+  have hVlim_nonpos : Vlim ≤ 0 :=
+    ShenWork.Paper2.Lemma31Closure.boundary_max_deriv2_rlimit_nonpos
+      h01 hwcont (fun x hx => hmaxlift x) hd1U hd2U hNeuU0 hUxx_lim
+  calc
+    G 0 = Vlim + R 0 - p.χ₀ * CL := by rw [hVlim_def]; ring
+    _ ≤ R 0 - p.χ₀ * CL := by linarith
+    _ = U 0 * (p.a - p.b * U 0 ^ p.α) - p.χ₀ * CL := by simp [hR_def]
+
+/-- Right-boundary strict signal: retains the chemotaxis physical representative
+instead of dropping it (cf. `boundary_max_point_right_M`). -/
+theorem boundary_max_point_right_M_strict
+    {p : CM2Params} {T t : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hχ : p.χ₀ ≤ 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hmaxlift : ∀ y, intervalDomainLift (u t) y ≤
+      intervalDomainLift (u t) 1) :
+    deriv (fun r => intervalDomainLift (u r) 1) t ≤
+      intervalDomainLift (u t) 1 *
+        (p.a - p.b * intervalDomainLift (u t) 1 ^ p.α) -
+      p.χ₀ * classicalChemDivMPhysicalRep p u v t 1 := by
+  have htmem : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  obtain ⟨hC2, _, _, hNeu, hClosed, hJDt, _⟩ := hsol.regularity
+  set U : ℝ → ℝ := intervalDomainLift (u t) with hU_def
+  have hu_c2 : ContDiffOn ℝ 2 U (Set.Ioo (0 : ℝ) 1) :=
+    (hC2 t htmem).1
+  have hu_cont : ContinuousOn U (Set.Icc (0 : ℝ) 1) :=
+    (hClosed t htmem).1.1.continuousOn
+  have hNeuU1 : Tendsto (deriv U) (nhdsWithin 1 (Set.Iio 1)) (nhds 0) :=
+    (hNeu t htmem).1.2
+  have h1Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
+  have h01 : (0 : ℝ) < 1 := by norm_num
+  set G : ℝ → ℝ := fun x =>
+    deriv (fun r => intervalDomainLift (u r) x) t with hG_def
+  set R : ℝ → ℝ := fun x =>
+    U x * (p.a - p.b * U x ^ p.α) with hR_def
+  set Cfun : ℝ → ℝ :=
+    boundaryChemDivMReal p (u t) (v t) with hCfun_def
+  have hfilter : nhdsWithin (1 : ℝ) (Set.Ioo 0 1) =
+      nhdsWithin 1 (Set.Iio 1) := nhdsWithin_Ioo_eq_nhdsLT h01
+  have hG_lim : Tendsto G (nhdsWithin 1 (Set.Iio 1)) (nhds (G 1)) := by
+    have hmaps : Set.MapsTo (fun w => (t, w)) (Set.Icc (0 : ℝ) 1)
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+      fun w hw => ⟨htmem, hw⟩
+    have hcomp : ContinuousOn G (Set.Icc (0 : ℝ) 1) :=
+      hJDt.1.comp (Continuous.continuousOn
+        (by fun_prop : Continuous fun w : ℝ => (t, w))) hmaps
+    rw [← hfilter]
+    exact (hcomp 1 h1Icc).mono_left
+      (nhdsWithin_mono 1 Set.Ioo_subset_Icc_self)
+  have hR_lim : Tendsto R (nhdsWithin 1 (Set.Iio 1)) (nhds (R 1)) := by
+    have hRcont : ContinuousOn R (Set.Icc (0 : ℝ) 1) :=
+      hu_cont.mul (continuousOn_const.sub (continuousOn_const.mul
+        (hu_cont.rpow_const (fun _ _ => Or.inr p.hα.le))))
+    rw [← hfilter]
+    exact (hRcont 1 h1Icc).mono_left
+      (nhdsWithin_mono 1 Set.Ioo_subset_Icc_self)
+  have hUxx_eq : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      deriv (deriv U) x = G x - R x + p.χ₀ * Cfun x := by
+    intro x hx
+    have hpu := hsol.pde_u ht0 htT
+      (show (⟨x, Set.Ioo_subset_Icc_self hx⟩ : intervalDomainPoint) ∈
+        intervalDomainM.inside from hx)
+    have e_td : intervalDomainM.timeDeriv u t
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = G x := by
+      show deriv (fun r => u r ⟨x, Set.Ioo_subset_Icc_self hx⟩) t = G x
+      simp only [hG_def]
+      congr 1
+      funext r
+      rw [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hx)]
+    have e_lap : intervalDomainM.laplacian (u t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = deriv (deriv U) x := rfl
+    have e_cd : intervalDomainM.chemotaxisDiv p (u t) (v t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = Cfun x := by
+      change intervalDomainChemotaxisDivM p (u t) (v t)
+        ⟨x, Set.Ioo_subset_Icc_self hx⟩ = Cfun x
+      simp [hCfun_def, boundaryChemDivMReal, Set.Ioo_subset_Icc_self hx]
+    have e_u : u t (⟨x, Set.Ioo_subset_Icc_self hx⟩ :
+        intervalDomainPoint) = U x := by
+      rw [hU_def, intervalDomainLift,
+        dif_pos (Set.Ioo_subset_Icc_self hx)]
+    rw [e_td, e_lap, e_cd, e_u] at hpu
+    rw [hR_def]
+    linarith
+  set CL : ℝ := classicalChemDivMPhysicalRep p u v t 1 with hCL_def
+  have hC_lim : Tendsto Cfun (nhdsWithin 1 (Set.Iio 1)) (nhds CL) := by
+    have hcont := classicalChemDivMPhysicalRep_continuousOn_Icc
+      hsol ht0 htT
+    have hlim : Tendsto (classicalChemDivMPhysicalRep p u v t)
+        (nhdsWithin (1 : ℝ) (Set.Ioo (0 : ℝ) 1))
+        (nhds (classicalChemDivMPhysicalRep p u v t 1)) :=
+      (hcont 1 h1Icc).mono_left
+        (nhdsWithin_mono 1 Set.Ioo_subset_Icc_self)
+    have heq : (fun y => boundaryChemDivMReal p (u t) (v t) y) =ᶠ[
+        nhdsWithin (1 : ℝ) (Set.Ioo (0 : ℝ) 1)]
+          classicalChemDivMPhysicalRep p u v t := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      simp only [boundaryChemDivMReal,
+        dif_pos (Set.Ioo_subset_Icc_self hy)]
+      exact intervalDomainMChemotaxisDiv_eq_physicalRep_interior
+        hsol ht0 htT hy
+    have hlim' := Filter.Tendsto.congr' heq.symm hlim
+    rw [hfilter] at hlim'
+    simpa [hCfun_def, hCL_def] using hlim'
+  set Vlim : ℝ := G 1 - R 1 + p.χ₀ * CL with hVlim_def
+  have hUxx_lim : Tendsto (deriv (deriv U))
+      (nhdsWithin 1 (Set.Iio 1)) (nhds Vlim) := by
+    refine ((hG_lim.sub hR_lim).add (hC_lim.const_mul p.χ₀)).congr' ?_
+    rw [← hfilter]
+    filter_upwards [self_mem_nhdsWithin] with x hx
+    exact (hUxx_eq x hx).symm
+  have hwcont : ContinuousWithinAt U (Set.Iic 1) 1 := by
+    refine (hu_cont 1 h1Icc).mono_of_mem_nhdsWithin ?_
+    have hIcc_eq : Set.Icc (0 : ℝ) 1 =
+        Set.Ici (0 : ℝ) ∩ Set.Iic 1 := by
+      ext z
+      simp [Set.mem_Icc, Set.mem_Ici, Set.mem_Iic]
+    rw [hIcc_eq]
+    exact Filter.inter_mem
+      (mem_nhdsWithin_of_mem_nhds (Ici_mem_nhds h01))
+      self_mem_nhdsWithin
+  have hd1U : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt U (deriv U x) x :=
+    fun x hx => (contDiffOn_two_hasDerivAt_pair isOpen_Ioo hu_c2 hx).1
+  have hd2U : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt (deriv U) (deriv (deriv U) x) x :=
+    fun x hx => (contDiffOn_two_hasDerivAt_pair isOpen_Ioo hu_c2 hx).2
+  have hII : Set.Ioo (1 - (1 : ℝ)) 1 = Set.Ioo (0 : ℝ) 1 := by
+    rw [sub_self]
+  have hVlim_nonpos : Vlim ≤ 0 :=
+    ShenWork.Paper2.Lemma31Closure.boundary_max_deriv2_llimit_nonpos
+      h01 hwcont
+        (by rw [hII]; exact fun x hx => hmaxlift x)
+        (by rw [hII]; exact hd1U)
+        (by rw [hII]; exact hd2U)
+        hNeuU1 hUxx_lim
+  calc
+    G 1 = Vlim + R 1 - p.χ₀ * CL := by rw [hVlim_def]; ring
+    _ ≤ R 1 - p.χ₀ * CL := by linarith
+    _ = U 1 * (p.a - p.b * U 1 ^ p.α) - p.χ₀ * CL := by simp [hR_def]
+
 end ShenWork.Paper2.IntervalDomainMChiNonpos

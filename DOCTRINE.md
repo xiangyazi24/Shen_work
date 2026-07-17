@@ -8,6 +8,12 @@ Close all 5 remaining open frontiers (1D) sequentially.
 ### (a) Paper 1 Theorem 1.2 — tail asymptotics
 Terminal: sorry count in ShenWork/Paper1/ reduced; capstone wired or carried only on Henry-class imported infra.
 Attack: audit sorry in Paper1/, identify leaf sorry, grind each.
+**STATUS: AT TERMINAL CONDITION.**
+- Paper1/ has 0 sorry (all matches are in docstring comments).
+- χ≤0 branch: `paper1_Theorem_1_2_chi_nonpos_paperDatum` — UNCONDITIONAL, axiom-clean.
+- Full theorem: `paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4` — CONDITIONAL on Henry semigroup smoothing (sectorial operator infrastructure absent from Mathlib, out of scope per THEOREM12_ERRATA.md).
+- All 7 paper errata certified with Lean theorems (Theorem12RootObstruction.lean, Theorem12CoordinateAudit.lean, Theorem12MeanCoefficients.lean, Theorem12WeightedEnergy.lean).
+- Novel §5.2 content (Steps 1–4, Lemma 5.3, Grönwall closure, (1.21)⇒(1.22)) all proved unconditionally.
 
 ### (b) Paper 3 Theorem 2.3 — χ₀≤0 global stability, general-m
 Terminal: unconditional on intervalDomainM (no hm : p.m = 1).
@@ -23,6 +29,12 @@ Attack: port m=1 proof using Thm 2.4 general-m infrastructure from 07-16.
 ### (d) Paper 2 supporting — Prop 2.2/2.4/2.5, Lem 2.6, Cor 2.1
 Terminal: each stated + proved or carried on headline-level hypotheses.
 Attack: audit each statement, find producers, wire.
+**STATUS: DONE (all 5 already proved and axiom-clean).**
+- Prop 2.2: `intervalDomain_Proposition_2_2` (IntervalDomainWeightedGradientEstimate.lean:827), clean-3.
+- Prop 2.4: `intervalDomain_Proposition_2_4` (IntervalDomainMass.lean:888), clean build.
+- Prop 2.5: Multiple routes (MoserActualAtoms, 1DLinfRoute, MoserLadderAtoms), all clean.
+- Lemma 2.6: `Lemma_2_6_intervalDomain_of_mass_gradient_frontier` (IntervalDomainTheorem11.lean:110), clean.
+- Cor 2.1: `Corollary_2_1_intervalDomain_of_mass_gradient_frontier` (IntervalDomainTheorem11.lean:278), clean.
 
 ### (e) General-N infrastructure
 Terminal: architectural plan + partial infrastructure beyond 1D.
