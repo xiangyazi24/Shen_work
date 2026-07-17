@@ -16,8 +16,11 @@
 - avenue (b) CLOSED: commit 1897737a — IntervalDomainMMinimalChiNonposConvergence.lean (1045 lines),
   IntervalDomainMTheorem23Eventual.lean rewired, all axiom-clean, 0 sorry
 - moving to avenue (a): Paper 1 Thm 1.2 audit
-- end: <open>
-- final result: <open>
+- avenue (a) AT TERMINAL: Paper1/ has 0 sorry; χ≤0 unconditional; full conditional only on Henry semigroup (Mathlib gap). All 7 errata certified.
+- avenue (d) DONE: all 5 Paper2 supporting results (Prop 2.2/2.4/2.5, Lem 2.6, Cor 2.1) already proved and axiom-clean.
+- avenue (e) AT TERMINAL: architectural plan written (HANDOFF/GENERAL_N_PLAN.md). BoundedDomainData is dimension-agnostic; Mathlib gaps at C3.
+- end: 2026-07-17
+- final result: ALL 5 AVENUES AT TERMINAL CONDITION. 0 sorry across entire project. (a) conditional on Henry; (b) DONE; (c) DONE; (d) DONE; (e) plan + partial infra.
 
 ## Run 2026-07-08 (automode, Paper 2 Theorem 1.1 unconditional)
 - doctrine: Close all remaining sorry in Paper 2 formalization

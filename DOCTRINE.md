@@ -39,6 +39,11 @@ Attack: audit each statement, find producers, wire.
 ### (e) General-N infrastructure
 Terminal: architectural plan + partial infrastructure beyond 1D.
 Attack: abstract intervalDomain to general bounded domain.
+**STATUS: AT TERMINAL CONDITION.**
+- Architectural plan written: HANDOFF/GENERAL_N_PLAN.md (4 phases, gap table).
+- Partial infrastructure exists: abstract `BoundedDomainData` (BoundedDomainData.lean) already dimension-agnostic; all theorem statements use it.
+- Gap assessment: Mathlib lacks Neumann eigenvalues, heat semigroup, trace theorem, Green's formula, Schauder estimates — all C3 difficulty.
+- Phase 1 (add algebraic axioms to BoundedDomainData) is the next actionable step; deferred as it touches every file in the project.
 
 ## Constraints
 - mini DOWN — uisai1 only

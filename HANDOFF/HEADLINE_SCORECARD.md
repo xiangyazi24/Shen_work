@@ -39,7 +39,7 @@ stability** (Thm 1.2 co-moving weighted-L² + uniform-frame stability) and **Thm
 - Paper1 **Thm 1.2** (tail asymptotics, Lemma 2.5 + §5) — C3. AT TERMINAL: 0 sorry in Paper1/; χ≤0 unconditional; full conditional only on Henry semigroup (out of Mathlib scope). All 7 errata certified.
 - Paper3 **Thm 2.3** general-m: ✅ DONE (commit 1897737a). Thm 2.4 ✅ DONE. Thm 2.5 ✅ DONE (m=1 is paper's own scope).
 - Paper2 supporting **Prop 2.2/2.4/2.5, Lemma 2.6, Cor 2.1** (Prop 2.1 ✓ 7b401459, Prop 2.3 ✓ 47771511) — ✅ ALL DONE (all 5 proved, axiom-clean builds; verified 2026-07-17).
-- General-N versions of all headlines (the open frontier beyond 1D).
+- General-N versions of all headlines (the open frontier beyond 1D). Architectural plan: HANDOFF/GENERAL_N_PLAN.md. Abstract `BoundedDomainData` exists; Mathlib gaps (eigenvalues, semigroup, trace, Schauder) are C3.
 
 ## AUDIT DISCIPLINE (enforced): every capstone verified against its COMMITTED build (own #print axioms + independent
 non-vacuity/faithfulness audit), never the Codex relay. axiom-clean ≠ non-vacuous (§3.3 iron law). Version-suffix in a
