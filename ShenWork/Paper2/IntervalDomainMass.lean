@@ -892,6 +892,8 @@ theorem intervalDomain_Proposition_2_4
     (intervalDomain_Paper2MassDerivativeIdentity p)
     (intervalDomain_Paper2MassComparisonPrinciple p)
 
+#print axioms intervalDomain_Proposition_2_4
+
 end
 
 end ShenWork.Paper2
