@@ -1,7 +1,7 @@
 import ShenWork.Paper1.WholeLineCauchyLongTimeBound
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 
-open Filter Function MeasureTheory Real Set
+open Filter Topology Function MeasureTheory Real Set
 
 noncomputable section
 
@@ -508,10 +508,389 @@ theorem wholeLineSlab_le_chiPosCeiling_of_positive_resolver_pde
   dsimp [w, B] at hwle ⊢
   linarith
 
+/-! ### Segment-level ceiling propagation for χ>0 -/
+
+/-- One BUCMildFixedPoint segment satisfies the chiPos ceiling on the half-open
+interval Ico.  Mirrors `wholeLineCauchyBUCMildFixedPoint_exp_ceiling_Ico`. -/
+theorem wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Ico
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (halpha : p.α = p.m + p.γ - 1)
+    {M T C : ℝ} (hM : 0 ≤ M) (hT : 0 < T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (hC : MChi p ≤ C) (hinit : ∀ x, u₀.1 x ≤ C) :
+    ∀ t ∈ Set.Ico (0 : ℝ) T, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT.le
+        (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 x ≤
+          wholeLineCauchyChiPosCeiling p C t := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall
+  let ue : ℝ → ℝ → ℝ := fun t x =>
+    (wholeLineBUCTrajectoryExtend hT.le U t).1 x
+  have hjoint : Continuous (fun q : ℝ × ℝ => ue q.1 q.2) := by
+    have hmap : Continuous
+        (fun q : ℝ × ℝ => (Set.projIcc 0 T hT.le q.1, q.2)) :=
+      (continuous_projIcc.comp continuous_fst).prodMk continuous_snd
+    simpa [ue, wholeLineBUCTrajectoryExtend] using
+      (wholeLineBUCTrajectory_jointContinuous U).comp hmap
+  intro t ht x
+  by_cases ht0 : t = 0
+  · subst t
+    have hzero : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T := ⟨le_rfl, hT.le⟩
+    have hext0 : wholeLineBUCTrajectoryExtend hT.le U 0 = U ⟨0, hzero⟩ :=
+      wholeLineBUCTrajectoryExtend_eq hT.le U hzero
+    have hU0 : U ⟨0, hzero⟩ = u₀ := by
+      simpa [U] using wholeLineCauchyBUCMildFixedPoint_initial
+        p hM hT.le u₀ hsmall hzero
+    change (wholeLineBUCTrajectoryExtend hT.le U 0).1 x ≤
+      wholeLineCauchyChiPosCeiling p C 0
+    rw [hext0, hU0, wholeLineCauchyChiPosCeiling_zero]
+    exact hinit x
+  have htpos : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm ht0)
+  let S : ℝ := (t + T) / 2
+  have hSpos : 0 < S := by dsimp [S]; linarith
+  have hST : S < T := by dsimp [S]; linarith [ht.2]
+  have htS : t ≤ S := by dsimp [S]; linarith [ht.2]
+  have hclosedStrip : ∀ s ∈ Set.Icc (0 : ℝ) S, ∀ y,
+      ue s y ∈ Set.Icc (0 : ℝ) M := by
+    intro s hs y
+    have hsT : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1, hs.2.trans hST.le⟩
+    have hext : wholeLineBUCTrajectoryExtend hT.le U s = U ⟨s, hsT⟩ :=
+      wholeLineBUCTrajectoryExtend_eq hT.le U hsT
+    simpa [ue, hext, U] using hstrip ⟨s, hsT⟩ y
+  have hbarrier := wholeLineSlab_le_chiPosCeiling_of_positive_resolver_pde
+    p hχ_pos hχ_lt halpha hSpos hC hjoint
+    (fun s hs y => (hclosedStrip s hs y).1)
+    (fun s hs y => (hclosedStrip s hs y).2)
+    (by
+      intro y
+      have hzeroT : (0 : ℝ) ∈ Set.Icc (0 : ℝ) T := ⟨le_rfl, hT.le⟩
+      have hext0 : wholeLineBUCTrajectoryExtend hT.le U 0 = U ⟨0, hzeroT⟩ :=
+        wholeLineBUCTrajectoryExtend_eq hT.le U hzeroT
+      have hU0 : U ⟨0, hzeroT⟩ = u₀ := by
+        simpa [U] using wholeLineCauchyBUCMildFixedPoint_initial
+          p hM hT.le u₀ hsmall hzeroT
+      simpa [ue, hext0, hU0] using hinit y)
+    (by
+      intro s y hs
+      have hsT : s < T := hs.2.trans_lt hST
+      simpa [ue, U] using
+        (wholeLineCauchyBUCMildFixedPoint_physical_pde_hasDerivAt
+          p (theta := (1 / 2 : ℝ)) (eta := (1 / 4 : ℝ))
+          hM hT.le u₀ hsmall hs.1 hsT
+          (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+          (by norm_num) hstrip y).differentiableAt.hasDerivAt)
+    (by
+      intro s y hs
+      have hsT : s ∈ Set.Icc (0 : ℝ) T :=
+        ⟨hs.1.le, hs.2.trans hST.le⟩
+      let zs : Set.Icc (0 : ℝ) T := ⟨s, hsT⟩
+      have hext : wholeLineBUCTrajectoryExtend hT.le U s = U zs :=
+        wholeLineBUCTrajectoryExtend_eq hT.le U hsT
+      change HasDerivAt (fun q : ℝ =>
+        (wholeLineBUCTrajectoryExtend hT.le U s).1 q)
+        (deriv (fun q : ℝ =>
+          (wholeLineBUCTrajectoryExtend hT.le U s).1 q) y) y
+      rw [hext]
+      simpa [U, zs] using
+        (wholeLineCauchyBUCMildFixedPoint_spatial_hasDerivAt_positive
+          p hM hT.le u₀ hsmall zs hs.1 y).differentiableAt.hasDerivAt)
+    (by
+      intro s y hs
+      have hsT : s ∈ Set.Icc (0 : ℝ) T :=
+        ⟨hs.1.le, hs.2.trans hST.le⟩
+      let zs : Set.Icc (0 : ℝ) T := ⟨s, hsT⟩
+      have hext : wholeLineBUCTrajectoryExtend hT.le U s = U zs :=
+        wholeLineBUCTrajectoryExtend_eq hT.le U hsT
+      have hwindow : ∀ r ∈ Set.Icc (s / 2) s, ∀ q,
+          (wholeLineBUCTrajectoryExtend hT.le
+            (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) r).1 q ∈
+              Set.Icc (0 : ℝ) M := by
+        intro r _hr q
+        exact hstrip (Set.projIcc 0 T hT.le r) q
+      change HasDerivAt
+        (fun q : ℝ => deriv (fun r : ℝ =>
+          (wholeLineBUCTrajectoryExtend hT.le U s).1 r) q)
+        (deriv (fun q : ℝ => deriv (fun r : ℝ =>
+          (wholeLineBUCTrajectoryExtend hT.le U s).1 r) q) y) y
+      rw [hext]
+      simpa [U, zs] using
+        (wholeLineCauchyBUCMildFixedPoint_spatial_second_hasDerivAt_positive
+          (theta := (1 / 2 : ℝ)) (eta := (1 / 4 : ℝ))
+          p hM hT.le u₀ hsmall zs hs.1
+          (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+          (by norm_num) hwindow y).differentiableAt.hasDerivAt)
+    (by
+      intro s y hs
+      have hsTlt : s < T := hs.2.trans_lt hST
+      have hsT : s ∈ Set.Icc (0 : ℝ) T := ⟨hs.1.le, hsTlt.le⟩
+      let zs : Set.Icc (0 : ℝ) T := ⟨s, hsT⟩
+      have hext : wholeLineBUCTrajectoryExtend hT.le U s = U zs :=
+        wholeLineBUCTrajectoryExtend_eq hT.le U hsT
+      have htime :=
+        (wholeLineCauchyBUCMildFixedPoint_physical_pde_hasDerivAt
+          p (theta := (1 / 2 : ℝ)) (eta := (1 / 4 : ℝ))
+          hM hT.le u₀ hsmall hs.1 hsTlt
+          (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+          (by norm_num) hstrip y).deriv
+      have hux :=
+        (wholeLineCauchyBUCMildFixedPoint_spatial_hasDerivAt_positive
+          p hM hT.le u₀ hsmall zs hs.1 y).differentiableAt.hasDerivAt
+      have hflux := (wholeLineChemotaxisFlux_hasDerivAt p
+        (WholeLineBUC.isCUnifBdd (U zs))
+        (fun q => (hstrip zs q).1) hux).deriv
+      rw [hflux] at htime
+      simpa [ue, U, hext, wholeLineLogisticSource, reactionFun] using htime)
+  simpa [ue, U] using hbarrier t ⟨htpos.le, htS⟩ x
+
+/-- Time continuity passes the chiPos ceiling to the closed construction
+endpoint.  Mirrors `wholeLineCauchyBUCMildFixedPoint_exp_ceiling_Icc`. -/
+theorem wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Icc
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (halpha : p.α = p.m + p.γ - 1)
+    {M T C : ℝ} (hM : 0 ≤ M) (hT : 0 < T)
+    (u₀ : WholeLineBUC)
+    (hsmall : wholeLineCauchyBUCMildRate p M T < 1)
+    (hstrip : ∀ z : Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall z).1 x ∈
+        Set.Icc (0 : ℝ) M)
+    (hC : MChi p ≤ C) (hinit : ∀ x, u₀.1 x ≤ C) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x,
+      (wholeLineBUCTrajectoryExtend hT.le
+        (wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall) t).1 x ≤
+          wholeLineCauchyChiPosCeiling p C t := by
+  let U : WholeLineBUCTrajectory T :=
+    wholeLineCauchyBUCMildFixedPoint p hM hT.le u₀ hsmall
+  have hIco := wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Ico
+    p hχ_pos hχ_lt halpha hM hT u₀ hsmall hstrip hC hinit
+  have hjoint : Continuous (fun q : ℝ × ℝ =>
+      (wholeLineBUCTrajectoryExtend hT.le U q.1).1 q.2) := by
+    have hmap : Continuous
+        (fun q : ℝ × ℝ => (Set.projIcc 0 T hT.le q.1, q.2)) :=
+      (continuous_projIcc.comp continuous_fst).prodMk continuous_snd
+    simpa [wholeLineBUCTrajectoryExtend] using
+      (wholeLineBUCTrajectory_jointContinuous U).comp hmap
+  intro t ht x
+  by_cases htT : t < T
+  · simpa [U] using hIco t ⟨ht.1, htT⟩ x
+  have hteq : t = T := by linarith [ht.2]
+  subst t
+  let f : ℝ → ℝ := fun s =>
+    (wholeLineBUCTrajectoryExtend hT.le U s).1 x -
+      wholeLineCauchyChiPosCeiling p C s
+  have hfcont : Continuous f := by
+    have hucont : Continuous (fun s =>
+        (wholeLineBUCTrajectoryExtend hT.le U s).1 x) :=
+      hjoint.comp (continuous_id.prodMk continuous_const)
+    have hbcont : Continuous (wholeLineCauchyChiPosCeiling p C) := by
+      change Continuous fun t =>
+        MChi p + (C - MChi p) * Real.exp (-p.α * t)
+      fun_prop
+    exact hucont.sub hbcont
+  have hlim : Tendsto f (𝓝[<] T) (𝓝 (f T)) :=
+    hfcont.continuousAt.tendsto.mono_left inf_le_left
+  have hleft : ∀ᶠ s in 𝓝[<] T, s < T := self_mem_nhdsWithin
+  have hposNhds : ∀ᶠ s in 𝓝 T, 0 < s := Ioi_mem_nhds hT
+  have hpos : ∀ᶠ s in 𝓝[<] T, 0 < s :=
+    hposNhds.filter_mono inf_le_left
+  have hbound : ∀ᶠ s in 𝓝[<] T, f s ∈ Set.Iic 0 := by
+    filter_upwards [hleft, hpos] with s hsT hs0
+    exact sub_nonpos.mpr (by
+      simpa [U] using hIco s ⟨hs0.le, hsT⟩ x)
+  have hfT : f T ≤ 0 := Set.mem_Iic.mp
+    (isClosed_Iic.mem_of_tendsto hlim hbound)
+  have hfinal := sub_nonpos.mp hfT
+  simpa [f, U] using hfinal
+
+/-! ### Step ceiling and global propagation chain for χ>0 -/
+
+/-- The step ceiling for the χ>0 relaxing barrier. -/
+def wholeLineCauchyStepChiPosCeiling
+    (p : CMParams) (u₀ : WholeLineBUC) (C : ℝ) (n : ℕ) : ℝ :=
+  wholeLineCauchyChiPosCeiling p C
+    ((n : ℝ) * wholeLineCauchyGlobalStep p u₀)
+
+theorem wholeLineCauchyStepChiPosCeiling_MChi_le
+    (p : CMParams) (u₀ : WholeLineBUC) {C : ℝ} (hC : MChi p ≤ C) (n : ℕ) :
+    MChi p ≤ wholeLineCauchyStepChiPosCeiling p u₀ C n :=
+  wholeLineCauchyChiPosCeiling_MChi_le hC _
+
+theorem wholeLineCauchyStepChiPosCeiling_succ
+    (p : CMParams) (u₀ : WholeLineBUC) (C : ℝ) (n : ℕ) :
+    wholeLineCauchyChiPosCeiling p
+        (wholeLineCauchyStepChiPosCeiling p u₀ C n)
+        (wholeLineCauchyGlobalStep p u₀) =
+      wholeLineCauchyStepChiPosCeiling p u₀ C (n + 1) := by
+  rw [wholeLineCauchyStepChiPosCeiling, wholeLineCauchyChiPosCeiling_restart]
+  unfold wholeLineCauchyStepChiPosCeiling
+  congr 1
+  push_cast [Nat.cast_add, Nat.cast_one]
+  ring
+
+/-- The chiPos ceiling is propagated through every recursive restart datum and
+every complete canonical segment.
+Mirrors `wholeLineCauchyGlobalDatum_segment_le_expCeiling`. -/
+theorem wholeLineCauchyGlobalDatum_segment_le_chiPosCeiling
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (halpha : p.α = p.m + p.γ - 1)
+    (hregime : WholeLineCauchyCeilingRegime p)
+    (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
+    (C : ℝ) (hC : MChi p ≤ C) (hinit : ∀ x, u₀.1 x ≤ C) :
+    ∀ n,
+      (∀ x, (wholeLineCauchyGlobalDatum p u₀ n).1 x ≤
+        wholeLineCauchyStepChiPosCeiling p u₀ C n) ∧
+      (∀ z x, (wholeLineCauchyGlobalSegment p u₀ n z).1 x ≤
+        wholeLineCauchyChiPosCeiling p
+          (wholeLineCauchyStepChiPosCeiling p u₀ C n) z.1) := by
+  intro n
+  induction n with
+  | zero =>
+      have hdatum : ∀ x,
+          (wholeLineCauchyGlobalDatum p u₀ 0).1 x ≤
+            wholeLineCauchyStepChiPosCeiling p u₀ C 0 := by
+        intro x
+        simpa [wholeLineCauchyGlobalDatum, wholeLineCauchyStepChiPosCeiling,
+          wholeLineCauchyChiPosCeiling_zero] using
+          hinit x
+      refine ⟨hdatum, ?_⟩
+      intro z x
+      have hstrip :=
+        (wholeLineCauchyGlobalDatum_segment_bounds
+          p hregime u₀ hu₀ 0).2.1
+      have hclosed := wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Icc
+        p hχ_pos hχ_lt halpha
+        (wholeLineCauchyGlobalClamp_pos p u₀).le
+        (wholeLineCauchyGlobalSegmentTime_pos p u₀)
+        (wholeLineCauchyGlobalDatum p u₀ 0)
+        (wholeLineCauchyGlobalSegmentTime_rate p u₀)
+        (by simpa [wholeLineCauchyGlobalSegment] using hstrip)
+        (wholeLineCauchyStepChiPosCeiling_MChi_le p u₀ hC 0) hdatum
+      have hext := wholeLineBUCTrajectoryExtend_eq
+        (wholeLineCauchyGlobalSegmentTime_pos p u₀).le
+        (wholeLineCauchyGlobalSegment p u₀ 0) z.2
+      rw [← hext]
+      simpa [wholeLineCauchyGlobalSegment] using hclosed z.1 z.2 x
+  | succ n ih =>
+      let δ := wholeLineCauchyGlobalStep p u₀
+      let zδ : Set.Icc (0 : ℝ) (wholeLineCauchyGlobalSegmentTime p u₀) :=
+        ⟨δ, (wholeLineCauchyGlobalStep_pos p u₀).le,
+          by
+            dsimp [δ, wholeLineCauchyGlobalStep]
+            linarith [wholeLineCauchyGlobalSegmentTime_pos p u₀]⟩
+      have hdatum : ∀ x,
+          (wholeLineCauchyGlobalDatum p u₀ (n + 1)).1 x ≤
+            wholeLineCauchyStepChiPosCeiling p u₀ C (n + 1) := by
+        intro x
+        rw [← wholeLineCauchyStepChiPosCeiling_succ p u₀ C n]
+        simpa [wholeLineCauchyGlobalDatum, wholeLineCauchyGlobalSegment,
+          zδ, δ] using ih.2 zδ x
+      refine ⟨by simpa [Nat.succ_eq_add_one] using hdatum, ?_⟩
+      intro z x
+      have hstrip :=
+        (wholeLineCauchyGlobalDatum_segment_bounds
+          p hregime u₀ hu₀ (n + 1)).2.1
+      have hclosed := wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Icc
+        p hχ_pos hχ_lt halpha
+        (wholeLineCauchyGlobalClamp_pos p u₀).le
+        (wholeLineCauchyGlobalSegmentTime_pos p u₀)
+        (wholeLineCauchyGlobalDatum p u₀ (n + 1))
+        (wholeLineCauchyGlobalSegmentTime_rate p u₀)
+        (by simpa [wholeLineCauchyGlobalSegment] using hstrip)
+        (wholeLineCauchyStepChiPosCeiling_MChi_le p u₀ hC (n + 1)) hdatum
+      have hext := wholeLineBUCTrajectoryExtend_eq
+        (wholeLineCauchyGlobalSegmentTime_pos p u₀).le
+        (wholeLineCauchyGlobalSegment p u₀ (n + 1)) z.2
+      rw [← hext]
+      simpa [wholeLineCauchyGlobalSegment] using hclosed z.1 z.2 x
+
+/-- Quantitative global decay of the canonical solution toward the chiPos
+ceiling MChi.  Mirrors `wholeLineCauchyGlobal_le_expCeiling_of_chi_nonpos`. -/
+theorem wholeLineCauchyGlobal_le_chiPosCeiling_of_chi_pos
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (halpha : p.α = p.m + p.γ - 1)
+    (hregime : WholeLineCauchyCeilingRegime p)
+    (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x)
+    (C : ℝ) (hC : MChi p ≤ C) (hinit : ∀ x, u₀.1 x ≤ C)
+    {t : ℝ} (ht : 0 ≤ t) (x : ℝ) :
+    wholeLineCauchyGlobalU p u₀ t x ≤ wholeLineCauchyChiPosCeiling p C t := by
+  let n := wholeLineCauchyGlobalIndex p u₀ t
+  let q := wholeLineCauchyGlobalLocalTime p u₀ t
+  let δ := wholeLineCauchyGlobalStep p u₀
+  let z : Set.Icc (0 : ℝ) (wholeLineCauchyGlobalSegmentTime p u₀) :=
+    ⟨q, wholeLineCauchyGlobalLocalTime_nonneg p u₀ ht,
+      (wholeLineCauchyGlobalLocalTime_lt_segmentTime p u₀ ht).le⟩
+  have hbound :=
+    (wholeLineCauchyGlobalDatum_segment_le_chiPosCeiling
+      p hχ_pos hχ_lt halpha hregime u₀ hu₀ C hC hinit n).2 z x
+  have heq := congrArg (fun w : WholeLineBUC => w.1 x)
+    (wholeLineCauchyGlobalBUC_eq_segment p u₀ ht)
+  have heq' : (wholeLineCauchyGlobalBUC p u₀ t).1 x =
+      (wholeLineCauchyGlobalSegment p u₀ n z).1 x := by
+    simpa [n, q, z] using heq
+  have hrestart := wholeLineCauchyChiPosCeiling_restart p C
+    ((n : ℝ) * δ) q
+  change (wholeLineCauchyGlobalBUC p u₀ t).1 x ≤
+    wholeLineCauchyChiPosCeiling p C t
+  rw [heq']
+  calc
+    (wholeLineCauchyGlobalSegment p u₀ n z).1 x
+        ≤ wholeLineCauchyChiPosCeiling p
+            (wholeLineCauchyStepChiPosCeiling p u₀ C n) q := hbound
+    _ = wholeLineCauchyChiPosCeiling p C (((n : ℝ) * δ) + q) := by
+      simpa [wholeLineCauchyStepChiPosCeiling, δ] using hrestart
+    _ = wholeLineCauchyChiPosCeiling p C t := by
+      congr 1
+      dsimp [q, n, δ, wholeLineCauchyGlobalLocalTime]
+      ring
+
+/-- The limsup of the canonical solution is at most MChi when χ>0.
+Mirrors `wholeLineCauchyGlobal_uniformLimsupLe_one_of_chi_nonpos`. -/
+theorem wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (halpha : p.α = p.m + p.γ - 1)
+    (hregime : WholeLineCauchyCeilingRegime p)
+    (u₀ : WholeLineBUC) (hu₀ : ∀ x, 0 ≤ u₀.1 x) :
+    UniformLimsupLe (wholeLineCauchyGlobalU p u₀) (MChi p) := by
+  let C : ℝ := max (MChi p) ‖u₀‖
+  have hC : MChi p ≤ C := le_max_left _ _
+  have hinit : ∀ x, u₀.1 x ≤ C := by
+    intro x
+    exact (WholeLineBUC.apply_le_norm u₀ x).trans (le_max_right _ _)
+  have hα_pos : 0 < p.α := by linarith [p.hα]
+  have hdecay : Tendsto (fun t : ℝ =>
+      (C - MChi p) * Real.exp (-p.α * t)) atTop (𝓝 0) := by
+    have hexp : Tendsto (fun t : ℝ => Real.exp (-p.α * t)) atTop (𝓝 0) := by
+      have : (fun t : ℝ => Real.exp (-p.α * t)) =
+          (fun t : ℝ => Real.exp (-t)) ∘ (fun t : ℝ => p.α * t) := by
+        ext t; simp [mul_comm p.α t]
+      rw [this]
+      exact Real.tendsto_exp_neg_atTop_nhds_zero.comp
+        (Filter.tendsto_atTop_atTop_of_monotone
+          (fun a b h => by nlinarith)
+          (fun b => ⟨b / p.α, le_of_eq (by field_simp)⟩))
+    simpa using tendsto_const_nhds.mul hexp
+  intro ε hε
+  have hepsNhds : Set.Iio ε ∈ 𝓝 (0 : ℝ) := Iio_mem_nhds hε
+  have hsmall : ∀ᶠ t : ℝ in atTop, (C - MChi p) * Real.exp (-p.α * t) < ε :=
+    hdecay.eventually hepsNhds
+  filter_upwards [hsmall, eventually_ge_atTop (0 : ℝ)] with t htε ht0
+  intro x
+  have hbound := wholeLineCauchyGlobal_le_chiPosCeiling_of_chi_pos
+    p hχ_pos hχ_lt halpha hregime u₀ hu₀ C hC hinit ht0 x
+  dsimp [wholeLineCauchyChiPosCeiling] at hbound
+  linarith
+
 section AxiomAudit
 
 -- #print axioms effectiveReaction_sub_le
 -- #print axioms wholeLineSlab_le_chiPosCeiling_of_positive_resolver_pde
+-- #print axioms wholeLineCauchyBUCMildFixedPoint_chiPosCeiling_Icc
+-- #print axioms wholeLineCauchyGlobalDatum_segment_le_chiPosCeiling
+-- #print axioms wholeLineCauchyGlobal_le_chiPosCeiling_of_chi_pos
+-- #print axioms wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos
 
 end AxiomAudit
 

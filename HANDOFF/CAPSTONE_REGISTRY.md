@@ -70,8 +70,18 @@ The χ≤0 branch of P1 Thm 1.2 is fully UNCONDITIONAL — the entire Henry-cite
 4. ✅ χ>0 global differentiability: `wholeLineCauchyGlobal_weightedEnergy_differentiableAt_positive_chi_pos_natural` — differentiability of weighted energy at positive times
 5. ✅ Spatial modulus — already χ-general (takes `WholeLineCauchyCeilingRegime`)
 
-**FUNDAMENTAL GAP for χ>0: eventual pointwise limsup bound**
-For χ≤0, the exponential ceiling `1+(C-1)*exp(-t) → 1` gives eventual `u(t,x) ≤ 1+ε = MChi+ε`. For χ>0, the ceiling is STATIC at `max(‖u₀‖+1, MChi)` — no decay toward MChi. The energy quadratic `paper531Quadratic` becomes positive at the stable ceiling for large ‖u₀‖ (since `CommonA(M)` ~ `M^(m-1)`, `CommonB(M)` ~ `M^m`), so all-time dissipation at the ceiling fails for arbitrary initial data. The eventual limsup bound `∀ᶠ t, ∀ x, u(t,x) ≤ MChi + ε` is needed but NOT proven. This blocks:
+**FUNDAMENTAL GAP for χ>0: eventual pointwise limsup bound — IN PROGRESS**
+The slab maximum principle is DONE (commit `8158948b`):
+- `wholeLineSlab_le_chiPosCeiling_of_positive_resolver_pde`: u ≤ MChi+(C-MChi)*exp(-αt) on any time slab
+- Supersolution property via Bernoulli inequality for rpow
+- Effective reaction Lipschitz infrastructure
+
+Remaining to close the gap (being built):
+- Segment Ico/Icc propagation (mirror χ≤0 pattern)
+- Global induction chain across segments
+- `wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos`: UniformLimsupLe MChi
+
+Once closed, this unblocks:
 - Eventual energy dissipation for χ>0
 - Q5314 adapter 2 (integrable seed at time after eventual M ceiling)
 - Weighted L2 convergence for χ>0
@@ -87,7 +97,7 @@ For χ≤0, the exponential ceiling `1+(C-1)*exp(-t) → 1` gives eventual `u(t,
 ## Summary
 
 - **UNCONDITIONAL headlines**: 25+ across all three papers
-- **NEAR-CLOSABLE (χ>0 PDE gap)**: P1 Thm 1.2 full — five χ>0 infrastructure pieces built; blocked on eventual pointwise limsup bound
+- **NEAR-CLOSABLE (χ>0 PDE gap)**: P1 Thm 1.2 full — slab principle DONE, segment chain in progress
 - **CONDITIONAL (frontier data)**: P2 Lem 2.6 (Moser frontier)
 - **Refutations**: 3 (P1 Thm 1.2 a>0/b=0, P3 Thm 2.5 all-time, P3 sup-C¹ obstruction)
 - **Total sorry/axiom in project**: 0 / 0
