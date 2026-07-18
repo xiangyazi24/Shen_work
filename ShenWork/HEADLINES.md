@@ -1,65 +1,49 @@
-# ⚠️ 2026-07-15 LIVE-TARGET SNAPSHOT v2 (compiler-verified; REPLACES the v1 snapshot committed earlier today which wrongly measured against dead original defs)
+# ⚠️ 2026-07-17 LIVE-TARGET SNAPSHOT v3 (updated from v2 after general-m P3 stability closure + P2 supporting audit)
 
-**Method**: probe file on uisai2 (`#check @closer` + `#print axioms`) against the built tree @ d24d0837. Every ✅ below = compiler-printed signature + [propext, Classical.choice, Quot.sound] only. KEY STRUCTURE: several original Statements.lean defs are REFUTED-and-SUPERSEDED (committed `not_*` theorems); the live faithful targets are the `_corrected`/`Eventual` defs. Measuring against original defs (v1's mistake) double-counts dead statements as open work.
+**Method**: compiler-verified (`#print axioms` = `[propext, Classical.choice, Quot.sound]` only). KEY STRUCTURE: several original Statements.lean defs are REFUTED-and-SUPERSEDED (committed `not_*` theorems); the live faithful targets are the `_corrected`/`Eventual` defs.
 
-## 22 numbered main results — 16 closed in live form
+## 22 numbered main results — 19 closed in live form (was 16 at v2)
 
 | paper | result | live status |
 |---|---|---|
 | P1 | Thm 1.1 (wave existence) | ✅ `Theorem_1_1.unconditional` — both branches χ≤0 AND 0≤χ<min(½,χ*), non-vacuous |
 | P1 | Prop 1.1 | 🌗 χ≤0 ✅ `Proposition_1_1_negative_branch`; χ>0 branch = positive-sensitivity lane (Xiang) |
 | P1 | Prop 1.2 | 🌗 χ≤0 ∃-form ✅ `Proposition_1_2_negative_branch` (∀-uniqueness form = imported [39], Q5060 scope verdict); χ>0 open (Xiang lane) |
-| P1 | Thm 1.2 (stability) | ⛰ conditional on `Paper1MainlineExistence` (Henry-class §5: energy dissipation, L²→uniform, c** spec) — imported-infra terminal |
+| P1 | Thm 1.2 (stability) | ⛰ χ≤0 UNCONDITIONAL (`paper1_Theorem_1_2_chi_nonpos_paperDatum`); full conditional on Henry semigroup (Mathlib gap). All 7 errata certified. |
 | P1 | Thm 1.3 (uniqueness) | ⛰ same package + cauchyUnique |
 | P2 | Thm 1.1 | ✅ `paper2_chiNonpos` (χ₀≤0 both signs, logistic, m≥1 global conjunct) |
 | P2 | Thm 1.2 | ✅ live `CorrectedTheorem_1_2`: m=1 critical branch unconditional; 0<m<1 residual = OPEN IN PAPER (Q5042), carried as named residual |
 | P2 | Thm 1.3 | ✅ both halves: χ₀≤0 all m≥1 (`Theorem_1_3_intervalDomainM_chiNonpos_m_ge_one`) + χ₀>0 strong-logistic corrected (`correctedTheorem13_intervalDomainM`, N=1) |
 | P2 | Prop 1.1 | 🟡 conditional: finite-horizon-alternative frontier (χ₀=0 local existence internal; χ₀>0 local inhabitation inside corrected Thm1.3) |
-| P2 | Prop 2.1–2.5 | ✅ all five (2.5 on intervalDomainM), real proofs, tautologies long replaced |
+| P2 | Prop 2.1–2.5 | ✅ all five proved, axiom-clean (verified 2026-07-17) |
+| P2 | Lem 2.6, Cor 2.1 | ✅ both proved, axiom-clean (verified 2026-07-17) |
 | P3 | Prop 1.2 | ✅ χ₀≤0 m≥1 logistic (`proposition_1_2_intervalDomain_chiNonpos`); minimal a=b=0 slice unverified vs paper scope |
 | P3 | Prop 1.3 | ✅ corrected (`correctedProposition13_intervalDomainM`, N=1) |
 | P3 | Prop 1.4 | ✅ `intervalDomain_Proposition_1_4_unconditional` |
 | P3 | Thm 2.1 (persistence) | ✅ FULL corrected: `Theorem_2_1_corrected_intervalDomainM` = part1_corrected ∧ part2 ∧ part3 ∧ part4_physicalMass; original part1-pureDecay + part4-anyConstants REFUTED (committed obstructions) |
-| P3 | Thm 2.2 | ✅ live Eventual form, m=1, concrete non-vacuous constants (`intervalDomain_Theorem_2_2_Eventual_concrete_unconditional`); linear threshold unconditional standalone |
-| P3 | Thm 2.3 | ✅ Eventual, m=1 gate (`intervalDomain_Theorem_2_3_EventualGlobalStability`) |
-| P3 | Thm 2.4 | ✅ Eventual formula-level, m=1 gate |
+| P3 | Thm 2.2 | ✅ general-m FULL 4-branch: `intervalDomainM_Theorem_2_2_Eventual_concrete_unconditional` (IntervalDomainMMinimalFaithfulTheorem22.lean); linear threshold unconditional standalone |
+| P3 | Thm 2.3 | ✅ general-m FULL: `intervalDomainM_Theorem_2_3_EventualGlobalStability` (IntervalDomainMTheorem23Eventual.lean, commit 1897737a); both branches (nonminimal + minimal χ₀≤0) |
+| P3 | Thm 2.4 | ✅ general-m FULL 4-branch zero-hyp: `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula` (IntervalDomainMTheorem24Eventual.lean, commit a1d56b47) |
 | P3 | Thm 2.5 | ✅ Eventual formula (N=1); ORIGINAL all-time statement REFUTED (`not_intervalDomain_Theorem_2_5_original_allTime`) |
 
-## Genuinely remaining (matches the 07-15 board + Q5060 exhaustion audit)
-1. **P1 Thm 1.2/1.3** — Henry-class §5 stability machinery (+ Lem 5.1/5.2 frontier data feeding them). Imported-infra scale.
+## Genuinely remaining (updated 2026-07-17)
+1. **P1 Thm 1.2/1.3** — Henry-class §5 stability machinery. χ≤0 DONE; full conditional on Henry semigroup (Mathlib gap, out of scope). All 7 errata certified.
 2. **P1 χ>0 branches** of Prop 1.1/1.2 — positive-sensitivity lane (Xiang).
 3. **P2 0<m<1 floor-loss** — open in the paper itself; carried as named residual.
 4. **P2 Prop 1.1 finite-horizon alternative** — engine glue frontier.
 5. **Statement-level errata without corrected forms yet**: P2 Lem 2.1–2.4 sharp semigroup estimates (obstruction theorem committed: exp-decay factor unattainable for undamped data) + P3 Lem A.2–A.4 riding on them; P1 Lem 2.1(∀S)/4.1/4.2 refuted-as-stated (content routed around inside closed Thm 1.1).
-6. **Interior bookkeeping off critical path**: tautology shims (P2 Lem2.7; P3 Lem3.3/3.5/7.1/A.1/Cor5.1), P3 Lem3.2/3.4/A.7/A.8 + P2 Lem2.6/Cor2.1/Lem4.1 conditionals — headline chains close without them.
+6. **Interior bookkeeping off critical path**: tautology shims (P2 Lem2.7; P3 Lem3.3/3.5/7.1/A.1/Cor5.1), P3 Lem3.2/3.4/A.7/A.8 conditionals — headline chains close without them.
+7. **General-N** — architectural plan: HANDOFF/GENERAL_N_PLAN.md. Abstract `BoundedDomainData` dimension-agnostic; Mathlib gaps (eigenvalues, semigroup, trace, Schauder) at C3.
 
-## ⚠️ P3 STABILITY CORRECTION (2026-07-15 paper-grounded, code-traced — supersedes "P3 COMPLETE")
-Read paper3.pdf §2.2/§6/§7 + traced the Lean m-gates to their usage point:
-- **Thm 2.1 persistence**: genuinely FULL m≥1 (parts 1/2/3/4 cover m≥1 / m=1 / m>1 / m=1-minimal). ✅
-- **Thm 2.3 (χ₀≤0 global stability)**: paper §6 proof uses NO Lyapunov functional — it's compactness
-  (Lem 3.1/3.2) + parabolic max-principle (6.2)-(6.3) + scalar-ODE mass comparison (Claim 2); m enters
-  only as a positive coefficient u^{m-1} that does not affect any sign. So m>1 = the SAME argument as m=1.
-  The Lean `hm : p.m = 1` gate is a SPECIALIZATION, not a math wall → lifting to m≥1 is mechanical
-  (re-run the route without the m=1 shortcut). NOT a mountain.
-- **Thm 2.4 (χ₀>0 strong-logistic)**: paper §7 = the REAL "Lyapunov from m=1 to m>1" contribution.
-  Functional F=∫h_m(u), h_m(s)=∫_{u*}^s(1-(u*/τ)^{2m-1})dτ (7.1); genuine m>1 math is the dissipation
-  (7.5)-(7.8): coeff (2m-1)(u*)^{2m-1} + Young + power-difference (Lem A.6/A.2). Lean status: the
-  general-m entropy `chemotaxisEntropyDensity m` + its derivative + positivity ALREADY proven
-  (LyapunovFunction.lean); `weighted_young` + `IntervalDomainMinimalPowerDifference` ALREADY exist. The
-  m=1 gate bites only at the PLUMBING (`IntervalDomainEntropyTimeDerivative.lean` hardcodes
-  `chemotaxisEntropyDensity 1` in the Leibniz integrand). ⟹ Thm 2.4 m>1 = generalize that plumbing to
-  carry m + prove the (7.5) power-difference dissipation. BOUNDED, Codex-scale, NOT Henry-class.
-- **Thm 2.2 nonlinear (χ₀<χ*)**: local exp stability, m=1-gated in Lean; m>1 rides on the same Thm 2.4
-  Lyapunov/linearization. Thm 2.2 LINEAR dichotomy is already m-general ✅.
-- **Thm 2.5 (a=b=0 minimal)**: paper is m=1 minimal by definition → Lean m=1/N=1 is FAITHFUL. ✅
-
-NET: P3 persistence = fully closed; P3 STABILITY (Thm 2.2 nonlinear / 2.3 / 2.4) closed only at m=1.
-The m>1 stability is REAL open work but well-structured: Thm 2.3 m>1 mechanical, Thm 2.4 m>1 bounded
-(general-m entropy infra + named inequalities already in-repo). This is frontier #5, Codex-scale not
-Henry-scale.
+## ✅ P3 STABILITY GENERAL-m CLOSURE (2026-07-16—17, supersedes the 07-15 "closed only at m=1" assessment)
+All P3 stability theorems now proved at general-m on `intervalDomainM`:
+- **Thm 2.1 persistence**: FULL m≥1. ✅ (unchanged from 07-15)
+- **Thm 2.2 (4-branch)**: general-m UNCONDITIONAL. chiCritical carries uStar^(m+γ-1). ✅
+- **Thm 2.3 (χ₀≤0 global)**: general-m UNCONDITIONAL. Both nonminimal + minimal branches. Commit 1897737a. ✅
+- **Thm 2.4 (χ₀>0 strong-logistic)**: general-m UNCONDITIONAL, zero-hyp (only p). 4 branches. Commit a1d56b47. ✅
+- **Thm 2.5 (a=b=0 minimal)**: paper is m=1 by definition → Lean m=1/N=1 is FAITHFUL. ✅
 
 ## Open sliver-checks (paper-facing, cheap)
-- P3 Thm 2.2–2.4 Eventual closers gate `m = 1` — confirm the paper's stability section is m=1 (if it claims m>1 the sliver is real).
 - P3 Prop 1.2 minimal (a=b=0) slice vs paper's standing assumptions.
 - P1 Prop 1.2 negative-branch datum (`PaperNonnegativeInitialDatum`+`UniformlyPositive`) vs def branch predicate — wiring seam.
 
