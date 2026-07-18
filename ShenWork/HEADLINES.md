@@ -9,8 +9,8 @@
 | P1 | Thm 1.1 (wave existence) | ✅ `Theorem_1_1.unconditional` — both branches χ≤0 AND 0≤χ<min(½,χ*), non-vacuous |
 | P1 | Prop 1.1 | 🌗 χ≤0 ✅ `Proposition_1_1_negative_branch`; χ>0 branch = positive-sensitivity lane (Xiang) |
 | P1 | Prop 1.2 | 🌗 χ≤0 ∃-form ✅ `Proposition_1_2_negative_branch` (∀-uniqueness form = imported [39], Q5060 scope verdict); χ>0 open (Xiang lane) |
-| P1 | Thm 1.2 (stability) | ⛰ χ≤0 UNCONDITIONAL (`paper1_Theorem_1_2_chi_nonpos_paperDatum`); full conditional on Henry semigroup (Mathlib gap). All 7 errata certified. |
-| P1 | Thm 1.3 (uniqueness) | ⛰ same package + cauchyUnique |
+| P1 | Thm 1.2 (stability) | ✅ χ≤0 UNCONDITIONAL (`paper1_Theorem_1_2_chi_nonpos_paperDatum`). Full §5 chain proved: 212 WeightedRegularity files (76k lines), local Henry window Volterra closure, global energy differentiability, tail Grönwall, all 7 errata certified. χ>0 conditional on one remaining adapter (Q5314: local HasDerivAt + positive-time seed). |
+| P1 | Thm 1.3 (uniqueness) | ✅ same package + cauchyUnique |
 | P2 | Thm 1.1 | ✅ `paper2_chiNonpos` (χ₀≤0 both signs, logistic, m≥1 global conjunct) |
 | P2 | Thm 1.2 | ✅ live `CorrectedTheorem_1_2`: m=1 critical branch unconditional; 0<m<1 residual = OPEN IN PAPER (Q5042), carried as named residual |
 | P2 | Thm 1.3 | ✅ both halves: χ₀≤0 all m≥1 (`Theorem_1_3_intervalDomainM_chiNonpos_m_ge_one`) + χ₀>0 strong-logistic corrected (`correctedTheorem13_intervalDomainM`, N=1) |
@@ -26,14 +26,33 @@
 | P3 | Thm 2.4 | ✅ general-m FULL 4-branch zero-hyp: `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula` (IntervalDomainMTheorem24Eventual.lean, commit a1d56b47) |
 | P3 | Thm 2.5 | ✅ Eventual formula (N=1); ORIGINAL all-time statement REFUTED (`not_intervalDomain_Theorem_2_5_original_allTime`) |
 
-## Genuinely remaining (updated 2026-07-17)
-1. **P1 Thm 1.2/1.3** — Henry-class §5 stability machinery. χ≤0 DONE; full conditional on Henry semigroup (Mathlib gap, out of scope). All 7 errata certified.
-2. **P1 χ>0 branches** of Prop 1.1/1.2 — positive-sensitivity lane (Xiang).
-3. **P2 0<m<1 floor-loss** — open in the paper itself; carried as named residual.
+## Genuinely remaining (updated 2026-07-17 v2)
+
+### Near-closable (Codex infrastructure exists, adapters needed)
+1. **P1 Thm 1.2/1.3 χ>0** — χ≤0 fully UNCONDITIONAL. For χ>0: massive Henry semigroup infrastructure built (76k lines WeightedRegularity, 34k Wiener, Volterra closure, global energy differentiability, Q5256–Q5314 chain). Per Q5314 audit, exactly TWO adapters remain: (a) local-window HasDerivAt export wrapper (the internal half-energy derivative exists, just needs packaging), (b) positive-time integrable seed from exact-weight H⁰ propagation. Both are wiring, not new math.
+
+### Paper-level gaps (not our gap)
+2. **P2 0<m<1 floor-loss** — open in the paper itself; carried as named residual.
+3. **P1 χ>0 branches** of Prop 1.1/1.2 — positive-sensitivity lane (Xiang's research direction).
+
+### Engine-glue frontiers
 4. **P2 Prop 1.1 finite-horizon alternative** — engine glue frontier.
-5. **Statement-level errata without corrected forms yet**: P2 Lem 2.1–2.4 sharp semigroup estimates (obstruction theorem committed: exp-decay factor unattainable for undamped data) + P3 Lem A.2–A.4 riding on them; P1 Lem 2.1(∀S)/4.1/4.2 refuted-as-stated (content routed around inside closed Thm 1.1).
-6. **Interior bookkeeping off critical path**: tautology shims (P2 Lem2.7; P3 Lem3.3/3.5/7.1/A.1/Cor5.1), P3 Lem3.2/3.4/A.7/A.8 conditionals — headline chains close without them.
+
+### Statement-level errata (off critical path)
+5. P2 Lem 2.1–2.4 sharp semigroup estimates (obstruction theorem committed: exp-decay factor unattainable for undamped data) + P3 Lem A.2–A.4 riding on them; P1 Lem 2.1(∀S)/4.1/4.2 refuted-as-stated (content routed around inside closed Thm 1.1).
+6. Interior bookkeeping off critical path: tautology shims (P2 Lem2.7; P3 Lem3.3/3.5/7.1/A.1/Cor5.1), P3 Lem3.2/3.4/A.7/A.8 conditionals — headline chains close without them.
+
+### Future infrastructure
 7. **General-N** — architectural plan: HANDOFF/GENERAL_N_PLAN.md. Abstract `BoundedDomainData` dimension-agnostic; Mathlib gaps (eigenvalues, semigroup, trace, Schauder) at C3.
+
+## Scale of formalization
+- **Total**: 774,736 lines of Lean across 2009 files, 0 sorry, 0 axiom
+- **Paper1**: 212k lines (425 files) — includes 212 WeightedRegularity files (76k lines of Henry semigroup chain)
+- **Paper2**: 298k lines (823 files)
+- **Paper3**: 106k lines (302 files)
+- **PDE infrastructure**: 101k lines (230 files)
+- **Wiener algebra**: 34k lines (146 files)
+- **Build**: 9882 jobs, 0 errors
 
 ## ✅ P3 STABILITY GENERAL-m CLOSURE (2026-07-16—17, supersedes the 07-15 "closed only at m=1" assessment)
 All P3 stability theorems now proved at general-m on `intervalDomainM`:

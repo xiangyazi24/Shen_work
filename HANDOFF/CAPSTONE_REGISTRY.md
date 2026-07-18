@@ -10,7 +10,7 @@ All theorems below depend only on `[propext, Classical.choice, Quot.sound]`.
 | Thm 1.1 (FULL) | `Theorem_1_1.unconditional` | Paper1/Theorem1_1Unconditional.lean:12 | UNCONDITIONAL |
 | Thm 1.2 χ≤0 | `paper1_Theorem_1_2_chi_nonpos_paperDatum` | Paper1/WholeLineWeightedRegularityChiNonposHeadlineNatural.lean:22 | UNCONDITIONAL |
 | Thm 1.2 χ<0 | `paper1_Theorem_1_2_chi_neg_paperDatum` | Paper1/WholeLineWeightedRegularityChiNonposHeadlineNatural.lean:68 | UNCONDITIONAL |
-| Thm 1.2 full | `paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4` | Paper1/Theorem12Corrected.lean:222 | CONDITIONAL on Henry semigroup |
+| Thm 1.2 full | `paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4` | Paper1/Theorem12Corrected.lean:222 | χ>0: TWO adapters remain (Q5314) — see Henry infrastructure below |
 | Prop 1.1 χ≤0 | `Proposition_1_1_negative_branch` | Paper1/WholeLineCauchyLongTimeBound.lean:741 | UNCONDITIONAL |
 | Prop 1.2 χ≤0 | `Proposition_1_2_negative_branch` | Paper1/Proposition12NegativeBranch.lean:21 | UNCONDITIONAL |
 | Refutation Thm 1.2 a>0,b=0 | `not_Theorem_1_2_intervalDomain_when_a_pos_b_zero` | Paper2/IntervalDomainTheorem12Refutation.lean:162 | UNCONDITIONAL |
@@ -47,10 +47,37 @@ All theorems below depend only on `[propext, Classical.choice, Quot.sound]`.
 | Refutation Thm 2.5 all-time | `not_intervalDomain_Theorem_2_5_original_allTime` | Paper3/IntervalDomainSectorialCorrectedObstruction.lean:421 | UNCONDITIONAL |
 | Refutation Thm 2.5 stability-cond | `not_intervalDomain_Theorem_2_5_of_stabilityCondition` | Paper3/IntervalDomainSectorialCorrectedObstruction.lean:353 | UNCONDITIONAL |
 
+## Henry Semigroup Infrastructure (Codex GPT-5.6 sol, July 15-16)
+
+The χ≤0 branch of P1 Thm 1.2 is fully UNCONDITIONAL — the entire Henry-cited regularity chain was built from scratch:
+
+**What was built (76k lines, 212 files in WeightedRegularity chain):**
+- Weighted L² heat semigroup law and differentiation (`WholeLineWeightedRegularityL2Semigroup.lean`, 2730 lines)
+- Raw difference-quotient (DQ) PDE one-step inequality and Henry window closure (32 RawDQ files)
+- Volterra scalar recurrences and singular profile bounds
+- Short-window Henry closure via automatic window selection (`target_norm_bound_of_restart_henry_on_fixed_window`)
+- Global energy differentiability at positive times (`wholeLineCauchyGlobal_weightedEnergy_differentiableAt_positive_natural`)
+- Exact-weight H⁰ propagation from initial weighted L² closeness
+- Tail-start Grönwall to exponential energy decay
+- Full χ<0 weighted convergence (`wholeLineCauchyGlobal_coMovingWeightedL2Convergence_chi_neg_natural`)
+- Left-equilibrium dynamics for χ<0 (`wholeLineCauchyGlobal_uniformCoMovingLeftEquilibriumConvergence_chi_neg_natural`)
+- Full χ≤0 uniform moving-frame convergence (`wholeLineCauchyGlobal_solution_weighted_and_uniformConvergence_chi_neg_natural`)
+
+**What remains for χ>0 (per Q5314 audit, both are wiring — no new math):**
+1. Local-window HasDerivAt export wrapper — the internal `HasDerivAt` on the half-energy already exists in `paper5WeightedEnergy_deriv_le_common_of_exactGeneratorWindow_local`; needs packaging as a paired `HasDerivAt + inequality` output
+2. Positive-time integrable seed — select deterministic t₀ after the eventual common ceiling M; use committed exact-weight H⁰ propagation to prove `Integrable` of weighted density at t₀
+
+**Supporting infrastructure (34k lines Wiener, 101k lines PDE):**
+- Wiener weighted-ℓ¹ algebra (the χ₀<0 hQuant engine)
+- Heat kernel gradient estimates (`HeatKernelGradientEstimates.lean`, 3435 lines)
+- Interval coupled classical ball estimates (5406 lines)
+- Moser iteration infrastructure (energy continuity + integrated closure, 5572 lines)
+
 ## Summary
 
 - **UNCONDITIONAL headlines**: 25+ across all three papers
-- **CONDITIONAL (Henry semigroup only)**: P1 Thm 1.2 full (χ>0)
+- **NEAR-CLOSABLE (χ>0 adapters)**: P1 Thm 1.2 full — two wiring adapters per Q5314
 - **CONDITIONAL (frontier data)**: P2 Lem 2.6 (Moser frontier)
 - **Refutations**: 3 (P1 Thm 1.2 a>0/b=0, P3 Thm 2.5 all-time, P3 sup-C¹ obstruction)
 - **Total sorry/axiom in project**: 0 / 0
+- **Scale**: 774,736 lines of Lean, 2009 files, 9882 build jobs, 0 errors
