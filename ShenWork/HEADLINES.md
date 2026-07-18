@@ -1,4 +1,4 @@
-# ⚠️ 2026-07-17 LIVE-TARGET SNAPSHOT v3 (updated from v2 after general-m P3 stability closure + P2 supporting audit)
+# ⚠️ 2026-07-17 LIVE-TARGET SNAPSHOT v4 (updated: χ>0 infrastructure layer complete, limsup gap identified)
 
 **Method**: compiler-verified (`#print axioms` = `[propext, Classical.choice, Quot.sound]` only). KEY STRUCTURE: several original Statements.lean defs are REFUTED-and-SUPERSEDED (committed `not_*` theorems); the live faithful targets are the `_corrected`/`Eventual` defs.
 
@@ -9,7 +9,7 @@
 | P1 | Thm 1.1 (wave existence) | ✅ `Theorem_1_1.unconditional` — both branches χ≤0 AND 0≤χ<min(½,χ*), non-vacuous |
 | P1 | Prop 1.1 | 🌗 χ≤0 ✅ `Proposition_1_1_negative_branch`; χ>0 branch = positive-sensitivity lane (Xiang) |
 | P1 | Prop 1.2 | 🌗 χ≤0 ∃-form ✅ `Proposition_1_2_negative_branch` (∀-uniqueness form = imported [39], Q5060 scope verdict); χ>0 open (Xiang lane) |
-| P1 | Thm 1.2 (stability) | ✅ χ≤0 UNCONDITIONAL (`paper1_Theorem_1_2_chi_nonpos_paperDatum`). Full §5 chain proved: 212 WeightedRegularity files (76k lines), local Henry window Volterra closure, global energy differentiability, tail Grönwall, all 7 errata certified. χ>0 conditional on one remaining adapter (Q5314: local HasDerivAt + positive-time seed). |
+| P1 | Thm 1.2 (stability) | ✅ χ≤0 UNCONDITIONAL (`paper1_Theorem_1_2_chi_nonpos_paperDatum`). Full §5 chain proved: 212 WeightedRegularity files (76k lines). **χ>0 infrastructure layer complete** (5 files: global energy ineq, slice H⁰, differentiability, Q5314 adapter 1, spatial modulus); **blocked on eventual pointwise limsup bound** (`∀ᶠ t, ∀ x, u(t,x) ≤ MChi + ε` for χ>0). |
 | P1 | Thm 1.3 (uniqueness) | ✅ same package + cauchyUnique |
 | P2 | Thm 1.1 | ✅ `paper2_chiNonpos` (χ₀≤0 both signs, logistic, m≥1 global conjunct) |
 | P2 | Thm 1.2 | ✅ live `CorrectedTheorem_1_2`: m=1 critical branch unconditional; 0<m<1 residual = OPEN IN PAPER (Q5042), carried as named residual |
@@ -28,8 +28,14 @@
 
 ## Genuinely remaining (updated 2026-07-17 v2)
 
-### Near-closable (Codex infrastructure exists, adapters needed)
-1. **P1 Thm 1.2/1.3 χ>0** — χ≤0 fully UNCONDITIONAL. For χ>0: massive Henry semigroup infrastructure built (76k lines WeightedRegularity, 34k Wiener, Volterra closure, global energy differentiability, Q5256–Q5314 chain). Per Q5314 audit, exactly TWO adapters remain: (a) local-window HasDerivAt export wrapper (the internal half-energy derivative exists, just needs packaging), (b) positive-time integrable seed from exact-weight H⁰ propagation. Both are wiring, not new math.
+### P1 Thm 1.2/1.3 χ>0 — close to closable
+χ≤0 is fully UNCONDITIONAL. For χ>0, the infrastructure is 90% built (76k lines WeightedRegularity, 34k Wiener). Precise remaining pieces:
+- **(a) Q5314 adapter 1** (WIRING): paired HasDerivAt + inequality export from local window — IN PROGRESS, file written
+- **(b) Q5314 adapter 2** (WIRING): positive-time integrable seed from exact-weight H⁰ propagation
+- **(c) χ>0 limsup bound** (CONTENT): `wholeLineCauchyGlobal_uniformLimsupLe_one_of_chi_nonpos` only handles χ≤0. Need a χ>0 version via `WholeLineCauchyCeilingRegime` + logistic-type argument. The ceiling bound `wholeLineCauchyGlobal_le_ceiling` already works for χ>0 via `StableWaveParameterRegime.toWholeLineCauchyCeilingRegime`. Gap: going from all-time ceiling to eventual limsup.
+- **(d) χ>0 eventual integrability**: existing version takes `hchi.le : χ≤0`; need χ>0 variant
+
+Items (a)+(b) are wiring (days). Items (c)+(d) are real analysis but use existing infrastructure.
 
 ### Paper-level gaps (not our gap)
 2. **P2 0<m<1 floor-loss** — open in the paper itself; carried as named residual.

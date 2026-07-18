@@ -63,9 +63,20 @@ The χ≤0 branch of P1 Thm 1.2 is fully UNCONDITIONAL — the entire Henry-cite
 - Left-equilibrium dynamics for χ<0 (`wholeLineCauchyGlobal_uniformCoMovingLeftEquilibriumConvergence_chi_neg_natural`)
 - Full χ≤0 uniform moving-frame convergence (`wholeLineCauchyGlobal_solution_weighted_and_uniformConvergence_chi_neg_natural`)
 
-**What remains for χ>0 (per Q5314 audit, both are wiring — no new math):**
-1. Local-window HasDerivAt export wrapper — the internal `HasDerivAt` on the half-energy already exists in `paper5WeightedEnergy_deriv_le_common_of_exactGeneratorWindow_local`; needs packaging as a paired `HasDerivAt + inequality` output
-2. Positive-time integrable seed — select deterministic t₀ after the eventual common ceiling M; use committed exact-weight H⁰ propagation to prove `Integrable` of weighted density at t₀
+**What was built for χ>0 (July 17, three-piece mirror pattern):**
+1. ✅ Q5314 adapter 1: `paper5WeightedEnergy_hasDerivAt_and_deriv_le_of_exactGeneratorWindow_local` — paired HasDerivAt + inequality from local window (commit `173a3d9d`)
+2. ✅ χ>0 global energy inequality: `wholeLineCauchyGlobal_weightedEnergy_deriv_le_common_of_target_bound_chi_pos_natural` — takes `StableWaveParameterRegime`, `0 < p.χ`, and `htarget : ∀ x, u(t,x) ≤ M`
+3. ✅ χ>0 global slice H⁰: `wholeLineCauchyGlobal_fullWeightedL2_integrable_wave_chi_pos_of_initialCloseness` — integrability of weighted L2 error at any positive time
+4. ✅ χ>0 global differentiability: `wholeLineCauchyGlobal_weightedEnergy_differentiableAt_positive_chi_pos_natural` — differentiability of weighted energy at positive times
+5. ✅ Spatial modulus — already χ-general (takes `WholeLineCauchyCeilingRegime`)
+
+**FUNDAMENTAL GAP for χ>0: eventual pointwise limsup bound**
+For χ≤0, the exponential ceiling `1+(C-1)*exp(-t) → 1` gives eventual `u(t,x) ≤ 1+ε = MChi+ε`. For χ>0, the ceiling is STATIC at `max(‖u₀‖+1, MChi)` — no decay toward MChi. The energy quadratic `paper531Quadratic` becomes positive at the stable ceiling for large ‖u₀‖ (since `CommonA(M)` ~ `M^(m-1)`, `CommonB(M)` ~ `M^m`), so all-time dissipation at the ceiling fails for arbitrary initial data. The eventual limsup bound `∀ᶠ t, ∀ x, u(t,x) ≤ MChi + ε` is needed but NOT proven. This blocks:
+- Eventual energy dissipation for χ>0
+- Q5314 adapter 2 (integrable seed at time after eventual M ceiling)
+- Weighted L2 convergence for χ>0
+- Left equilibrium convergence for χ>0
+- P1 Thm 1.2 full, Thm 1.3 full, Prop 1.2 χ>0
 
 **Supporting infrastructure (34k lines Wiener, 101k lines PDE):**
 - Wiener weighted-ℓ¹ algebra (the χ₀<0 hQuant engine)
@@ -76,7 +87,7 @@ The χ≤0 branch of P1 Thm 1.2 is fully UNCONDITIONAL — the entire Henry-cite
 ## Summary
 
 - **UNCONDITIONAL headlines**: 25+ across all three papers
-- **NEAR-CLOSABLE (χ>0 adapters)**: P1 Thm 1.2 full — two wiring adapters per Q5314
+- **NEAR-CLOSABLE (χ>0 PDE gap)**: P1 Thm 1.2 full — five χ>0 infrastructure pieces built; blocked on eventual pointwise limsup bound
 - **CONDITIONAL (frontier data)**: P2 Lem 2.6 (Moser frontier)
 - **Refutations**: 3 (P1 Thm 1.2 a>0/b=0, P3 Thm 2.5 all-time, P3 sup-C¹ obstruction)
 - **Total sorry/axiom in project**: 0 / 0
