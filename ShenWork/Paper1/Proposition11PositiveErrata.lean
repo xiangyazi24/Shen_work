@@ -107,12 +107,92 @@ theorem paper1PositiveCriticalThreshold_not_implies_chiStar
     rw [hχ]
     linarith
 
+
+/-! ## Why the threshold is exactly this: the `p`-admissibility of §3.1
+
+The paper's Step 1 (p.17–18) runs a local `L^p` energy estimate weighted by a
+cutoff, and needs an exponent `p` with
+
+  `max {1, m, γ} < p < m + γ`  and  `χ < (p + m - 1) / (p - 1)`.
+
+Since `x ↦ 1 + m/(x-1)` is decreasing, the supremum of the second bound over
+the admissible window sits at the left endpoint `max {1, m, γ}`, which produces
+`(2m-1)/(m-1)` when `m ≥ γ` and `(m+γ-1)/(γ-1)` when `γ > m` — i.e. exactly the
+paper's `min`.  The theorem below proves that the division-free threshold is
+EQUIVALENT to the existence of such an exponent, which independently confirms
+the faithful encoding. -/
+
+theorem paper1PositiveCriticalThreshold_iff_exists_admissible_exponent
+    (p : CMParams) (hχ : 0 ≤ p.χ) :
+    paper1PositiveCriticalThreshold p ↔
+      ∃ e : ℝ, max 1 (max p.m p.γ) < e ∧ e < p.m + p.γ ∧
+        p.χ * (e - 1) < e + p.m - 1 := by
+  have hm1 : 1 ≤ p.m := p.hm
+  have hγ1 : 1 ≤ p.γ := p.hγ
+  set s : ℝ := max 1 (max p.m p.γ) with hs
+  have hs1 : 1 ≤ s := le_max_left _ _
+  have hsm : p.m ≤ s := (le_max_left p.m p.γ).trans (le_max_right _ _)
+  have hsγ : p.γ ≤ s := (le_max_right p.m p.γ).trans (le_max_right _ _)
+  have hs_eq : s = p.m ∨ s = p.γ := by
+    rcases le_total p.m p.γ with h | h
+    · right
+      rw [hs, max_eq_right (le_trans hm1 (le_max_of_le_right h)),
+        max_eq_right h]
+    · left
+      rw [hs, max_eq_right (le_trans hγ1 (le_max_of_le_left h)),
+        max_eq_left h]
+  have hsub : s < p.m + p.γ := by
+    rcases hs_eq with h | h
+    · rw [h]; linarith
+    · rw [h]; linarith
+  constructor
+  · rintro ⟨hmm, hgg⟩
+    -- the strict margin at the left endpoint
+    have hD : 0 < p.m - (p.χ - 1) * (s - 1) := by
+      rcases hs_eq with h | h
+      · rw [h]; nlinarith
+      · rw [h]; nlinarith
+    set D : ℝ := p.m - (p.χ - 1) * (s - 1) with hDdef
+    set eps : ℝ := min ((p.m + p.γ - s) / 2) (D / (2 * (1 + p.χ))) with hepsdef
+    have heps_pos : 0 < eps := by
+      apply lt_min
+      · linarith
+      · positivity
+    have heps_left : eps ≤ (p.m + p.γ - s) / 2 := min_le_left _ _
+    have heps_right : eps ≤ D / (2 * (1 + p.χ)) := min_le_right _ _
+    refine ⟨s + eps, by linarith, by linarith, ?_⟩
+    have hchi_eps : (p.χ - 1) * eps < D := by
+      have hbound : p.χ * eps ≤ p.χ * (D / (2 * (1 + p.χ))) :=
+        mul_le_mul_of_nonneg_left heps_right hχ
+      have hhalf : p.χ * (D / (2 * (1 + p.χ))) < D := by
+        rw [mul_div_assoc']
+        rw [div_lt_iff₀ (by positivity)]
+        nlinarith
+      nlinarith [heps_pos.le]
+    have : (p.χ - 1) * (s + eps - 1) < p.m := by
+      have hexpand : (p.χ - 1) * (s + eps - 1)
+          = (p.χ - 1) * (s - 1) + (p.χ - 1) * eps := by ring
+      rw [hexpand]
+      rw [hDdef] at hchi_eps
+      linarith
+    linarith
+  · rintro ⟨e, he_lo, _he_hi, he⟩
+    have hes : s < e := he_lo
+    have he1 : 1 < e := lt_of_le_of_lt hs1 hes
+    have hkey : (p.χ - 1) * (e - 1) < p.m := by nlinarith
+    constructor
+    · have hme : p.m - 1 ≤ e - 1 := by linarith [hsm.trans_lt hes]
+      nlinarith [hkey, hme]
+    · have hγe : p.γ - 1 ≤ e - 1 := by linarith [hsγ.trans_lt hes]
+      nlinarith [hkey, hγe]
+
 section AxiomAudit
 
 #print axioms paper1PositiveCriticalThreshold_iff_ratios
 #print axioms proposition11_committed_threshold_vacuous_at_gamma_one
 #print axioms paper1PositiveCriticalThreshold_witness_gamma_one
 #print axioms paper1PositiveCriticalThreshold_not_implies_chiStar
+#print axioms paper1PositiveCriticalThreshold_iff_exists_admissible_exponent
 
 end AxiomAudit
 
