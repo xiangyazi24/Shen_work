@@ -239,3 +239,23 @@ The seven assumptions should not be treated as seven equally difficult frontiers
 - Short but genuinely PDE-dependent: hmass.
 
 - The actual Lemma 2.6 frontier: hdiss, especially the chemotaxis term and the current nonstandard lower-sign formulation.
+---
+## FABLE VERIFICATION ADDENDUM (2026-07-19, verified against repo)
+
+Confirmed and SHARPENED the hdiss audit:
+1. Interface level: hdiss as stated (∀ A B K L, energy-ineq → drop) is UNSATISFIABLE for
+   bounded solutions with any decreasing Lᵖ moment — premise holds for ALL (A,B) with
+   L large, so B=0 forces Y′ ≥ 0 (Lᵖ monotone nondecreasing). Vacuous-conditional risk.
+2. Chain level (IntervalDomainMoserClosure.lean:410-436): hdiss is only invoked at
+   henergy's specific constants, needed to extract the POINTWISE-in-t gradient bound
+   A∫|∇u^{p/2}|² ≤ K∫u^{p+ρ} + L. But that pointwise bound needs a lower bound on Y′,
+   which (via the energy identity, since ∫u^{p-1}u_xx = −c_p∫|∇u^{p/2}|²) needs an upper
+   bound on ∫grad — CIRCULAR. The pointwise-t architecture is structurally broken, not
+   just the hdiss phrasing.
+3. FIX (phase B design): time-integrated standard Moser step. Integrate the energy
+   inequality over [t₁,t]: Y_p(t)/p + A∫∫grad ≤ Y_p(t₁)/p + K∫∫u^{p+ρ} + L·(t−t₁) + |B|∫Y_p.
+   Combined with ε-absorption (hrel, already hdiss-free) and the previous exponent's
+   pointwise bound, this delivers sup_t Y_{p+ρ} — the same LpPowerBoundedBefore conclusion,
+   consuming ONLY henergy + hrel + hbase. New chain
+   `moser_iteration_chain_time_integrated`, then rewire the tier chain and restate
+   Lemma 2.6's conditional WITHOUT hdiss (statement-level fix, honest interface).
