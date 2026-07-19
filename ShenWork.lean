@@ -927,3 +927,4 @@ import ShenWork.Paper1.Proposition11PositiveCritical
 import ShenWork.Paper2.IntervalDomainLem26PhaseA
 import ShenWork.Paper2.IntervalDomainLem26ConcreteTerminal
 import ShenWork.Paper1.WholeLineChiPosHeadlineNatural
+import ShenWork.Paper1.Theorem13ChiPosNatural
