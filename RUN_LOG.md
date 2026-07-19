@@ -792,3 +792,14 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   两个陈述级缺陷记录在案（hdiss 过度量化不可满足；抽象 Before 结论对 t→0 要求过强）。
   Q100 独立给出 hdiss 的显式反例，与我的审计一致。无 headline 依赖 Lemma_2_6（Thm1.3 capstone
   是 unconditional），故属范围澄清而非 headline 变更。
+
+### 2026-07-19 01:15 (automode) — regime 放宽落地，χ>0 覆盖到 paper 完整范围
+- ceiling regime 临界分支 χ<chiStar → χ<1（证据：全仓 4 处解构点全部只取 χ<1）。
+  全树 9918 jobs 绿；五个 headline 经 root closure 公理打印 clean-3。commit 5e756650。
+- 效果：Prop 1.2(2) χ>0 覆盖 paper 完整 χ<1/2 临界范围（Q98 范围警告关闭）；
+  Prop 1.1 critical 支扩到 χ<1，残余窗口缩为 1 ≤ χ < faithful threshold（那里 MChi 无定义）。
+- 事故复盘：首次改动被并发 Codex lane revert，验证作废；重做后 git status 确认存活再验证再提交。
+  教训入记忆 feedback_no_concurrent_worktree_edit + doctrine。
+- Prop 1.2(2) 抄写核对：Lean 与 paper 逐字一致（χ<1/2, α≥m+γ−1）——errata 是孤立事件，非系统性。
+- 最后一块（buffered half-line successor）：手写完整规格 fable-halfline-successor-spec.md，
+  Codex brief 已派（D1 加权比较 / D2 目标选取 / D3 successor / D4 报告）。
