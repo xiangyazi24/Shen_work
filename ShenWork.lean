@@ -940,3 +940,6 @@ import ShenWork.Paper1.WholeLineLocalMoment
 import ShenWork.Paper1.WholeLineLocalMomentEnergy
 import ShenWork.Paper1.WholeLineLocalMomentBound
 import ShenWork.Paper1.WholeLineChiLargeGradientBound
+import ShenWork.Paper1.WholeLineLocalMomentTimeProducer
+import ShenWork.Paper1.WholeLineLocalMomentEnergyProducer
+import ShenWork.Paper1.WholeLineLocalMomentGlobalProducer
