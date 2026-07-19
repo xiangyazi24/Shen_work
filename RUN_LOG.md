@@ -775,3 +775,20 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - Lem 2.6 关键发现（我验证）：hdiss 在 interface 级不可满足、在 chain 级循环；已设计
   time-integrated Moser 替代（见 gpt-Q75 addendum），phase B 待做。
 - 教训：git add -A 把另一 lane 未验证文件带进 commit（事后验证碰巧绿）。改用 scoped add。
+
+### 2026-07-19 (automode, 续) — avenue (c)(e) 推进 + 两个陈述级发现
+- Prop 1.1 正分支 critical 窗口 CLOSED（Proposition_1_1_positive_critical_branch, clean-3），
+  配残余窗口非空见证。ERRATA（我们的，非论文）：Prop 1.1(2) 阈值第一个比值抄错
+  （应为 (2m−1)/(m−1)）且 γ=1 时因 x/0=0 空化；忠实无除法编码 + 5 证书落地，其中
+  paper1PositiveCriticalThreshold_iff_exists_admissible_exponent 证明忠实阈值 ⟺ §3.1 局部 Lp
+  可容许指数存在，反向确认论文自洽、我们抄错。
+- 收缩引擎推广到 m+γ−1 ≤ α（chiPos_squeeze_gap_step_of_le + rpow_gap_mono_exponent），
+  覆盖 paper Prop 1.2(2) 完整指数假设。
+- avenue (b) 抽象层落地：ChiPosHalfLineRectangle + endgame → UniformCoMovingLeftEquilibriumConvergence。
+  Q99 独立推荐同一路线（localize 而非 transport），并把 P0 扩展到 ceiling 侧（也要保 a^m）。
+- avenue (e) Lem 2.6：先查已有基建，发现 repo 里 P3MoserAgmonDirectRoute 的
+  intervalDomain_abstractLpBootstrap_terminal 本来就 hdiss-free；据此落地
+  Lemma_2_6_intervalDomain_concrete_terminal（clean-3，只吃 hsol+hboot+henergy）。
+  两个陈述级缺陷记录在案（hdiss 过度量化不可满足；抽象 Before 结论对 t→0 要求过强）。
+  Q100 独立给出 hdiss 的显式反例，与我的审计一致。无 headline 依赖 Lemma_2_6（Thm1.3 capstone
+  是 unconditional），故属范围澄清而非 headline 变更。
