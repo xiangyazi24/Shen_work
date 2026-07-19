@@ -60,11 +60,43 @@ theorem chiPos_model_threshold_iff {χ : ℝ} (hχ0 : 0 ≤ χ) (hχ1 : χ < 1) 
   rw [mul_one_div, div_lt_one h1χ]
   constructor <;> intro h <;> linarith
 
+
+/-! ## Scope of the committed critical capstone (Q98 audit caveat)
+
+`Proposition12PositiveBranchCritical` carries `WholeLineCauchyCeilingRegime p`,
+whose positive-critical case demands `χ < chiStar p`, while the paper's
+Proposition 1.2(2) asks only `χ < 1/2`.  The two do not coincide: `chiStar`
+can be strictly below `1/2`, so the committed theorem is a faithful PARTIAL of
+the paper's critical range.  The witness below makes that scope machine-checked
+rather than prose. -/
+
+/-- At `m = 5`, `γ = 2` the ceiling regime is strictly stronger than the
+paper's threshold: `chiStar = 7/17 < 1/2`, so every `χ ∈ [7/17, 1/2)` lies in
+the paper's range but outside the committed capstone's hypotheses. -/
+theorem chiStar_lt_half_witness :
+    chiStar ⟨5, 6, 2, 9/20, by norm_num, by norm_num, by norm_num⟩
+      < 1 / 2 := by
+  unfold chiStar
+  norm_num
+
+/-- The residual window of the critical branch is inhabited: `χ = 9/20` is
+below the paper's `1/2` but not below `chiStar`. -/
+theorem chiPos_critical_residual_window_nonempty :
+    ∃ p : CMParams, 0 < p.χ ∧ p.χ < 1 / 2 ∧
+      p.α = p.m + p.γ - 1 ∧ chiStar p ≤ p.χ := by
+  refine ⟨⟨5, 6, 2, 9/20, by norm_num, by norm_num, by norm_num⟩,
+    by norm_num, by norm_num, by norm_num, ?_⟩
+  show chiStar _ ≤ (9/20 : ℝ)
+  unfold chiStar
+  norm_num
+
 section AxiomAudit
 
 #print axioms chiPosWitness_floorGap_pos
 #print axioms chiPosWitness_ceilingGap_pos
 #print axioms chiPos_model_threshold_iff
+#print axioms chiStar_lt_half_witness
+#print axioms chiPos_critical_residual_window_nonempty
 
 end AxiomAudit
 
