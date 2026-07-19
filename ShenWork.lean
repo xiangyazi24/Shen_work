@@ -906,3 +906,4 @@ import ShenWork.Paper1.WholeLineChiPosWholeLineComparisonNatural
 import ShenWork.Paper1.WholeLineChiPosRectangleSqueeze
 import ShenWork.Paper1.Proposition12PositiveBranchCritical
 import ShenWork.Paper1.WholeLineChiPosSupercriticalLongTimeBound
+import ShenWork.Paper1.Proposition11PositiveSupercritical
