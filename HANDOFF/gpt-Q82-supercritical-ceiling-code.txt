@@ -1,0 +1,173 @@
+
+The relevant committed sources are:
+
+- ShenWork/Paper1/WholeLineCauchyGlobalBounds.lean:53-59: wholeLineCauchyParameterCeiling.
+
+- WholeLineCauchyGlobalBounds.lean:96-139: wholeLineCauchyParameterCeiling_margin_of_supercritical.
+
+- ShenWork/Paper1/WholeLineCauchyChiPosLongTimeBound.lean:27-79: the critical relaxing ceiling and restart identity.
+
+- WholeLineCauchyChiPosLongTimeBound.lean:81-136: the critical Bernoulli/rpow step and supersolution inequality.
+
+- WholeLineCauchyChiPosLongTimeBound.lean:218-510: the critical slab comparison.
+
+- WholeLineCauchyChiPosLongTimeBound.lean:513-899: segment propagation, restart induction, global bound, and limsup.
+
+The current positive-time file is hardcoded to
+
+
+and to MChi p. The supercritical result should therefore be added in a parallel file rather than forced through the critical theorem by rewriting hypotheses.
+
+# 1. The correct worst-case scalar field
+
+The equation is
+
+Expanding the flux gives
+
+For \chi>0 and v\ge0, the term -\chi u^m v is favorable and may be discarded in an upper estimate. The drift term is not discarded pointwise; at the approximate maximum it is bounded by
+
+using the slab ceiling 0\le u\le A and the existing resolver-gradient estimate |v_x|\le A^\gamma.
+
+The zeroth-order scalar field is therefore exactly
+
+There is no extra Vfactor in this scalar reaction. The resolver upper bound is used for the first-derivative drift coefficient. After using v_{xx}=v-u^\gamma, the bad zeroth-order contribution is exactly +\chi u^{m+\gamma}, while -\chi u^m v\le0.
+
+This is the first sign guard for the Lean implementation: do not replace the exact field by \chi u^q\|v\|_\infty.
+
+# 2. The parameter-ceiling power inequality
+
+The committed parameter ceiling is
+
+
+In the branch 0\le\chi and q<\alpha, set d=\alpha-q. The reusable quantitative fact should be exported from the local calculation already present in wholeLineCauchyParameterCeiling_margin_of_supercritical:
+
+
+For strictly positive \chi, the maximum with 1 is redundant and equality holds:
+
+The weaker inequality 1+\chi\le M^d is better as an interface: it avoids normalizing the max and is all the supersolution proof needs.
+
+The other immediate facts are
+
+# 3. The rpow inequality replacing the critical Bernoulli step
+
+The critical proof uses
+
+In the supercritical proof the correct normalized gap is:
+
+For r\ge1, q\ge0, and d>0,
+
+d(r-1)le r^{q+1}(r^d-1).
+
+A Lean-facing statement is:
+
+
+The proof uses one generalized tangent-line inequality:
+
+
+This is the exact generalization of the committed rpow_bernoulli. The existing theorem assumes 2 ≤ n, which is insufficient here because d+1 may lie strictly between 1 and 2.
+
+Apply the tangent theorem with n=d+1:
+
+Rearranging gives
+
+Since q\ge0 and r\ge1,
+
+Hence
+
+which proves the claimed gap.
+
+A useful scaled version, closer to the final consumer, is:
+
+
+Indeed, with r=B/M,
+
+After substituting q+d=\alpha, this becomes
+
+# 4. Explicit supersolution inequality
+
+Let B\ge M. Since q=m+\gamma-1\ge1, we have 1\le B^q. Therefore
+
+Every step has a simple source:
+
+1. 1\le B^q;
+
+1. 1+\chi\le M^d;
+
+1. \alpha=q+d;
+
+1. rpow_supercritical_scaled_gap.
+
+Consequently the strongest direct statement is
+
+Since M^\alpha\ge1, it follows that
+
+Thus the recommended rate is
+
+More generally, every 0<\lambda\le dM^\alpha is certified.
+
+A consumer-ready Lean statement should be expressed with the actual source term:
+
+
+The stronger sibling may retain the factor
+
+
+as its rate.
+
+# 5. The explicit barrier and its derivative
+
+Define additively:
+
+
+Under hsuper, the rate is positive. If C\ge M,
+
+Combining the derivative identity with the supersolution inequality gives
+
+This is exactly the scalar sign used in the positive part of the slab maximum argument.
+
+The barrier gives the quantitative entry time into any prescribed M'>M. If C>M'>M, then
+
+whenever
+
+# 6. The restart identity survives unchanged
+
+For any fixed base M and fixed rate \lambda,
+
+Hence:
+
+
+The proof is the same Real.exp_add calculation as
+
+
+in the critical file. Therefore all of the following committed architecture mirrors mechanically:
+
+
+The final target should be:
+
+
+The WholeLineCauchyCeilingRegime witness is constructed internally as
+
+
+so it need not remain a theorem argument.
+
+# 7. The slab-comparison changes are small
+
+The critical slab theorem uses
+
+
+for the error w=u-B. In the supercritical mirror use
+
+
+where d=\alpha-q>0.
+
+For w\ge0, u\ge B\ge M, and the new supersolution theorem gives
+
+Therefore
+
+For w<0, so u\le B, one needs a one-sided Lipschitz estimate. This is easier than it first appears. Write
+
+For 0\le u\le B\le A,
+
+The chemotactic power difference is favorable here because \chi\ge0 and u\le B. Therefore there is no need for a new q+1 Lipschitz constant. The existing
+
+
+is already large enough. Only a new theorem proving the supercritical field's one-sided difference estimate is needed:
