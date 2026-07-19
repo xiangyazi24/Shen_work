@@ -69,3 +69,12 @@ plus P2 Lem 2.6 — all 0 sorry, 0 axiom, clean-3, pushed.
 - (e) P2 Lem 2.6: phase A landed (4 of 7 hypotheses discharged, clean-3 3584 jobs).
   hdiss verified unsatisfiable at interface level AND circular at chain level; the
   time-integrated Moser replacement is the phase-B design (Q100 in flight on cron5).
+
+## Operational lesson (2026-07-19, cost: one wasted full-tree verification)
+
+NEVER edit an existing file in a working tree while a Codex lane is live there:
+Codex reverts the tree to a clean state, silently discarding the edit AND
+invalidating any build/axiom verification run against it. During a live lane,
+restrict yourself to NEW files (Codex leaves them alone), HANDOFF docs, and
+analysis. Afterwards: reapply, `git status` to confirm the edit survived, verify,
+and commit IMMEDIATELY — uncommitted work is not safe in a concurrent tree.
