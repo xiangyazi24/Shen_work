@@ -84,6 +84,43 @@ theorem chiPos_squeeze_gap_step
     mul_le_mul_of_nonneg_left (hbound2.trans hgapMono) hχ
   nlinarith [hfloor, hceil, hχb1, hχb2]
 
+/-- Sharper form (Q84 audit §5): keep the ceiling-side absorption at the NEW
+gap instead of enlarging to the old one.  Rearranged, the contraction ratio
+improves from `2χ` to `χ/(1-χ)` — same `χ < 1/2` threshold, strictly faster
+convergence throughout the regime. -/
+theorem chiPos_squeeze_gap_step_sharp
+    {m γ α χ ℓ ℓ' M M' δ : ℝ}
+    (hm : 1 ≤ m) (hγ : 1 ≤ γ) (halpha : α = m + γ - 1)
+    (hχ : 0 ≤ χ)
+    (hℓ : 0 < ℓ) (hℓℓ' : ℓ ≤ ℓ') (hℓ'1 : ℓ' ≤ 1)
+    (h1M' : 1 ≤ M') (hM'M : M' ≤ M)
+    (hfloor : 1 - ℓ' ^ α ≤ χ * (ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ)) + δ)
+    (hceil : M' ^ α - 1 ≤ χ * (M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ)) + δ) :
+    (1 - χ) * (M' ^ α - ℓ' ^ α) ≤ χ * (M ^ α - ℓ ^ α) + 2 * δ := by
+  have hℓ' : 0 < ℓ' := hℓ.trans_le hℓℓ'
+  have h1M : (1 : ℝ) ≤ M := h1M'.trans hM'M
+  have hs : (0 : ℝ) ≤ m - 1 := by linarith
+  have ha : (0 : ℝ) ≤ γ := by linarith
+  have hexp : γ + (m - 1) = α := by rw [halpha]; ring
+  have hbound1 : ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ) ≤ M ^ α - ℓ' ^ α := by
+    have := chiPos_floor_prefactor_gap_le hℓ' hℓ'1 h1M hs ha
+    rwa [hexp] at this
+  -- ceiling-side absorption stays at the NEW gap M'^α - ℓ'^α
+  have hbound2 : M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ) ≤ M' ^ α - ℓ' ^ α := by
+    have habs := ShenWork.Paper3.rpow_mul_gap_le_gap_add hℓ' hℓ'1 h1M' hs ha
+    rwa [hexp] at habs
+  have hfloorMono : ℓ ^ α ≤ ℓ' ^ α :=
+    Real.rpow_le_rpow hℓ.le hℓℓ' (by rw [halpha]; linarith)
+  have hχb1 : χ * (ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ)) ≤
+      χ * (M ^ α - ℓ ^ α) := by
+    have : ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ) ≤ M ^ α - ℓ ^ α := by
+      linarith [hbound1]
+    exact mul_le_mul_of_nonneg_left this hχ
+  have hχb2 : χ * (M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ)) ≤
+      χ * (M' ^ α - ℓ' ^ α) :=
+    mul_le_mul_of_nonneg_left hbound2 hχ
+  nlinarith [hfloor, hceil, hχb1, hχb2]
+
 /-- Affine recurrence iterate: a sequence contracting by ratio `r < 1` with
 additive defect `c` enters the `c/(1-r)`-neighborhood geometrically. -/
 theorem affine_recurrence_iterate_le
@@ -132,6 +169,7 @@ section AxiomAudit
 
 #print axioms chiPos_floor_prefactor_gap_le
 #print axioms chiPos_squeeze_gap_step
+#print axioms chiPos_squeeze_gap_step_sharp
 #print axioms affine_recurrence_iterate_le
 #print axioms abs_sub_one_le_rpow_gap
 
