@@ -755,3 +755,10 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   χ_lin = (1+√α)²/γ > 1 ≥ χ*。结论：χ∈[α/(2γ),χ*) 段 paper 的证明 gap 是真的，但定理未被证伪
   （无线性不稳定/无分岔/无已知反例），plausibly true，需谱隙+Liouville 三阶段新机制（未来战役）。
   我们的 χ<1/2 faithful amendment 定位正确。归档 gpt-Q83-*.md。
+
+## Run 2026-07-19 00:1x (automode overnight)
+- doctrine: HANDOFF/DOCTRINE-chipos-overnight.md @ 77e08b0b
+- starting avenue: (a) whole-line squeeze → Prop 1.2(2)
+- in-flight at start: Codex phase 2 (~2h), Q1-Q7 on legacy tabs, cron tabs idle
+- end: <fill on close>
+- final result: <fill on close>
