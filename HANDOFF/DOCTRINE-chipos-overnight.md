@@ -49,3 +49,23 @@ plus P2 Lem 2.6 — all 0 sorry, 0 axiom, clean-3, pushed.
 - 新文件 only；诈尸红线见 CAPSTONE_REGISTRY；trunk green per commit。
 - χ∈[1/2,χ*): genuinely open (Q83 verdict) — do NOT attempt tonight; hhalf is the scope.
 - Q1-Q7 answers arriving on old-name tabs: harvest + verify + archive as they land.
+
+## AVENUE STATUS (updated during run)
+
+- (a) CLOSED 2026-07-19. `Proposition_1_2_positive_branch_critical`, root build 9912 jobs,
+  clean-3, non-vacuity witness landed (WholeLineChiPosRectangleWitness.lean) proving the
+  χ<1/2 threshold IS floor-margin positivity at the equilibrium ceiling in the model case.
+- (c) IN PROGRESS. Math layer DONE by Fable (atoms + ceiling + supersolution + one-sided
+  Lipschitz, all clean-3); mechanical long-time chain dispatched to Codex.
+  NEW FINDING (errata, ours): Prop 1.1(2)'s Lean threshold mis-transcribes the paper AND
+  is vacuous at γ=1. Faithful encoding + 4 certificates landed
+  (Proposition11PositiveErrata.lean). Prop 1.1 positive branch now splits three ways:
+    supercritical (all χ>0) — covered once the Codex chain lands;
+    critical χ<chiStar — covered by the committed MChi chain;
+    critical chiStar ≤ χ < faithful threshold — OPEN, paper uses another argument.
+  ⇒ Prop 1.1 will close as a FAITHFUL PARTIAL (two of three windows) unless the third
+  window's argument is reconstructed. Do not over-claim.
+- (b) NEXT. Q99 (route choice: localize vs transport) in flight on cron4.
+- (e) P2 Lem 2.6: phase A landed (4 of 7 hypotheses discharged, clean-3 3584 jobs).
+  hdiss verified unsatisfiable at interface level AND circular at chain level; the
+  time-integrated Moser replacement is the phase-B design (Q100 in flight on cron5).
