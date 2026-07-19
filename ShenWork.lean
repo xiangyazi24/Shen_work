@@ -936,3 +936,7 @@ import ShenWork.Paper1.WholeLineLocalizingWeight
 import ShenWork.Paper1.WholeLineChiPosNonvacuity
 import ShenWork.Paper1.WholeLineChiPosEquilibriumCeiling
 import ShenWork.Paper1.Proposition12Complete
+import ShenWork.Paper1.WholeLineLocalMoment
+import ShenWork.Paper1.WholeLineLocalMomentEnergy
+import ShenWork.Paper1.WholeLineLocalMomentBound
+import ShenWork.Paper1.WholeLineChiLargeGradientBound
