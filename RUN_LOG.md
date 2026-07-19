@@ -730,3 +730,19 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   基例，m>1 的 Lyapunov 泛函稳定性（Thm 2.3/2.4 + Thm 2.2 非线性半）是 GENUINE OPEN。
 - 结论：P3 persistence(Thm2.1) 真全关；P3 stability(Thm2.2 非线性/2.3/2.4) 只关 m=1 片。
   "P3 COMPLETE" 是 over-claim。新增第 5 座 frontier：**P3 m>1 Lyapunov 稳定性**。
+
+### 2026-07-18 — χ>0 左尾破题：rectangle squeeze 路线定案 + 收缩引擎落地
+- 全局鸟瞰完成：P3 全清、P2 只剩 Lem 2.6 (Moser frontier)、P1 主战场 = Thm 1.2 χ>0 left-equilibrium
+  （final wrapper 其余全部 χ-general 或已有 χ>0 版，逐一验证过）。
+- 读 paper §3.2/§5.2 原文：左尾正确路线 = Prop 1.2(2) rectangle/ODE approach；昨晚的 χ>0 ceiling
+  chain 恰是其 U̲=0 退化情形。§5 的引用链有 NEW GAP：Thm 1.2 声称 χ<χ* 但左尾紧性论证引 Prop 1.2(2)
+  （只证到 χ<1/2）；收缩条件实为 2χγ<α（Jacobian (1,−1) 特征值；Codex 独立给出反例 m=α=γ=1, χ=3/4）。
+  决策：主路线 χ<1/2（paper-faithful），χ∈[1/2,χ*) 记为 genuinely open。
+- 落地 WholeLineChiPosSqueezeAlgebra.lean（clean-3, 9005 jobs）：chiPos_squeeze_gap_step 给出
+  gap_{k+1} ≤ 2χ·gap_k + 2δ 全矩形有效（复用 P3 rpow_mul_gap_le_gap_add），废掉两相设计。
+- Codex 交付：WholeLineCauchyChiPosRangeBound.lean（绿，clean-3）+ 20KB 符号 audit（plateau 无
+  结构性符号依赖，正分支 ledger 已存在于 heights 1/MChi）+ 19KB squeeze 设计（已采纳，预算细节
+  以 b^m-weighted 修正）。Codex impl phase 1（resolver 上界/ceiling barrier 标量族/两个 buffered
+  比较）在跑。
+- 基建注意：uisai2 tailscaled 自 7/10 死，已重启；mini 离线 → ChatGPT 7 tabs 暂不可达，后台 60s
+  探测中，通了即喂满（[18] Lem 3.1-3.2、sharpness、seed、Lem 2.6 frontier 等题已备好）。
