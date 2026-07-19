@@ -928,3 +928,11 @@ import ShenWork.Paper2.IntervalDomainLem26PhaseA
 import ShenWork.Paper2.IntervalDomainLem26ConcreteTerminal
 import ShenWork.Paper1.WholeLineChiPosHeadlineNatural
 import ShenWork.Paper1.Theorem13ChiPosNatural
+import ShenWork.Paper1.WholeLineChiPosEquilibriumRoot
+import ShenWork.Paper1.WholeLineChiPosEquilibriumDescent
+import ShenWork.Paper1.WholeLineChiPosSupercriticalRectangle
+import ShenWork.Paper1.Proposition12PositiveBranchSupercritical
+import ShenWork.Paper1.WholeLineLocalizingWeight
+import ShenWork.Paper1.WholeLineChiPosNonvacuity
+import ShenWork.Paper1.WholeLineChiPosEquilibriumCeiling
+import ShenWork.Paper1.Proposition12Complete
