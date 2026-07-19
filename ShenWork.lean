@@ -892,3 +892,7 @@ import ShenWork.Paper3.IntervalDomainMExplicitPositiveTimeC1
 import ShenWork.Paper3.IntervalDomainStrongStageBGeneralM
 import ShenWork.Paper3.IntervalDomainMWeakSupBootstrap
 import ShenWork.Paper3.IntervalDomainFiniteStrongBootstrapGeneralM
+import ShenWork.Paper1.WholeLineCauchyChiPosRangeBound
+import ShenWork.Paper1.WholeLineHalfLineResolverUpperNatural
+import ShenWork.Paper1.WholeLineChiPosTargetCeilingNatural
+import ShenWork.Paper1.WholeLineChiPosBufferedComparisonNatural
