@@ -98,7 +98,7 @@ theorem solution_massGradientInterpolation
         (pExp + rho) eta Ceta T u := by
   exact intervalDomain_massGradientInterpolation_of_classical hsol hcross hboot
 
-/-! ## A5: mass control in the exact frontier quantifier shape -/
+/-! ## A5: solution-local mass control with the frontier's inner quantifier order -/
 
 private theorem p0_gt_one_of_bootstrap
     {params : CM2Params} {T rho p0 : ℝ}
@@ -111,10 +111,11 @@ private theorem p0_gt_one_of_bootstrap
       (1 : ℝ) ≤ max 1 (rho * (params.N : ℝ) / 2) := le_max_left _ _
   linarith
 
-/-- Any finite-horizon uniform mass bound has exactly the quantifier strength
-required by the Lemma 2.6 mass-control frontier.  In particular, an alternate
-model with a linear (`theta = 1`) reaction may supply its finite-horizon
-exponential bound here; the resulting `Cmass` is allowed to depend on `T`. -/
+/-- Any finite-horizon uniform mass bound supplies the inner
+`forall p, forall Ceta, exists Cmass, forall t` tail required by the Lemma 2.6
+mass-control frontier.  In particular, an alternate model with a linear
+(`theta = 1`) reaction may supply its finite-horizon exponential bound here;
+the resulting `Cmass` is allowed to depend on `T`. -/
 theorem massControl_of_uniform_mass_bound
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}

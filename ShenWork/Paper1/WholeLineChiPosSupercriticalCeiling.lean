@@ -208,6 +208,45 @@ theorem chiPosSupercriticalCeiling_supersolution
   rw [hpowB, hpowAlpha]
   nlinarith [hrate, hkey, hBq1, hB0.le]
 
+
+/-! ### One-sided Lipschitz bound for the supercritical effective field -/
+
+/-- The supercritical worst-case field, `F(s) = χ s^{m+γ} + s(1 - s^α)`. -/
+def supercriticalEffectiveReaction (p : CMParams) (s : ℝ) : ℝ :=
+  p.χ * s ^ (p.m + p.γ) + reactionFun p.α s
+
+/-- One-sided Lipschitz estimate for the supercritical field: the same
+constant `effectiveReactionLip` as the critical branch suffices, because for
+`χ ≥ 0` the chemotactic power difference is favorable at a lower contact. -/
+theorem supercriticalEffectiveReaction_sub_le
+    {p : CMParams} (hχ : 0 ≤ p.χ)
+    {u B A : ℝ} (hu : 0 ≤ u) (huB : u ≤ B) (hBA : B ≤ A) (hA : 0 ≤ A) :
+    supercriticalEffectiveReaction p u - supercriticalEffectiveReaction p B ≤
+      effectiveReactionLip p A * (B - u) := by
+  -- the χ-free specialization of the committed critical estimate
+  let p0 : CMParams := ⟨p.m, p.α, p.γ, 0, p.hm, p.hα, p.hγ⟩
+  have hbase := effectiveReaction_sub_le (p := p0)
+    (le_refl (0 : ℝ)) (by norm_num) hu huB hBA hA
+  have hlip : effectiveReactionLip p0 A = effectiveReactionLip p A := rfl
+  rw [hlip] at hbase
+  have hbase' : reactionFun p.α u - reactionFun p.α B ≤
+      effectiveReactionLip p A * (B - u) := by
+    have hrw : ∀ s : ℝ,
+        s * (1 - (1 - (p0.χ : ℝ)) * s ^ p0.α) = reactionFun p.α s := by
+      intro s
+      show s * (1 - (1 - (0 : ℝ)) * s ^ p.α) = reactionFun p.α s
+      unfold reactionFun
+      ring
+    rw [hrw u, hrw B] at hbase
+    exact hbase
+  -- the chemotactic power difference is favorable at a lower contact
+  have hmono : u ^ (p.m + p.γ) ≤ B ^ (p.m + p.γ) :=
+    Real.rpow_le_rpow hu huB (by linarith [p.hm, p.hγ])
+  have hchem : p.χ * u ^ (p.m + p.γ) - p.χ * B ^ (p.m + p.γ) ≤ 0 := by
+    nlinarith
+  unfold supercriticalEffectiveReaction
+  linarith
+
 section AxiomAudit
 
 #print axioms wholeLineCauchyChiPosSupercriticalRate_pos
@@ -219,6 +258,7 @@ section AxiomAudit
 #print axioms one_le_wholeLineCauchyParameterCeiling_of_supercritical
 #print axioms wholeLineCauchyParameterCeiling_pow_gap_of_supercritical
 #print axioms chiPosSupercriticalCeiling_supersolution
+#print axioms supercriticalEffectiveReaction_sub_le
 
 end AxiomAudit
 
