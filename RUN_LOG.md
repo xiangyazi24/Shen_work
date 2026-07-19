@@ -762,3 +762,16 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - in-flight at start: Codex phase 2 (~2h), Q1-Q7 on legacy tabs, cron tabs idle
 - end: <fill on close>
 - final result: <fill on close>
+
+### 2026-07-19 (automode) — AVENUE (a) TERMINAL: Prop 1.2(2) χ>0 critical branch CLOSED
+- NEW CAPSTONE `Proposition_1_2_positive_branch_critical` (0<χ<1/2, α=m+γ−1, ceiling regime,
+  PaperNonnegativeInitialDatum + UniformlyPositive ⟹ global solution + UniformConvergesToConstant 1).
+  独立验证：lake build ShenWork 绿 9912 jobs，clean-3。Codex 出 PDE rounds，我按 Q84 P0 清单逐条验收
+  （weighted b^m contact ✓ / δ=ε(1−r)/4 per-ε ✓ / side-of-root margins 进结构体 ✓ / 引擎复用 ✓）。
+- 同批：supercritical ceiling 层（rate/barrier/restart/margin + supersolution，χ 无小性要求，只需
+  d=α−(m+γ−1)>0），三个 scalar 原子（tangent n≥1 泛化 rpow_bernoulli）全 clean-3。
+- 顺带：P2 Lem 2.6 phase A（Codex 第二 lane）落地并验证绿 3584 jobs——7 个 frontier 假设中 4 个
+  已 discharge（hu_nonneg/hpow_int/hcGrad/hMG/hmass 系列）+ Cor 2.1 应用。
+- Lem 2.6 关键发现（我验证）：hdiss 在 interface 级不可满足、在 chain 级循环；已设计
+  time-integrated Moser 替代（见 gpt-Q75 addendum），phase B 待做。
+- 教训：git add -A 把另一 lane 未验证文件带进 commit（事后验证碰巧绿）。改用 scoped add。
