@@ -13,6 +13,8 @@ All theorems below depend only on `[propext, Classical.choice, Quot.sound]`.
 | Thm 1.2 full | `paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4` | Paper1/Theorem12Corrected.lean:222 | χ>0: TWO adapters remain (Q5314) — see Henry infrastructure below |
 | Prop 1.1 χ≤0 | `Proposition_1_1_negative_branch` | Paper1/WholeLineCauchyLongTimeBound.lean:741 | UNCONDITIONAL |
 | Prop 1.2 χ≤0 | `Proposition_1_2_negative_branch` | Paper1/Proposition12NegativeBranch.lean:21 | UNCONDITIONAL |
+| **Prop 1.2 χ>0 critical (NEW 07-19)** | `Proposition_1_2_positive_branch_critical` | Paper1/Proposition12PositiveBranchCritical.lean:32 | UNCONDITIONAL on 0<χ<1/2, α=m+γ−1, ceiling regime, UniformlyPositive datum. Non-vacuity + scope witnesses: WholeLineChiPosRectangleWitness.lean. FAITHFUL PARTIAL: the ceiling regime (χ<chiStar) is stronger than the paper's χ<1/2 — residual window inhabited (m=5,γ=2,χ=9/20), proved. |
+| **Prop 1.1 χ>0 critical (NEW 07-19)** | `Proposition_1_1_positive_critical_branch` | Paper1/Proposition11PositiveCritical.lean:31 | UNCONDITIONAL on 0<χ<chiStar, α=m+γ−1. Global nonneg solution + range bound + UniformEventuallyBounded + UniformLimsupLe MChi. FAITHFUL PARTIAL: residual window chiStar ≤ χ < faithful threshold inhabited, proved. |
 | Refutation Thm 1.2 a>0,b=0 | `not_Theorem_1_2_intervalDomain_when_a_pos_b_zero` | Paper2/IntervalDomainTheorem12Refutation.lean:162 | UNCONDITIONAL |
 
 ## Paper 2 (Bounded Domain Existence)
@@ -29,7 +31,7 @@ All theorems below depend only on `[propext, Classical.choice, Quot.sound]`.
 | Prop 2.2 | `intervalDomain_Proposition_2_2` | Paper2/IntervalDomainWeightedGradientEstimate.lean:827 | UNCONDITIONAL |
 | Prop 2.4 | `intervalDomain_Proposition_2_4` | Paper2/IntervalDomainMass.lean:888 | UNCONDITIONAL |
 | Prop 2.5 | `Proposition_2_5_intervalDomainM_of_restarted_affine_general` | Paper2/IntervalDomainMRestartedLpLinfGeneral.lean:494 | UNCONDITIONAL (intervalDomainM) |
-| Lem 2.6 | `Lemma_2_6_intervalDomain_of_mass_gradient_frontier` | Paper2/IntervalDomainTheorem11.lean:110 | CONDITIONAL on frontier |
+| Lem 2.6 (practical content) | `Lemma_2_6_intervalDomain_concrete_terminal` | Paper2/IntervalDomainLem26ConcreteTerminal.lean:44 | UNCONDITIONAL for concrete interval-domain classical solutions (terminal windows), via the existing hdiss-free Agmon route. The ABSTRACT `Lemma_2_6` remains conditional on `MoserDissipationDropBefore`, which is proved unsound (over-quantified; explicit counterexample) — do not route new work through it. No committed headline depends on it. |
 | Cor 2.1 | `intervalDomain_Corollary_2_1_terminalWindow` | Paper2/IntervalDomainCorollary21.lean:48 | UNCONDITIONAL |
 
 ## Paper 3 (Long-Time Dynamics)
@@ -102,3 +104,40 @@ Once closed, this unblocks:
 - **Refutations**: 3 (P1 Thm 1.2 a>0/b=0, P3 Thm 2.5 all-time, P3 sup-C¹ obstruction)
 - **Total sorry/axiom in project**: 0 / 0
 - **Scale**: 774,736 lines of Lean, 2009 files, 9882 build jobs, 0 errors
+
+
+## χ>0 (positive-sensitivity) layer — added 2026-07-19
+
+Scalar engine (Paper1/WholeLineChiPosSqueezeAlgebra.lean, all clean-3):
+`chiPos_squeeze_gap_step` (gap contracts by 2χ), `_sharp` (ratio χ/(1−χ)),
+`chiPos_squeeze_gap_step_of_le` (paper's full exponent hypothesis m+γ−1 ≤ α),
+`affine_recurrence_iterate_le`, `abs_sub_one_le_rpow_gap`, `rpow_gap_mono_exponent`.
+
+Whole-line critical chain: WholeLineChiPosRectangleSqueeze.lean (rounds),
+WholeLineChiPosRectangleTargets.lean (margins), WholeLineChiPosWeightedResolverComparisonNatural.lean
+(b^m-weighted contact — the constant-defect form fails at small floors when m=1).
+
+Supercritical chain (NO smallness on χ, only d = α−(m+γ−1) > 0):
+WholeLineChiPosSupercriticalAtoms.lean (tangent inequality generalized from
+`rpow_bernoulli`'s 2≤n to 1≤n), WholeLineChiPosSupercriticalCeiling.lean
+(parameter-ceiling barrier + supersolution + one-sided Lipschitz),
+WholeLineChiPosSupercriticalLongTimeBound.lean (slab → segments → limsup).
+
+Buffered half-line layer (for the front problem's left equilibrium, avenue in progress):
+WholeLineHalfLineResolverUpperNatural.lean, WholeLineChiPosTargetCeilingNatural.lean,
+WholeLineChiPosBufferedComparisonNatural.lean, WholeLineChiPosHalfLineRectangle.lean
+(structure + endgame delivering UniformCoMovingLeftEquilibriumConvergence).
+REMAINING: the buffered successor construction (kernel-tail defect τ = e^{−R}/2).
+
+ERRATA (ours, not the paper's) — Paper1/Proposition11PositiveErrata.lean:
+`Proposition_1_1`'s positive-critical threshold mis-transcribes the source
+((2m−1)/(m−1) became (m+γ−1)/(2m−1)) and is vacuous at γ=1 under Lean's x/0=0.
+Faithful division-free encoding `paper1PositiveCriticalThreshold` landed, proved
+equivalent to the paper's ratio form (m,γ>1) AND to the existence of an
+admissible local-Lp exponent of §3.1 — which is where the threshold comes from.
+
+OPEN, recorded (not claimed): (i) Thm 1.2 for χ∈[1/2,χ*) — the paper's left-tail
+step cites its own Prop 1.2(2), proved only for χ<1/2; no linear instability, no
+bifurcation, no known counterexample (dispersion audit), so plausibly true but
+unproved. (ii) Prop 1.1 critical window chiStar ≤ χ < faithful threshold — needs
+the paper's local-Lp iteration. (iii) The ceiling-regime vs χ<1/2 gap above.
