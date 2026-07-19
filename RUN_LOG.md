@@ -803,3 +803,15 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - Prop 1.2(2) 抄写核对：Lean 与 paper 逐字一致（χ<1/2, α≥m+γ−1）——errata 是孤立事件，非系统性。
 - 最后一块（buffered half-line successor）：手写完整规格 fable-halfline-successor-spec.md，
   Codex brief 已派（D1 加权比较 / D2 目标选取 / D3 successor / D4 报告）。
+
+### 2026-07-19 (automode) — PAPER 1 正分支贯通：Thm 1.2 + Thm 1.3 χ>0 全部落地
+- 左尾 χ>0 闭合（seed 由 Codex 出，trap-height 推广由我解锁），Step 4 无条件化，
+  Thm 1.2 合并 headline，Thm 1.3 χ>0 + 合并版。全部经 root closure 公理审计 clean-3，
+  root build 9939 jobs。commits 61e097e5 → 72251481。
+- 关键教训（今晚踩到）：模块单独绿 ≠ 树绿。我禁止 Codex 改既有文件，导致 22 个新模块
+  没进 ShenWork.lean 闭包，"全树绿 9918"根本没编译它们，公理审计报 unknown constant。
+  补 import 后 9937→9939，才算数。此后每个新 capstone 必须走 root closure 审计。
+- 关键数学（唯一一处真推进）：正分支 plateau ledger 硬编码在 MChi，而 burn-in 只给
+  MChi+r。我读 ledger 预算发现余量来自 χ<1/2 的严格性，把条件锐化为 χ·Q^γ < 1，
+  ledger 推广到任意 trap 高度，阻塞从根上消失。
+- Codex 两次正确拒绝我的错误指令（S1 前提不成立 / 规格 5 处修正），brief 是待检验假设不是规范。

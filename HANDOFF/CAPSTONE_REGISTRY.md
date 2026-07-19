@@ -153,3 +153,29 @@ unproved. (ii) Prop 1.1 critical window 1 ≤ χ < faithful threshold — MChi i
 undefined there; needs the paper's local-Lp iteration. (iii) The χ>0 front
 left-equilibrium (buffered successor construction) — the last piece of P1 Thm 1.2
 for positive sensitivity.
+
+
+## 2026-07-19 — Paper 1 positive-sensitivity branch COMPLETE (root-closure verified)
+
+All verified through `import ShenWork` (root build 9939 jobs), clean-3, 0 sorry.
+
+| Theorem | Capstone | Scope |
+|---|---|---|
+| Thm 1.2 χ>0 | `paper1_Theorem_1_2_chi_pos_paperDatum` (WholeLineChiPosHeadlineNatural.lean) | 0<χ<1/2, α=m+γ−1 |
+| Thm 1.2 both branches | `paper1_Theorem_1_2_paperDatum_of_chi_lt_half` | χ≤0 ∪ (0<χ<1/2, critical) |
+| Thm 1.3 χ>0 | `Theorem_1_3_amended_chi_pos` (Theorem13ChiPosNatural.lean) | same |
+| Thm 1.3 both branches | `Theorem_1_3_amended_of_chi_lt_half` | same |
+| Step 4 χ>0 (unconditional) | `wholeLineCauchyGlobal_solution_weighted_and_uniformConvergence_chi_pos_natural` | same |
+| Left equilibrium χ>0 | `wholeLineCauchyGlobal_uniformCoMovingLeftEquilibriumConvergence_chi_pos_natural` | same |
+
+Supporting layer added the same day: buffered half-line rectangle iteration
+(abstract layer + weighted comparisons + targets + successor + seed), the χ>0
+persistent plateau, and `paperWaveOperator_const_subsolution_nonneg_pos_trap`
+(the constant plateau ledger at ANY trap height with the sharp condition
+`χ·Q^γ < 1`, which is what made the burn-in height `MChi + r` usable — the
+ledger had been hard-coded at the unattainable exact `MChi`).
+
+WHY THE POSITIVE BRANCH CARRIES χ<1/2 RATHER THAN THE PAPER'S χ<χ*: the source's
+left-tail step (§5 Step 4) invokes its own Proposition 1.2, whose positive branch
+it proves only for χ<1/2. Our branch covers exactly the range the source's
+argument supports; `[1/2, χ*)` remains on the open list below.
