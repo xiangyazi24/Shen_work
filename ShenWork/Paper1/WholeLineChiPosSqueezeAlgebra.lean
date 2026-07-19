@@ -121,6 +121,57 @@ theorem chiPos_squeeze_gap_step_sharp
     mul_le_mul_of_nonneg_left hbound2 hχ
   nlinarith [hfloor, hceil, hχb1, hχb2]
 
+
+/-- Widening the exponent of a straddling gap only increases it. -/
+theorem rpow_gap_mono_exponent
+    {ℓ M β α : ℝ} (hℓ : 0 < ℓ) (hℓ1 : ℓ ≤ 1) (h1M : 1 ≤ M) (hβα : β ≤ α) :
+    M ^ β - ℓ ^ β ≤ M ^ α - ℓ ^ α := by
+  have hMpow : M ^ β ≤ M ^ α := Real.rpow_le_rpow_of_exponent_le h1M hβα
+  have hℓpow : ℓ ^ α ≤ ℓ ^ β := Real.rpow_le_rpow_of_exponent_ge hℓ hℓ1 hβα
+  linarith
+
+/-- Supercritical form of the squeeze step: the critical equality
+`α = m + γ - 1` can be relaxed to the paper's inequality `m + γ - 1 ≤ α`,
+because widening the exponent only enlarges the straddling gap. -/
+theorem chiPos_squeeze_gap_step_of_le
+    {m γ α χ ℓ ℓ' M M' δ : ℝ}
+    (hm : 1 ≤ m) (hγ : 1 ≤ γ) (hle : m + γ - 1 ≤ α)
+    (hχ : 0 ≤ χ)
+    (hℓ : 0 < ℓ) (hℓℓ' : ℓ ≤ ℓ') (hℓ'1 : ℓ' ≤ 1)
+    (h1M' : 1 ≤ M') (hM'M : M' ≤ M)
+    (hfloor : 1 - ℓ' ^ α ≤ χ * (ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ)) + δ)
+    (hceil : M' ^ α - 1 ≤ χ * (M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ)) + δ) :
+    M' ^ α - ℓ' ^ α ≤ 2 * χ * (M ^ α - ℓ ^ α) + 2 * δ := by
+  have hℓ' : 0 < ℓ' := hℓ.trans_le hℓℓ'
+  have h1M : (1 : ℝ) ≤ M := h1M'.trans hM'M
+  have hs : (0 : ℝ) ≤ m - 1 := by linarith
+  have ha : (0 : ℝ) ≤ γ := by linarith
+  have hexp : γ + (m - 1) = m + γ - 1 := by ring
+  have hα1 : (1 : ℝ) ≤ α := by linarith
+  -- floor side: absorb at the critical exponent, then widen to α
+  have hbound1 : ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ) ≤ M ^ α - ℓ' ^ α := by
+    have habs := chiPos_floor_prefactor_gap_le hℓ' hℓ'1 h1M hs ha
+    rw [hexp] at habs
+    exact habs.trans (rpow_gap_mono_exponent hℓ' hℓ'1 h1M hle)
+  -- ceiling side: absorb at the new ceiling, widen, then monotone in M' ≤ M
+  have hbound2 : M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ) ≤ M ^ α - ℓ' ^ α := by
+    have habs := ShenWork.Paper3.rpow_mul_gap_le_gap_add hℓ' hℓ'1 h1M' hs ha
+    rw [hexp] at habs
+    have hwide := rpow_gap_mono_exponent hℓ' hℓ'1 h1M' hle
+    have hmono : M' ^ α ≤ M ^ α :=
+      Real.rpow_le_rpow (by linarith) hM'M (by linarith)
+    linarith
+  have hfloorMono : ℓ ^ α ≤ ℓ' ^ α :=
+    Real.rpow_le_rpow hℓ.le hℓℓ' (by linarith)
+  have hgapMono : M ^ α - ℓ' ^ α ≤ M ^ α - ℓ ^ α := by linarith
+  have hχb1 : χ * (ℓ' ^ (m - 1) * (M ^ γ - ℓ' ^ γ)) ≤
+      χ * (M ^ α - ℓ ^ α) :=
+    mul_le_mul_of_nonneg_left (hbound1.trans hgapMono) hχ
+  have hχb2 : χ * (M' ^ (m - 1) * (M' ^ γ - ℓ' ^ γ)) ≤
+      χ * (M ^ α - ℓ ^ α) :=
+    mul_le_mul_of_nonneg_left (hbound2.trans hgapMono) hχ
+  nlinarith [hfloor, hceil, hχb1, hχb2]
+
 /-- Affine recurrence iterate: a sequence contracting by ratio `r < 1` with
 additive defect `c` enters the `c/(1-r)`-neighborhood geometrically. -/
 theorem affine_recurrence_iterate_le
@@ -170,6 +221,8 @@ section AxiomAudit
 #print axioms chiPos_floor_prefactor_gap_le
 #print axioms chiPos_squeeze_gap_step
 #print axioms chiPos_squeeze_gap_step_sharp
+#print axioms rpow_gap_mono_exponent
+#print axioms chiPos_squeeze_gap_step_of_le
 #print axioms affine_recurrence_iterate_le
 #print axioms abs_sub_one_le_rpow_gap
 
