@@ -6,14 +6,15 @@ import ShenWork.Paper1.WholeLineCauchyLongTimeBound
 # Proposition 1.1(2), the critical window covered by the `MChi` ceiling
 
 Mirror of `Proposition_1_1_negative_branch` for positive sensitivity at the
-critical exponent `α = m + γ - 1`, on the window `χ < chiStar p` where the
-relaxing `MChi` ceiling is available.
+critical exponent `α = m + γ - 1`, on the full window `χ < 1` where the
+relaxing `MChi` ceiling is defined and is a supersolution.
 
 This is a FAITHFUL PARTIAL of the paper's Proposition 1.1(2): the source
 permits the wider window `paper1PositiveCriticalThreshold` (see
 `Proposition11PositiveErrata.lean`), whose complement
-`chiStar p ≤ χ` is proved there to be nonempty and is obtained in the paper by
-a local `L^p` iteration rather than a constant-ceiling comparison.  The
+`1 ≤ χ` is proved there to be nonempty and is obtained in the paper by a local
+`L^p` iteration; no constant-ceiling comparison can reach it, since `MChi` is
+not even defined once `χ ≥ 1`.  The
 supercritical branch `m + γ - 1 < α` is covered separately and needs no
 smallness on `χ` at all.
 -/
@@ -28,7 +29,7 @@ namespace ShenWork.Paper1
 existence, a time-uniform range bound, eventual uniform boundedness, and the
 paper's `MChi` limsup ceiling. -/
 theorem Proposition_1_1_positive_critical_branch
-    (p : CMParams) (hχ : 0 < p.χ) (hχStar : p.χ < chiStar p)
+    (p : CMParams) (hχ : 0 < p.χ) (hχ_lt : p.χ < 1)
     (hcritical : p.α = p.m + p.γ - 1)
     (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀) :
     ∃ u v : ℝ → ℝ → ℝ,
@@ -36,13 +37,12 @@ theorem Proposition_1_1_positive_critical_branch
       (∀ t x, 0 ≤ t → u t x ≤ max (MChi p) ‖wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1‖) ∧
       UniformEventuallyBounded u ∧
       UniformLimsupLe u (MChi p) := by
-  have hχ_lt : p.χ < 1 := hχStar.trans_le (chiStar_le_one p)
   let w : WholeLineBUC := wholeLineBUCOfPaperCUnifBdd u₀ hu₀.1
   have hw0 : ∀ x, 0 ≤ w.1 x := by
     intro x
     simpa [w] using hu₀.2 x
   have hregime : WholeLineCauchyCeilingRegime p :=
-    Or.inr ⟨hχ.le, Or.inr ⟨hχStar, hcritical⟩⟩
+    Or.inr ⟨hχ.le, Or.inr ⟨hχ_lt, hcritical⟩⟩
   have hrange : ∀ t x, 0 ≤ t →
       wholeLineCauchyGlobalU p w t x ≤ max (MChi p) ‖w‖ := by
     intro t x ht
@@ -67,14 +67,11 @@ above, so this branch is explicitly a faithful partial: the residual window is
 inhabited. -/
 theorem Proposition_1_1_positive_critical_residual_window_nonempty :
     ∃ p : CMParams, 0 < p.χ ∧ p.α = p.m + p.γ - 1 ∧
-      paper1PositiveCriticalThreshold p ∧ chiStar p ≤ p.χ := by
+      paper1PositiveCriticalThreshold p ∧ 1 ≤ p.χ := by
   refine ⟨⟨1, 2, 2, 3/2, le_refl 1, by norm_num, by norm_num⟩, by norm_num,
-    by norm_num, ?_, ?_⟩
-  · unfold paper1PositiveCriticalThreshold
-    norm_num
-  · have h := chiStar_le_one ⟨1, 2, 2, 3/2, le_refl 1, by norm_num, by norm_num⟩
-    show chiStar _ ≤ (3/2 : ℝ)
-    linarith
+    by norm_num, ?_, by norm_num⟩
+  unfold paper1PositiveCriticalThreshold
+  norm_num
 
 section AxiomAudit
 

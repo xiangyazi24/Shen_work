@@ -32,7 +32,7 @@ def WholeLineCauchyCeilingRegime (p : CMParams) : Prop :=
   p.χ ≤ 0 ∨
     (0 ≤ p.χ ∧
       (p.m + p.γ - 1 < p.α ∨
-        (p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)))
+        (p.χ < 1 ∧ p.α = p.m + p.γ - 1)))
 
 theorem WholeLineCauchyCeilingRegime.of_nonpositive
     {p : CMParams} (hχ : p.χ ≤ 0) :
@@ -44,7 +44,8 @@ theorem StableWaveParameterRegime.toWholeLineCauchyCeilingRegime
     WholeLineCauchyCeilingRegime p := by
   rcases h with hneg | hpos
   · exact Or.inl hneg.1.le
-  · exact Or.inr ⟨hpos.1, Or.inr hpos.2⟩
+  · exact Or.inr ⟨hpos.1, Or.inr ⟨lt_of_lt_of_le hpos.2.1 (chiStar_le_one p),
+      hpos.2.2⟩⟩
 
 /-- Parameter-only upper threshold. In the supercritical branch it is the
 explicit root which makes the higher logistic power dominate; in all other
@@ -87,7 +88,7 @@ theorem wholeLineCauchyStableCeiling_one_le
       · simpa [MChi_eq_one_of_chi_nonpos p hχ]
       · rcases hpos.2 with hsuper' | hcritical
         · exact False.elim (hsuper hsuper')
-        · exact one_le_MChi_of_chi_nonneg_lt_chiStar
+        · exact one_le_MChi_of_chi_nonneg_lt_one
             p hpos.1 hcritical.1
   · exact le_max_right _ _
 
@@ -201,7 +202,7 @@ theorem wholeLineCauchyStableCeiling_margin
     · exact wholeLineCauchyParameterCeiling_margin_of_supercritical
         p hpos.1 hsuper (le_max_right _ _)
     · have hχ1 : p.χ < 1 :=
-        lt_of_lt_of_le hcritical.1 (chiStar_le_one p)
+        hcritical.1
       have hden : 0 < 1 - p.χ := sub_pos.mpr hχ1
       have hMChi0 : 0 ≤ MChi p :=
         MChi_nonneg_of_chi_lt_one p hχ1
@@ -278,7 +279,7 @@ theorem wholeLineCauchyCeiling_strict_margin_above
           congr 1
           ring
     · have hχ1 : p.χ < 1 :=
-        lt_of_lt_of_le hcritical.1 (chiStar_le_one p)
+        hcritical.1
       have hden : 0 < 1 - p.χ := sub_pos.mpr hχ1
       have hCpow_lt : C ^ p.α < L ^ p.α :=
         Real.rpow_lt_rpow hCpos.le hCL (by linarith [p.hα])
@@ -312,7 +313,7 @@ theorem wholeLineCauchyStableCeiling_strict_margin
         p hpos.1 hsuper
       exact (le_max_right _ _).trans_lt hCL
     · have hχ1 : p.χ < 1 :=
-        lt_of_lt_of_le hcritical.1 (chiStar_le_one p)
+        hcritical.1
       have hden : 0 < 1 - p.χ := sub_pos.mpr hχ1
       have hMChi0 : 0 ≤ MChi p := MChi_nonneg_of_chi_lt_one p hχ1
       have hMChiParam :

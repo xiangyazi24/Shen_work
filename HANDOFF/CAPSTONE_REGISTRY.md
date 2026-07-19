@@ -13,8 +13,8 @@ All theorems below depend only on `[propext, Classical.choice, Quot.sound]`.
 | Thm 1.2 full | `paper1_Theorem_1_2_amended_of_wholeLineCauchyEnergyStep4` | Paper1/Theorem12Corrected.lean:222 | χ>0: TWO adapters remain (Q5314) — see Henry infrastructure below |
 | Prop 1.1 χ≤0 | `Proposition_1_1_negative_branch` | Paper1/WholeLineCauchyLongTimeBound.lean:741 | UNCONDITIONAL |
 | Prop 1.2 χ≤0 | `Proposition_1_2_negative_branch` | Paper1/Proposition12NegativeBranch.lean:21 | UNCONDITIONAL |
-| **Prop 1.2 χ>0 critical (NEW 07-19)** | `Proposition_1_2_positive_branch_critical` | Paper1/Proposition12PositiveBranchCritical.lean:32 | UNCONDITIONAL on 0<χ<1/2, α=m+γ−1, ceiling regime, UniformlyPositive datum. Non-vacuity + scope witnesses: WholeLineChiPosRectangleWitness.lean. FAITHFUL PARTIAL: the ceiling regime (χ<chiStar) is stronger than the paper's χ<1/2 — residual window inhabited (m=5,γ=2,χ=9/20), proved. |
-| **Prop 1.1 χ>0 critical (NEW 07-19)** | `Proposition_1_1_positive_critical_branch` | Paper1/Proposition11PositiveCritical.lean:31 | UNCONDITIONAL on 0<χ<chiStar, α=m+γ−1. Global nonneg solution + range bound + UniformEventuallyBounded + UniformLimsupLe MChi. FAITHFUL PARTIAL: residual window chiStar ≤ χ < faithful threshold inhabited, proved. |
+| **Prop 1.2 χ>0 critical (NEW 07-19)** | `Proposition_1_2_positive_branch_critical` | Paper1/Proposition12PositiveBranchCritical.lean:32 | UNCONDITIONAL on 0<χ<1/2, α=m+γ−1, ceiling regime, UniformlyPositive datum. Non-vacuity witness: WholeLineChiPosRectangleWitness.lean. Since the ceiling regime was weakened to χ<1 (07-19), this now covers the paper's ENTIRE critical χ<1/2 range — the earlier chiStar scope caveat is closed. |
+| **Prop 1.1 χ>0 critical (NEW 07-19)** | `Proposition_1_1_positive_critical_branch` | Paper1/Proposition11PositiveCritical.lean:31 | UNCONDITIONAL on 0<χ<1, α=m+γ−1. Global nonneg solution + range bound + UniformEventuallyBounded + UniformLimsupLe MChi. FAITHFUL PARTIAL: residual window 1 ≤ χ < faithful threshold inhabited (proved); MChi is undefined there, so it needs the paper's local-Lp route. |
 | Refutation Thm 1.2 a>0,b=0 | `not_Theorem_1_2_intervalDomain_when_a_pos_b_zero` | Paper2/IntervalDomainTheorem12Refutation.lean:162 | UNCONDITIONAL |
 
 ## Paper 2 (Bounded Domain Existence)
@@ -136,8 +136,20 @@ Faithful division-free encoding `paper1PositiveCriticalThreshold` landed, proved
 equivalent to the paper's ratio form (m,γ>1) AND to the existence of an
 admissible local-Lp exponent of §3.1 — which is where the threshold comes from.
 
+Also added 07-19: Prop 1.1 supercritical branch
+(`Proposition_1_1_positive_supercritical_branch`) and the combined
+`Proposition_1_1_positive_branches_of_regime` (paper's (1.10) on both branches).
+
+Ceiling-regime weakening (07-19): `WholeLineCauchyCeilingRegime`'s critical case
+went from `χ < chiStar` to `χ < 1`. Evidence: all four sites in the repo that
+destructure that branch used chiStar only to extract χ<1. Producers unaffected
+(chiStar_le_one). Verified by a full root build + axiom prints through
+`import ShenWork`.
+
 OPEN, recorded (not claimed): (i) Thm 1.2 for χ∈[1/2,χ*) — the paper's left-tail
 step cites its own Prop 1.2(2), proved only for χ<1/2; no linear instability, no
 bifurcation, no known counterexample (dispersion audit), so plausibly true but
-unproved. (ii) Prop 1.1 critical window chiStar ≤ χ < faithful threshold — needs
-the paper's local-Lp iteration. (iii) The ceiling-regime vs χ<1/2 gap above.
+unproved. (ii) Prop 1.1 critical window 1 ≤ χ < faithful threshold — MChi is
+undefined there; needs the paper's local-Lp iteration. (iii) The χ>0 front
+left-equilibrium (buffered successor construction) — the last piece of P1 Thm 1.2
+for positive sensitivity.

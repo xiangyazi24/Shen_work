@@ -60,16 +60,16 @@ eventually uniformly bounded. -/
 theorem Proposition_1_1_positive_branches_of_regime
     (p : CMParams) (hχ : 0 < p.χ)
     (hbranch : (p.m + p.γ - 1 < p.α) ∨
-      (p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
+      (p.χ < 1 ∧ p.α = p.m + p.γ - 1))
     (u₀ : ℝ → ℝ) (hu₀ : PaperNonnegativeInitialDatum u₀) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalNonnegativeCauchySolutionFrom p u₀ u v ∧ UniformEventuallyBounded u := by
-  rcases hbranch with hsuper | ⟨hχStar, hcritical⟩
+  rcases hbranch with hsuper | ⟨hχ_lt, hcritical⟩
   · rcases Proposition_1_1_positive_supercritical_branch
       p hχ hsuper u₀ hu₀ with ⟨u, v, hsolution, _, hbounded, _⟩
     exact ⟨u, v, hsolution, hbounded⟩
   · rcases Proposition_1_1_positive_critical_branch
-      p hχ hχStar hcritical u₀ hu₀ with ⟨u, v, hsolution, _, hbounded, _⟩
+      p hχ hχ_lt hcritical u₀ hu₀ with ⟨u, v, hsolution, _, hbounded, _⟩
     exact ⟨u, v, hsolution, hbounded⟩
 
 section AxiomAudit
