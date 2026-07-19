@@ -9,6 +9,23 @@ PaperNonnegativeInitialDatum + UniformlyPositive u₀ ⇒ global solution with
 `UniformConvergesToConstant u 1`. Phase 2 does the critical case α = m+γ−1 first;
 the supercritical α > m+γ−1 extension is phase 3 (different ceiling).
 
+## Item 0 (NEW, from phase-1 review): b^m-weighted floor comparison variant
+
+Phase 1's `leftHalfLine_ge_of_positive_resolver_reaction_subsolution` uses a constant
+defect H with `hpdeb : b' + H ≤ reaction(b)`. From a tiny seed floor (b ≈ d ≪ 1,
+reaction(d) ≈ d) with H = O(1) this budget is unsatisfiable — the m=1 burn-in fails.
+Add the weighted variant `leftHalfLine_ge_of_weighted_resolver_reaction_subsolution`:
+replace hchem/hpdeb by
+  hresolver : ∀ t x (slab, x < x₀), frozenElliptic p (q t) x ≤ Dup    (constant Dup)
+  hpdeb     : ∀ t ∈ Ioc 0 T, deriv b t + p.χ * (b t)^p.m * Dup ≤ reactionFun p.α (b t)
+and inside, at the touching point the solution value w satisfies w ≤ b t (the sliding
+max-principle contradiction point has q below the barrier), so
+  χ w^m (V − w^γ) ≤ χ w^m V ≤ χ w^m Dup ≤ χ (b t)^m Dup  (x^m monotone, w ≥ 0).
+This makes the defect b-proportional and the exponential barrier
+L − (L−C)e^{−λt} viable from arbitrarily small C with
+λ = C·φmin/(L−C), φmin = min over [C,L] of ((1−x^α) − χ x^{m−1} Dup) > 0.
+The ceiling side does NOT need a weighted variant (barrier values ≥ 1).
+
 ## Architecture: mirror the two existing one-sided whole-line chains
 
 - FLOOR template: WholeLineCauchyLongTimeFloor.lean (χ≤0): slab exp-floor
