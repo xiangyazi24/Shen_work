@@ -94,6 +94,22 @@ Key algebra (critical α = β := m+γ−1, m,γ ≥ 1, d ≤ ℓ ≤ 1 ≤ M ≤
    is affine from the start. Supercritical α > β works identically for Prop 1.2(2)
    (M^α−ℓ^α ≥ M^β−ℓ^β on ℓ≤1≤M).
 
+## Seed floor (task 3, phase 3) — route settled
+
+Finite-time survival from t=0 does NOT work: the co-moving half-line (−∞,x₀] at time t is
+lab (−∞, x₀+ct]; the initial floor region Iic x₁ recedes at speed c in co-moving coords,
+and compact wave-closeness only covers FIXED compacts — the growing middle region
+[x₁−ct−spread, x₀] is uncovered. The seed genuinely needs the self-sustaining co-moving
+plateau (as χ<0 did). Route: mirror the χ<0 plateau chain with the POSITIVE ledgers
+(audit §1.4: constant ledger at height MChi under χ<1/2 =
+`paperWaveOperator_const_subsolution_nonneg_pos_MChi`; raw ledger under χ<min(1/2,chiStar);
+patched barrier `paperWaveOperator_lowerBarrierPlateau_nonneg_pos_away`; profile shape
+χ-free). The trap-height-Q mismatch dissolves: after ceiling burn-in the global bound is
+MChi+r (limsup theorem), so normalize the trap to height MChi+r — exactly the positive
+ledgers' regime. The floor-extraction lemma
+(`wholeLineCauchyGlobal_eventual_coMoving_left_floor_of_persistent_plateau`) is already
+χ-free.
+
 ## Division of labor
 
 - Codex (running): sign audit of plateau + buffered comparison; range bound
