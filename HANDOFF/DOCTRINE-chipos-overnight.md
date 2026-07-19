@@ -78,3 +78,22 @@ invalidating any build/axiom verification run against it. During a live lane,
 restrict yourself to NEW files (Codex leaves them alone), HANDOFF docs, and
 analysis. Afterwards: reapply, `git status` to confirm the edit survived, verify,
 and commit IMMEDIATELY — uncommitted work is not safe in a concurrent tree.
+
+## AVENUE STATUS v2 (2026-07-19, late)
+
+- (a) CLOSED. Prop 1.2(2) χ>0 critical. Q98 adversarial audit: PASS.
+- (c) CLOSED for both windows the ceiling method can reach:
+  `Proposition_1_1_positive_critical_branch` (now χ<1 after the regime weakening)
+  and `Proposition_1_1_positive_supercritical_branch` (all χ>0), plus the combined
+  `Proposition_1_1_positive_branches_of_regime` = the paper's (1.10).
+  Residual: critical 1 ≤ χ < faithful threshold — MChi undefined there, needs the
+  paper's local-Lp route (Q103 gives the full recipe if we take it up).
+- (e) Lem 2.6 practical content CLOSED hdiss-free; abstract predicate documented
+  as unsound. No headline depended on it.
+- (b) THE LAST PIECE of P1 Thm 1.2 χ>0: buffered half-line successor.
+  Abstract layer committed. Implementation spec written by hand:
+  HANDOFF/fable-halfline-successor-spec.md (R(δ) choice, moving cut, both
+  weighted contact inequalities, buffer boundary supply, seed decomposition).
+  One genuinely missing producer: the χ>0 persistent-plateau floor seed — route
+  fixed (mirror the χ≤0 chain with the positive ledgers at trap height MChi+r).
+- (d) Thm 1.3 χ>0: unblocked once (b) lands; adaptation inventory = gpt-Q74 (A–G).
