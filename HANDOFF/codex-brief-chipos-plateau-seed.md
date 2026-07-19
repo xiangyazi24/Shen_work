@@ -54,12 +54,33 @@ A previous sign audit of that chain (HANDOFF/codex-chipos-sign-audit.md) found:
   `MChi p`. Since the frozen field scales like `Q^γ`, the constant-left budget
   must be redone at general `Q` — OR the window normalized.
 
-**Normalize, do not re-derive.** After the χ>0 ceiling burn-in the solution
-satisfies `u ≤ MChi p + r` for any prescribed `r > 0` eventually
-(`wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos`, committed). So run the
-plateau propagation on a window where the trap height is exactly `MChi p`
-(absorb the `r`-slack by starting the propagation late enough and shrinking the
-plateau height), which is precisely the regime of the positive ledgers.
+**CORRECTION (2026-07-19, after the first seed lane correctly refused this):**
+the earlier instruction "normalize the trap height to exactly `MChi p`" was
+WRONG. `UniformLimsupLe` keeps a positive slack by definition, so the burn-in
+gives `u ≤ MChi p + r` and never the exact bound; shrinking the plateau height
+does not discharge the upper-bound obligation. Proving the exact `MChi` trap is
+also hopeless — the relaxing ceiling approaches `MChi` strictly from above.
+
+The blocker is now REMOVED at the source. Committed (3f428294):
+`ShenWork/Paper1/WavePositivePlateauTrapHeight.lean` provides
+```
+paperWaveOperator_const_subsolution_nonneg_pos_trap :
+  0 ≤ χ → χ < 1 → α = m+γ−1 → 0 < Q → χ * Q^γ < 1 →
+  0 < d → d ≤ 1 → (1−χ)*d ≤ (1 − χ*Q^γ)/2 →
+  InWaveTrapSet κ Q u → ∀ x, 0 ≤ paperWaveOperator p c u (fun _ => d) x
+```
+i.e. the constant ledger AT ANY TRAP HEIGHT `Q` with the sharp condition
+`χ·Q^γ < 1`, plus `chiPos_trap_condition_of_chi_lt_half` (at `Q = MChi` the
+condition is exactly the paper's `χ < 1/2`) and
+`exists_trap_height_above_of_chi_mul_rpow_lt_one` (the condition is open in `Q`,
+so `Q = MChi + r` qualifies for small `r`).
+
+So S1 becomes: pick `r > 0` with `χ·(MChi p + r)^γ < 1` (from the openness
+lemma), take the burn-in restart time for that `r`, and land the trap predicate
+at height `Q := MChi p + r`. If the PATCHED (raw-tail) ledger
+`paperWaveOperator_lowerBarrierPlateau_nonneg_pos_away` also hard-codes `MChi`,
+generalize it the SAME way — its resolver bound likewise enters only as
+`frozenElliptic ≤ Q^γ` — and say so in your report.
 
 ## Deliverables
 
