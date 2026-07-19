@@ -746,3 +746,12 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   比较）在跑。
 - 基建注意：uisai2 tailscaled 自 7/10 死，已重启；mini 离线 → ChatGPT 7 tabs 暂不可达，后台 60s
   探测中，通了即喂满（[18] Lem 3.1-3.2、sharpness、seed、Lem 2.6 frontier 等题已备好）。
+
+### 2026-07-19 — Q82/Q83 收割（cron 管线全通）
+- ask-gpt 管线端到端打通（本机 server + MacBook tabs）；ask-gpt.py 加 pane 血缘反伪造检查。
+- Q82 (cron2): supercritical ceiling 完整设计，唯一新原子 rpow_tangent_at_one_of_one_le (n≥1)，
+  10 步 build order → Codex phase 3 蓝图。已验证 tangent/gap/field 三条链。归档 gpt-Q82-*.md。
+- Q83 (cron4): 色散关系战略判定，与我的独立推导逐项一致：λ(k) = −α − k² + χγk²/(1+k²)，
+  χ_lin = (1+√α)²/γ > 1 ≥ χ*。结论：χ∈[α/(2γ),χ*) 段 paper 的证明 gap 是真的，但定理未被证伪
+  （无线性不稳定/无分岔/无已知反例），plausibly true，需谱隙+Liouville 三阶段新机制（未来战役）。
+  我们的 χ<1/2 faithful amendment 定位正确。归档 gpt-Q83-*.md。
