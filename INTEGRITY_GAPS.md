@@ -1043,3 +1043,36 @@ citation, not a formalization shortcut we declined to grind. Do NOT dispatch a
 this finite-`P` cap. (At `χ = 1` exactly the chain admits all `P`, so a
 Moser-to-`L^∞` closure there is not obstructed — a genuine but single-point
 increment, of marginal value against the full iteration-infrastructure cost.)
+
+## 2026-07-20 — CORRECTION to the 2026-07-19 "paper over-reaches" claim (retracted as too strong)
+
+The 2026-07-19 entry stated the source paper "over-reaches" on the Theorem 1.2
+left-tail. On re-examination that assertion is WITHDRAWN — it was inferred from
+our formalization's toolkit, not verified against the paper. Corrected picture:
+
+- The wave satisfies `Tendsto U atBot (𝓝 1)` (Statements.lean:2935,
+  `FrozenStationaryWaveProfile.lim_neg_inf`): the FAR-LEFT limit is the
+  EQUILIBRIUM `u ≡ 1`, and the far-RIGHT is `0` (controlled by the growing
+  weight `e^{2ηz}`). So "left-tail convergence" is convergence to the
+  equilibrium at `z → −∞`, exactly where the weight `e^{2ηz}` degenerates.
+- Our ONLY formalized far-left tool is the half-line rectangle
+  (`uniformCoMovingLeftEquilibriumConvergence_of_halfLine_successors`,
+  WholeLineChiPosHalfLineRectangle.lean:77), whose gap contracts by factor
+  `2χ` (`ChiPosHalfLineRectangleStep.gap_le`), forcing `χ < 1/2`. The sharp
+  variant `χ/(1-χ)` caps at the SAME `χ<1/2`. So the `χ<1/2` cap is a property
+  of the RECTANGLE mechanism, not a proven property of the paper's argument.
+- Two independent indicators say the true threshold is higher, not `1/2`:
+  (i) mere far-left BOUNDEDNESS via the plateau trap at the equilibrium height
+  `Q = 1` needs only `χ·1^γ < 1`, i.e. `χ < 1` (WavePositivePlateauTrapHeight);
+  (ii) the equilibrium `u≡1` is LINEARLY STABLE with spectral gap `−α` for
+  `χγ ≤ 1` (proved: `dispersion_le_neg_alpha`), far beyond `χ<1/2`.
+
+Corrected verdict: the left-tail `χ<1/2` cap is a limitation of the crude
+rectangle convergence tool we formalized, NOT an established defect of the
+paper. The linear spectral gap indicates a sharper convergence mechanism —
+a far-left-non-degenerate weighted energy, or a spectral/comparison argument
+around `u≡1` — should extend far-left equilibrium convergence toward `χγ ≤ 1`
+(covering the whole window, since `χ* ≤ 1`). Whether the paper uses exactly
+this is unverified from the source and should be checked against the PDF, not
+asserted. This is the genuine open frontier of Theorem 1.2, and it is
+plausibly closable — the prior entry overstated it as a paper defect.
