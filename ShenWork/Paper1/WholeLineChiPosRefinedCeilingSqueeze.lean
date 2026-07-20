@@ -114,6 +114,27 @@ theorem refined_threshold_gt_sharp_threshold
   have h2 : 0 < 2 * gamma := by linarith
   exact div_lt_div_of_pos_left halpha h2 (by linarith)
 
+/-- The ceiling ratio never exceeds `1`, so the refinement is never a
+regression: it recovers the crude coefficient in the worst case. -/
+theorem ceilingRatio_le_one {g a t : ℝ} (hg : 0 < g) (hga : g ≤ a)
+    (ht : 0 < t) (ht1 : t < 1) :
+    (1 - t ^ g) / (1 - t ^ a) ≤ 1 := by
+  have hag : t ^ a ≤ t ^ g :=
+    Real.rpow_le_rpow_of_exponent_ge ht ht1.le hga
+  have hlt : t ^ a < 1 := Real.rpow_lt_one ht.le ht1 (hg.trans_le hga)
+  have hpos : 0 < 1 - t ^ a := sub_pos.mpr hlt
+  rw [div_le_one hpos]
+  linarith
+
+/-- Consequently the refined contraction condition is implied by the crude
+one: anything the `c0 = 1` threshold covers, the refined threshold covers. -/
+theorem refined_contraction_of_sharp
+    {chi gamma alpha c0 : ℝ} (hchi : 0 ≤ chi) (halpha : 0 < alpha)
+    (hc0 : c0 ≤ 1) (h : chi * gamma < alpha * (1 - chi)) :
+    chi * gamma < alpha * (1 - chi * c0) := by
+  have : chi * c0 ≤ chi := by nlinarith
+  nlinarith
+
 /-- **Exact coverage at the limiting threshold.**  `chiStar p ≤ alpha / (2 γ)`
 precisely when the cubic `Q (m, γ) = m ^ 3 + γ m ^ 2 - (γ + 1) m - 2 γ ^ 2 - 2 γ`
 is nonnegative.  Its root in `m` is strictly below the root of the `c0 = 1`
@@ -147,6 +168,8 @@ theorem chiStar_le_limitThreshold_of_gamma_add_one_le (p : CMParams)
 
 section AxiomAudit
 
+#print axioms ceilingRatio_le_one
+#print axioms refined_contraction_of_sharp
 #print axioms chiStar_le_limitThreshold_of_poly
 #print axioms chiStar_le_limitThreshold_of_gamma_add_one_le
 #print axioms chiPos_squeeze_gap_step_refined_ceiling

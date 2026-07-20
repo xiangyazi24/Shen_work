@@ -69,8 +69,15 @@
   chiStar_le_limitThreshold_of_poly (Q = m^3+g*m^2-(g+1)m-2g^2-2g >= 0 is the
   exact condition for alpha/(2gamma) >= chiStar; root 1.6590 at g=1 vs 2.2695
   for the c0=1 cubic P), chiStar_le_limitThreshold_of_gamma_add_one_le.
-- IN FLIGHT: Codex producing the c(t) monotonicity lemma
-  (WholeLineChiPosCeilingRatio.lean, worktree Shen_work_farleft).
+- Codex DELIVERED the c(t) monotonicity lemma (WholeLineChiPosCeilingRatio.lean),
+  routed through Mathlib's convexOn_rpow / secant_mono_aux1. Verified by me
+  independently in main (single-file, clean-3) rather than on its own report;
+  note it did NOT commit, so the file had to be picked up by hand.
+- Avenue (b) is now CLOSED end-to-end and the coefficient is DISCHARGED, not
+  carried: uniformCoMoving..._seedRatio takes no absorption hypothesis at all,
+  only the contraction condition at c0 = (1-t0^g)/(1-t0^a), t0 = seed.ell/seed.M.
+  The chain's containment in the seed box is proved by induction from
+  ell_le / M_le.
 - WALL (ChatGPT Q155, matches my own derivation): 2*chi*gamma < alpha is the
   INTRINSIC limit of any two-endpoint rectangle — the endpoint model permits
   worst-case anti-correlation between u and v. Beyond it a different mechanism
