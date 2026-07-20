@@ -1,3 +1,4 @@
+import Mathlib.Analysis.MeanInequalities
 import ShenWork.Paper1.WholeLineChiPosHalfLineRectangle
 
 /-!
@@ -28,45 +29,42 @@ namespace ShenWork.Paper1
 `L / U -> 1`. -/
 theorem rpow_small_prefactor_gap_le_ratio
     {L U s a : ℝ}
-    (hL : 0 < L) (hLU : L ≤ U) (hs : 0 < s) (ha : 0 < a) :
+    (hL : 0 < L) (hLU : L ≤ U) (hs : 0 ≤ s) (ha : 0 < a) :
     L ^ s * (U ^ a - L ^ a) ≤
       (a / (a + s)) * (U ^ (a + s) - L ^ (a + s)) := by
-  let f : ℝ → ℝ := fun x =>
-    a * (x ^ (a + s) - L ^ (a + s)) -
-      (a + s) * L ^ s * (x ^ a - L ^ a)
-  have hcont : ContinuousOn f (Set.Icc L U) := by
-    unfold f
-    fun_prop
-  have hmono : MonotoneOn f (Set.Icc L U) := by
-    apply monotoneOn_of_deriv_nonneg (convex_Icc L U) hcont
-    intro x hx
-    have hxpos : 0 < x := hL.trans_le hx.1
-    have hderiv : HasDerivAt f
-        (a * (a + s) * x ^ (a + s - 1) -
-          (a + s) * L ^ s * (a * x ^ (a - 1))) x := by
-      unfold f
-      fun_prop
-    rw [hderiv.deriv]
-    have hLs : L ^ s ≤ x ^ s :=
-      Real.rpow_le_rpow hL.le hx.1 hs.le
-    have hxa : 0 ≤ x ^ (a - 1) := Real.rpow_nonneg hxpos.le _
-    have hsplit : x ^ (a + s - 1) = x ^ (a - 1) * x ^ s := by
-      rw [← Real.rpow_add hxpos]
-      congr 1
-      ring
-    rw [hsplit]
-    nlinarith
-  have hbase : f L ≤ f U := hmono (by simp) (by simp) hLU
-  have hfL : f L = 0 := by simp [f]
-  have hraw :
-      (a + s) * (L ^ s * (U ^ a - L ^ a)) ≤
-        a * (U ^ (a + s) - L ^ (a + s)) := by
-    rw [hfL] at hbase
-    dsimp [f] at hbase
-    linarith
-  have has : 0 < a + s := add_pos ha hs
-  rw [div_mul_eq_mul_div]
-  apply (le_div_iff₀ has).2
+  have hU : 0 < U := hL.trans_le hLU
+  have hsum : 0 < a + s := add_pos_of_pos_of_nonneg ha hs
+  let wa : ℝ := a / (a + s)
+  let ws : ℝ := s / (a + s)
+  have hwa : 0 ≤ wa := by
+    dsimp [wa]
+    positivity
+  have hws : 0 ≤ ws := by
+    dsimp [ws]
+    positivity
+  have hweights : wa + ws = 1 := by
+    dsimp [wa, ws]
+    field_simp [ne_of_gt hsum]
+  have hamgm := Real.geom_mean_le_arith_mean2_weighted
+    (p₁ := U ^ (a + s)) (p₂ := L ^ (a + s))
+    hwa hws (Real.rpow_nonneg hU.le _) (Real.rpow_nonneg hL.le _) hweights
+  have hUw : (U ^ (a + s)) ^ wa = U ^ a := by
+    dsimp [wa]
+    rw [← Real.rpow_mul hU.le]
+    congr 1
+    field_simp [ne_of_gt hsum]
+  have hLw : (L ^ (a + s)) ^ ws = L ^ s := by
+    dsimp [ws]
+    rw [← Real.rpow_mul hL.le]
+    congr 1
+    field_simp [ne_of_gt hsum]
+  rw [hUw, hLw] at hamgm
+  have hws_eq : ws = 1 - wa := by linarith [hweights]
+  rw [hws_eq] at hamgm
+  have hLas : L ^ (a + s) = L ^ a * L ^ s := Real.rpow_add hL a s
+  change L ^ s * (U ^ a - L ^ a) ≤
+    wa * (U ^ (a + s) - L ^ (a + s))
+  rw [hLas] at hamgm ⊢
   nlinarith
 
 /-- One critical rectangle round with the small-endpoint coefficient retained.
@@ -95,7 +93,7 @@ theorem chiPos_squeeze_gap_step_m_gt_one
       ell' ^ (m - 1) * (M ^ gamma - ell' ^ gamma) ≤
         (gamma / alpha) * (M ^ alpha - ell' ^ alpha) := by
     have h := rpow_small_prefactor_gap_le_ratio
-      hell' (hell'one.trans honeM) hs ha
+      hell' (hell'one.trans honeM) hs.le ha
     rwa [hexp] at h
   have hceilingAbsorb :
       M' ^ (m - 1) * (M' ^ gamma - ell' ^ gamma) ≤
@@ -113,7 +111,7 @@ theorem chiPos_squeeze_gap_step_m_gt_one
         chi * (gamma / alpha) * (M ^ alpha - ell ^ alpha) := by
     have h := hfloorAbsorb.trans
       (mul_le_mul_of_nonneg_left hgapMono hratio0)
-    exact mul_le_mul_of_nonneg_left h hchi
+    simpa only [mul_assoc] using mul_le_mul_of_nonneg_left h hchi
   have hchiCeiling :
       chi * (M' ^ (m - 1) * (M' ^ gamma - ell' ^ gamma)) ≤
         chi * (M' ^ alpha - ell' ^ alpha) :=
@@ -123,7 +121,7 @@ theorem chiPos_squeeze_gap_step_m_gt_one
 /-- The sharp ratio condition is genuinely weaker than `chi < 1 / 2` at every
 critical exponent with `m > 1`. -/
 theorem half_mul_gamma_lt_alpha_mul_one_sub_half_of_m_gt_one
-    {m gamma alpha : ℝ} (hm : 1 < m) (hgamma : 1 ≤ gamma)
+    {m gamma alpha : ℝ} (hm : 1 < m) (_hgamma : 1 ≤ gamma)
     (hcritical : alpha = m + gamma - 1) :
     (1 / 2 : ℝ) * gamma < alpha * (1 - 1 / 2) := by
   rw [hcritical]
