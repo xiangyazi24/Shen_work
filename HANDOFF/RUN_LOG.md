@@ -10,8 +10,52 @@
 - 06-11 06:2x BIG SWING (codex reset window, xhigh): W9 (A-line total: adot assembly→endpoint legs→wire→DELETE hsrc0 @shen_codex), D2 (vacuous semigroup→real heat-kernel @shen_codex4), C1 (L²energy sorries @shen_codex3) — 3 parallel xhigh codex. Fable holds the high-care W9 step-3 (delete hsrc0 + Σ' fix).
 - 06-11 11:2x C1 = NULL (FALSE ALARM caught by adversarial audit + self-recheck): my `\bsorry\b` grep counted DOCSTRING mentions ("no sorry"/"NOT a sorry"), NOT proof terms. The 3 L²energy files had ZERO real sorries in HEAD — the open content is a NAMED RESIDUAL OBLIGATION (packaged as a hypothesis, like hsrc0), not a sorry. codex C1 only edited docstrings (reverted). No "10 sorries closed" — that headline was a grep artifact; the playbook discipline caught it before any false claim. ROADMAP correction: avenue C's L²energy foundation is CONDITIONAL on a named frontier residual, not complete.
 - LESSON: count sorries as PROOF TERMS (`:= sorry` / `by sorry` / standalone), never `\bsorry\b` (matches docstrings). Re-audit any prior sorry-count claims.
-- end: <open>
-- final result: <open>
+### Avenue (c) — dual-oracle (/fable-ora) round; the frontier MOVED
+- Fable R1: the missing factor is the RESOLVENT SMOOTHING, symbol
+  xi^2/(1+xi^2) <= 1, obtainable by elementary testing of -v_zz+v=u^gamma
+  (no Fourier) -- Lean-friendly. Use the DRIFT weight e^{cz}, integrable at
+  -inf, which sidesteps our own infinite-left-mass obstruction (that was
+  specific to the GROWING mirror weight e^{-2 eta z}).
+- Test B (mine, decisive): blocker is TRAP QUALITY, not the energy constant.
+  Coercivity needs ell > 1/2 independent of chi (binding mode is xi=0, where
+  the smoothing multiplier vanishes and only f'(ubar)=1-2ubar survives);
+  guaranteed floor ~0.125. And improving the trap with the same rectangle is
+  circular (invariance inequalities add to g >= 2*chi*g).
+- Test A (mine): u==1 attracts every datum tried, chi 0.3..2.0, machine
+  precision. NOTE: first attempt blew up at chi=0.3 where stability is certain
+  -- explicit Euler violating the diffusive CFL. The chi=0.3 CONTROL is the
+  only reason that scheme error was not banked as a finding. Keep controls.
+- BIG RESULT: the true far-left threshold is chi*gamma = (1+sqrt(alpha))^2 = 4
+  at m=gamma=alpha=1, NOT chi*=1. sigma(k) = -k^2 + chi*gamma*k^2/(1+k^2)
+  - alpha; interior max at k^2 = sqrt(chi*gamma)-1; sigma_max =
+  (sqrt(chi*gamma)-1)^2 - alpha. Numerically confirmed to the sign change
+  (decay 3.5, marginal 3.9, pattern 4.5). Also confirms our Defs.lean PDE
+  translation is faithful (quantitative, not qualitative, match).
+  => chi* is SUFFICIENT-ONLY for this step; a future argument stalling at
+  chi* is tool-limited. Does NOT license weakening anything proved.
+- Landed: WholeLineChiPosDispersionSharp (threshold proved SHARP, both
+  directions) + WholeLineResolverTestingIdentities (the smoothing core).
+  Audited by me, not accepted on report. Carried boundary hypothesis verified
+  inhabited. FLAGGED: int (v')^2 <= int g^2 loses a factor 4; sharp is 1/4.
+
+### NEXT (resumable)
+1. Recover the sharp 1/4 in the gradient smoothing bound -- it is the term
+   that absorbs the chemotaxis cross-term, so the factor is load-bearing.
+2. Fable R2's architecture: omega-limit at z=-inf -> bounded eternal solution
+   -> Liouville rigidity, with FREE-ENERGY dissipation as the engine (NOT the
+   u_z-friction/LaSalle energy, which provably does not close: the chemotaxis
+   term has no sign). The critical exponent alpha=m+gamma-1 making the
+   functional scale-invariant is the marker that this is the right object.
+3. The floor problem is easier than the ceiling (reaction helps), but NOT via
+   decoupled comparison -- via the nonlocal min identity v_zz = v - u^gamma
+   closed by a GRADIENT BOOTSTRAP. Fable: not unconditionally small, a narrow
+   dip has V-U = O(depth), so it needs a gradient bound -- the crux is showing
+   the bootstrap contracts.
+- end: 2026-07-20, clean checkpoint; main green 9981 jobs, 0 sorry, pushed.
+- final result: avenue (a) closed (merged); avenue (b) closed but measured to
+  be numerically negligible; avenue (c) frontier relocated -- true threshold
+  identified and the rectangle proved exhausted. Two ChatGPT questions still
+  undelivered (bridge connector failures, NOT resent per instruction).
 
 ## Run 2026-07-12 (resumed automode, session = shen window)
 - doctrine: HANDOFF/DOCTRINE-P31.md (Paper 3 P3.1)
@@ -91,5 +135,49 @@
 - Also flagged: a genuine gap in the PAPER — Prop 1.2(2) is stated/proved only
   for chi<1/2, but Thm 1.2 Step 4 invokes it for chi<chi*. Verification
   question dispatched; do NOT record as fact until it returns.
-- end: <open>
-- final result: <open>
+### Avenue (c) — dual-oracle (/fable-ora) round; the frontier MOVED
+- Fable R1: the missing factor is the RESOLVENT SMOOTHING, symbol
+  xi^2/(1+xi^2) <= 1, obtainable by elementary testing of -v_zz+v=u^gamma
+  (no Fourier) -- Lean-friendly. Use the DRIFT weight e^{cz}, integrable at
+  -inf, which sidesteps our own infinite-left-mass obstruction (that was
+  specific to the GROWING mirror weight e^{-2 eta z}).
+- Test B (mine, decisive): blocker is TRAP QUALITY, not the energy constant.
+  Coercivity needs ell > 1/2 independent of chi (binding mode is xi=0, where
+  the smoothing multiplier vanishes and only f'(ubar)=1-2ubar survives);
+  guaranteed floor ~0.125. And improving the trap with the same rectangle is
+  circular (invariance inequalities add to g >= 2*chi*g).
+- Test A (mine): u==1 attracts every datum tried, chi 0.3..2.0, machine
+  precision. NOTE: first attempt blew up at chi=0.3 where stability is certain
+  -- explicit Euler violating the diffusive CFL. The chi=0.3 CONTROL is the
+  only reason that scheme error was not banked as a finding. Keep controls.
+- BIG RESULT: the true far-left threshold is chi*gamma = (1+sqrt(alpha))^2 = 4
+  at m=gamma=alpha=1, NOT chi*=1. sigma(k) = -k^2 + chi*gamma*k^2/(1+k^2)
+  - alpha; interior max at k^2 = sqrt(chi*gamma)-1; sigma_max =
+  (sqrt(chi*gamma)-1)^2 - alpha. Numerically confirmed to the sign change
+  (decay 3.5, marginal 3.9, pattern 4.5). Also confirms our Defs.lean PDE
+  translation is faithful (quantitative, not qualitative, match).
+  => chi* is SUFFICIENT-ONLY for this step; a future argument stalling at
+  chi* is tool-limited. Does NOT license weakening anything proved.
+- Landed: WholeLineChiPosDispersionSharp (threshold proved SHARP, both
+  directions) + WholeLineResolverTestingIdentities (the smoothing core).
+  Audited by me, not accepted on report. Carried boundary hypothesis verified
+  inhabited. FLAGGED: int (v')^2 <= int g^2 loses a factor 4; sharp is 1/4.
+
+### NEXT (resumable)
+1. Recover the sharp 1/4 in the gradient smoothing bound -- it is the term
+   that absorbs the chemotaxis cross-term, so the factor is load-bearing.
+2. Fable R2's architecture: omega-limit at z=-inf -> bounded eternal solution
+   -> Liouville rigidity, with FREE-ENERGY dissipation as the engine (NOT the
+   u_z-friction/LaSalle energy, which provably does not close: the chemotaxis
+   term has no sign). The critical exponent alpha=m+gamma-1 making the
+   functional scale-invariant is the marker that this is the right object.
+3. The floor problem is easier than the ceiling (reaction helps), but NOT via
+   decoupled comparison -- via the nonlocal min identity v_zz = v - u^gamma
+   closed by a GRADIENT BOOTSTRAP. Fable: not unconditionally small, a narrow
+   dip has V-U = O(depth), so it needs a gradient bound -- the crux is showing
+   the bootstrap contracts.
+- end: 2026-07-20, clean checkpoint; main green 9981 jobs, 0 sorry, pushed.
+- final result: avenue (a) closed (merged); avenue (b) closed but measured to
+  be numerically negligible; avenue (c) frontier relocated -- true threshold
+  identified and the rectangle proved exhausted. Two ChatGPT questions still
+  undelivered (bridge connector failures, NOT resent per instruction).
