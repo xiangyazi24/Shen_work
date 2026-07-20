@@ -1356,3 +1356,34 @@ is `∫(v')² ≤ (1/4)∫g²`. The `∫v² ≤ ∫g²` bound IS sharp. Since th
 is exactly what a future energy estimate would use to absorb the chemotaxis
 cross-term, recovering the `1/4` is worth doing before any threshold is quoted
 from this route — a factor 4 in that term is not cosmetic.
+
+### The threshold formula validated for general `(m, γ, α)` — and `m` enters only via `α`
+
+Analytically, linearizing the chemotaxis flux at `u = 1` gives
+`-χ(u^m v_z)_z ≈ -χ·v_zz`, because `u^m ≈ 1` there and the cross term
+`m·u^{m-1}·u_z·v_z` is second order. So the mobility exponent `m` does NOT appear
+in the dispersion relation except through `α = m + γ - 1`. Predicted onset:
+
+`χγ = (1 + √α)²`,  `α = m + γ - 1`.
+
+Tested against the FULL nonlinear PDE (general `m`, `γ`, `α`; plateau plus a
+small planted dip; spectral integrating-factor; `L = 60`, `T = 80`), at `0.7×`,
+`0.9×`, `1.1×`, `1.3×` the predicted onset:
+
+| `m`, `γ` | `α` | predicted `χ` onset | `0.9×` | `1.1×` |
+|---|---|---|---|---|
+| 1, 1 | 1 | 4.000 | decay (6e-10) | **pattern** (0.47) |
+| 2, 1 | 2 | 5.828 | decay (1e-13) | **pattern** (0.24) |
+| 3, 1 | 3 | 7.464 | decay (1e-13) | **pattern** (0.16) |
+| 1, 2 | 2 | 2.914 | decay (1e-13) | **pattern** (0.35) |
+
+Every case flips between `0.9×` and `1.1×`. This validates the formula in
+general, confirms `m` enters only through `α`, and extends the earlier
+faithfulness check of our PDE translation from `m = γ = α = 1` to general
+exponents.
+
+For contrast, the paper's `χ*` at these parameters is `1.0`, `0.75`, `0.5714`,
+`1.0` — i.e. the sufficient condition sits a factor of roughly 3–13 below the
+true linear threshold in every case. Again: this bounds how conservative `χ*`
+is for the far-left step; it is not a proof about the nonlinear problem, and it
+licenses weakening nothing already proved.
