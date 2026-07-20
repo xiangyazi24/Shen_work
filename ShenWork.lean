@@ -960,3 +960,6 @@ import ShenWork.Paper1.WholeLineChiPosSharpThresholdCoversChiStar
 import ShenWork.Paper1.WholeLineChiPosCeilingRatio
 import ShenWork.Paper1.WholeLineChiPosRefinedCeilingSqueeze
 import ShenWork.Paper1.WholeLineChiPosRefinedHalfLineRectangle
+import ShenWork.Paper1.WholeLineChiPosQuantifiedFloor
+import ShenWork.Paper1.WholeLineChiPosQuantifiedHalfLineSeed
+import ShenWork.Paper1.WholeLineChiPosQuantifiedRefinedConvergence
