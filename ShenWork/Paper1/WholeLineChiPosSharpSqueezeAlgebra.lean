@@ -127,11 +127,32 @@ theorem half_mul_gamma_lt_alpha_mul_one_sub_half_of_m_gt_one
   rw [hcritical]
   linarith
 
+/-- Quotient form of the exact sharp contraction condition. -/
+theorem chi_mul_gamma_lt_alpha_mul_one_sub_iff
+    {chi gamma alpha : ℝ} (halpha : 0 < alpha) (hgamma : 0 < gamma) :
+    chi * gamma < alpha * (1 - chi) ↔
+      chi < alpha / (alpha + gamma) := by
+  rw [lt_div_iff₀ (add_pos halpha hgamma)]
+  constructor <;> intro h <;> nlinarith
+
+/-- The critical sharp threshold is strictly larger than one half exactly
+when the mobility exponent is genuinely larger than one. -/
+theorem one_half_lt_critical_sharp_threshold
+    {m gamma alpha : ℝ} (hm : 1 < m) (hgamma : 1 ≤ gamma)
+    (hcritical : alpha = m + gamma - 1) :
+    (1 / 2 : ℝ) < alpha / (alpha + gamma) := by
+  have halpha : 0 < alpha := by rw [hcritical]; linarith
+  rw [lt_div_iff₀ (add_pos halpha (zero_lt_one.trans_le hgamma))]
+  rw [hcritical]
+  linarith
+
 section AxiomAudit
 
 #print axioms rpow_small_prefactor_gap_le_ratio
 #print axioms chiPos_squeeze_gap_step_m_gt_one
 #print axioms half_mul_gamma_lt_alpha_mul_one_sub_half_of_m_gt_one
+#print axioms chi_mul_gamma_lt_alpha_mul_one_sub_iff
+#print axioms one_half_lt_critical_sharp_threshold
 
 end AxiomAudit
 

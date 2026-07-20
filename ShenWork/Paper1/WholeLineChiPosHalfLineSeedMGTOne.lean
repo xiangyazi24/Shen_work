@@ -238,7 +238,7 @@ theorem exists_initial_chiPosHalfLineRectangle_m_gt_one
     · intro s hs x _hx
       exact data.mem_Icc hs x
     · intro s _hs
-      exact ⟨hell.le, hell_one.le.trans hQone.le.trans hQG⟩
+      exact ⟨hell.le, (hell_one.le.trans hQone.le).trans hQG⟩
     · intro x hx
       rw [data.eq_global (s := 0) le_rfl x]
       simpa using hell_d₀.trans (hB x (hx.trans hcutB))
@@ -258,8 +258,7 @@ theorem exists_initial_chiPosHalfLineRectangle_m_gt_one
               p.χ * ell ^ p.m * (Real.exp (-(0 : ℝ)) / 2) * G ^ p.γ =
             ell * (chiPosFloorGap p G ell -
               p.χ * ell ^ (p.m - 1) * (1 / 2 : ℝ) * G ^ p.γ) := by
-        rw [hpow]
-        simp only [Real.exp_zero]
+        rw [hpow, neg_zero, Real.exp_zero]
         unfold chiPosFloorGap
         ring
       rw [deriv_const, hfactor]

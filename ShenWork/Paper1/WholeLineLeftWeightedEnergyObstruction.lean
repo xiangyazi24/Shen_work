@@ -52,7 +52,10 @@ theorem not_integrable_leftGrowing_sq_of_eventually_abs_ge
         rw [← Real.exp_zero]
         apply Real.exp_le_exp.mpr
         nlinarith
-      rw [Real.norm_eq_abs, abs_of_pos (sq_pos_of_pos hd)]
+      change |d ^ 2| ≤
+        |Real.exp (-2 * eta * x) * |w x| ^ 2|
+      rw [abs_of_pos (sq_pos_of_pos hd),
+        abs_of_nonneg (mul_nonneg (Real.exp_pos _).le (sq_nonneg _))]
       have hsq : d ^ 2 ≤ |w x| ^ 2 := by
         nlinarith [abs_nonneg (w x)]
       have hnonneg : 0 ≤ |w x| ^ 2 := sq_nonneg _
@@ -63,7 +66,7 @@ theorem not_integrable_leftGrowing_sq_of_eventually_abs_ge
   have hconstCriterion :=
     (integrableOn_const_iff (C := d ^ 2)).mp hconst
   rcases hconstCriterion with hzero | hfinite
-  · have hne : d ^ 2 ≠ 0 := sq_ne_zero.mpr hd.ne'
+  · have hne : d ^ 2 ≠ 0 := pow_ne_zero 2 hd.ne'
     exact hne (by simpa using hzero)
   · rw [Real.volume_Iic] at hfinite
     exact (not_lt_of_ge le_rfl) hfinite
@@ -87,9 +90,9 @@ theorem not_integrable_leftGrowing_equilibrium_error_of_tendsto
     have htri : |a - 1| ≤ |a - u x| + |u x - 1| := by
       calc
         |a - 1| = |(a - u x) + (u x - 1)| := by ring_nf
-        _ ≤ |a - u x| + |u x - 1| := abs_add _ _
+        _ ≤ |a - u x| + |u x - 1| := abs_add_le _ _
     rw [abs_sub_comm a (u x)] at htri
-    dsimp only [d]
+    dsimp only [d] at hx' ⊢
     linarith
   exact not_integrable_leftGrowing_sq_of_eventually_abs_ge heta hd htail
 
