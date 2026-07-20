@@ -25,6 +25,28 @@ chain — that containment is established here by induction, so the caller need
 only supply the absorption for `seed.ell ≤ r.ell` and `r.M ≤ seed.M`.  In
 particular a bound depending on the seed aspect ratio `seed.ell / seed.M`
 suffices, which is what makes the refinement non-circular.
+
+## Status of the quantitative gain (read this before quoting a threshold)
+
+The machinery below is proved and the coefficient is genuinely discharged, but
+with the seed producer as it currently stands the gain is **not yet realized**.
+`exists_initial_chiPosHalfLineRectangle_m_gt_one` obtains its floor from
+`exists_small_chiPos_floor_with_halfKernel_reserve`, which is a continuity-at-`0`
+argument: the floor is chosen *near zero*, so `t0 = seed.ell / seed.M` is
+arbitrarily small and `c t0` is arbitrarily close to `1`.  At `c0 = 1` the
+refined condition is exactly the old `chi < alpha / (alpha + gamma)`
+(`refined_contraction_of_sharp` records that this is never a regression).
+
+To convert this into an actually wider unconditional window one needs a seed
+whose aspect ratio is bounded below explicitly in `chi`.  The natural route:
+the floor reserve is currently computed against the crude GLOBAL ceiling `G`,
+which forces a small floor because `G ^ gamma` is large; but the same proof
+already establishes (via `wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos`)
+that the solution eventually sits below `Q = MChi p + 1`, with
+`MChi p = (1 / (1 - chi)) ^ (1 / alpha)`.  Rebuilding the floor against `Q`
+after the ceiling has settled should give a floor bounded below by the root of
+`1 - ell ^ alpha = chi * ell ^ (m-1) * (Q ^ gamma - ell ^ gamma)`, explicit in
+`chi` — and hence an explicit `c0 < 1`.
 -/
 
 open Filter Topology
