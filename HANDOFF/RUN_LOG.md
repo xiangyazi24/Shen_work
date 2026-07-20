@@ -36,3 +36,10 @@
   supNorm_nonincr_core are non-private so ~30-line follow-up); a>0,b=0 genuinely FALSE (pure growth) — field
   over-stated there, honestly scope to {0<a,0<b}∪{a=b=0}. Cold uisai2 gate on new file still pending.
 - All verified single-file (lake env lean) + #print axioms = propext/Classical.choice/Quot.sound.
+
+## Run 2026-07-20 (resumed automode, session = cron window)
+- doctrine: HANDOFF/session-2026-07-20.md + FARLEFT_BRIEF.md (on branch codex/farleft-energy)
+- approval: "cont shen work proof! /automode"
+- starting avenue: (a) far-left equilibrium convergence beyond chi<1/2 — resume branch codex/farleft-energy in worktree ../Shen_work_farleft
+- end: <open>
+- final result: <open>
