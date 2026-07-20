@@ -1277,3 +1277,49 @@ show `1/2` is sharp *for the budget system* while saying nothing against the PDE
 It also gives no sign that `χ*` is sharp for this convergence, so if a future
 argument stalls exactly at `χ*` that stall should be treated as tool-limited
 until shown otherwise.
+
+### The true far-left threshold is `χγ = (1+√α)²`, NOT `χ*` — confirmed numerically
+
+Linearizing the parabolic problem at the plateau `(u,v) = (1,1)` with mode
+`e^{ikz}` (elliptic gives `q = γp/(1+k²)`, chemotaxis gives `+χγk²/(1+k²)`,
+reaction gives `-α`):
+
+`σ(k) = -k² + χγ·k²/(1+k²) - α`.
+
+With `x = k²` there is an interior maximum only when `χγ > 1`, at
+`x* = √(χγ) - 1`, giving
+
+`σ_max = (√(χγ) - 1)² - α`,
+
+so the plateau `u ≡ 1` loses stability (Turing onset) exactly at
+
+`χγ = (1 + √α)²`,  which is **4** at `m = γ = α = 1`.
+
+**Numerically confirmed, sharply.** Plateau plus a small planted dip
+(`u₀ = 1 - 0.05·exp(-(z/2)²)`), `L = 60`, `T = 80`:
+
+| `χ` | predicted `σ_max` | observed |
+|---|---|---|
+| 2.0 | -0.8284 | decays to `1` (`6e-14`) |
+| 3.0 | -0.4641 | decays to `1` (`1e-13`) |
+| 3.5 | -0.2417 | decays to `1` (`1e-11`) |
+| 3.9 | -0.0497 | marginal (`6e-05`) |
+| 4.5 | +0.2574 | **pattern** (`0.52`) |
+| 6.0 | +1.1010 | **pattern** (`0.84`) |
+
+The transition sits exactly where `σ_max` changes sign. This simultaneously
+validates the dispersion relation AND confirms that our formalized PDE
+(`Defs.lean` `pde_u`/`pde_v`) has been translated faithfully — the marginal case
+landing at `χ = 3.9` is a quantitative match, not a qualitative one.
+
+**Consequences, stated carefully.**
+1. `χ* = min(1, ...)` is a SUFFICIENT condition inherited from a coercive
+   free-energy estimate — it is **not** the sharp threshold for far-left plateau
+   stability, which is `4` at these exponents. Our rectangle wall at `1/2` is
+   therefore very far from the truth, and even the paper's window is
+   conservative for this particular step.
+2. Any future argument that stalls exactly at `χ*` should be treated as
+   TOOL-LIMITED until shown otherwise, not as having found the real threshold.
+3. This does not license weakening anything already proved: these are linear and
+   numerical statements about the plateau, not a proof of the nonlinear far-left
+   convergence we actually need.
