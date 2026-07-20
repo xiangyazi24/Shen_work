@@ -943,3 +943,7 @@ import ShenWork.Paper1.WholeLineChiLargeGradientBound
 import ShenWork.Paper1.WholeLineLocalMomentTimeProducer
 import ShenWork.Paper1.WholeLineLocalMomentEnergyProducer
 import ShenWork.Paper1.WholeLineLocalMomentGlobalProducer
+import ShenWork.Paper1.WholeLineMaximalBUCImport
+import ShenWork.PDE.EuclideanDomainData
+import ShenWork.PDE.EuclideanDomainBasic
+import ShenWork.PDE.EuclideanDomainLemma31Transfer
