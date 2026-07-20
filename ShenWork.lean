@@ -951,3 +951,9 @@ import ShenWork.Paper1.Proposition11LargeChiCritical
 import ShenWork.PDE.EuclideanDomainData
 import ShenWork.PDE.EuclideanDomainBasic
 import ShenWork.PDE.EuclideanDomainLemma31Transfer
+import ShenWork.Paper1.WholeLineChiPosSharpSqueezeAlgebra
+import ShenWork.Paper1.WholeLineChiPosHalfLineSharpRectangle
+import ShenWork.Paper1.WholeLineChiPosHalfLineSeedMGTOne
+import ShenWork.Paper1.WholeLineLeftWeightedEnergyObstruction
+import ShenWork.Paper1.WholeLineWeightedRegularityChiPosLeftEquilibriumMGTOneNatural
+import ShenWork.Paper1.WholeLineChiPosSharpThresholdCoversChiStar
