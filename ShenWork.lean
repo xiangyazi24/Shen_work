@@ -961,3 +961,4 @@ import ShenWork.Paper1.WholeLineChiPosCeilingRatio
 import ShenWork.Paper1.WholeLineChiPosRefinedCeilingSqueeze
 import ShenWork.Paper1.WholeLineChiPosRefinedHalfLineRectangle
 import ShenWork.Paper1.WholeLineChiPosRectangleWallMOne
+import ShenWork.Paper1.WholeLineChiPosRectangleWallGammaOne
