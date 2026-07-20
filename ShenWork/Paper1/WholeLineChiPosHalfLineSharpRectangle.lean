@@ -52,9 +52,10 @@ theorem
   have honechi : 0 < 1 - p.χ := sub_pos.mpr hchi_one
   have hden : 0 < p.α * (1 - p.χ) := mul_pos halpha honechi
   let rho : ℝ := p.χ * p.γ / (p.α * (1 - p.χ))
+  have hgamma : 0 ≤ p.γ := zero_le_one.trans p.hγ
   have hrho0 : 0 ≤ rho := by
     dsimp only [rho]
-    positivity
+    exact div_nonneg (mul_nonneg hchi hgamma) hden.le
   have hrho1 : rho < 1 := by
     dsimp only [rho]
     exact (div_lt_one hden).2 hcontract
@@ -97,7 +98,6 @@ theorem
       _ = rho * gap n + 2 * delta / (1 - p.χ) := by
         dsimp only [rho]
         field_simp
-        ring
   have hc0 : 0 ≤ 2 * delta / (1 - p.χ) := by positivity
   have hstationary :
       (2 * delta / (1 - p.χ)) / (1 - rho) < epsilon := by
