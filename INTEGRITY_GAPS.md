@@ -1243,3 +1243,37 @@ approaching `1` for `χ` up to `χ*`?** That, plus the drift-weight energy
 (weight `e^{cz}`, which is integrable at `-∞` and so sidesteps our own
 infinite-left-mass obstruction — that obstruction was specific to the GROWING
 mirror weight `e^{-2ηz}`), is the live program.
+
+### Test A (2026-07-20): the target statement is numerically robust well past `χ = 1/2`
+
+Spectral integrating-factor scheme (diffusion exact in Fourier, RK2 on the rest),
+periodic domain `L = 60`, `m = γ = α = 1`, evolving
+
+`u_t = u_zz - χ(u·v_z)_z + u(1-u)`,  `v - v_zz = u`.
+
+**Control retained deliberately**: `χ = 0.3`, where stability is certain. A first
+attempt with explicit Euler blew up even at `χ = 0.3`, which is how the CFL
+violation was caught — the control is the reason that scheme error was not
+mistaken for a finding.
+
+With the corrected scheme, `max|u-1|` at `T = 80` reaches machine precision
+(`~4e-14`) for every case tried:
+
+* data: large oscillatory perturbation; low-floor tanh front; deep localized dip
+  to `0.01`; a `+3` spike next to a `-0.9` trough; flat `0.01`
+* `χ = 0.3, 0.5, 0.7, 0.9, 0.99, 1.2, 1.5, 2.0`
+
+So `u ≡ 1` attracts all of these, far beyond the rectangle's `χ < 1/2` and even
+beyond `χ* = 1`.
+
+**Read this with its caveats.** This is a periodic domain with no front and no
+far-left tail; it tests global attractivity of the equilibrium for these data,
+NOT the actual far-left-of-a-traveling-front problem, and the smooth data may be
+unrepresentative. It is evidence, not proof.
+
+What it does support: the `χ < 1/2` cap is a limitation of the rectangle tool,
+not a property of the equation — consistent with the sharpness theorems, which
+show `1/2` is sharp *for the budget system* while saying nothing against the PDE.
+It also gives no sign that `χ*` is sharp for this convergence, so if a future
+argument stalls exactly at `χ*` that stall should be treated as tool-limited
+until shown otherwise.
