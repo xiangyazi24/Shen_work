@@ -968,3 +968,4 @@ import ShenWork.Paper1.WholeLineChiPosRectangleWallGammaOne
 import ShenWork.Paper1.WholeLineChiPosDispersionSharp
 import ShenWork.Paper1.WholeLineResolverTestingIdentities
 import ShenWork.Paper1.WholeLineResolverSharpGradient
+import ShenWork.Paper1.ReactionRelativeNonpos
