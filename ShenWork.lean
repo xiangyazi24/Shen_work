@@ -963,3 +963,5 @@ import ShenWork.Paper1.WholeLineChiPosRefinedHalfLineRectangle
 import ShenWork.Paper1.WholeLineChiPosQuantifiedFloor
 import ShenWork.Paper1.WholeLineChiPosQuantifiedHalfLineSeed
 import ShenWork.Paper1.WholeLineChiPosQuantifiedRefinedConvergence
+import ShenWork.Paper1.WholeLineChiPosRectangleWallMOne
+import ShenWork.Paper1.WholeLineChiPosRectangleWallGammaOne

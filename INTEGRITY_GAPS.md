@@ -1077,6 +1077,93 @@ this is unverified from the source and should be checked against the PDF, not
 asserted. This is the genuine open frontier of Theorem 1.2, and it is
 plausibly closable — the prior entry overstated it as a paper defect.
 
+## 2026-07-20 — The rectangle wall is now a THEOREM, and its exact location
+
+The 2026-07-19 retraction above left the frontier described qualitatively
+("the `χ<1/2` cap is a property of the rectangle mechanism"). That is now
+proved, and the wall's exact location is known.
+
+**Where the `χ<1/2` came from.** The ceiling budget was absorbed with the crude
+bound `M'^(m-1)(M'^γ - ell'^γ) ≤ M'^α - ell'^α`, coefficient `1`. That is what
+produces the `(1-χ)` factor in the gap recursion. Two successive sharpenings:
+
+1. Keeping the small-endpoint factor `ell^(m-1)` in the FLOOR budget gives the
+   exact coefficient `γ/α` there (`rpow_small_prefactor_gap_le_ratio`), hence
+   contraction under `χγ < α(1-χ)`, i.e. `χ < α/(α+γ)`. Strictly better than
+   `1/2` for every `m>1` (`one_half_lt_critical_sharp_threshold`).
+2. The CEILING absorption is in fact an IDENTITY with coefficient
+   `c(t) = (1-t^γ)/(1-t^α)`, `t = ell/M`, and `c` is non-increasing with
+   `c(0⁺)=1`, `c(1⁻)=γ/α` (`WholeLineChiPosCeilingRatio.lean`). Since `ell`
+   increases and `M` decreases along the chain, `t` is bounded below by the
+   SEED's aspect ratio — which comes from the `χ<1` trap, not from the
+   contraction being proved, so there is no circularity. Contraction then holds
+   under `χ < α/(γ + α·c0)`, interpolating from `α/(α+γ)` at `c0=1` to
+   `α/(2γ)` as `c0 ↓ γ/α`.
+
+**The wall.** `2χγ < α` is the intrinsic limit of ANY two-endpoint rectangle:
+the endpoint model has discarded diffusion at the max/min and permits the worst
+anti-correlation between `u` and the resolver. At `m=γ=α=1` this reads
+`χ<1/2`, and that case is now proved SHARP rather than asserted:
+`chiPos_budget_stationary_of_half_le_chi` exhibits, for every `χ ≥ 1/2`, every
+slack `δ>0` and every gap `d`, a pair `(1-d/2, 1+d/2)` satisfying BOTH budgets
+with `new = old`. The budget system therefore has stationary points of
+arbitrary gap, and no rearrangement of the two scalar inequalities can force
+contraction. (`chiPos_combined_budget_vacuous_of_half_le_chi` records that the
+combined inequality `(1-2χ)·gap ≤ 2δ` is satisfied by every gap once `χ ≥ 1/2`.)
+Since `chiStar p = 1` at `m=γ=1`, the window the rectangle genuinely cannot
+reach there is all of `[1/2, 1)`.
+
+**Coverage of the paper's window.** `chiStar p ≤ α/(α+γ)` exactly when
+`P = m³+m²(γ-2)+m(1-3γ)-2γ² ≥ 0` (`chiStar_le_sharpThreshold_of_cubic`), and
+`chiStar p ≤ α/(2γ)` exactly when `Q = m³+γm²-(γ+1)m-2γ²-2γ ≥ 0`
+(`chiStar_le_limitThreshold_of_poly`). Roots in `m` at `γ=1`: `2.2695` and
+`1.6590`. Below those the window `[threshold, chiStar)` stays open.
+
+**HONEST LIMIT — do not quote a widened threshold yet.** The refinement's
+machinery is proved and the coefficient is discharged, but the current seed's
+floor comes from a continuity-at-`0` argument
+(`exists_small_chiPos_floor_with_halfKernel_reserve`), so `t0 ≈ 0`, `c0 ≈ 1`,
+and the refined condition degenerates to the old `χ < α/(α+γ)`. A seed with an
+aspect ratio bounded below explicitly in `χ` is the missing piece; the route is
+to rebuild the floor against the settled ceiling `Q = MChi p + 1` instead of the
+crude global `G`. Until that lands, the unconditional threshold is unchanged.
+
+**PENDING, not a finding.** An external reading suggests the paper's
+Proposition 1.2(2) is stated and proved only for `χ<1/2` while Theorem 1.2's
+Step 4 invokes it throughout `χ<χ*`. A verification question against the actual
+PDF is in flight. Given that the 2026-07-19 entry above had to be retracted for
+exactly this class of unverified inference, this is recorded as OPEN and must
+NOT be cited as a paper defect until the source text is checked.
+
+### Quantified: what the `Q`-seed can actually buy (computed 2026-07-20)
+
+Before investing further in the seed-quality route, the achievable threshold was
+computed numerically. Taking the best floor available against the settled
+ceiling `Q = MChi p + 1` — i.e. `ell0` the root of
+`1 - ell^α = χ·ell^(m-1)·(Q^γ - ell^γ)`, `t0 = ell0/Q`, `c0 = c(t0)` — and
+solving for the largest self-consistent `χ < α/(γ + α·c0)`:
+
+| `m`, `γ` | old `α/(α+γ)` | ideal `α/(2γ)` | achieved with `Q`-seed | `χ*` |
+|---|---|---|---|---|
+| 1.2, 1 | 0.5455 | 0.6000 | **0.5497** | 0.9483 |
+| 1.5, 1 | 0.6000 | 0.7500 | **0.6248** | 0.8696 |
+| 2.0, 1 | 0.6667 | 1.0000 | **0.7307** | 0.7500 |
+| 2.5, 1 | 0.7143 | 1.2500 | **0.8138** | 0.6512 |
+| 3.0, 1 | 0.7500 | 1.5000 | **0.8780** | 0.5714 |
+| 2.0, 2 | 0.6000 | 0.7500 | **0.6049** | 0.8000 |
+
+Read this carefully: the `Q`-seed gains the most exactly where the window is
+ALREADY covered (large `m`), and almost nothing where the gap is real (`m` near
+`1`: at `m=1.2` it moves `0.5455 → 0.5497` against a target of `0.9483`). Even
+at `m=2, γ=1` it reaches `0.7307` and still falls short of `χ* = 0.75`. The
+full-window boundary at `γ=1` moves from `m ≥ 2.2695` only to roughly
+`m ≥ 2.1–2.2`.
+
+Conclusion: the seed-quality route is a genuine but SMALL increment, and it
+does not rescue the regime that matters. The rectangle mechanism is
+substantially exhausted; the residual window for `m` near `1` — all of
+`[1/2, 1)` at `m=γ=1` — is reachable only by a different mechanism
+(near-equilibrium spectral / Liouville). Do not oversell a `Q`-seed result.
 ### The quantified-seed lane landed — and bought almost nothing (measured 2026-07-20)
 
 `WholeLineChiPosQuantifiedFloor / QuantifiedHalfLineSeed /
