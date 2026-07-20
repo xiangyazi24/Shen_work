@@ -971,3 +971,4 @@ import ShenWork.Paper1.WholeLineResolverSharpGradient
 import ShenWork.Paper1.ReactionRelativeNonpos
 import ShenWork.Paper1.SharpConstant
 import ShenWork.Paper1.SharpDissipationCollapse
+import ShenWork.Paper1.SharpLyapunovDissipation
