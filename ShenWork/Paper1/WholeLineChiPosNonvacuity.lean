@@ -18,6 +18,12 @@ Model point: `m = α = γ = 1`, `χ = 1/4` (so `0 < χ < 1/2` and the exponent i
 critical), and the speed chosen ABOVE the corrected stability threshold without
 computing it: `c := max 3 (paper5CorrectedCStarStar p p.χ + 1)`.  This works
 because Theorem 1.1's positive branch produces a wave for EVERY `c > 2`.
+
+The weight `eta` is taken STRICTLY INSIDE the perturbed-root window, via the
+budget's own `cap_between` (`paper531RootMinus < stabilityWeightCap`) and
+`exists_between` — an earlier version of this file instantiated `eta := 0` and
+silently omitted the two window hypotheses, which made the docstring's claim
+("every hypothesis") false.  Caught by an adversarial audit; fixed here.
 -/
 
 open Filter Topology MeasureTheory
@@ -41,14 +47,19 @@ theorem chiPosNonvacuityParams_regime :
 with the wave coming from the Theorem 1.1 construction.  The conclusion is the
 capstone's own conclusion, so this exhibits a genuine instance. -/
 theorem chiPos_stability_nonvacuous :
-    ∃ (p : CMParams) (c eta κ₁ : ℝ) (U V : ℝ → ℝ) (u₀ : WholeLineBUC),
-      StableWaveParameterRegime p ∧
+    ∃ (p : CMParams) (hregime : StableWaveParameterRegime p)
+      (c eta κ₁ : ℝ) (U V : ℝ → ℝ) (u₀ : WholeLineBUC),
       0 < p.χ ∧ p.χ < 1 / 2 ∧ p.α = p.m + p.γ - 1 ∧
       paper5CorrectedCStarStar p p.χ < c ∧
       IsTravelingWave p c U V ∧
       TravelingWaveRegularity p c U V ∧
       HasStrictWaveUpperTailBound p c U ∧
       kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U ∧
+      -- the weight window, the part the first version omitted
+      paper531RootMinus c
+          (paper531ConcreteStabilityBudget p hregime).A
+          (paper531ConcreteStabilityBudget p hregime).B < eta ∧
+      eta < stabilityWeightCap p ∧
       (∀ x, 0 ≤ u₀.1 x) ∧
       StrictlyPositiveAtLeft u₀.1 ∧
       WeightedL2InitialCloseness eta u₀.1 U := by
@@ -96,11 +107,16 @@ theorem chiPos_stability_nonvacuous :
     ⟨⟨travelingWave_U_uniformContinuous hTW hreg.U_cont, hstrict.isBddFun⟩,
       hU_nonneg⟩
   let w : WholeLineBUC := wholeLineBUCOfPaperCUnifBdd U hU_paper.1
-  refine ⟨p, c, 0, κ₁, U, V, w, hregime, hχpos, hχhalf, hα, hcStar, hTW,
+  -- a genuine weight inside the perturbed-root window
+  let budget := paper531ConcreteStabilityBudget p hregime
+  obtain ⟨eta, hroot_eta, heta_cap⟩ :=
+    exists_between (budget.cap_between c hcStar).1
+  refine ⟨p, hregime, c, eta, κ₁, U, V, w, hχpos, hχhalf, hα, hcStar, hTW,
     hreg, hstrict, hκ₁_lo, hκ₁_one, htail κ₁ hκ₁_lo hκ₁_cap,
+    hroot_eta, heta_cap,
     (by intro x; simpa [w] using hU_nonneg x),
     (by simpa [w] using IsTravelingWave.strictlyPositiveAtLeft hTW),
-    (by simpa [w] using WeightedL2InitialCloseness.refl (0 : ℝ) U)⟩
+    (by simpa [w] using WeightedL2InitialCloseness.refl eta U)⟩
 
 section AxiomAudit
 
