@@ -179,3 +179,41 @@ WHY THE POSITIVE BRANCH CARRIES χ<1/2 RATHER THAN THE PAPER'S χ<χ*: the sourc
 left-tail step (§5 Step 4) invokes its own Proposition 1.2, whose positive branch
 it proves only for χ<1/2. Our branch covers exactly the range the source's
 argument supports; `[1/2, χ*)` remains on the open list below.
+
+
+## Prop 1.1's residual window (1 ≤ χ): SCOPE CLASSIFICATION — 2026-07-19
+
+Verified against the source, p.6 (paragraph immediately before Proposition 1.1),
+quoted verbatim:
+
+  "By the arguments of [39, Theorem 1.1], for any u₀ ∈ C^b_unif(R), there is
+   Tmax(u₀) ∈ (0,∞] such that (1.1) has a unique classical solution ... and if
+   Tmax(u₀) < ∞, then limsup_{t→Tmax⁻} ‖u(t,·;u₀)‖_∞ = ∞."
+
+  [39] = R. B. Salako, W. Shen, J. Differential Equations 262 (2017) 5635–5690.
+  (An erratum exists: JDE 376 (2023) 773–775.)
+
+So the whole-line LOCAL BUC theory and the BLOW-UP ALTERNATIVE are an IMPORTED,
+CITED analytic input of the paper — not something it proves. Shen's Prop 1.1(2)
+then has the logical order: local solution (cited) + a-priori L^∞ bound (the
+local-Lp bootstrap of §3.1) + blow-up alternative (cited) ⟹ global existence.
+
+CONSEQUENCE FOR THIS FORMALIZATION. Our architecture instead constructs the
+global orbit directly by segment/restart gluing, which is gated on
+`WholeLineCauchyCeilingRegime` (critical case: χ < 1). That is why the window
+1 ≤ χ is unreachable here: it is not a missing estimate but a different logical
+order. Closing it in our architecture requires either
+  (i) a ceiling-free segment continuation interface (blow-up alternative style), or
+  (ii) importing the Salako–Shen local theory as a named external input —
+the SAME class as Theorem 1.2's Henry-semigroup citation, which is already
+recorded as an out-of-Mathlib-scope import.
+
+The local-Lp machinery for the a-priori bound is BUILT and clean-3
+(WholeLineLocalizingWeight[Second], WholeLineLocalMoment[Energy|Bound],
+WholeLineLocalMoment{Time,Energy,Global}Producer, WholeLineChiLargeGradientBound);
+what is missing is only the continuation half.
+
+Correction to an earlier framing in this file: it is NOT accurate to say "no
+constant supersolution exists for χ ≥ 1". A constant pair (M, M^γ) is a formal
+stationary supersolution (its chemotactic flux vanishes); what fails is the
+universal scalar ceiling comparison against the ACTUAL resolver of the solution.
