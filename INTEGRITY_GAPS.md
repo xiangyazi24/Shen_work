@@ -1416,3 +1416,53 @@ the boundary condition rather than the equation; (b) this is the numerical face
 of the analytic obstacle in the energy route — see below, the drift term
 `(c/2)·w(Z)²` at a front cut does not vanish, i.e. the drift PUMPS energy across
 the front. Same phenomenon, two guises.
+
+### The sharp linearized dissipation brick landed (audited 2026-07-20)
+
+`ReactionRelativeNonpos / SharpConstant / SharpDissipationCollapse /
+SharpLyapunovDissipation.lean` (commits `8b3252a0`, `dc23b47f`, `944362f9`,
+`004095d2`). Root build 9986 jobs, 0 sorry, 0 axiom, clean-3, verified here.
+
+This is the "one true brick" from Fable R3: the reason the paper's `χ*` is a
+lossy constant, made machine-checked. Contents, audited:
+
+* `reaction_relative_nonpos` + `reaction_relative_eq_zero_iff`: `(u-1)(u^α-1) ≥ 0`
+  for `u ≥ 0, α ≥ 1`, with the zero exactly at `u = 1`. This is the coercive,
+  UNCONDITIONAL equilibrium-selection term (no `χ`), and the `iff` gives the
+  rigidity ("only zero is the constant `1`") rather than just the sign.
+* `sharp_constant_le_mode_ratio` + `sharp_constant_eq_mode_ratio_at_sqrt`: both
+  the bound `(1+√α)² ≤ (s+α)(s+1)/s` AND equality at `s = √α`, so it is genuinely
+  the minimum, not merely a lower bound.
+* `sharp_linearized_dissipation_brick`: under the two resolver identities as
+  hypotheses, the destabilizing pair collapses to `(χ/γ)(Zz+Z)` and the modewise
+  inequality holds iff `χγ ≤ (1+√α)²`, connected to the existing `dispersion`
+  object as `dispersion α (χγ) s ≤ 0`. The collapse identity was re-verified
+  numerically here (residual `≤ 1e-15`).
+
+**Scope, as written in the docstrings and enforced in the spec:** the sharp
+constant `(1+√α)²` is a LINEAR / quadratic-form statement. The atoms are stated
+at the quadratic-form level (`W, P, Z, Zz, S` as abstract reals satisfying the
+two identities), NOT as an integral inequality on PDE solution objects, and NOT
+as nonlinear stability. The nonlinear problem is controlled only on a bounded
+plateau with an `[a,b]`-dependent constant that is not `(1+√α)²` except as
+`u → 1`. Nothing here claims the far-left convergence we ultimately need.
+
+### Where the program stands (honest map)
+
+PROVED and machine-checked: (i) the rectangle mechanism and its exact wall
+`2χγ < α`, with sharpness theorems; (ii) full-window coverage cubics `P`, `Q`;
+(iii) the quantified explicit seed (numerically negligible gain, recorded);
+(iv) the SHARP Turing threshold `(1+√α)²`, both directions; (v) the resolver
+testing identities and the sharp `1/4` gradient bound; (vi) this linearized
+dissipation brick tying it together.
+
+NUMERICALLY established (evidence, not proof): the true far-left threshold is
+`(1+√α)²`, validated for general `(m,γ,α)` against the full nonlinear PDE; `m`
+enters only via `α`; the plateau is convectively unstable above it.
+
+THE HONEST FRONTIER (Fable R3, unbuilt): the nonlinear + half-line/front step.
+Its named obstacle is the drift boundary term `(c/2)w(Z)²` at a front cut, which
+does not vanish — drift pumps energy across the front (same phenomenon as our
+mirror-weight obstruction). The `ω`-limit extraction needs parabolic Schauder
+regularity absent from this Mathlib. This is the multi-month piece and it is
+deliberately downstream of the bricks above, which stand on their own.
