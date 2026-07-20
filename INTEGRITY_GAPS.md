@@ -1012,3 +1012,34 @@ Codex dissipation lane and by direct reconnaissance of the ceiling machinery
 (`wholeLineCauchyParameterCeiling = MChi` in the critical branch; all absorption
 tools share the `2χ<1` / `χ·Q^γ<1` cap). Do NOT present `Theorem_1_2_amended`
 as unconditional: the dissipation is discharged, the left-tail is not.
+
+## 2026-07-20 — Prop 1.1 residual 1<χ: local-Lp chain PROVABLY can't reach L∞ (why the import is a genuine citation)
+
+Follow-up to the `Proposition_1_1_large_chi_critical_branch` reduction
+(commit 79f56496): that theorem closes the residual `1≤χ` critical window from
+two inputs — the imported maximal-BUC local theory (`WholeLineMaximalBUCImport`)
+and one uniform a-priori L∞ bound (`WholeLineLargeChiAPrioriBound`). Question:
+can the a-priori bound be discharged from the repo's own local-Lp chain
+instead of imported? Answer: NO for `1<χ`, and here is the exact obstruction.
+
+The local-Lp producer `wholeLineCauchyGlobal_uniformlyLocalLpBounded`
+(WholeLineLocalMomentGlobalProducer.lean:465) requires the admissibility
+condition `p.χ * (P - 1) < P + p.m - 1`, i.e. `(χ-1)(P-1) < m`. Alikakos–Moser
+iteration bootstraps a uniform local-`L^P` bound to `L^∞` only in the limit
+`P → ∞`. But:
+
+- `χ ≤ 1`: `(χ-1)(P-1) < m` holds for ALL `P` → `P→∞` admissible → the chain
+  CAN reach `L^∞`.
+- `χ > 1`: `(χ-1)(P-1) < m` forces `P < 1 + m/(χ-1)`, a FINITE integrability
+  ceiling (e.g. `m=1, χ=1.5 ⇒ P<3`; `χ=2 ⇒ P<2`). Moser stalls at finite `P`;
+  no `L^∞` bound is available from this chain.
+
+So the local-Lp route caps exactly at `χ ≤ 1`, mirroring the box-gluing
+obstruction (`not_wholeLineBoxMargin_of_one_le_chi_critical`, which caps at
+`χ < 1`). For `1 < χ` the uniform-`L^∞` a-priori bound genuinely requires the
+imported local/maximal theory's own parabolic smoothing — it is a real
+citation, not a formalization shortcut we declined to grind. Do NOT dispatch a
+"prove the a-priori bound from local-Lp" lane for `1<χ`: it would rediscover
+this finite-`P` cap. (At `χ = 1` exactly the chain admits all `P`, so a
+Moser-to-`L^∞` closure there is not obstructed — a genuine but single-point
+increment, of marginal value against the full iteration-infrastructure cost.)
