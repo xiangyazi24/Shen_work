@@ -1076,3 +1076,41 @@ around `u≡1` — should extend far-left equilibrium convergence toward `χγ �
 this is unverified from the source and should be checked against the PDF, not
 asserted. This is the genuine open frontier of Theorem 1.2, and it is
 plausibly closable — the prior entry overstated it as a paper defect.
+
+### The quantified-seed lane landed — and bought almost nothing (measured 2026-07-20)
+
+`WholeLineChiPosQuantifiedFloor / QuantifiedHalfLineSeed /
+QuantifiedRefinedConvergence` (commits `a4d33244`, `2da73d5d`, `0460a5b9`)
+deliver what was asked: an explicit floor
+
+`ell₀ = min(1/4, (1/(8(1+χ·Q^γ)))^(1/(m-1))) / 2`,  `Q = MChi p + 1`,
+
+a seed restarted after the ceiling settles with `ell₀ ≤ seed.ell ∧ seed.M ≤ Q`,
+and a convergence theorem whose contraction hypothesis is evaluated at the
+explicit, datum-independent coefficient `c0 = c(ell₀ / Q)`. Root build green,
+9976 jobs, clean-3, verified in this tree (not merely on the producer's report).
+
+**STRUCTURALLY this is real**: the threshold is now explicit in the equation
+parameters alone, and the ceiling coefficient is discharged end-to-end.
+
+**NUMERICALLY it is negligible.** The explicit floor is far below the true root,
+chiefly because of the `1/(m-1)` exponent, which collapses `ell₀` as `m → 1`:
+
+| `m`, `γ` | old `α/(α+γ)` | this lane | best possible (root) | `χ*` |
+|---|---|---|---|---|
+| 1.2, 1 | 0.5455 | **0.5455** | 0.5497 | 0.9483 |
+| 1.5, 1 | 0.6000 | **0.6001** | 0.6248 | 0.8696 |
+| 2.0, 1 | 0.6667 | **0.6702** | 0.7307 | 0.7500 |
+| 3.0, 1 | 0.7500 | **0.7722** | 0.8780 | 0.5714 |
+| 2.0, 2 | 0.6000 | **0.6000** | 0.6049 | 0.8000 |
+
+Full-window coverage boundary in `m`: at `γ=1` it moves `2.2695 → 2.2450`; at
+`γ=2`, `2.8026 → 2.8009`. (The best the mechanism could ever do is the
+`α/(2γ)` root, `1.6590` and `2.1117`.)
+
+**Do not describe this lane as widening the window.** It makes the threshold
+explicit; it does not materially change which parameters are covered. The
+remaining distance to `α/(2γ)` is floor quality, and the distance from
+`α/(2γ)` to `χ*` near `m=1` is unreachable by this mechanism at all — see the
+sharpness theorems `chiPos_budget_stationary_of_half_le_chi` (at `m=γ=1`) and
+`chiPos_budget_stationary_gammaOne` (the whole `γ=1` family, `2χ > m`).
