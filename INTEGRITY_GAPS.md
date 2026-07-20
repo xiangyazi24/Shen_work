@@ -1201,3 +1201,45 @@ remaining distance to `α/(2γ)` is floor quality, and the distance from
 `α/(2γ)` to `χ*` near `m=1` is unreachable by this mechanism at all — see the
 sharpness theorems `chiPos_budget_stationary_of_half_le_chi` (at `m=γ=1`) and
 `chiPos_budget_stationary_gammaOne` (the whole `γ=1` family, `2χ > m`).
+
+### Test B (2026-07-20): the bottleneck is TRAP QUALITY, not the energy constant
+
+Before investing in a near-equilibrium energy formalization, the decisive cheap
+computation was run: for `m = γ = α = 1`, take the frozen-coefficient symbol at
+a state `ubar` in the guaranteed band,
+
+`λ(ξ, ubar) = -ξ² + f'(ubar) + χ·ubar·ξ²/(1+ξ²)`,  `f(u) = u(1-u)`, `f'(u) = 1-2u`,
+
+and ask for which bands it is coercive.
+
+Result 1 — **the required floor is `ell > 1/2`, and it does NOT depend on `χ`**
+(0.5000 at `χ = 0.5, 0.7, 0.9, 0.99`). The binding mode is `ξ = 0`, where the
+chemotaxis multiplier `ξ²/(1+ξ²)` vanishes and only the reaction survives:
+coercivity is exactly `f'(ubar) < 0`, i.e. `ubar > 1/2`. The resolvent smoothing
+that fixes the `ξ ≠ 0` modes is irrelevant at `ξ = 0`.
+
+Result 2 — **what we can guarantee is `ell ≈ 0.125`**, far short of `1/2`, so the
+frozen form is not coercive anywhere in the current band (sup λ = +0.75).
+
+Interpretation, stated carefully: a positive mode at `ξ = 0` for a LOW `ubar` is
+not itself a failure of convergence — it is the KPP reaction pushing `u` up
+toward `1`, which is the desired behaviour. What it does establish is that a
+near-equilibrium energy/spectral argument cannot be started from the band we
+currently guarantee: such an argument needs a TWO-SIDED trap `1-ε ≤ u ≤ 1+ε`
+with `ε` below roughly `1/2`, and we are nowhere near that.
+
+**Consequence for the route.** The energy constant is NOT the blocker — the
+smoothing `ξ²/(1+ξ²) ≤ 1` gives `χγ < 1` on the modes where it matters. The
+blocker is entering the near-equilibrium band at all. Note this cannot be done
+by the same rectangle: at `m = γ = α = 1` the invariance inequalities
+`1 - ell ≥ χ(M - ell)` and `M - 1 ≥ χ(M - ell)` add to `g ≥ 2χ·g`, so a
+nontrivial band requires `χ < 1/2` — the same wall, so improving the trap with
+the rectangle is circular.
+
+The open question is therefore sharp and different from what we have been
+asking: **is there a non-rectangle route (KPP comparison / sub-solution, using
+that the reaction drives `u` up toward `1` from below) that produces a floor
+approaching `1` for `χ` up to `χ*`?** That, plus the drift-weight energy
+(weight `e^{cz}`, which is integrable at `-∞` and so sidesteps our own
+infinite-left-mass obstruction — that obstruction was specific to the GROWING
+mirror weight `e^{-2ηz}`), is the live program.
