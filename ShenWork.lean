@@ -970,3 +970,4 @@ import ShenWork.Paper1.WholeLineResolverTestingIdentities
 import ShenWork.Paper1.WholeLineResolverSharpGradient
 import ShenWork.Paper1.ReactionRelativeNonpos
 import ShenWork.Paper1.SharpConstant
+import ShenWork.Paper1.SharpDissipationCollapse
