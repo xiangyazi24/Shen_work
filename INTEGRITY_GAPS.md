@@ -963,3 +963,52 @@ K1/K2 families (n→∞ images of M-final Data) + 4 analytic modules:
 hpde_u (spectral→pointwise PDE bridge), Hvsrc (power-source TimeC1 analogue
 of logisticSource_duhamelSourceTimeC1), Hvpos (elliptic strict min principle),
 HsupNorm (parabolic max principle producer).
+
+## 2026-07-19 — Thm 1.2 stability: weighted-L² dissipation PROVED; residual χ∈[1/2,χ*) gap is in the PAPER too
+
+The co-moving weighted-L² energy **dissipation** inequality — the analytic
+core of the Section-5 stability argument — is now proved unconditionally for
+the full stable regime, at any fixed ceiling `M > MChi p`:
+
+- `paperNonnegativeInitialDatum_hcore_energy_available_data_natural`
+  (WholeLineWeightedRegularityHCoreEnergyNatural.lean) gives the global
+  solution, energy control `coMovingWeightedL2Energy ≤ E`, positive-time
+  differentiability of `E`, the dissipation
+  `deriv E t ≤ 2·paper531Quadratic c (paper531CommonA p M) (paper531CommonB p M) η · E t`,
+  integrability, and the spatial modulus — clean-3, verified through the root.
+- Supporting: `...FixedBoundEnergyNatural` (fixed-M dissipation +
+  positive-time differentiability), `...EnergyEnvelope` (global exponential
+  energy envelope). All merged to main (commits caa767cf..6626bb77).
+
+**What is NOT closed — the literal `hcore`, and why it caps at χ<1/2.**
+Two independent gaps remain between the proved dissipation package and the
+top-level `hcore` hypothesis of
+`paper1_Theorem_1_2_amended_of_concrete_wholeLineCauchyEnergyStep4`:
+
+1. **Initial-data regularity mismatch.** Top-level `hcore` is stated over the
+   historical `NonnegativeInitialDatum` (continuous + bounded only), but every
+   whole-line Cauchy producer requires the uniformly-continuous
+   `PaperNonnegativeInitialDatum`. The remaining `hcore` hypotheses do not
+   supply uniform continuity — there is an explicit left-end oscillation
+   counterexample. This is a hypothesis-strength gap, not a missing estimate.
+
+2. **Left-tail uniform convergence caps at χ<1/2 — IN THE PAPER, not just the
+   formalization.** `hcore` also demands `UniformMovingFrameLeftTailConvergence`.
+   Producing it requires eventual absorption of the far-left supremum, which
+   both the rectangle two-sided comparison (contraction factor `2χ`) and the
+   constant-plateau ledger (trap condition `χ·Q^γ<1`, which at `Q=MChi` is
+   exactly `χ<1/2`) can only deliver for `χ<1/2`. The weighted-L² weight
+   `e^{2ηz}` degenerates as `z→−∞`, so the energy method itself cannot control
+   the far-left supremum. Concretely, for the stable parameters
+   `m=α=γ=1, χ=3/4` no rectangle seed exists and the gap recursion does not
+   contract. **The source paper reaches this same step by invoking a
+   proposition that only covers `χ<1/2`, i.e. it over-reaches to the full
+   `χ∈[1/2,χ*)` window.** Closing it honestly needs a genuinely new
+   uniformly-local-entropy or entire-solution (Liouville-type) PDE estimate
+   for the far-left tail — this is the true residual frontier of Theorem 1.2.
+
+Cross-check: this χ<1/2 barrier was found independently two ways — by the
+Codex dissipation lane and by direct reconnaissance of the ceiling machinery
+(`wholeLineCauchyParameterCeiling = MChi` in the critical branch; all absorption
+tools share the `2χ<1` / `χ·Q^γ<1` cap). Do NOT present `Theorem_1_2_amended`
+as unconditional: the dissipation is discharged, the left-tail is not.
