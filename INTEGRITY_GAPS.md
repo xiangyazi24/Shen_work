@@ -1387,3 +1387,32 @@ For contrast, the paper's `χ*` at these parameters is `1.0`, `0.75`, `0.5714`,
 true linear threshold in every case. Again: this bounds how conservative `χ*`
 is for the far-left step; it is not a proof about the nonlinear problem, and it
 licenses weakening nothing already proved.
+
+### Front geometry: same threshold `4`, and a convective/absolute distinction worth knowing
+
+The tests above used a periodic plateau. Repeating in the actual geometry —
+finite differences (no periodicity), Neumann ends, a `tanh` front `1 → 0`, a dip
+of depth `0.15` planted at `z = -35` inside the LEFT plateau, `m = γ = α = 1`,
+`L = 120`, `T = 200` — and measuring `max|u-1|` over `z < -20`:
+
+At `c = 0`: decay at `χ = 3.0` (`2e-13`) and `χ = 3.9` (`2e-07`); **pattern** at
+`χ = 4.5` (`0.53`) and `χ = 6.0` (`0.87`). Same threshold `4` as the periodic
+case, now in the front geometry.
+
+**A confound caught before recording.** A first pass ran only at `c = 2.5` and
+showed clean far-left convergence even at `χ = 4.5`, i.e. apparently *above* the
+threshold. That is not absolute stability: with `c = 2.5` over `T = 200` a
+disturbance is advected ~500 units inside a 120-unit domain, so it is swept into
+the boundary rather than decaying. Sweeping `c` at fixed `χ = 4.5` confirms it:
+
+`c = 0, 0.25, 0.5, 1.0` all give `max|u-1| ≈ 0.53` (pattern); only `c = 2.5`
+gives `4e-14`.
+
+So the plateau is **convectively** unstable but can look stable in a co-moving
+window when the drift is fast enough to evacuate the growing mode. Two
+consequences: (a) any numerical claim about far-left stability must state its
+`c` and check the domain is long enough for the advected mode, or it measures
+the boundary condition rather than the equation; (b) this is the numerical face
+of the analytic obstacle in the energy route — see below, the drift term
+`(c/2)·w(Z)²` at a front cut does not vanish, i.e. the drift PUMPS energy across
+the front. Same phenomenon, two guises.
