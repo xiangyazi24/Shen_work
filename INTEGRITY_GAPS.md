@@ -1323,3 +1323,36 @@ landing at `χ = 3.9` is a quantitative match, not a qualitative one.
 3. This does not license weakening anything already proved: these are linear and
    numerical statements about the plateau, not a proof of the nonlinear far-left
    convergence we actually need.
+
+### Sharp dispersion threshold + resolver identities landed (audited 2026-07-20)
+
+`WholeLineChiPosDispersionSharp.lean` (`e87227c7`) and
+`WholeLineResolverTestingIdentities.lean` (`25c441f6`). Root build 9981 jobs,
+0 sorry, 0 axiom, all clean-3, verified in this tree.
+
+**Audit point 1 — the threshold is proved SHARP, not merely sufficient.** Both
+directions are present: `dispersion_le_of_lt_turing` (`χγ < (1+√α)²` ⇒ every
+mode strictly negative) AND `dispersion_pos_of_gt_turing` (`(1+√α)² < χγ` ⇒
+∃ an admissible mode with strictly positive growth). This genuinely upgrades
+`dispersion_le_neg_alpha`, which only covered `χγ ≤ 1` and said nothing about
+optimality.
+
+**Audit point 2 — the carried boundary hypothesis is inhabited.** The smoothing
+bounds carry `hboundary : v₁ b · v b - v₁ a · v a ≤ 0`. Checked non-vacuous:
+trivially by `v ≡ c > 0`, `g ≡ c` (then `v₁ ≡ 0` and the flux is `0`); and
+non-trivially by any even profile decaying away from the origin on `[-R, R]`,
+where `v₁(R)v(R) < 0` and `v₁(-R)v(-R) > 0`. The main identity
+`resolver_testing_identity` carries no boundary hypothesis at all — the flux
+appears explicitly on the right-hand side, which is the correct form.
+
+**Follow-up, not a defect — the constants are not sharp.** In Fourier,
+`v̂ = ĝ/(1+k²)`, so
+
+* `∫(v')² = ∫ k²/(1+k²)² |ĝ|²` and `sup_k k²/(1+k²)² = 1/4` (at `k = 1`),
+* `∫ v² = ∫ 1/(1+k²)² |ĝ|²` and `sup_k 1/(1+k²)² = 1` (at `k = 0`).
+
+So the delivered `∫(v')² ≤ ∫g²` is true but loses a factor `4`; the sharp form
+is `∫(v')² ≤ (1/4)∫g²`. The `∫v² ≤ ∫g²` bound IS sharp. Since the gradient bound
+is exactly what a future energy estimate would use to absorb the chemotaxis
+cross-term, recovering the `1/4` is worth doing before any threshold is quoted
+from this route — a factor 4 in that term is not cosmetic.
