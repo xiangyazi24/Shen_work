@@ -1134,3 +1134,33 @@ Step 4 invokes it throughout `χ<χ*`. A verification question against the actua
 PDF is in flight. Given that the 2026-07-19 entry above had to be retracted for
 exactly this class of unverified inference, this is recorded as OPEN and must
 NOT be cited as a paper defect until the source text is checked.
+
+### Quantified: what the `Q`-seed can actually buy (computed 2026-07-20)
+
+Before investing further in the seed-quality route, the achievable threshold was
+computed numerically. Taking the best floor available against the settled
+ceiling `Q = MChi p + 1` — i.e. `ell0` the root of
+`1 - ell^α = χ·ell^(m-1)·(Q^γ - ell^γ)`, `t0 = ell0/Q`, `c0 = c(t0)` — and
+solving for the largest self-consistent `χ < α/(γ + α·c0)`:
+
+| `m`, `γ` | old `α/(α+γ)` | ideal `α/(2γ)` | achieved with `Q`-seed | `χ*` |
+|---|---|---|---|---|
+| 1.2, 1 | 0.5455 | 0.6000 | **0.5497** | 0.9483 |
+| 1.5, 1 | 0.6000 | 0.7500 | **0.6248** | 0.8696 |
+| 2.0, 1 | 0.6667 | 1.0000 | **0.7307** | 0.7500 |
+| 2.5, 1 | 0.7143 | 1.2500 | **0.8138** | 0.6512 |
+| 3.0, 1 | 0.7500 | 1.5000 | **0.8780** | 0.5714 |
+| 2.0, 2 | 0.6000 | 0.7500 | **0.6049** | 0.8000 |
+
+Read this carefully: the `Q`-seed gains the most exactly where the window is
+ALREADY covered (large `m`), and almost nothing where the gap is real (`m` near
+`1`: at `m=1.2` it moves `0.5455 → 0.5497` against a target of `0.9483`). Even
+at `m=2, γ=1` it reaches `0.7307` and still falls short of `χ* = 0.75`. The
+full-window boundary at `γ=1` moves from `m ≥ 2.2695` only to roughly
+`m ≥ 2.1–2.2`.
+
+Conclusion: the seed-quality route is a genuine but SMALL increment, and it
+does not rescue the regime that matters. The rectangle mechanism is
+substantially exhausted; the residual window for `m` near `1` — all of
+`[1/2, 1)` at `m=γ=1` — is reachable only by a different mechanism
+(near-equilibrium spectral / Liouville). Do not oversell a `Q`-seed result.
