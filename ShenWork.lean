@@ -957,3 +957,4 @@ import ShenWork.Paper1.WholeLineChiPosHalfLineSeedMGTOne
 import ShenWork.Paper1.WholeLineLeftWeightedEnergyObstruction
 import ShenWork.Paper1.WholeLineWeightedRegularityChiPosLeftEquilibriumMGTOneNatural
 import ShenWork.Paper1.WholeLineChiPosSharpThresholdCoversChiStar
+import ShenWork.Paper1.WholeLineChiPosRefinedCeilingSqueeze
