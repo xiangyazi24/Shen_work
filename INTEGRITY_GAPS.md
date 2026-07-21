@@ -1532,3 +1532,27 @@ frame-neutral IBP bookkeeping (the sign fact `(c/2)w² ≥ 0` is trivial; the
 identity needs `w` twice-differentiable on `[A,Z]` with decay at `A`), no
 regularity theory. It is the true gate on the half-line result and is the next
 brick after the plateau coercivity atoms.
+
+### Plateau coercivity atoms landed (audited 2026-07-20)
+
+`PlateauRpowGap / ReactionPlateauCoercive / ResolverPlateauGradient /
+PlateauDissipationClosure.lean` (`dd0d8729`, `bc389c9f`, `bd594e1b`, `07fdf42d`).
+Root build 9990 jobs, 0 sorry, 0 axiom, clean-3, verified here. Statements match
+the specced constants exactly (all three numerically checked, 0/200k):
+
+* `plateau_rpow_sub_one_le`: `|u^γ - 1| ≤ γ·b^(γ-1)·|u-1|` on `[a,b]`.
+* `reaction_plateau_coercive`: `u(u-1)(u^α-1) ≥ α·a^α·(u-1)²` — the coercivity
+  constant `α a^α → α` as `a → 1`.
+* `resolver_deriv_sq_le_plateau`: `∫(v')² ≤ (γ²b^(2(γ-1))/4)∫(u-1)²`, the only
+  bridge from the resolver machinery to the nonlinear chemotaxis term. Hypothesis
+  interface mirrors the audited resolver identities (plateau + integrability +
+  boundary-flux ≤ 0); all inhabitable.
+* `plateau_dissipation_closure`: `-D + T + R ≤ 0` under the crude threshold
+  `χγ·b^α ≤ 4√α·a^(α/2)`. Docstring states the non-sharpness and the PDE-coupled
+  boundary explicitly.
+
+The abstract nonlinear coercivity is now complete at the scalar/pointwise level:
+these four atoms + the sharp dispersion brick are everything the far-left plateau
+decay mechanism needs that is NOT PDE-coupled. The remaining pieces (time-
+derivative identity `Ė = -D+T+R`, plateau invariance `a ≤ u(t) ≤ b`) are the
+PDE interface, deliberately not discharged.
