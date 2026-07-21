@@ -90,12 +90,15 @@ stack of frontier packages: `hGN, cGrad, hdiss, hgrad, hmass, hpow_int,
 hEnergyFromCrossDiffusion, hProp25, hlocal, hglobalExtension, hstrongBootstrap,
 hstrongEventualSupBound`. **Task:** discharge these — this decomposes into O-P2-3.
 
-**O-P2-3 🧱 The Paper-2 analytic lemma stack** (the actual content behind O-P2-1/2), all
-currently assumed/obstructed: Lem 2.1–2.4 (Neumann semigroup / fractional-power estimates),
-Lem 2.6 (Lᵖ bootstrap), Lem 2.7 (damping), Lem 3.1 (sup-norm max principle), Lem 4.1
-(mass–gradient interpolation), Prop 2.1 (signal Lᵖ), Prop 2.2–2.5 (gradient/signal/mass/
-boundedness). These are the standard Chen–Ruau–Shen energy machinery on the interval domain.
-Knock these off → O-P2-1 and O-P2-2 fall.
+**O-P2-3 🧱 The Paper-2 analytic lemma stack** (the actual content behind O-P2-1/2).
+**RECONCILED 2026-07-21 (audit understated the concrete layer):** on `intervalDomain`,
+**Props 2.2, 2.3, 2.4, 2.5 are ALREADY PROVED UNCONDITIONALLY** (`intervalDomain_Proposition_2_2`
+WeightedGradientEstimate:817, `_2_3` Proposition23:879, `_2_4` Mass:888, `Proposition_2_5
+intervalDomain p` LPI:103 / others) — do NOT reinvent. Genuinely OUTSTANDING (each appears only
+as a carried hypothesis, no unconditional concrete proof): **Prop 2.1 (signal Lᵖ), Lem 2.1–2.4
+(Neumann semigroup / fractional-power), Lem 2.6 (Lᵖ bootstrap — carries frontier `hdiss`),
+Lem 2.7 (damping), Lem 3.1 (sup-norm max principle), Lem 4.1 (mass–gradient interp), Cor 2.1**.
+That semigroup/energy set is the real P2 spine; knock it off → O-P2-1/O-P2-2 fall.
 
 ## OUTSTANDING — Paper 3  (real proofs live on `intervalDomainM`; abstract nonlinear conclusions are assumed via "TAUTOLOGY" bridges — not a target)
 
