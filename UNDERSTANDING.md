@@ -5357,3 +5357,17 @@ The exponential restart identity propagates this estimate through all
 canonical segments.  Consequently `Proposition_1_1_negative_branch` now
 contains unconditional global existence, (1.8), and (1.9) for every
 paper-admissible nonnegative BUC datum.
+
+## Knock-off log
+
+- **2026-07-21 — O-P1-1 (positive branch) CLEARED.** `paper1_Theorem_1_2_chi_pos_unconditional`
+  (`Paper1Theorem12ChiPosUnconditional.lean`, clean-3): Paper 1 Thm 1.2 for `0<χ<min(½,chiStar)`
+  now CONSTRUCTS the traveling wave (via `paper1_positiveConstruction_selfStep`) instead of
+  assuming it. Only the inherent `WeightedL2InitialCloseness` on the datum remains. Needed a
+  ∀→∃ conversion on the construction's right-tail (instantiate at midpoint of `(kappa c, UB)`,
+  `UB≤1`).
+  - **O-P1-1b [OPEN, real sub-task]:** the χ≤0 / χ=0 branches also need `TravelingWaveRegularity`,
+    which the negative Rothe construction (`paper1_negativeConstruction_selfStep`) does NOT expose
+    (only monotonicity + `ShenUpperBoundNegative` + tail). Surfacing the full structure (C² for U,V;
+    `deriv U → 0` at ±∞; `|V|,|V'|≤MChi^γ`) for the Rothe wave is analytic work. This same regularity
+    is the shared blocker for the χ≤0 branch of O-P1-2 (uniqueness).
