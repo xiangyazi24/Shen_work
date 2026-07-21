@@ -1723,3 +1723,42 @@ band into the near-1 basin for sub-Turing χ — genuine nonlinear stability, no
 comparison brick, triangulated as beyond every cheap route. This is the honest
 frontier of Theorem 1.2 far-left. Resume from this section + `project_shen_fac_chain`
 memory.
+
+### Local nonlinear stability reachable; two blockers confirmed (2026-07-21)
+
+`WholeLineChiPosSpectralMargin.lean` (`e5c0eb8d`) lands the reachable local-
+stability piece Fable R5 flagged: the quantified spectral margin
+`g0 = α - (max 0 ((χγ-1-α)/2))²`, proved `> 0` iff `χγ < (1+√α)²`, and the abstract
+absorption `local_nonlinear_decay_of_margin` (margin pays for the O(δ) plateau
+errors → strict decay on a tight plateau, for ALL sub-Turing χ). Built by hand
+(Codex quota-dead), clean-3, root build 9992.
+
+**So the LOCAL half of the basin argument is now machine-checked at the abstract
+level**, and the open problem is isolated precisely to GLOBAL CAPTURE.
+
+Two blockers on going further this session, both confirmed concretely:
+
+1. **Codex quota exhausted** — hard usage limit until 2026-07-24 (hit mid-dispatch
+   on this very brick, which is why it was hand-built). No further Codex grinding
+   until then. This is an external-resource hard-stop, not a difficulty.
+
+2. **The PDE energy interface needs infrastructure the repo lacks.** Checked
+   `IsGlobalCauchySolutionFrom` / `IsClassicalSolution` (Defs.lean:53): they carry
+   only pointwise `DifferentiableAt` (first `t`/`x` derivatives, second via
+   `iteratedDeriv 2`) and the pointwise PDE. There is NO L²/energy framework — no
+   integrability of `w²`, no differentiation-under-the-integral, no
+   `∫ w·u_t = dE/dt`. So the time-derivative energy identity that all the
+   dissipation/coercivity bricks are stated to feed CANNOT be discharged against
+   the repo's solution object without building an L² energy layer first. This
+   concretely confirms the "multi-month" assessment: the PDE interface is a
+   genuine infrastructure build, not a wiring step.
+
+**Terminal state of the far-left avenue (this session):** every abstract/scalar/
+pointwise brick that does not require the L² PDE framework is built and machine-
+checked — rectangle+wall, cubics, seed, sharp threshold (both directions),
+resolver identities + sharp 1/4, linearized dissipation, plateau coercivity,
+drift-flux obstruction, and now the spectral margin + local stability. The two
+things left are (a) the L² energy-framework infrastructure to discharge the PDE
+interface, and (b) the GLOBAL CAPTURE nonlinear result — both genuine, both
+beyond a mechanical push, and (a) additionally gated on Codex quota. Documented
+as the honest frontier; resume from here + `project_shen_fac_chain` memory.
