@@ -1466,3 +1466,45 @@ does not vanish — drift pumps energy across the front (same phenomenon as our
 mirror-weight obstruction). The `ω`-limit extraction needs parabolic Schauder
 regularity absent from this Mathlib. This is the multi-month piece and it is
 deliberately downstream of the bricks above, which stand on their own.
+
+### Nonlinear coercivity: crude constant `4√α·a^(α/2)/b^α`, and where sharpness lives (Fable R4, verified)
+
+For `E = ½∫w²` on the torus, `w = u-1`, the exact dissipation is
+`Ė = -∫w_z² + χ∫w_z u^m v_z + ∫w·u(1-u^α)`. Working the chemotaxis term with only
+Cauchy-Schwarz + the plateau + the sharp `1/4` gradient bound gives decay under
+
+`χγ ≤ 4√α · a^(α/2) / b^α`   (crude),
+
+which → `4√α` as `[a,b] → {1}`. Verified numerically (0 violations / 200k):
+the plateau power-gap bound `|u^γ-1| ≤ γ b^(γ-1)|u-1|`, the reaction coercivity
+`u(u-1)(u^α-1) ≥ α a^α (u-1)²`, and the closure itself.
+
+**Crude is NOT sharp for `α > 1`.** `4√α ≤ (1+√α)²` with equality only at `α=1`
+(gap `(1-√α)²`): α=1 → 4 = 4; α=4 → 8 vs 9; α=9 → 12 vs 16. The Cauchy-Schwarz
+throws away the spectral distribution: it bounds `∫v_z² ≤ ¼∫h²` (sharp only at
+`k²=1`) while diffusion helps most at high `k`.
+
+**The sharp constant is already ours.** The sharp inequality
+`χγ∫(ψ_z²+ψ_zz²) ≤ ∫(ψ_z²+2ψ_zz²+ψ_zzz²) + α∫(ψ²+2ψ_z²+ψ_zz²)` reduces (Fourier
+`x=k²`, or symbolically) to `(x+1)·q(x) ≥ 0`, `q(x) = x²+(1+α-χγ)x+α`, and
+`q ≥ 0 ∀x≥0 iff χγ ≤ (1+√α)²`. That `q(x) ≥ 0` is EXACTLY the already-landed
+dispersion brick (`dispersion α (χγ) s ≤ 0` unfolds to `q(s) ≥ 0`, checked by
+`sympy`). So the sharp modewise content is done; the crude nonlinear closure is
+the honest `[a,b]`-level statement, and the gap between them is genuine
+Cauchy-Schwarz loss, not a missing lemma.
+
+**Honest nonlinear statement (Fable R4):** for every `χγ < (1+√α)²` there is
+`δ*(χγ) > 0` such that any plateau with `max(1-a, b-1) ≤ δ*` gives strict decay,
+and `δ* → 0` as `χγ → (1+√α)²`. The spectral gap `min q = α - ((1+α-χγ)/2)² > 0`
+is the budget that pays for the `O(δ)` plateau errors. So the margin below the
+sharp threshold BUYS the plateau tightness — not the other way round.
+
+**Frame-neutrality (Fable R4, adopted).** The abstract coercivity is frame-neutral
+and IS on the critical path (the far-left plateau decay mechanism is identically
+this). The torus-SPECIFIC packaging (`∫w·cw_z = 0`, global existence, time-
+differentiation) is ORPHAN — on the half-line `∫w·cw_z` is a nonzero front flux.
+So: build the coercivity abstractly (done as Rank 1-4 scalar/pointwise bricks),
+do NOT invest in torus PDE plumbing, then pivot to the drift-boundary-flux
+obstruction lemma — the exact analog of the mirror-weight obstruction we already
+formalized, cheap (IBP bookkeeping, no regularity theory), and the true gate on
+the half-line result.
