@@ -35,11 +35,20 @@ an assumed analytic package = real estimate work) · 🔬 **research** (beyond t
 `paper1_Theorem_1_2_chi_pos_unconditional` (`Paper1Theorem12ChiPosUnconditional.lean`,
 clean-3) composes `paper1_positiveConstruction_selfStep` into the χ>0 stability, so the wave
 is CONSTRUCTED not assumed, for `0<χ<min(½,chiStar)`; only inherent `WeightedL2InitialCloseness`
-remains. **O-P1-1b [OPEN]:** the χ≤0 / χ=0 branches need `TravelingWaveRegularity` (9-field
-structure: C² for U,V; `deriv U → 0` at ±∞; `|V|,|V'|≤MChi^γ`), which the Rothe construction
-`paper1_negativeConstruction_selfStep` does NOT expose (only monotonicity + `ShenUpperBoundNegative`
-+ tail). Surfacing it from the Rothe internals is analytic work. Shared blocker for nothing
-else now (O-P1-2 is inherent-conditional, done).
+remains. **O-P1-1b [OPEN — crux precisely located].** The χ≤0/χ=0 branches need
+`TravelingWaveRegularity`, which the generic producer
+`FrozenStationaryWaveProfile.travelingWaveRegularity_of_green_step` builds from
+(profile + `PaperStepAnalytic` + `InWaveTrapSet` + `ContDiff 2 U` + `ContDiff 2 V`). All are
+available for the negative wave EXCEPT `ContDiff 2 U`: `ContDiff 2` exists at the Rothe *step*
+level (`PaperLocalFixedStepData.contDiff_two`, `WaveNegativeSelfStepClosedGraph:110`) but the
+*stationary* producer `paperNegativePinned_fixed_stationary_of_selfStep` only outputs
+`Differentiable U` + `Differentiable (deriv U)`, not `ContDiff 2`.
+**The exact remaining lemma:** bootstrap `ContDiff ℝ 2 U` for the stationary negative wave from
+`stationary_eq` (`iteratedDeriv 2 U = −(c·deriv U − χ·flux(U,V) + reaction(U))`, whose RHS is
+continuous once `U, deriv U, V, deriv V` are, giving `deriv (deriv U)` continuous) — for the
+*general* `(m,γ,α)` `frozenWaveOperator`. Then feed trap/analytic-step + `ContDiff 2 V`
+(frozen Green-conv C², `WavePaperRotheProducer:4142`) into `travelingWaveRegularity_of_green_step`.
+Real analysis (the general-parameter flux terms `W^{m-1}` etc.), not wiring.
 
 **O-P1-2 ✅ DONE (reclassified 2026-07-21).** `Theorem_1_3_amended_of_chi_lt_half`'s
 hypotheses (both waves are regular traveling waves sharing a right-tail rate) are
