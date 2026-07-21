@@ -35,7 +35,21 @@ an assumed analytic package = real estimate work) · 🔬 **research** (beyond t
 `paper1_Theorem_1_2_chi_pos_unconditional` (`Paper1Theorem12ChiPosUnconditional.lean`,
 clean-3) composes `paper1_positiveConstruction_selfStep` into the χ>0 stability, so the wave
 is CONSTRUCTED not assumed, for `0<χ<min(½,chiStar)`; only inherent `WeightedL2InitialCloseness`
-remains. **O-P1-1b [OPEN — crux precisely located].** The χ≤0/χ=0 branches need
+remains. **O-P1-1b [CRUX SOLVED 2026-07-21].** `paper1_negativeConstruction_selfStep_reg`
+(`Paper1Theorem12ChiNonposUnconditional.lean`, clean-3, root 10007) exposes
+`TravelingWaveRegularity` for the Rothe wave via route (1) (transport step-level ContDiff 2).
+Remaining to fully unconditionalize Thm 1.2 for χ≤0:
+- **χ=0: REACHABLE now** → `paper1_Theorem_1_2_chi_zero_unconditional` (regularity above +
+  χ=0 strict barrier `positiveStationary_strict_upperBarrier` (covers 0≤χ) + chi_nonpos stability;
+  handle speed via `max(cStarStar, cStarLower)`). [dispatched]
+- **χ<0: NEW-ANALYSIS WALL.** chi_nonpos stability needs `HasStrictWaveUpperTailBound` (min-form,
+  strict at every x); the negative construction gives only `ShenUpperBoundNegative` (max-form,
+  strictly weaker, no bridge). Building the min-form for χ<0 needs (a) a strict χ≤0 exp-region
+  operator sign (only non-strict exists) + (b) a χ<0 coupled strictly-below-one strong-maximum-
+  principle (only χ=0 version exists). Genuine new strong-max-principle analysis. [class B, deep]
+
+(superseded scoping below)
+**O-P1-1b [OLD scoping — crux precisely located].** The χ≤0/χ=0 branches need
 `TravelingWaveRegularity`, which the generic producer
 `FrozenStationaryWaveProfile.travelingWaveRegularity_of_green_step` builds from
 (profile + `PaperStepAnalytic` + `InWaveTrapSet` + `ContDiff 2 U` + `ContDiff 2 V`). All are
