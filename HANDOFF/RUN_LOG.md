@@ -181,3 +181,10 @@
   be numerically negligible; avenue (c) frontier relocated -- true threshold
   identified and the rectangle proved exhausted. Two ChatGPT questions still
   undelivered (bridge connector failures, NOT resent per instruction).
+
+## Run 2026-07-21 (fable-ora dual-oracle, Opus-as-workhorse; Codex out to Jul 24)
+- doctrine: INTEGRITY_GAPS.md "assembled crest route" + remaining discharges (a)-(f)
+- approval: "/fable-ora Fable back + chatgpt, Codex out use opus as workhorse, two more design rounds and begin implementing"
+- starting avenue: crest-route viability — (d) no-overshoot b<=1 satisfiability is the make-or-break
+- end: <open>
+- final result: <open>
