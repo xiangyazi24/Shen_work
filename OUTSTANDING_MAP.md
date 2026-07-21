@@ -76,7 +76,7 @@ combined `∃! regular wave` capstone = O-P1-1's constructed wave + this uniquen
 from ½ to `chiStar`. (The positive branch's ½ is inherited from Prop 1.2's positive branch —
 start there.)
 
-**O-P1-4 🧱 Prop 1.1 (general Cauchy existence + a-priori bounds).** Currently the existence,
+**O-P1-4 ◐ Prop 1.1 — χ≤0 half DONE (2026-07-21).** `paper1_Prop_1_1_first_conjunct` (clean-3) proves the entire χ≤0 half unconditionally; positive cores landed (`_second_conjunct_critical_subwindow`, `_supercritical_core`, `_of_second_conjunct`). The frontier-RECORD route is dead (fields quantify over arbitrary sol → needs absent Cauchy uniqueness; the `existence` field is itself FALSE: u₀≡0⟹u≡0). Residuals for FULL Prop 1.1: (1) supercritical χ<1 scalar root-location lemma [Class B, elementary → Codex], (2) critical 1≤χ window Lᵖ local iteration [Class C frontier]. OLD: **Prop 1.1 (general Cauchy existence + a-priori bounds).** Currently the existence,
 max-principle bound (≤max 1 M), and limsup≤1 are carried as assumed frontier fields
 (`Paper1PropositionFrontierData`); only `u₀≡1` is unconditional. **Task:** prove global
 existence + bounds for arbitrary nonneg data. This is general well-posedness — real PDE.
