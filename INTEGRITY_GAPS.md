@@ -2052,3 +2052,22 @@ lemma (mirror the repo's Lemma 3.1 for extremum attainment) + explicit exponenti
 barriers `1±De^{−λt}` giving `|u(t,z)−1| ≤ De^{−λt}` uniform in z. Fully designed
 (Fable R2); this is the convergence theorem. Plus the small glue: `vConv` bounded,
 and the `v_pde=vConv` identification. Codex returns Jul 24 for the heavier assembly.
+
+### GREEN REPRESENTATION COMPLETE (2026-07-21) + ChatGPT bridge dead all session
+
+`vConv_abs_le` closes the Green-rep discharge: `vConv` solves `v''=v−u`
+(`vConv_secondDeriv`), is bounded (`|vConv|≤M`), so by the uniqueness keystone it
+IS the repo's resolver. The representation hypothesis of `resolver_oscillation_bound`
+is discharged. This was the single from-scratch analytic sub-layer both Fable and
+I identified — now done, all clean-3, root build 10005 jobs, 0 sorry, 0 axiom.
+
+**The ONLY remaining piece** for a full far-left convergence theorem: Q1 the
+ASSEMBLY (Fable R2, fully designed) — the first-touch comparison lemma + explicit
+exponential barriers `1±De^{−λt}` giving `|u(t,z)−1| ≤ De^{−λt}` uniform in z, rate
+degenerating at `χ_max ≈ √(c/2)`. It needs the repo's Lemma 3.1 read (for
+extremum attainment, Path A vs B) + a novel parabolic first-touch argument — the
+one genuinely deep build left.
+
+ChatGPT bridge: FAILED every delivery this session (Q156/157/175/179, connector
+timeouts) — ran Fable-solo throughout. Fable's rounds were all high-value and
+numerically confirmed.
