@@ -1556,3 +1556,47 @@ these four atoms + the sharp dispersion brick are everything the far-left platea
 decay mechanism needs that is NOT PDE-coupled. The remaining pieces (time-
 derivative identity `Ė = -D+T+R`, plateau invariance `a ≤ u(t) ≤ b`) are the
 PDE interface, deliberately not discharged.
+
+### UNIFICATION: rectangle and energy hit the SAME wall — plateau tightening toward 1
+
+The repo already provides the two-sided eventual plateau on the far-left
+half-line for `χ < 1`: `wholeLineCauchyGlobal_coMoving_strictlyPositiveAtLeft`
+(lower floor) and `wholeLineCauchyGlobal_uniformLimsupLe_MChi_of_chi_pos` (upper
+`limsup ≤ MChi`). So plateau INVARIANCE `a ≤ u ≤ b` is NOT the blocker — it is
+available. But the available band is WIDE: `a ≈ 0.125` (the χ<1 trap floor),
+`b = MChi + 1 ≈ 2.4–3`.
+
+Feeding that available band into the crude energy threshold
+`χγ ≤ 4√α·a^(α/2)/b^α` gives (verified):
+
+| `m,γ` | avail `a` | avail `b` | energy thr | rectangle `α/(α+γ)` | `χ*` |
+|---|---|---|---|---|---|
+| 1,1 | 0.125 | 3.00 | 0.471 | 0.500 | 1.000 |
+| 2,1 | 0.125 | 2.73 | 0.095 | 0.667 | 0.750 |
+| 3,1 | 0.125 | 2.59 | 0.018 | 0.750 | 0.571 |
+| 1,2 | 0.125 | 2.41 | 0.121 | 0.500 | 1.000 |
+
+**The energy method on the AVAILABLE plateau is strictly BELOW the rectangle
+threshold — it buys nothing.** Both the rectangle and the energy method need the
+plateau TIGHT near 1 (small `δ = max(1-a, b-1)`). This is the exact same
+trap-quality wall found in Test B, now seen from the energy side.
+
+**So the entire far-left problem — for every method we have — reduces to ONE
+missing ingredient: tightening the eventual plateau toward `{1}`.** This is
+cleaner and more optimistic than "multi-month parabolic regularity": the blocker
+is not the energy differentiation or the invariant region (both available in
+essence), it is getting `a → 1`, `b → 1` eventually.
+
+**And that is a REACTION-driven phenomenon, not a diffusion/chemotaxis one.**
+The KPP reaction `u(1-u^α)` drives `u` up toward 1 from below; the chemotaxis is
+a perturbation. The concrete route (Fable R2, unbuilt): the nonlocal min
+identity `v_zz = v - u^γ` closed by a gradient bootstrap — at an interior min the
+chemotaxis contribution is `∝ (v - u^γ)`, controlled by how far `u` is from its
+own smoothing, second-order small IF the gradient is controlled; the crux is
+showing the bootstrap contracts. THIS is the real crux of Theorem 1.2's
+far-left, and it is a specific analytic bootstrap, not open-ended infrastructure.
+
+RESUME HERE: the crux is plateau-tightening via a reaction-driven bootstrap,
+`a → 1` eventually, decoupled from the chemotaxis (which is a controlled
+perturbation once the plateau is tight). Everything else (coercivity, sharp
+threshold, resolver identities, obstruction) is built and machine-checked.
