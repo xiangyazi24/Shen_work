@@ -984,3 +984,4 @@ import ShenWork.Paper1.WholeLineChiPosCrestGradientBound
 import ShenWork.Paper1.WholeLineChiPosCrestCapture
 import ShenWork.Paper1.WholeLineResolverOscillationBound
 import ShenWork.Paper1.WholeLineGreenKernelMass
+import ShenWork.Paper1.WholeLineChiPosPointwiseCeiling
