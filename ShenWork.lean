@@ -1000,3 +1000,4 @@ import ShenWork.Paper1.Proposition11UnconditionalAudit
 import ShenWork.Paper1.WaveNegativeStrictBarrier
 import ShenWork.Paper1.WaveNegativeStrictBarrierConstruction
 import ShenWork.Paper1.Paper1Theorem12ChiNegUnconditional
+import ShenWork.Paper1.Proposition11PositiveConjunctChiLtOne
