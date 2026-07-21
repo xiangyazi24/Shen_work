@@ -2071,3 +2071,28 @@ one genuinely deep build left.
 ChatGPT bridge: FAILED every delivery this session (Q156/157/175/179, connector
 timeouts) — ran Fable-solo throughout. Fable's rounds were all high-value and
 numerically confirmed.
+
+### Assembly BOOKENDED; only the comparison-principle core remains (2026-07-21)
+
+Fable R2's assembly chain is now built on both ends, all clean-3:
+- START (barrier self-consistency): `expBarrier_deriv`, `symmetric_barrier_rate_ok`
+  (strict sub-solution inequality holds when `λ < c'(1−2θ)`), `exists_barrier_rate_iff`
+  (positive barrier rate exists iff `θ < 1/2` = the two-sided threshold `χ < χ_max`).
+- RATES (middle): `pointwise_min_rise_of_oscillation_bound`, `pointwise_max_fall_...`,
+  `crest_gradient_bound(_overshoot)`, `resolver_oscillation_bound`.
+- ENDPOINT: `uniform_convergence_of_expBarrier`, `tendsto_one_of_expBarrier`.
+
+**The SINGLE remaining piece** — the first-touch parabolic COMPARISON lemma:
+given the strict barrier rate conditions along `α(t)=1−De^{−λt}`, `β(t)=1+De^{−λt}`
+and `u(0,·) ∈ [α(0),β(0)]`, conclude `α(t) ≤ u(t,z) ≤ β(t)` for all `t,z`. This is
+the one genuinely new PDE analytic piece (Fable R2's first-touch argument: `S = {t:
+∃z, u ≤ α−εe^{Λt}}`, `t₀=inf S`, touch point is a global interior min → min-rise
+lemma vs the time-derivative sign → contradiction). Needs the whole-line solution
+structure + extremum attainment (Path A: `u→1` at `±∞`; Path B: `cosh(γz)` barrier).
+Everything that bookends it is done.
+
+**Session total (2 /fable-ora rounds, Opus-workhorse, Codex+ChatGPT both out):
+~24 new clean-3 lemmas.** Root build 10007 jobs, 0 sorry, 0 axiom. The far-left
+Theorem 1.2 is now reduced to ONE parabolic comparison lemma, with the entire
+supporting apparatus (crest route, Green representation, two-sided barriers,
+threshold algebra, convergence endpoint) machine-checked underneath it.
