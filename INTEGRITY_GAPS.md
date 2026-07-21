@@ -1637,3 +1637,47 @@ PDE analysis with no shortcut through the repo's comparison machinery, and no
 clean sub-solution exists up to the sharp threshold. Everything cheaper than this
 is now built and machine-checked; this is where the honest work remains, and it
 should NOT be described as a mechanical brick.
+
+### SETTLED: no cheap/formalizable route beats ~1/2; the gap to the true threshold is genuine nonlinear stability
+
+Triangulated three independent ways, all numerically verified:
+
+| route | cap at α=1 | general |
+|---|---|---|
+| rectangle | 0.500 | `α/(α+γ)` |
+| energy on the AVAILABLE band `[0.125, MChi+1]` | ~0.47 | below rectangle |
+| pointwise comparison `χ·b ≤ 1` (b = ceiling) | 0.382 | `< rectangle` |
+| TRUE (linear/Turing) threshold | 4.0 | `(1+√α)²` |
+
+Every cheap, formalizable route caps at or below the rectangle's `α/(α+γ)`. There
+is no cheap brick that beats it. The entire window from there up to `(1+√α)²` is
+genuine nonlinear stability (gradient bootstrap / basin-of-attraction), not a
+missing lemma.
+
+**Two Fable-R5 claims were tested and found OVER-stated (verify-don't-transcribe):**
+1. R5 predicted an extended flat `ū=0.4` patch would pattern and turn the min
+   DOWN at χ=3.9 (its linear-instability-at-frozen-level analysis, rate 0.26).
+   TESTED: it did NOT. The mean rose 0.40→1.0 and the min rose 0.30→1.0
+   monotonically; the perturbation spread peaked at 0.2245 (only 12% above the
+   0.20 seed) then decayed. The reaction drives the mean UP through the unstable
+   window faster than the pattern grows — R5 froze the background, which
+   over-predicts. So min-monotonicity survives even here.
+2. R5's "shippable comparison brick" at `χ·b ≤ 1` gives χ≤0.382 at α=1 — WORSE
+   than the rectangle. Not shippable as an improvement.
+
+**Net refinement:** the far-left result is MORE likely true than R5's caution
+suggested (the min converges robustly, the intermediate instability is
+reaction-transit-suppressed), but NOT more easily provable — whether
+min-monotonicity holds is a quantitative RACE between reaction transit and
+pattern growth, which is precisely the bootstrap. There is no clean pointwise or
+linear shortcut.
+
+**FINAL HONEST FRONTIER for Theorem 1.2 far-left (`χ ∈ (α/(α+γ), (1+√α)²)`):**
+prove `u ≡ 1` is the basin-of-attraction limit of the plateau dynamics for all
+sub-Turing χ. Concretely this is: (i) local nonlinear stability near `u=1` for
+all χ<(1+√α)² (reachable — spectral gap + standard estimates), giving "eventual
+inf u → 1 PROVIDED u enters a fixed near-1 neighborhood"; plus (ii) GLOBAL
+CAPTURE of the wide available band into that neighborhood — the genuinely hard
+core, a basin result, not comparison. Everything cheaper than (ii) is built and
+machine-checked. (ii) is the honest open problem; it should be reported as such,
+not as a mechanical brick.
