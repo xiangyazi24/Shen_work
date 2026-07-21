@@ -2120,3 +2120,34 @@ sorry, 0 axiom.** The crest route, the complete Green representation, the two-si
 ceiling/overshoot + threshold algebra, both assembly bookends, the convergence
 capstone, and both scalar comparison cores — all done. Far-left Theorem 1.2 stands
 reduced to a single PDE first-touch reduction.
+
+### FAR-LEFT THEOREM 1.2 REDUCED TO ONE DANSKIN OBLIGATION (2026-07-21)
+
+The entire far-left convergence chain is now assembled and machine-checked, from
+the pointwise rates all the way to the repo's target predicate:
+
+`scalar_first_touch` → `parabolic_lower/upper_barrier` →
+`barrier_confinement_of_trajectories` → `far_left_convergence_from_trajectories`
+→ `far_left_convergence_of_barrier` → (shape of) `UniformCoMovingLeftEquilibrium
+Convergence`. And `touch_slope_lower/upper` collapse the touch-slope + barrier-
+consistency obligations into the single rate bound `da ≥ R⁻`.
+
+**The SINGLE genuinely-remaining analytic obligation:** the Danskin/envelope fact
+— the inf-trajectory `a t = inf_z u(t,z)` (and `sup`) is `C¹` with
+`da t ≥ R⁻(a t, b t)` (= the pointwise `min_rise` rate at the argmin, via the PDE
+`u_t` at a spatial min). This encapsulates (i) the envelope theorem for `inf` over
+noncompact `z` (Mathlib lacks it), and (ii) wiring the pointwise min-rise to the
+actual `wholeLineCauchyGlobalU` solution's `u_t` at its spatial minimum. Plus the
+trivial `a ≤ u ≤ b` and the initial confinement.
+
+Everything else — crest route, complete Green representation, two-sided
+ceiling/overshoot, threshold algebra `χ < √(c/2)`, scalar first-touch + Gronwall
+comparison, the parabolic barrier lift, the exponential-barrier instantiation, the
+touch-slope producers, and the convergence endpoint — is machine-checked, 0 sorry,
+0 axiom. Root build 10013 jobs.
+
+**Session grand total (2 /fable-ora rounds, Opus-as-workhorse; Codex out, ChatGPT
+slow/undelivered all session): ~33 new clean-3 lemmas.** The far-left frontier
+moved from "find a mechanism" to a clean conditional theorem whose ONLY open input
+is the Danskin inf/sup differentiability + its rate identity — the one parabolic-
+analysis fact, cleanly scoped, for a focused session / faster-ChatGPT / Codex Jul 24.
