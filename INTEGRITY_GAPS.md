@@ -2096,3 +2096,27 @@ Everything that bookends it is done.
 Theorem 1.2 is now reduced to ONE parabolic comparison lemma, with the entire
 supporting apparatus (crest route, Green representation, two-sided barriers,
 threshold algebra, convergence endpoint) machine-checked underneath it.
+
+### Scalar first-touch + Gronwall comparison landed (2026-07-21) — ChatGPT dead, Opus built it
+
+Two scalar comparison cores, both clean-3, both self-built (ChatGPT failed every
+delivery, 5th+ failure — dispatched the first-touch to it, built it myself):
+- `gronwall_barrier` / `gronwall_barrier_ge`: `g(0)≤0` + `g'≤Lg` ⟹ `g≤0` (integrating
+  factor `e^{−Lt}g` antitone).
+- `scalar_first_touch`: `α 0≤a 0` + touch-slope condition (`α t=a t ⟹ dα t<da t`) ⟹
+  `α≤a`. Full rigorous first-touch via `sSup` of the closed set `{α≤a}` +
+  `hasDerivWithinAt_iff_tendsto_slope` local-increase.
+
+These are the scalar core of the parabolic first-touch. The far-left Theorem 1.2
+is now reduced to the ONE genuinely-remaining PDE step: the reduction of the
+whole-line solution's inf/sup trajectory (with extremum attainment, Path A/B) to
+`scalar_first_touch`, wiring the pointwise min-rise/max-fall as the touch-slope
+condition. That is the single parabolic-max-principle piece Mathlib lacks; everything
+that feeds it and everything it feeds is machine-checked.
+
+**Session grand total (2 /fable-ora rounds, Opus-as-workhorse throughout; Codex out,
+ChatGPT bridge dead ALL session): ~28 new clean-3 lemmas, root build 10010 jobs, 0
+sorry, 0 axiom.** The crest route, the complete Green representation, the two-sided
+ceiling/overshoot + threshold algebra, both assembly bookends, the convergence
+capstone, and both scalar comparison cores — all done. Far-left Theorem 1.2 stands
+reduced to a single PDE first-touch reduction.
