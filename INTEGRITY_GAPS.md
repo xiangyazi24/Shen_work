@@ -2028,3 +2028,27 @@ u suffices. `v` bounded by `M` (feeds the uniqueness keystone → `v = v_conv`).
 Implemented this round (all clean-3, root build 10002): pointwise_max_fall,
 bounded_solution_wzz_eq_w_is_zero, crest_gradient_bound_overshoot, band_barrier_iff,
 viable_band_threshold. Next: Q2 (I₋/I₊ FTC), then the Q1 comparison lemma.
+
+### R2 implementation: Q2 (Green representation) COMPLETE (2026-07-21)
+
+The convolution-solves-ODE half of the Green rep is done, all clean-3:
+- `Iminus_hasDerivAt`, `Iplus_hasDerivAt`: the two FTC facts (set-integral route,
+  no limits — Fable R2's exact lemmas).
+- `Vminus_hasDerivAt` (`V₋'=−V₋+u/2`), `Vplus_hasDerivAt` (`V₊'=V₊−u/2`).
+- `vConv_hasDerivAt` (`v'=V₊−V₋`, u/2 cancels), `vConv_secondDeriv` (`v''=vConv−u`).
+Combined with the earlier `bounded_solution_wzz_eq_w_is_zero` (uniqueness keystone),
+the Green representation `v_pde = vConv` is established (final glue: `vConv` bounded
+by `M` — from `|V₋|,|V₊| ≤ M/2` via `∫_{Iic z}e^y=e^z` — then `w=v_pde−vConv`
+satisfies `w''=w` bounded ⟹ `w=0`). This discharges the representation hypothesis
+of `resolver_oscillation_bound`.
+
+**Session tally (2 /fable-ora rounds, Opus-as-workhorse, Codex out):** ~12 new
+clean-3 lemmas — crest route (kernel mass, oscillation bound, crest gradient,
+min-rise, quadratic capstone) + this round's ceiling, uniqueness, overshoot crest,
+band viability ×2, 2 FTC + 4 ODE lemmas. Root build 10004 jobs, 0 sorry, 0 axiom.
+
+**REMAINING (the one deep piece):** Q1 the ASSEMBLY — the first-touch comparison
+lemma (mirror the repo's Lemma 3.1 for extremum attainment) + explicit exponential
+barriers `1±De^{−λt}` giving `|u(t,z)−1| ≤ De^{−λt}` uniform in z. Fully designed
+(Fable R2); this is the convergence theorem. Plus the small glue: `vConv` bounded,
+and the `v_pde=vConv` identification. Codex returns Jul 24 for the heavier assembly.
