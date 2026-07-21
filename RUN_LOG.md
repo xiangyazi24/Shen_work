@@ -815,3 +815,9 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   MChi+r。我读 ledger 预算发现余量来自 χ<1/2 的严格性，把条件锐化为 χ·Q^γ < 1，
   ledger 推广到任意 trap 高度，阻塞从根上消失。
 - Codex 两次正确拒绝我的错误指令（S1 前提不成立 / 规格 5 处修正），brief 是待检验假设不是规范。
+
+## Run 2026-07-21 (automode: "don't stop grinding until everything clearly proven")
+- doctrine: DOCTRINE.md (2026-07-21 rewrite) — clear every outstanding condition in OUTSTANDING_MAP.md
+- starting avenue: (a) O-P1-1b Rothe-wave TravelingWaveRegularity → P1 Thm 1.2 chi<=0 unconditional
+- method: orchestrate — sub-agents + ChatGPT parallel compute (Codex out), verify+commit each
+- end: <open>
