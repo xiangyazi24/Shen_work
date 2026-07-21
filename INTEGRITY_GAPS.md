@@ -1600,3 +1600,40 @@ RESUME HERE: the crux is plateau-tightening via a reaction-driven bootstrap,
 `a → 1` eventually, decoupled from the chemotaxis (which is a controlled
 perturbation once the plateau is tight). Everything else (coercivity, sharp
 threshold, resolver identities, obstruction) is built and machine-checked.
+
+### The crux is the gradient BOOTSTRAP, not a clean comparison (settled 2026-07-20)
+
+The unification reduced everything to "tighten the eventual plateau toward 1."
+The tempting clean route: show `a(t) = min_z u` is a sub-solution (nondecreasing).
+Numerically, `min u → 1` monotonically in the DYNAMICS (0 decreasing steps / 1000,
+χ up to 3.9, single-dip and multi-bump). That looked like a comparison-principle
+brick — the repo's home turf.
+
+**But it is NOT a clean sub-solution.** Adversarial test (worst-case over smooth
+Gaussian dips, FULL `u_t` including the stabilizing diffusion `u_zz > 0` at the
+min): `u_t` at the min is `≥ 0` for small χ (worst `+0.056` at χ=1) but can go
+NEGATIVE for a well-chosen smooth dip above an onset (~1.5 for m=γ=α=1 over the
+Gaussian family; profile-family-dependent, not a clean constant, and below the
+Turing threshold 4). At χ=3, worst `-0.006` at min-value `a≈0.94`. So a narrow-
+enough smooth dip can transiently DEEPEN: `min u` is not monotone pointwise.
+
+(An earlier version of this test wrongly DROPPED the `u_zz` diffusion term and
+reported failure even at χ=1; caught and corrected — diffusion is exactly what
+fills a sharp dip, so omitting it is an unfair, wrong test. The corrected test is
+the one above.)
+
+**Why the dynamics still converge monotonically:** the flow's own diffusion
+regularizes the profile (a sharp dip fills at rate ~1/width²) faster than
+chemotaxis can deepen it, so the actual trajectory never sits at the adversarial
+worst-case shape. But "diffusion keeps the profile smooth enough that `v-u` at
+the min stays small" IS the gradient bootstrap Fable flagged in R2 — and it is
+the genuinely hard analytic core, not a pointwise comparison.
+
+**HONEST FRONTIER (settled).** The far-left crux is: control the gradient/
+curvature so that `χ(v-u)(z*) < 1 - u(z*)` at the min throughout the evolution
+(equivalently, close the bootstrap: smoothness bounds `v-u`, which keeps the min
+rising, which flattens the profile, which preserves smoothness). This is genuine
+PDE analysis with no shortcut through the repo's comparison machinery, and no
+clean sub-solution exists up to the sharp threshold. Everything cheaper than this
+is now built and machine-checked; this is where the honest work remains, and it
+should NOT be described as a mechanical brick.
