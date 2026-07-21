@@ -1922,3 +1922,34 @@ Two buildable next steps, both beating χ* and both hand-sized (Codex quota-dead
 Both feed the pointwise capture route to χ ≈ 1.7 (empirical c), UNCONDITIONAL over χ*.
 The L² route to the sharp 4 is designed (Fable B) but gated on the elliptic layer +
 front flux. FIRST verify the front-flux sign (drift-flux obstruction, already built).
+
+### The pointwise crest route — assembled as clean-3 lemmas (2026-07-21, hand-built)
+
+With Codex + ChatGPT both dead, hand-built the entire pointwise crest route to
+`χ_max(c) ~ √c ≈ 1.7` (past `χ*`), all clean-3, all machine-checked:
+
+1. `greenKernel_integral_eq_one` + `integrable_exp_neg_abs`: `∫ ½e^{−|s|} = 1`.
+2. `resolver_oscillation_bound`: kernel-average ⇒ `|v−u|(z) ≤ b−a` (the O(1)
+   NON-circular defect bound; `≤ ‖u_z‖` would be circular).
+3. `crest_gradient_bound`: interior-max steady relation ⇒ `‖u_z‖ ≤ K =
+   χb(b−a)/(c−χ(b−a))`.
+4. `pointwise_min_rise_of_oscillation_bound`: min rises for `χ < (1−a)/G`.
+5. `crest_quadratic_iff` + `crest_capture_min_rise`: compose 3+4 (G=K), resolving
+   `χ < (1−a)/K` into the explicit quadratic `χ²b(b−a)+χ(1−a)(b−a)−(1−a)c<0`,
+   root `χ_max(c) ~ √c` = 1.7152 at `a=0.15,b=1,c=4.4`.
+Plus `AbstractEnergyDecay` (L² tower thin capstone: coercive energy ⇒ exp decay ⇒ 0).
+
+**Remaining discharges to make it a theorem about solutions (all analytic, no more
+design needed):**
+- (a) z-shift of the kernel mass `∫_y ½e^{−|z−y|}dy = 1` (translation invariance of
+  Lebesgue — glue on `greenKernel_integral_eq_one`);
+- (b) the Green representation `v(z) = ∫ ½e^{−|z−y|}u(y)dy` FROM the PDE `-v_zz+v=u`
+  (the one genuine from-scratch analytic sub-layer, per Fable B);
+- (c) integrability of `K·u` for bounded `u` (K∈L¹, u∈L∞);
+- (d) no-overshoot barrier `b ≤ 1` (chemotaxis can push a max through 1 — a real
+  obstruction, Fable C; needs its own argument);
+- (e) existence of the interior crest and interior min (front geometry);
+- (f) the front flux at `z=Z` (shared with the L² route = the drift-flux obstruction).
+
+The interface/algebra layer is DONE. (b),(d),(f) are the substantive analytic work;
+(a),(c),(e) are standard. Codex quota resets Jul 24 for the heavier discharges.
