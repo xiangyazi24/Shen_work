@@ -114,6 +114,9 @@ as a carried hypothesis, no unconditional concrete proof): **Prop 2.1 (signal L�
 Lem 2.7 (damping), Lem 3.1 (sup-norm max principle), Lem 4.1 (mass–gradient interp), Cor 2.1**.
 That semigroup/energy set is the real P2 spine; knock it off → O-P2-1/O-P2-2 fall.
 
+**O-P2 Lem 2.6/2.7 UPDATE 2026-07-21:** Lemma 2.7 as literally stated is FALSE (`not_Lemma_2_7_intervalDomain`, clean-3 counterexample u=t⁻¹); faithful form `Lemma_2_7_intervalDomain_from_continuous_bound` DONE. Lemma 2.6 faithful form `Lemma_2_6_intervalDomain_from_continuous_lp_bounds` DONE (carries legitimate closed-[0,T] Lᵖ-mass continuity, not the L∞ bound). The abstract Lᵖ-bootstrap `hgrad`/`hdiss` are genuinely circular with the L∞ bound for arbitrary u ⟹ the fully-abstract Lemma 2.6 needs the real energy method (class B/C, and its all-time form fails for rough data — same short-time issue as O-P3-1). Correct-the-paper: DONE for the faithful targets.
+
+
 ## OUTSTANDING — Paper 3  (real proofs live on `intervalDomainM`; abstract nonlinear conclusions are assumed via "TAUTOLOGY" bridges — not a target)
 
 **O-P3-1 ✅ RESOLVED 2026-07-21 (correct-the-paper).** ChatGPT (grounded, cusp counterexample + parabolic t^-1/2 smoothing) shows the printed ALL-TIME C¹ decay is a short-time regularity OVERSTATEMENT — FALSE for the paper's data class (u₀∈C(Ω̄), inf>0, NOT C¹). The concrete EVENTUAL forms (from t₀>0) are the faithful correct renderings; all-time must NOT be pursued. Per Xiang's rule (correct a wrong paper statement = done), the eventual Thms 2.1–2.5 ARE the headlines. Only O-P3-2 (non-vacuity) remains on P3.  ~~[OLD] Eventual → all-time for Thm 2.1–2.5.** The concrete proofs establish faithful
