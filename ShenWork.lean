@@ -983,3 +983,4 @@ import ShenWork.Paper1.WholeLineAbstractEnergyDecay
 import ShenWork.Paper1.WholeLineChiPosCrestGradientBound
 import ShenWork.Paper1.WholeLineChiPosCrestCapture
 import ShenWork.Paper1.WholeLineResolverOscillationBound
+import ShenWork.Paper1.WholeLineGreenKernelMass
