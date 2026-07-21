@@ -978,3 +978,4 @@ import ShenWork.Paper1.ResolverPlateauGradient
 import ShenWork.Paper1.PlateauDissipationClosure
 import ShenWork.Paper1.WholeLineCoMovingDriftFluxObstruction
 import ShenWork.Paper1.WholeLineChiPosSpectralMargin
+import ShenWork.Paper1.WholeLineChiPosPointwiseCaptureStep
