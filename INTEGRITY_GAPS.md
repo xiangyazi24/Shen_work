@@ -1973,3 +1973,31 @@ TRANSIENT; `b → 1` eventually. Two consequences for the crest route:
   `K ≤ [χb(b−a) + b(b−1)] / (c − χ(b−a))` — a small correction, route intact.
 
 This is the Round 1 make-or-break for the dual-oracle design.
+
+### Round 1 SYNTHESIS + implementation (2026-07-21, Opus-as-workhorse)
+
+Fable R1 (ChatGPT R1 failed delivery, absorbed nothing). Overshoot is real but the
+route survives; landed 4 new clean-3 lemmas discharging the overshoot concern and
+the Green-rep core:
+
+**Design (Fable R1, verified):**
+- Overshoot barrier `b−1 ≥ χK` MIRRORS the floor `1−a ≥ χK` with the SAME `K` — so
+  the two-sided trap is NOT capped at 1/2 (that's the crude `b−a` bound); with the
+  Green-rep `K` it reaches `χ_max ~ √(c/2) ≈ 1.20` (overshoot costs √2 vs the
+  floor-only 1.71). Still beats `χ* = 1`. Verified: two-sided band converges to 1
+  up to χ≈3.9.
+- `b ≤ 1` should be a THEOREM not a hypothesis: `[1−δ, 1+δ]` with `δ = χK ≤
+  δ_max = (c−2χ²)/(2χ(1+χ))` is forward-invariant.
+- Green rep via half-line split (FTC, u(z) terms cancel — no delta); uniqueness by
+  factoring `w''=w` into two first-order ODEs.
+
+**Implemented (all clean-3, root build 10001):**
+- `pointwise_max_fall_of_oscillation_bound`: max u trapped at `≤ 1 + χG` (ceiling).
+- `bounded_solution_wzz_eq_w_is_zero`: the uniqueness keystone (Green-rep core).
+- `crest_gradient_bound_overshoot`: crest bound with `b > 1`, removing `b ≤ 1`.
+
+**Remaining (R2 in flight):** (Q1) the ASSEMBLY — pointwise extremum steps →
+uniform convergence, via forward-invariant SHRINKING bands (strict barriers →
+entry into a tighter invariant band), avoiding differentiating inf/sup; (Q2) the
+convolution-solves-ODE half of the Green rep (which Mathlib FTC lemma for the
+improper moving endpoint).
