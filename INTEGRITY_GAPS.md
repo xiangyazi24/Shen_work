@@ -1867,3 +1867,58 @@ The reason it works: `‖u_z‖` is controlled by the reaction/diffusion balance
 by the band width, so `(1−a)/‖u_z‖` is O(3.5), not O(1). The pointwise routes
 failed precisely because they bounded `(v−u)` by the band `(b−a)` instead of by
 `‖u_z‖`. Bernstein supplies the missing `‖u_z‖ ≤ K`.
+
+### THREE-ORACLE SYNTHESIS (2026-07-21): both frameworks designed; the crest bound beats χ* by hand
+
+Fired three parallel Fable oracles (Bernstein design / L² design / adversarial). Synthesis:
+
+**The reconciliation (resolves my retracted over-claims).** The correct non-circular
+bounds are the OSCILLATION bounds `|v−u|, |v_z| ≤ b−a` (O(1), from `v = ½e^{−|·|}∗u`
+a unit-mass average) — NOT `≤ ‖u_z‖` (Fable A: that is the CIRCULAR choice, gives a
+vacuous O(‖q‖³) term). My "3.5" was a fixed-χ ratio, and both Fable A and C confirm
+it does NOT certify convergence (a uniform gradient bound K stalls the min at 1−χK).
+
+**The CREST gradient bound (Fable A — hand-buildable, ~5 lines, tight).** For the
+steady co-moving profile, at an interior max of `q = u_z` (`u_zz = 0`), the ORIGINAL
+PDE gives `q(c − χv_z) = χu(v−u) − u(1−u)`, hence
+  `‖u_z‖∞ ≤ K := χ·b·(b−a) / (c − χ(b−a))`,  valid when `c > χ(b−a)`.
+Non-circular (uses the O(1) oscillation bounds), and TIGHT: `K(χ=1, c=4.4) = 0.257 =
+0.9/3.5`, reproducing the measured gradient exactly. The wave speed `c` is the binding
+parameter — transport `c − χv_z > 0` is what breaks Fable C's symmetric `1/2`.
+
+**The reachable threshold (Fable A).** Capture needs `χ < (1−a)/K`; self-consistent,
+this gives `χ_max(c) ~ √c`: ≈ **1.7 at the empirical `c ≈ 4.4`** (PAST the paper's
+`χ*=1`), ≈ 2.6 at c=9, ≈ 3.3 at c=14. So a hand-buildable crest bound gives an
+UNCONDITIONAL improvement over the paper's χ* for this step — the first real one.
+
+**Fable C's adversarial verdict (mostly correct, one over-reach).** Pure symmetric
+max-principle (crude osc at both extrema) → eigenvalues {2χ−1, −1} → ceiling `1/2`.
+Correct that the uniform-K route stalls and that the min is generically at the front.
+BUT its "energy gives only χ<1" conflates the crude nonlinear estimate with the SHARP
+linearized brick (which is (1+√α)²=4, already proved). And it MISSED the wave-speed
+transport that Fable A uses to beat 1/2 → 1.7. Net: Fable C is right that pointwise-
+SYMMETRIC tops at 1/2, wrong that nothing pointwise beats it — the crest bound (using
+c) does.
+
+**L² framework (Fable B — designed, two-layer).** Thin `AbstractEnergyDecay` capstone
+(BUILT this session, clean-3, `fa137b95`): coercive energy ⇒ exp decay ⇒ →0. Thick
+`WeightedEnergySolution` bundle carries all measure theory (diff-under-integral via
+`hasDerivAt_integral_of_dominated_loc_of_deriv_le`; weighted IBP via compact-interval
++ R→∞ limit; flux-vanishing as a product `Tendsto`; resolver identities as actual
+integrals). Hardest piece: the elliptic v-representation (Green `½e^{−|·|}∗u^γ`) — the
+one unavoidable from-scratch sub-layer. Sharp `(1+√α)²` enters at one field.
+
+**Shared make-or-break (both frameworks): the front flux at z=Z(t).** Fable C
+independently fingers this — it is the drift-flux obstruction already formalized
+(`WholeLineCoMovingDriftFluxObstruction`). Test its sign BEFORE committing a week.
+
+### RESUME STATE (2026-07-21)
+Two buildable next steps, both beating χ* and both hand-sized (Codex quota-dead to Jul 24):
+1. The CREST gradient bound `K = χb(b−a)/(c−χ(b−a))` as a Lean lemma (steady profile,
+   interior-max first-order condition + oscillation bounds) → composes with the
+   already-landed `pointwise_min_rise_of_oscillation_bound` for χ < (1−a)/K.
+2. The oscillation bounds `|v−u|, |v_z| ≤ b−a` from the Green representation (needs the
+   ½e^{−|·|}∗u convolution — moderate MeasureTheory).
+Both feed the pointwise capture route to χ ≈ 1.7 (empirical c), UNCONDITIONAL over χ*.
+The L² route to the sharp 4 is designed (Fable B) but gated on the elliptic layer +
+front flux. FIRST verify the front-flux sign (drift-flux obstruction, already built).
