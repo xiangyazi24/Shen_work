@@ -1508,3 +1508,27 @@ do NOT invest in torus PDE plumbing, then pivot to the drift-boundary-flux
 obstruction lemma — the exact analog of the mirror-weight obstruction we already
 formalized, cheap (IBP bookkeeping, no regularity theory), and the true gate on
 the half-line result.
+
+### The drift-boundary-flux obstruction, made precise (verified, ready to formalize)
+
+The co-moving half-line energy identity, for `E_Z = ½∫_{-∞}^Z w²` with
+`w_t = w_zz + c·w_z + N(w)` and `w, w_z → 0` at `-∞`, is (verified numerically,
+residual ~1e-6 at the cut):
+
+`dE_Z/dt = -∫_{-∞}^Z w_z² + ∫_{-∞}^Z w·N + w(Z)·w_z(Z) + (c/2)·w(Z)²`.
+
+The two boundary fluxes at the cut `Z`:
+* `(c/2)·w(Z)²` — **the drift flux, `≥ 0` always** (strictly positive when
+  `c > 0`, `w(Z) ≠ 0`): confirmed `+0.21` at `c=1`, `+0.54` at `c=2.5` for the
+  same profile. This is ANTI-dissipative and is NOT bounded above by the bulk
+  `-∫w_z²`. That is the obstruction: the far-left half-line energy is not
+  monotone from the bulk dissipation alone.
+* `w(Z)·w_z(Z)` — the diffusion flux, sign-indefinite (`-0.066` here).
+
+This is the precise analog of the mirror-weight obstruction
+(`not_integrable_leftGrowing_sq_...`): a clean statement that the naive energy
+approach cannot close without front-localization to control the cut flux. It is
+frame-neutral IBP bookkeeping (the sign fact `(c/2)w² ≥ 0` is trivial; the
+identity needs `w` twice-differentiable on `[A,Z]` with decay at `A`), no
+regularity theory. It is the true gate on the half-line result and is the next
+brick after the plateau coercivity atoms.
