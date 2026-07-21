@@ -974,3 +974,4 @@ import ShenWork.Paper1.SharpDissipationCollapse
 import ShenWork.Paper1.SharpLyapunovDissipation
 import ShenWork.Paper1.PlateauRpowGap
 import ShenWork.Paper1.ReactionPlateauCoercive
+import ShenWork.Paper1.ResolverPlateauGradient
