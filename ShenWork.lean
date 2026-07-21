@@ -1003,3 +1003,4 @@ import ShenWork.Paper1.Paper1Theorem12ChiNegUnconditional
 import ShenWork.Paper1.Proposition11PositiveConjunctChiLtOne
 import ShenWork.Paper2.IntervalDomainTheorem12SlowBranchClosure
 import ShenWork.Paper2.IntervalDomainTheorem13MinimalResidual
+import ShenWork.Paper3.IntervalDomainMAllDataNonvacuity
