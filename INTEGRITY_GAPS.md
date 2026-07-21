@@ -1848,3 +1848,22 @@ Fable's buildable ladder (hand, no Codex): Lemma 1 (Green representation
 `v = ½e^{−|·|} ∗ u`) → Lemma 2 (oscillation bounds `|v−u|, |v_z| ≤ min(b−a, ‖u_z‖)`)
 → Bernstein gradient estimate. Lemmas 1-2 are short, certain, and the exact
 interface the capture argument needs; Bernstein is the real target.
+
+### Bernstein route VALIDATED numerically (2026-07-21): gradient is small vs band → threshold ~3.5
+
+Before investing in the gradient-estimate build, measured it along the real
+dynamics (χ=1 and χ=2, dip data, tracked to min→1):
+- `(v−u)/‖u_z‖∞ ≈ 0.47–0.51` throughout — so `(v−u) ≤ ½‖u_z‖`, even better than
+  Fable's `≤ ‖u_z‖` bound (the extra ½ is the `∫G|s|` vs the sup).
+- `(1−a)/‖u_z‖∞ ≈ 3.1–3.9` throughout — the gradient is SMALL relative to the band.
+
+Since the min rises iff `(1−a) > χ(v−u) ≈ ½χ‖u_z‖`, i.e. `χ < 2(1−a)/‖u_z‖ ≈ 7`,
+a gradient bound `‖u_z‖ ≤ K` with the observed constant closes the min-balance for
+χ well past `χ*=1` (up to ~3.5, consistent with the dynamics reaching the Turing 4).
+This upgrades Fable's Bernstein suggestion from "the only lever" to "a VALIDATED
+lever that beats χ*" — the gradient a priori estimate is worth building.
+
+The reason it works: `‖u_z‖` is controlled by the reaction/diffusion balance, NOT
+by the band width, so `(1−a)/‖u_z‖` is O(3.5), not O(1). The pointwise routes
+failed precisely because they bounded `(v−u)` by the band `(b−a)` instead of by
+`‖u_z‖`. Bernstein supplies the missing `‖u_z‖ ≤ K`.
