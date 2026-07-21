@@ -1004,3 +1004,4 @@ import ShenWork.Paper1.WholeLineParabolicDirectUpper
 import ShenWork.Paper1.WholeLineFarLeftDirect
 import ShenWork.Paper1.WholeLineInfSupNormControl
 import ShenWork.Paper1.WholeLineHstartProducer
+import ShenWork.Paper1.WholeLineFarLeftTargetCapstone
