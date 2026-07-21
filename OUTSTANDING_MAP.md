@@ -31,18 +31,22 @@ an assumed analytic package = real estimate work) · 🔬 **research** (beyond t
 
 ## OUTSTANDING — Paper 1
 
-**O-P1-1 🔧 Unconditionalize Thm 1.2 (stability).** The "natural" stability theorems
-(`…_chi_{neg,zero,pos}_natural`, `paper1_Theorem_1_2_paperDatum_of_chi_lt_half`) assume
-`IsTravelingWave`, `TravelingWaveRegularity`, `HasStrictWaveUpperTailBound`,
-`HasWaveRightTailAsymptotic`. These are all *proved for the wave that `Theorem_1_1.unconditional`
-constructs*, but no composed theorem feeds them in. **Task:** compose Thm 1.1 → Thm 1.2 for
-the whole regime, producing an unconditional stability theorem whose only remaining
-hypothesis is the *inherent* `WeightedL2InitialCloseness` (data close to the wave). Pieces
-exist; this is wiring + parameter-range alignment (c > cStarLower vs the η-window).
+**O-P1-1 ✅ (positive branch) DONE / 🧱 (χ≤0 branch) = O-P1-1b.**
+`paper1_Theorem_1_2_chi_pos_unconditional` (`Paper1Theorem12ChiPosUnconditional.lean`,
+clean-3) composes `paper1_positiveConstruction_selfStep` into the χ>0 stability, so the wave
+is CONSTRUCTED not assumed, for `0<χ<min(½,chiStar)`; only inherent `WeightedL2InitialCloseness`
+remains. **O-P1-1b [OPEN]:** the χ≤0 / χ=0 branches need `TravelingWaveRegularity` (9-field
+structure: C² for U,V; `deriv U → 0` at ±∞; `|V|,|V'|≤MChi^γ`), which the Rothe construction
+`paper1_negativeConstruction_selfStep` does NOT expose (only monotonicity + `ShenUpperBoundNegative`
++ tail). Surfacing it from the Rothe internals is analytic work. Shared blocker for nothing
+else now (O-P1-2 is inherent-conditional, done).
 
-**O-P1-2 🔧 Unconditionalize Thm 1.3 (uniqueness).** Same composition:
-`Theorem_1_3_amended_of_chi_lt_half` assumes two waves + regularity + tails; feed the
-constructed wave. Wiring.
+**O-P1-2 ✅ DONE (reclassified 2026-07-21).** `Theorem_1_3_amended_of_chi_lt_half`'s
+hypotheses (both waves are regular traveling waves sharing a right-tail rate) are
+*inherent* to a uniqueness statement — you are comparing waves within the regular class —
+not smuggled hard content, and it uses the *proved* stability (no assumed Cauchy-uniqueness).
+So it is a genuine proof with legitimate conditions. Nice-to-have (not required): a
+combined `∃! regular wave` capstone = O-P1-1's constructed wave + this uniqueness.
 
 **O-P1-3 🔬 Close the stability window [½, chiStar).** Full stability is proved only for
 0<χ<½; the far-left ingredient alone reaches `chiStar`. Lift the whole stability assembly
@@ -54,10 +58,10 @@ max-principle bound (≤max 1 M), and limsup≤1 are carried as assumed frontier
 (`Paper1PropositionFrontierData`); only `u₀≡1` is unconditional. **Task:** prove global
 existence + bounds for arbitrary nonneg data. This is general well-posedness — real PDE.
 
-**O-P1-5 🧱 Retire the `hcore` route.** The literal `Theorem_1_2_amended` via
-`…_of_wholeLineCauchyEnergyStep4` carries `hcore` = Henry semigroup smoothing as an
-assumption. The natural route (O-P1-1) *discharges* it — so either make the natural route
-the sole headline (preferred) or discharge `hcore` directly.
+**O-P1-5 ✅ effectively DONE (bookkeeping).** The natural route (used by O-P1-1) is already
+the `hcore`-free headline — it *discharges* the Henry smoothing internally. The
+`…_of_wholeLineCauchyEnergyStep4` route that carries `hcore` is just an inferior alternative;
+nothing depends on it. No proof gap; at most delete the redundant hcore route for tidiness.
 
 **O-P1-6 ◐ Lem 5.1/5.2/5.3 arbitrary-wave cases** (currently branch-only: signal bound,
 log-derivative, weighted elliptic perturbation). Needed if the arbitrary-wave (non-fixed-
