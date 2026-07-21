@@ -1000,3 +1000,4 @@ import ShenWork.Paper1.WholeLineParabolicBarrier
 import ShenWork.Paper1.WholeLineFarLeftAssembly
 import ShenWork.Paper1.WholeLineTouchSlope
 import ShenWork.Paper1.WholeLineParabolicDirect
+import ShenWork.Paper1.WholeLineParabolicDirectUpper
