@@ -981,3 +981,4 @@ import ShenWork.Paper1.WholeLineChiPosSpectralMargin
 import ShenWork.Paper1.WholeLineChiPosPointwiseCaptureStep
 import ShenWork.Paper1.WholeLineAbstractEnergyDecay
 import ShenWork.Paper1.WholeLineChiPosCrestGradientBound
+import ShenWork.Paper1.WholeLineChiPosCrestCapture
