@@ -995,3 +995,4 @@ import ShenWork.Paper1.WholeLineExpBarrierConvergence
 import ShenWork.Paper1.WholeLineExpBarrierConsistency
 import ShenWork.Paper1.WholeLineScalarComparison
 import ShenWork.Paper1.WholeLineFarLeftBarrierCapstone
+import ShenWork.Paper1.WholeLineScalarFirstTouch
