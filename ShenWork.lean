@@ -988,3 +988,4 @@ import ShenWork.Paper1.WholeLineChiPosPointwiseCeiling
 import ShenWork.Paper1.WholeLineResolverUniqueness
 import ShenWork.Paper1.WholeLineChiPosCrestOvershoot
 import ShenWork.Paper1.WholeLineChiPosBandViability
+import ShenWork.Paper1.WholeLineGreenConvolutionDeriv
