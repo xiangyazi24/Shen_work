@@ -2001,3 +2001,30 @@ uniform convergence, via forward-invariant SHRINKING bands (strict barriers →
 entry into a tighter invariant band), avoiding differentiating inf/sup; (Q2) the
 convolution-solves-ODE half of the Green rep (which Mathlib FTC lemma for the
 improper moving endpoint).
+
+### Round 2 roadmap (Fable R2, 2026-07-21; ChatGPT R2 timed out → Fable-solo)
+
+**Q1 ASSEMBLY (the convergence theorem):** time-dependent spatially-constant
+EXPONENTIAL barriers `α(t)=1−De^{−λt}`, `β(t)=1+De^{−λt}`, proved by ONE
+first-touch comparison lemma (NOT Danskin, NOT discrete bootstrap). The comparison
+lemma is the one new analytic piece — mirror the repo's Lemma 3.1 for
+extremum-attainment (Path A: if u attains extrema / →1 at ±∞; Path B: general
+bounded u via a `cosh(γz)` barrier + quantitative-slack pointwise lemmas +
+`∫½e^{−|z−y|}cosh(γy)=cosh(γz)/(1−γ²)`). The shrink is IN the exponential barrier
+(strictness absorbed into `λ < c'(1−2θ)`, `θ<1/2 ⟺ χ<χ_max`). Final theorem:
+`|u(t,z)−1| ≤ max(1−a,b−1)·e^{−λt}` uniform in z — exponential convergence, rate
+degenerating at `χ_max`.
+
+**Q2 CONVOLUTION ODE (priority 1, mechanical):** route (b), set integrals reduced
+to intervalIntegral by subtraction, NO limits. `I₋(z)=∫_{Iic z}e^y u`,
+`I₊(z)=∫_{Ioi z}e^{−y}u`, `V₋=½e^{−z}I₋`, `V₊=½e^z I₊`. Prove `V₋'=−V₋+u/2`,
+`V₊'=V₊−u/2` (each first-order); then `v=V₋+V₊`: `v'=V₊−V₋` (u cancels),
+`v''=v−u`. Exact Mathlib lemmas (Fable-confident): `integral_hasDerivAt_right`,
+`integral_Iic_sub_Iic`, `integral_add_compl` (+`compl_Iic`), `exp_neg_integrableOn_Ioi`.
+Grep-hedged: `intervalIntegral_tendsto_integral_Iic`, the comp-neg reflection (both
+in `MeasureTheory/Integral/{IntegralEqImproper,ExpDecay}.lean`). Bounded+continuous
+u suffices. `v` bounded by `M` (feeds the uniqueness keystone → `v = v_conv`).
+
+Implemented this round (all clean-3, root build 10002): pointwise_max_fall,
+bounded_solution_wzz_eq_w_is_zero, crest_gradient_bound_overshoot, band_barrier_iff,
+viable_band_threshold. Next: Q2 (I₋/I₊ FTC), then the Q1 comparison lemma.
