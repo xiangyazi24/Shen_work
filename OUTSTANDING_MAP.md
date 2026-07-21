@@ -39,7 +39,7 @@ remains. **O-P1-1b [CRUX SOLVED 2026-07-21].** `paper1_negativeConstruction_self
 (`Paper1Theorem12ChiNonposUnconditional.lean`, clean-3, root 10007) exposes
 `TravelingWaveRegularity` for the Rothe wave via route (1) (transport step-level ContDiff 2).
 Remaining to fully unconditionalize Thm 1.2 for χ≤0:
-- **χ=0: REACHABLE now** → `paper1_Theorem_1_2_chi_zero_unconditional` (regularity above +
+- **χ=0: DONE** (`paper1_Theorem_1_2_chi_zero_unconditional`, clean-3, root 10008) via `paper1_Theorem_1_2_chi_zero_unconditional` (regularity above +
   χ=0 strict barrier `positiveStationary_strict_upperBarrier` (covers 0≤χ) + chi_nonpos stability;
   handle speed via `max(cStarStar, cStarLower)`). [dispatched]
 - **χ<0: NEW-ANALYSIS WALL.** chi_nonpos stability needs `HasStrictWaveUpperTailBound` (min-form,
