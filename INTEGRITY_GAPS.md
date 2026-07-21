@@ -1681,3 +1681,45 @@ CAPTURE of the wide available band into that neighborhood — the genuinely hard
 core, a basin result, not comparison. Everything cheaper than (ii) is built and
 machine-checked. (ii) is the honest open problem; it should be reported as such,
 not as a mechanical brick.
+
+### Drift-flux obstruction brick landed (audited 2026-07-20)
+
+`WholeLineCoMovingDriftFluxObstruction.lean` (`f9dc2996`), 8 theorems, root build
+9991 jobs, 0 sorry, 0 axiom, clean-3, verified here. Matches the spec exactly:
+
+* `coMoving_halfLine_driftFlux_energy_identity` + `..._of_quenched_left`: the
+  co-moving IBP energy identity with explicit boundary terms; with `w A = 0`,
+  `w' A = 0` it is `∫w(w''+cw') = -∫(w')² + w Z·w' Z + (c/2)(w Z)²`.
+* `sq_endpoint_le_length_mul_integral_deriv_sq`: the Poincaré bound
+  `(w Z)² ≤ (Z-A)∫(w')²` for `w A = 0` — reusable.
+* `coMoving_driftFlux_net_pos_of_two_div_lt_length` +
+  `..._eq_zero_of_length_eq_two_div` + `..._le_dissipation_of_length_le_two_div`:
+  the SHARP onset `Z-A = 2/c` (net drift-minus-dissipation `> 0`, `= 0`, `≤ 0`
+  above/at/below), matching the numerics exactly.
+* `exists_linearRamp_driftFlux_gt_dissipation` + `coMoving_halfLine_driftFlux_obstruction`:
+  for `0 < c`, `2/c < Z-A`, and ANY `K`, a quenched-left `C¹` profile exists whose
+  drift flux `(c/2)(w Z)²` strictly exceeds the bulk dissipation `∫(w')²`. This is
+  the formal obstruction: the co-moving half-line energy is not bulk-controlled on
+  a half-line longer than `2/c`; front-localization is required. Precise analog of
+  the mirror-weight obstruction (`not_integrable_leftGrowing_sq_...`), and it makes
+  rigorous the same phenomenon the front numerics showed (advection sweeping the
+  growing mode). Statement is about the METHOD, not the PDE (same framing).
+
+## SESSION-END MAP (2026-07-20)
+
+The cheap-brick layer for Theorem 1.2's far-left is now COMPLETE and
+machine-checked. In dependency order:
+- rectangle mechanism + proved-sharp wall `2χγ<α`; coverage cubics `P`,`Q`;
+- quantified explicit seed (gain measured negligible);
+- SHARP Turing threshold `(1+√α)²`, both directions;
+- resolver testing identities + sharp `1/4` gradient bound;
+- linearized dissipation brick (why `χ*` is a lossy constant);
+- frame-neutral plateau coercivity atoms (rpow gap, reaction coercivity,
+  resolver→plateau bridge, scalar closure);
+- drift-flux obstruction (the half-line gate, sharp at length `2/c`).
+
+The single remaining open problem is (ii) GLOBAL CAPTURE of the wide available
+band into the near-1 basin for sub-Turing χ — genuine nonlinear stability, not a
+comparison brick, triangulated as beyond every cheap route. This is the honest
+frontier of Theorem 1.2 far-left. Resume from this section + `project_shen_fac_chain`
+memory.
