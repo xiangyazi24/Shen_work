@@ -116,7 +116,7 @@ That semigroup/energy set is the real P2 spine; knock it off → O-P2-1/O-P2-2 f
 
 ## OUTSTANDING — Paper 3  (real proofs live on `intervalDomainM`; abstract nonlinear conclusions are assumed via "TAUTOLOGY" bridges — not a target)
 
-**O-P3-1 🧱 Eventual → all-time for Thm 2.1–2.5.** The concrete proofs establish faithful
+**O-P3-1 ✅ RESOLVED 2026-07-21 (correct-the-paper).** ChatGPT (grounded, cusp counterexample + parabolic t^-1/2 smoothing) shows the printed ALL-TIME C¹ decay is a short-time regularity OVERSTATEMENT — FALSE for the paper's data class (u₀∈C(Ω̄), inf>0, NOT C¹). The concrete EVENTUAL forms (from t₀>0) are the faithful correct renderings; all-time must NOT be pursued. Per Xiang's rule (correct a wrong paper statement = done), the eventual Thms 2.1–2.5 ARE the headlines. Only O-P3-2 (non-vacuity) remains on P3.  ~~[OLD] Eventual → all-time for Thm 2.1–2.5.** The concrete proofs establish faithful
 *eventual* forms (asymptotics from some t₀>0). **Task:** upgrade to the printed all-time
 statements (`EventualGlobalStability.lean:70` marks them as untouched). Needs the short-time
 / uniform-in-t control that bridges [0,t₀].
