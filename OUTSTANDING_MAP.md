@@ -42,7 +42,7 @@ Remaining to fully unconditionalize Thm 1.2 for χ≤0:
 - **χ=0: DONE** (`paper1_Theorem_1_2_chi_zero_unconditional`, clean-3, root 10008) via `paper1_Theorem_1_2_chi_zero_unconditional` (regularity above +
   χ=0 strict barrier `positiveStationary_strict_upperBarrier` (covers 0≤χ) + chi_nonpos stability;
   handle speed via `max(cStarStar, cStarLower)`). [dispatched]
-- **χ<0: NEW-ANALYSIS WALL.** chi_nonpos stability needs `HasStrictWaveUpperTailBound` (min-form,
+- **χ<0: SOLVED 2026-07-21** (`paper1_Theorem_1_2_chi_neg_unconditional`, clean-3, root 10014) — strong-max-principle wall cleared via new strict Green bound `frozenElliptic_lt_one_of_le_one_tendsto`. [OLD: NEW-ANALYSIS WALL] chi_nonpos stability needs `HasStrictWaveUpperTailBound` (min-form,
   strict at every x); the negative construction gives only `ShenUpperBoundNegative` (max-form,
   strictly weaker, no bridge). Building the min-form for χ<0 needs (a) a strict χ≤0 exp-region
   operator sign (only non-strict exists) + (b) a χ<0 coupled strictly-below-one strong-maximum-
