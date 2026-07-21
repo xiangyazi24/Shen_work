@@ -989,3 +989,4 @@ import ShenWork.Paper1.WholeLineResolverUniqueness
 import ShenWork.Paper1.WholeLineChiPosCrestOvershoot
 import ShenWork.Paper1.WholeLineChiPosBandViability
 import ShenWork.Paper1.WholeLineGreenConvolutionDeriv
+import ShenWork.Paper1.WholeLineGreenConvolutionODE
