@@ -1762,3 +1762,43 @@ things left are (a) the L² energy-framework infrastructure to discharge the PDE
 interface, and (b) the GLOBAL CAPTURE nonlinear result — both genuine, both
 beyond a mechanical push, and (a) additionally gated on Codex quota. Documented
 as the honest frontier; resume from here + `project_shen_fac_chain` memory.
+
+### NEW ROUTE (2026-07-21): the pointwise min/max route beats χ* and avoids the L² framework
+
+Attacking global capture WITHOUT the L² framework (which the repo lacks), via the
+maximum-principle / shrinking-band machinery the repo HAS. At an interior minimum
+`z*` of `u` (`u_z=0`, `u_zz≥0`), with `m=γ=1` and `v_zz = v-u`:
+
+`u_t(z*) = u_zz(z*) + u(1-u) - χ·u·(v-u)(z*)`,  all three terms evaluated at `z*`.
+
+The min is nondecreasing iff this is `≥ 0`. Numerically (worst case over profiles,
+CURVATURE INCLUDED, min genuinely interior `u_zz≥0`):
+- linearized (a→1), single Gaussian dips: threshold `χ ≈ 5.79` (ABOVE Turing 4!),
+  worst width `L≈1.5`;
+- nonlinear, rich multi-bump profiles: threshold `χ ≈ 1.64`;
+both STRICTLY ABOVE the paper's `χ*=1` and far above the rectangle's `0.5`.
+The max side (ceiling descent) holds for ALL χ tested — the min side is binding.
+
+**Why this beats the rectangle:** the rectangle bounds the chemotaxis defect by
+the full band gap `b-a` at the extremum (worst case `(v-u)≤b-a`, R5), ignoring
+curvature — giving only `χ≲0.3`. But at a genuine min the curvature `u_zz(z*)>0`
+is a real positive term, and the adversary CANNOT make `(v-u)` large while
+`u_zz=0`: a flat-bottomed wide dip has SMALL `(v-u)` (v tracks slowly-varying u),
+a narrow dip has large `u_zz`. This correlation is exactly what the pointwise
+rectangle throws away and what pushes the threshold above `χ*`.
+
+**The formalization catch (honest):** the flat-barrier maximum principle gives
+only the SIGN `u_zz(z*)≥0` at a barrier touch, not its magnitude. Using the
+magnitude needs a pointwise inequality coupling `u_zz(z*)` to `(v-u)(z*)` for all
+trapped profiles. The linear coupling `u_zz(z*) ≥ 0.317·(v-u)(z*)` holds
+(numerical inf ≈ 0.317) but is too lossy — used alone it recovers only ~0.317.
+The sharp threshold (1.64+) is a variational worst-profile problem, NOT a single
+linear inequality. Whether it is hand-formalizable via a sharper curvature-defect
+coupling — OR needs a curvature/width a priori bound (= parabolic regularity,
+missing) — is the live question (dispatched to Fable).
+
+STATUS: numerical, promising, NOT yet a proof. But it is the FIRST route that
+(a) beats the paper's χ* and (b) uses only repo-available (pointwise/comparison)
+machinery, sidestepping the L² infrastructure blocker. If the curvature-defect
+coupling closes, this is a hand-buildable path to far-left convergence for χ up to
+~1.64 (γ=1) — a genuine improvement over the paper for this step.
