@@ -95,13 +95,13 @@ point) statements are wanted.
 
 ## OUTSTANDING — Paper 2  (real proofs live on `intervalDomain`; ∀-domain forms are deliberately obstructed, not a target)
 
-**O-P2-1 🧱 Thm 1.2 (weak cross-diffusion), slow branch 0<m<1.** Only m=1 is genuine
+**O-P2-1 ✅ DONE 2026-07-21.** `Theorem_1_2_intervalDomain_unconditional (p) (a=0∨0<b) : Theorem_1_2 intervalDomain p` — slow-branch residual discharged unconditionally (`IntervalDomainTheorem12SlowBranchResidual_unconditional`, trace-aware finite-horizon + continuation); only the corrected `a=0∨0<b` guard (done+good). ~~OLD: Thm 1.2 slow branch~~ Only m=1 is genuine
 (`…critical_branch_unconditional`). The slow branch `Theorem_1_2_intervalDomain_of_slowBranchResidual`
 *assumes* `IntervalDomainTheorem12SlowBranchResidual` (= its own conclusion). **Task:**
 discharge that residual (the 0<m<1 Lᵖ bootstrap). *(Also keep the corrected guard
 `a=0 ∨ 0<b` — the raw stmt is refuted for a>0,b=0; that correction is done+good.)*
 
-**O-P2-2 🧱 Thm 1.3 (strong logistic), real regime a,b>0, χ>0.** Only the χ₀≤0/m=1
+**O-P2-2 ◐ Thm 1.3 — frontier REFUTED + minimal-residual DONE 2026-07-21.** The old FrontierData is NOT constructible (`not_IntervalDomainTheorem13FrontierData_of_real_regime`: hGN/hglobalExtension are FALSE). `Theorem_1_3_intervalDomainM_from_minimal_honest_residual` carries ONLY the paper's case-(iv) proof gap (no energy assumption); the actual solution's all-positive-time uniform bound IS proved. Residual = case-(iv) critical-constant correspondence. ~~OLD: Thm 1.3 strong logistic~~ Only the χ₀≤0/m=1
 max-principle slice is genuine. The real regime `Theorem_1_3_intervalDomain_of_…` assumes a
 stack of frontier packages: `hGN, cGrad, hdiss, hgrad, hmass, hpow_int,
 hEnergyFromCrossDiffusion, hProp25, hlocal, hglobalExtension, hstrongBootstrap,
