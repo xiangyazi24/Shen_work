@@ -19,22 +19,44 @@
 The rectangle mechanism is exhausted at its wall (chiStar). Need a sharper control
 of the chemotaxis defect to push higher.
 
-## The injection point (VERIFIED against definitions)
+## The naive injection point — REFUTED (Q227, grounded in code)
 
 `chiPosFloorGap p M x = 1 - x^α - χ·( x^(m-1) · (M^γ - x^γ) )`
-(WholeLineChiPosRectangleTargets.lean:24). The factor `(M^γ - x^γ)` is a **crude**
-bound on the resolver aggregation defect `V - x^γ` (V = frozenElliptic p u), using
-the full band ceiling `M`. This crudeness caps the threshold at chiStar.
+(WholeLineChiPosRectangleTargets.lean:24). I thought `(M^γ - x^γ)` was crude and
+replaceable by `resolver_oscillation_bound`. **WRONG — non-improving:**
+- The current floor proof already uses the TIGHT pointwise bound `V - x^γ ≤ M^γ - x^γ`
+  at contact (`hchemResolver`, WholeLineChiPosHalfLineWeightedComparison.lean:427-433,
+  via `hresolver : V ≤ Dup`, `Dup ≈ M^γ`).
+- `resolver_oscillation_bound` applied to the source `q^γ` gives `|V - q^γ| ≤ M^γ - ell^γ`,
+  and since `ell ≤ x`, `M^γ - ell^γ ≥ M^γ - x^γ`. So the oscillation width is LARGER
+  (weaker). For m=γ=α=1 with band width 2E it re-gives `2χE < E ⇒ χ < 1/2`. No gain.
+- (My error: located the term, never checked the inequality direction. 2nd such retraction.)
 
-**Tighter tool (already proved, clean-3):**
-`resolver_oscillation_bound : |v - u| ≤ b - a` (WholeLineResolverOscillationBound),
-and `crest_gradient_bound : ‖u_z‖ ≤ χ b(b-a)/(c - χ(b-a))`
-(WholeLineChiPosCrestGradientBound). The oscillation `b-a` is O(1) and much smaller
-than the crude `M^γ - x^γ`.
+## The REAL path (Q227 §5,§7,§8,§9) — genuinely hard, not surgical
 
-**Plan:** replace `(M^γ - x^γ)` in the successor's subsolution inequality with the
-oscillation bound, re-derive the floor gap `≥ 0` condition → new (higher) χ threshold
-toward `(1+√α)²`. Reuse the ENTIRE half-line successor scaffold — no parallel route.
+Two independent obstructions to reaching `(1+√α)²`:
+
+1. **Need a time-dependent relative-defect bound** `V(t,z) - q(t,z)^γ ≤ Ω` with Ω
+   genuinely smaller than `M^γ - x^γ`, uniform on the slab, NON-circular. Then
+   `chiPosFloorGapSharp p Ω x := 1 - x^α - χ·x^(m-1)·Ω`, threshold `χ·L^(m-1)·Ω < 1-L^α`.
+   The `√(c/2)` scaling IS correct IF a c-dependent dynamic bound `|V-q| ≤ χB(B-A)/(c-χ(B-A))`
+   holds on every slice (Q227 §7 algebra: `2Bχ² + 2Eχ < c ⇒ χ→√(c/2)` as E→0).
+   BUT the committed `crest_gradient_bound` does NOT supply it: it is a STEADY crest
+   estimate assuming `b ≤ 1` (`hb1`), while the successor has time-dependent slices with
+   `M > 1`. Needs a NEW parabolic Bernstein/gradient theorem for the restarted orbit —
+   the highest-risk build (`wholeLineChiPos_restart_resolverDefect_le`).
+2. **χ<1 is structural.** `WholeLineCauchyCeilingRegime` is built from `hchi_lt : χ<1`
+   (successor:668), and target monotonicity needs `1-χ>0` (RectangleTargets:62-106).
+   At m=γ=α=1 (chiStar=1), reaching 4 requires replacing the ceiling regime AND the
+   target-selection algebra too.
+
+**One small real improvement available now** (Q227 §6): replace tail charge `tau·G^γ`
+by the exact `tau·(G^γ - M^γ)` (from `Dup - b^γ = (M^γ-b^γ) + tau(G^γ-M^γ)`). Local
+gain only; does NOT move the R→∞ threshold.
+
+**Caveat:** `(1+√α)²` is the *linear/temporal* Turing threshold. The repo does NOT
+prove it is the exact *nonlinear far-left* threshold. Reaching it is open research,
+not a wiring task.
 
 ## This session's redundant files (recommend delete, pending Xiang)
 
