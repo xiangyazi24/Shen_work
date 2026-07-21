@@ -1802,3 +1802,49 @@ STATUS: numerical, promising, NOT yet a proof. But it is the FIRST route that
 machinery, sidestepping the L² infrastructure blocker. If the curvature-defect
 coupling closes, this is a hand-buildable path to far-left convergence for χ up to
 ~1.64 (γ=1) — a genuine improvement over the paper for this step.
+
+### RETRACTION + Fable's decisive verdict (2026-07-21): pointwise routes cap at 1/2; the bottleneck is a gradient estimate
+
+**RETRACT the previous entry's "pointwise route beats χ* (~1.64)".** It was WRONG.
+My worst-case search used SMOOTH (Gaussian/cosh) dips, which structurally cannot
+produce `u_zz(z*)=0` with a large defect — a Gaussian couples curvature to depth.
+Fable supplied the adversarial profile I missed: a FLAT-BOTTOMED dip, `u ≡ a` on
+`[−ε, ε]`, rising to `b` outside. It has `u_zz(0) = 0` EXACTLY (constant on the
+flat interval, any ε>0), while `(v−u)(0) = (b−a)e^{−ε}` stays O(b−a). Confirmed
+by a REAL-SPACE (non-FFT, no aliasing) computation: `u_zz(0) = 0.00000`, min rate
+goes negative at `χ ≈ 0.4`, → the onset `(1−a)/(b−a) = 0.304` as `ε → 0`.
+
+So the pointwise min-bootstrap dies at `χ ≈ 0.30`, NOT 1.64. The "helpful"
+curvature sits at the SHOULDERS `±ε`, spatially separated from the min point the
+pointwise inequality reads — the flat-barrier maximum principle sees only
+`u_zz(z*) ≥ 0` (sign), and a minimum can be flat. (Why the DYNAMICS still reach
+χ≈4: the flow's diffusion prevents flat-bottomed-with-nearby-walls profiles from
+forming — solutions have controlled gradients and never reach the adversarial
+shape. That gradient control is exactly the missing ingredient.)
+
+**Fable's verdict (checked, adopted).** The one identity: `-v_zz+v=u` with
+Green's function `G(x)=½e^{−|x|}` gives `(v−u)(z) = ½∫e^{−|z−y|}(u(y)−u(z))dy`, a
+scale-1 average of the curvature. It is bounded either by `b−a` (adversarial) OR,
+IF a gradient bound `‖u_z‖∞ ≤ K` exists, by `K` (since `½∫e^{−|s|}|s|ds = 1`).
+That dichotomy is the whole problem. Every pointwise route hits the SAME wall:
+
+| route | caps at | why |
+|---|---|---|
+| shrinking band (A) | **1/2** | `(v−u)≤(b−a)` at BOTH extrema ⟹ `1 = 2χ` |
+| weighted-L∞ (C) | **1/2** | nonlocal `ψ` bounded only by `sup|w|` ⟹ `2χ` vs `1` |
+| pointwise min-bootstrap (B) | **0.30** | flat-bottom minima: `u_zz(z*)=0`, curvature invisible |
+| zero-number | **fails** | chemotaxis gives a nonlocal SOURCE `−χψ(z0)≠0` at zeros of `w` |
+| L² energy (unavailable) | **4** (sharp) | IBP turns the flux into a coercive `+α` gain |
+
+**The true bottleneck is a pointwise a priori GRADIENT estimate `‖u_z‖∞ ≤ K`**
+(Bernstein, via the max principle on `P = u_z² + λ(u−a)(b−u)`). It is the single
+object that converts `(v−u) ≤ b−a` into `(v−u) ≤ ‖u_z‖`, breaking the symmetric
+`1/2`. It fits the repo's max-principle machinery with NO measure theory. Whether
+Bernstein's `K` reaches all the way to `χ=1` as the band tightens is the one
+genuinely open quantitative question — but it is the only pointwise lever that
+moves at all. If it falls short, THAT is the justified moment to build the L² layer.
+
+Fable's buildable ladder (hand, no Codex): Lemma 1 (Green representation
+`v = ½e^{−|·|} ∗ u`) → Lemma 2 (oscillation bounds `|v−u|, |v_z| ≤ min(b−a, ‖u_z‖)`)
+→ Bernstein gradient estimate. Lemmas 1-2 are short, certain, and the exact
+interface the capture argument needs; Bernstein is the real target.
