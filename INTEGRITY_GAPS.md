@@ -1953,3 +1953,23 @@ design needed):**
 
 The interface/algebra layer is DONE. (b),(d),(f) are the substantive analytic work;
 (a),(c),(e) are standard. Codex quota resets Jul 24 for the heavier discharges.
+
+### Round 1 grounding (2026-07-21): overshoot is REAL but small & transient — crest b≤1 needs fixing
+
+Tested Fable C's warning directly: starting from `u ≤ 1` everywhere (a dip),
+does chemotaxis push `max u` above `1`? YES — spontaneous overshoot, growing with
+χ: `max u − 1` peaks at `+0.0004` (χ=0.5), `+0.010` (χ=2), `+0.031` (dip) /
+`+0.051` (asym) at χ=3. So `crest_gradient_bound`'s `b ≤ 1` hypothesis is NOT
+strictly satisfiable by the dynamics — the conditional-milestone check catching a
+carried hypothesis inhabited only as `b ≤ 1 + ε(χ)`.
+
+BUT: (i) the overshoot is SMALL (`O(few %)` even at χ=3), and (ii) from an
+initial bump above 1 it DECAYS back to 1 (front test, all χ≤2) — so it is
+TRANSIENT; `b → 1` eventually. Two consequences for the crest route:
+- for the EVENTUAL (t→∞) statement, `b ≤ 1 + ε` with `ε → 0`, so the crest bound
+  survives asymptotically;
+- the crest bound's use of `−u(1−u) ≤ 0` (needs `u ≤ 1`) generalizes: for `u ≤ b`
+  with `b > 1`, `−u(1−u) = u(u−1) ≤ b(b−1)`, so
+  `K ≤ [χb(b−a) + b(b−1)] / (c − χ(b−a))` — a small correction, route intact.
+
+This is the Round 1 make-or-break for the dual-oracle design.
