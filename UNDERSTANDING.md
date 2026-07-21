@@ -1,5 +1,28 @@
 # UNDERSTANDING.md — Shen_work
 
+## CURRENT PLAN (2026-07-21): clear the outstanding map one by one
+
+Full chart: **`OUTSTANDING_MAP.md`** (source-verified). Per-headline real status:
+**`THEOREM_LIST_BY_PAPER.md`**. Rule: a condition that smuggles the hard content in =
+NOT proved; inherent hypotheses (data closeness) and corrected-wrong-paper statements are
+fine. Don't reinvent — 800K LOC exist; build on the DONE list in the map.
+
+Knock-off order (executing top-down, don't drift):
+1. **O-P1-1 [IN PROGRESS]** — unconditionalize P1 Thm 1.2: compose `Theorem_1_1`
+   construction (wave + `TravelingWaveRegularity` + tails, all proved) into
+   `paper1_Theorem_1_2_paperDatum_of_chi_lt_half`, killing the assumed-wave hypotheses.
+   Note: the `Theorem_1_1` *def* drops regularity from its conclusion → use the fuller
+   `paper1_positiveConstruction_selfStep` / negative Rothe output. Match predicates
+   `ShenUpperBoundPositive`↔`HasStrictWaveUpperTailBound`, speed windows
+   (existence `c>cStarLower`/`c>2` vs stability `paper5CorrectedCStarStar<c`).
+2. O-P1-2 — same for Thm 1.3 uniqueness.
+3. O-P1-5 — drop `hcore`; natural route becomes the headline.
+4. O-P3-1 — eventual→all-time (intervalDomainM).
+5. O-P2-3 / O-P3-3 — the analytic lemma stacks (Neumann-semigroup/sectorial/energy) = the spine.
+6. downstream headlines (O-P2-1/2, O-P3-2), then O-P1-4, then research edge O-P1-3 → (1+√α)².
+
+Progress log appended at the bottom of this file under "## Knock-off log".
+
 ## Paper 1 Theorems 1.2--1.3 statement repair (2026-07-13)
 
 The original Section 5 proof has three independently certified statement
