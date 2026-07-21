@@ -997,3 +997,6 @@ import ShenWork.Paper1.Paper1Theorem12ChiZeroUnconditional
 import ShenWork.Paper2.IntervalDomainLemma27Unconditional
 import ShenWork.Paper2.IntervalDomainLemma26Unconditional
 import ShenWork.Paper1.Proposition11UnconditionalAudit
+import ShenWork.Paper1.WaveNegativeStrictBarrier
+import ShenWork.Paper1.WaveNegativeStrictBarrierConstruction
+import ShenWork.Paper1.Paper1Theorem12ChiNegUnconditional
