@@ -2151,3 +2151,25 @@ slow/undelivered all session): ~33 new clean-3 lemmas.** The far-left frontier
 moved from "find a mechanism" to a clean conditional theorem whose ONLY open input
 is the Danskin inf/sup differentiability + its rate identity — the one parabolic-
 analysis fact, cleanly scoped, for a focused session / faster-ChatGPT / Codex Jul 24.
+
+### Direct 2D first-touch dispatched to ChatGPT (cron1, high mode); reduction complete (2026-07-21)
+
+Worked out the correct contradiction for the direct 2D first-touch (route B, avoids
+Danskin differentiability — needs only inf-CONTINUITY): let `F = {t∈[0,t1] : a t < α t}`
+(bad set), `t0 = sInf F`; then `α = a` at `t0`, confinement `α ≤ a` on `[0,t0)`, and
+with `z0` the argmin at `t0`, `ψ = u(·,z0) − α` has `ψ(t0)=0`, `ψ'(t0)>0` (from the
+touch-slope), so `ψ < 0` just LEFT of `t0` — contradicting `ψ ≥ 0` there (confinement +
+`a ≤ u(·,z0)`). Dispatched the full Lean proof to ChatGPT/cron1 (faster on "high"); it's
+the one fiddly `sInf`-boundary proof left, and it REFINES `parabolic_lower_barrier`
+(differentiable `a`) to need only continuous `a`.
+
+**State:** the far-left convergence chain is machine-checked end-to-end
+(`parabolic_lower_barrier` with a differentiable inf-trajectory is already committed and
+usable). The direct version (continuous-only) is in ChatGPT's hands. Both reduce to the
+same genuine analytic core: the inf/sup trajectory's continuity (Path A via the plateau
+`u→1` at `±∞`) + the pointwise rate `da ≥ R⁻` on the actual `wholeLineCauchyGlobalU`
+solution (the PDE `u_t` at a spatial min, using the landed `resolver_oscillation_bound`).
+
+Everything structural is done: ~33 clean-3 lemmas, root build 10013, 0 sorry, 0 axiom.
+The remaining work is PDE-solution-specific (the whole-line solution API) — for a focused
+session, ChatGPT's landing proof, or Codex Jul 24.
