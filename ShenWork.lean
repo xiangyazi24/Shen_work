@@ -1018,3 +1018,7 @@ import ShenWork.Paper2.IntervalSharpSemigroupResidualAudit
 import ShenWork.Paper2.IntervalFullKernelFullQGradient
 import ShenWork.Paper2.IntervalFullKernelFullQSmoothing
 import ShenWork.Paper2.IntervalFullQIntegerEmbedding
+import ShenWork.Paper2.IntervalFractionalSubordinationScalar
+import ShenWork.Paper2.IntervalFullKernelFullQGenerator
+import ShenWork.Paper2.IntervalFractionalSubordinationFullQ
+import ShenWork.Paper2.IntervalFractionalSubordinationDivergenceFullQ
