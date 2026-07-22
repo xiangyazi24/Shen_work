@@ -1041,3 +1041,5 @@ import ShenWork.Paper1.WholeLinePhysicalMildClassical
 import ShenWork.Paper1.WholeLinePhysicalMildReachability
 import ShenWork.Paper1.WholeLinePhysicalMildSegments
 import ShenWork.Paper1.WholeLinePhysicalMildUniqueness
+import ShenWork.Paper3.IntervalDomainMTheorem23RestartDuhamel
+import ShenWork.Paper3.IntervalDomainMTheorem23AllTimeC1
