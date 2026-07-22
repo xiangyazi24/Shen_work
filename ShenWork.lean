@@ -1009,3 +1009,7 @@ import ShenWork.Paper2.IntervalSharpSemigroupFrontier
 import ShenWork.Paper2.IntervalSharpSpectralHolderEmbedding
 import ShenWork.Paper2.IntervalSharpSpectralPhysicalL2
 import ShenWork.Paper2.IntervalSharpSpectralPhysicalFractionalDivergenceL2
+import ShenWork.Paper1.Lemma51ArbitraryWave
+import ShenWork.Paper1.Lemma51ArbitraryWaveFull
+import ShenWork.Paper1.Lemma52ArbitraryMonotoneWave
+import ShenWork.Paper1.Lemma53ArbitraryProfiles
