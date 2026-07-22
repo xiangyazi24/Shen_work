@@ -142,6 +142,23 @@ mass for Part 4. Confirm the correction is faithful / decide if the printed form
 
 ---
 
+
+## GENERAL-m (Fable framework) — added 2026-07-22 per Xiang; RECONCILED
+
+Xiang recalled a Fable-drafted framework; recon (`HANDOFF/general-N-recon.md`, mini cron) clarified it is
+**general-m** (diffusion exponent m≥1, `intervalDomain` m=1 → `intervalDomainM` paper-faithful uᵐ flux, dropping
+`hm:p.m=1`), NOT general-N/N-species. Three Fable doctrines target P3 Thm 2.2/2.3/2.4 general-m. **Verified actual
+status (verify-don't-transcribe — recon was stale on 2.3):**
+- **Thm 2.2 general-m** — ✅ DONE (`DOCTRINE_thm22_fable.md`, HEADLINE CLOSED 2026-07-16; `intervalDomainM_Theorem_2_2_Eventual…`).
+- **Thm 2.4 general-m** — ✅ DONE (`DOCTRINE_thm24_fable.md`, UNCONDITIONAL 2026-07-16).
+- **Thm 2.3 general-m** — ✅ DONE via the EVENTUAL route (`intervalDomainM_Theorem_2_3_EventualGlobalStability`,
+  clean-3 verified 2026-07-22; + all-data non-vacuity O-P3-2). The recon's "7-file plan / not started" refers to the
+  never-written Fable *plan file* `DOCTRINE_thm23_fable.md` (confirmed absent) — the THEOREM was proved by a
+  different route. Since all-time is a paper overstatement (O-P3-1), the eventual form is the faithful maximal form.
+**⇒ the general-m framework is essentially COMPLETE (all three theorems proven, intervalDomainM, clean-3).** If the
+specific Fable 7-file *route* for Thm 2.3 is wanted (vs the eventual route already proven), that is re-doing done
+work — flag to Xiang before spending on it.
+
 ## Suggested knock-off order (cheap → hard)
 
 1. **O-P1-1, O-P1-2** (🔧 wiring): compose Thm 1.1 into Thm 1.2/1.3 → Paper 1's trilogy
