@@ -1013,3 +1013,5 @@ import ShenWork.Paper1.Lemma51ArbitraryWave
 import ShenWork.Paper1.Lemma51ArbitraryWaveFull
 import ShenWork.Paper1.Lemma52ArbitraryMonotoneWave
 import ShenWork.Paper1.Lemma53ArbitraryProfiles
+import ShenWork.Paper2.IntervalDomainSharpSemigroupEstimateData
+import ShenWork.Paper2.IntervalSharpSemigroupResidualAudit
