@@ -830,3 +830,25 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   (1) full-q FRACTIONAL Lp multiplier = H-infinity/Marcinkiewicz infra Mathlib lacks;
   (2) Prop1.1 1<=chi = whole-line Lp (domain mismatch); (3) chiStar->(1+sqrt alpha)^2 = beyond-papers research.
   All grunt via Codex (conserve Claude). ~60 commits this run.
+
+## Run 2026-07-22 (automode + fable-ora: far-left χ<4 frontier)
+- avenue: research edge — far-left sharp threshold χ<4 (BEYOND the papers; papers only claim χ*≈1, already proved unconditional).
+- Dual-oracle audit (ChatGPT Q281/Q287/Q288, high confidence, verified-don't-transcribe):
+  BOTH the compactness route AND the direct entropy-decay route hit the SAME wall — the sharp
+  entropy E'≤−(1−χ²/16)E is LOCALIZED (weight decays as z→−∞), blind to a fixed-size defect
+  ("hole") drifting to z=−∞ behind the front. So far-left u→1 reduces to a TRANSLATION-UNIFORM
+  ANTI-ESCAPE estimate. Q288: direct route works only after upgrading to a half-line-coercive /
+  translation-uniform norm. Q287: Harnack is the SECOND half; the missing FIRST half is a
+  translation-uniform nonvanishing (positive-floor) estimate on far-left boxes. Verdict:
+  expected TRUE for χ<4 (front-like, no counterexample below 4), NOT established by current machinery.
+- Lean cross-check (verified in code): the existing reduction
+  `uniformCoMovingLeftEquilibriumConvergence_chiPos_upto_four_of_canonicalParabolicCompactness`
+  (clean-3, root 10085) carries residual `ChiOneFarLeftParabolicCompactness chi c ell k orbit`,
+  whose `translatedData` field demands, on every far-left-ESCAPING translate sequence
+  (timeShift→+∞, spaceShift→−∞), uniformly-bounded classical fields carrying the floor `ell`
+  via `ChiOneEntireBoundedClassicalData chi c ell k`. i.e. the residual IS the anti-escape floor,
+  exposed EXPLICITLY (hell : 0 < ell) — not smuggled. Lean reduction faithful, matches audit exactly.
+- Mechanism design round in flight: Fable oracle (moving-weight entropy family vs wave-comparison
+  reducing anti-escape to already-proved Paper-1 wave stability). ChatGPT anti-escape Q refused
+  (tmux-ancestry from tool shell) — Fable-primary per fable-ora timeout protocol.
+- end: <open — awaiting Fable mechanism verdict>
