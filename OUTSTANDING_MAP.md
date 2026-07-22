@@ -155,9 +155,7 @@ status (verify-don't-transcribe — recon was stale on 2.3):**
   clean-3 verified 2026-07-22; + all-data non-vacuity O-P3-2). The recon's "7-file plan / not started" refers to the
   never-written Fable *plan file* `DOCTRINE_thm23_fable.md` (confirmed absent) — the THEOREM was proved by a
   different route. Since all-time is a paper overstatement (O-P3-1), the eventual form is the faithful maximal form.
-**⇒ the general-m framework is essentially COMPLETE (all three theorems proven, intervalDomainM, clean-3).** If the
-specific Fable 7-file *route* for Thm 2.3 is wanted (vs the eventual route already proven), that is re-doing done
-work — flag to Xiang before spending on it.
+**⇒ the general-m framework is essentially COMPLETE (all three theorems proven, intervalDomainM, clean-3).** **Fable-route EXPLORED (Xiang green-lit): genuine value-add landed** — `intervalDomainM_Theorem_2_3_allTime_of_C1Data` (all-time exp C1 stability on C1-continuous orbits, explicit rate; refines O-P3-1) + `IntervalDomainMTheorem23RestartDuhamel` (unified architecture). Both clean-3.
 
 ## Suggested knock-off order (cheap → hard)
 
