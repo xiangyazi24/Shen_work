@@ -89,7 +89,7 @@ the `hcore`-free headline — it *discharges* the Henry smoothing internally. Th
 `…_of_wholeLineCauchyEnergyStep4` route that carries `hcore` is just an inferior alternative;
 nothing depends on it. No proof gap; at most delete the redundant hcore route for tidiness.
 
-**O-P1-6 ◐ Lem 5.1/5.2/5.3 arbitrary-wave cases** (currently branch-only: signal bound,
+**O-P1-6 ✅ DONE 2026-07-21.** Lem 5.1/5.2/5.3 arbitrary-wave cases proved clean-3 (Lemma_5_1_arbitrary_wave, Lemma_5_2_arbitrary_monotone_wave, Lemma_5_3_arbitrary_profiles); inherent hypotheses only. ~~OLD: Lem 5.1/5.2/5.3 arbitrary-wave** (currently branch-only: signal bound,
 log-derivative, weighted elliptic perturbation). Needed if the arbitrary-wave (non-fixed-
 point) statements are wanted.
 
