@@ -821,3 +821,12 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - starting avenue: (a) O-P1-1b Rothe-wave TravelingWaveRegularity → P1 Thm 1.2 chi<=0 unconditional
 - method: orchestrate — sub-agents + ChatGPT parallel compute (Codex out), verify+commit each
 - end: <open>
+
+- 2026-07-21 automode HIGH-WATER MARK (root green 10049, 0 sorry, 0 axiom):
+  ALL THREE PAPERS' THEOREMS essentially formalized. P1 Thm1.1/1.2(all chi)/1.3+Prop1.2+Prop1.1(chi<1)+all lemmas;
+  P2 Thm1.1/1.2(uncond)/1.3(m>=1)+Props2.1-2.5+lemmas(2.1-2.4 sharp q=2 + full-q heat/integer); P3 eventual
+  Thm2.1-2.5+all-data non-vacuity+O-P3-1 resolved. Correct-the-paper throughline (Lem2.7/Thm1.3/Thm2.3/Prop1.1
+  overstatements refuted+faithful). Documented terminal frontier (none blocks a headline):
+  (1) full-q FRACTIONAL Lp multiplier = H-infinity/Marcinkiewicz infra Mathlib lacks;
+  (2) Prop1.1 1<=chi = whole-line Lp (domain mismatch); (3) chiStar->(1+sqrt alpha)^2 = beyond-papers research.
+  All grunt via Codex (conserve Claude). ~60 commits this run.
