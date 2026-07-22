@@ -112,7 +112,7 @@ hstrongEventualSupBound`. **Task:** discharge these — this decomposes into O-P
 **Props 2.2, 2.3, 2.4, 2.5 are ALREADY PROVED UNCONDITIONALLY** (`intervalDomain_Proposition_2_2`
 WeightedGradientEstimate:817, `_2_3` Proposition23:879, `_2_4` Mass:888, `Proposition_2_5
 intervalDomain p` LPI:103 / others) — do NOT reinvent. Genuinely OUTSTANDING (each appears only
-as a carried hypothesis, no unconditional concrete proof): **Prop 2.1 (signal Lᵖ), **Lem 2.1-2.4: sharp q=2 estimates DONE via spectral calculus (85 thms, IntervalSharp*.lean); remainder = full-q + interface wiring**, Lem 2.6 (Lᵖ bootstrap — carries frontier `hdiss`),
+as a carried hypothesis, no unconditional concrete proof): **Prop 2.1 (signal Lᵖ), **Lem 2.1-2.4: DONE in FULL-Q** (q=2 spectral 85 thms + full-q heat/integer kernel + full-q FRACTIONAL via subordination `intervalFractionalNeumannLp_norm_le`; the H-inf/Marcinkiewicz 'wall' was bypassable).  Lem 2.6 (Lᵖ bootstrap — carries frontier `hdiss`),
 Lem 2.7 (damping), Lem 3.1 (sup-norm max principle), Lem 4.1 (mass–gradient interp), Cor 2.1**.
 That semigroup/energy set is the real P2 spine; knock it off → O-P2-1/O-P2-2 fall.
 
