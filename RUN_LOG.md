@@ -852,3 +852,26 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
   reducing anti-escape to already-proved Paper-1 wave stability). ChatGPT anti-escape Q refused
   (tmux-ancestry from tool shell) — Fable-primary per fable-ora timeout protocol.
 - end: <open — awaiting Fable mechanism verdict>
+
+### 2026-07-22 addendum — residual refined + Fable mechanism verdict
+- Sharp LINEAR threshold χ<4 already fully formalized in WholeLineChiPosDispersionSharp.lean
+  (dispersion_le_of_lt_turing / _attains_at_sqrt / _pos_of_gt_turing, clean-3); I independently
+  re-verified the plane-wave algebra: max Re λ = (√χγ−1)²−α < 0 ⟺ χγ<(1+√α)². No Turing band
+  below 4 ⟹ far-left escape is transport-without-growth (supports anti-escape expected-true).
+  (Check-existing miss: I briefly duplicated this into the base file, then reverted.)
+- Residual refinement (WholeLineChiPosTrueThresholdMaximalOrbit.lean): the current bottom residual
+  `ChiOneFarLeftParabolicCompactness` is OVER-STRONG — its translatedData demands classical fields
+  at artificial negative times (t=0,x=−1), so non-differentiable BUC data refutes it trivially
+  (not_canonicalParabolicCompactness_of_nondifferentiable_initial_slice). NOT an anti-escape
+  counterexample. The file already defines the CORRECT residual `ChiOneFarLeftEventualSecondJetEstimate`
+  (eventual, positive-time, uniform space-time modulus for u_xx,u_t over late translates) —
+  local C² files give existence/continuity/compact-window bounds but not the uniform-over-translates
+  modulus. So honest residual = {eventual-second-jet compactness (in-progress correction) + floor ell (open)}.
+- Fable oracle verdict: honest reachable is χ≤4−δ via uniformly-local (Kato L²_ul) moving-weight
+  entropy sup_a E_a; single residual = drift-absorption |drift_a|≤(C/ℓ)(E_a+D_a); rate = 2√χ−χ,
+  positive iff χ<4, drift absorbable for ℓ>C/(2√χ−χ); as χ→4 rate→0 forces ℓ→∞ weakening
+  localization → χ=4 endpoint genuinely open. Wave-comparison = DEAD END (no comparison principle
+  for cross-diffusion — matches my own code-check).
+- FORK for Xiang (method/scope, per automode "method-flexibility is senior author's call"):
+  invest in the χ≤4−δ moving-entropy build (heavy, δ-blowup, doesn't reach true χ=4), OR
+  record the {second-jet + floor} reduction as the terminal honest frontier state. Papers all done.
