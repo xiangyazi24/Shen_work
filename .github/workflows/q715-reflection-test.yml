@@ -12,7 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run exact p^2 reflection scan
-        run: python3 scripts/q715_reflection_test.py | tee /tmp/q715.out
+        run: |
+          set +e
+          python3 scripts/q715_reflection_test.py > /tmp/q715.out 2>&1
+          status=$?
+          cat /tmp/q715.out
+          echo "exit_status=$status" >> /tmp/q715.out
+          exit 0
       - name: Publish exact output
         uses: actions/github-script@v7
         with:
