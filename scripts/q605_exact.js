@@ -28,7 +28,7 @@ function sieve(n){
   for(let p=2;p*p<=n;p++) if(is[p]) for(let k=p*p;k<=n;k+=p) is[k]=false;
   return {is, primes:Array.from({length:n+1},(_,i)=>i).filter(i=>is[i])};
 }
-const {is:isPrime, primes} = sieve(NMAX+10);
+const {primes} = sieve(NMAX+10);
 
 function binom(n,k){
   if(k<0||k>n) return 0n;
@@ -63,8 +63,6 @@ for(let m=0;m<=JMAX;m++){
 const Apery=Array(NMAX+1).fill(0n); Apery[0]=1n; if(NMAX>=1) Apery[1]=5n;
 for(let n=1;n<NMAX;n++){
   const N=BigInt(n);
-  const P=34n*N*N + 51n*N*N?0n:0n;
-  // Keep the polynomial fully in BigInt to avoid accidental Number arithmetic.
   const poly=34n*N*N*N + 51n*N*N + 27n*N + 5n;
   const num=poly*Apery[n] - N*N*N*Apery[n-1];
   const den=BigInt(n+1)**3n;
@@ -124,7 +122,11 @@ function candidateData(n){
 }
 
 function thresholdMap(data,n){
-  const map={all:data.pmin-1, direct:data.pdir-1, reflected:data.pref-1};
+  const map={
+    all:data.pmin-1,
+    direct:Number.isFinite(data.pdir)?data.pdir-1:0,
+    reflected:Number.isFinite(data.pref)?data.pref-1:0
+  };
   if(Number.isFinite(data.pbadfloor)) map.struct=data.pbadfloor-1;
   if(Number.isFinite(data.pdirBadFloor)) map.directStruct=data.pdirBadFloor-1;
   if(Number.isFinite(data.prefBadFloor)) map.reflectedStruct=data.prefBadFloor-1;
@@ -144,7 +146,8 @@ function momentsMinus(n,L,J,K,thresholds){
   for(let k=1;k<=maxm;k++){
     let S=0n;
     const amin=Math.max(0,k-1-J);
-    for(let a=amin;a<=k-1;a++){
+    const amax=Math.min(k-1,n-K);
+    for(let a=amin;a<=amax;a++){
       const b=k-1-a;
       S += chK[a]*L[K+a]*chJ[b]*gMinus[J-b];
     }
@@ -182,7 +185,8 @@ function momentsPlus(n,L,J,K,thresholds){
   for(let k=1;k<=maxm;k++){
     let S=0n;
     const amin=Math.max(0,k-1-J);
-    for(let a=amin;a<=k-1;a++){
+    const amax=Math.min(k-1,n-K);
+    for(let a=amin;a<=amax;a++){
       const b=k-1-a;
       const term=chK[a]*q[K+a]*chJ[b]*gPlus[J-b];
       S += (b&1)?-term:term;
