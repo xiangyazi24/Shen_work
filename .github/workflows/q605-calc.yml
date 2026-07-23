@@ -1,0 +1,16 @@
+name: q605-exact-calc
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  calculate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run exact BigInt Taylor-moment scan
+        env:
+          NMAX: '800'
+        run: node scripts/q605_exact.js
