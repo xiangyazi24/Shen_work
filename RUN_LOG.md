@@ -875,3 +875,24 @@ GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
 - FORK for Xiang (method/scope, per automode "method-flexibility is senior author's call"):
   invest in the χ≤4−δ moving-entropy build (heavy, δ-blowup, doesn't reach true χ=4), OR
   record the {second-jet + floor} reduction as the terminal honest frontier state. Papers all done.
+
+### 2026-07-22 — weighted entropy engine LANDED (new, unconditional, clean-3)
+- Xiang directive: "do that fork. 顺手的事情。而且证新的东西这更有意义!!" → build the χ≤4−δ moving-entropy route.
+- LANDED `ShenWork/Paper1/WholeLineChiPosWeightedEntropyDissipation.lean` (clean-3, lake exit 0, in closure):
+  whole-line-localized analog of the periodic sharp entropy, strictly-positive slowly-varying weight,
+  ALL boundary/flux terms explicit. weighted_resolver_le (sharp 1/4 survives weighting via REAL-SPACE IBP,
+  no Mathlib multiplier wall), weighted_entropy_production_identity (4 explicit flux integrals),
+  weighted_sharp_entropy_production_le: ∫w·M(u)·ut ≤ −(1−χ²/16)∫w·W² + (C/ell)(E+∫w(A²+W²))
+  + (χ²/4+χ/2ell)·resolver-corr + explicit boundary, C=|c|+χ+2. Drift-absorption |drift|≤(C/ell)(E+D) realized.
+  (v1 attempt was VACUOUS: {w≥0,w(a)=0,|w'|≤(1/ell)w} ⟹ w≡0 by Grönwall; Codex correctly caught it; fixed w>0.)
+- HONEST discharge assessment (matters for the χ≤4−δ endgame):
+  Fable claimed "unconditional far-left χ<4−δ" but that is OPTIMISTIC on coercivity. Converting the weighted
+  dissipation ∫w·W² to exponential decay of E_a=∫w·Φ(u) needs ∫w·Φ ≲ ∫w·W², i.e. Φ(u)=u−1−log u ≲ (u−1)²,
+  which FAILS as u→0 (Φ→∞). So the coercivity step re-introduces a uniform LOWER bound u≥m>0 = the anti-escape
+  FLOOR. Hence even χ≤4−δ is floor-CONDITIONAL via this route. The floor stays the single open crux
+  (expected-true, no counterexample below 4, unprovable by current machinery — dual-oracle established).
+- IN FLIGHT: orbit-instantiation bridge (SPEC_weighted_orbit.md → Codex): instantiate the abstract slice for
+  wholeLineCauchyGlobalU using existing regularity (wholeLineCauchyGlobalU_coMoving_contDiff_two_positive,
+  _joint_hasFDerivAt_positive). Unconditional bridge; honesty gate: STOP if co-moving PDE unavailable, no fabricate.
+- Remaining discharge after bridge: whole-line a,b→±∞ (boundary vanish, needs decay/integrability) → sup over
+  translates → floor coercivity → far-left χ≤4−δ (floor-conditional). Net NEW unconditional value = the engine.
