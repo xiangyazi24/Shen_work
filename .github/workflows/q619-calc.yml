@@ -1,4 +1,4 @@
-name: q619-exact-calc
+name: q619-core-audit
 on:
   pull_request:
     branches: [main]
@@ -11,18 +11,14 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Run exact BigInt Q619 scans
-        run: |
-          node scripts/q619_exact.js > /tmp/q619.out
-          node scripts/q619_core.js > /tmp/q619_core.out
-      - name: Publish exact output
+      - name: Run exact BigInt core audit
+        run: node scripts/q619_core.js > /tmp/q619_core.out
+      - name: Publish exact core output
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const body = 'Q619 EXACT BIGINT OUTPUT (CENTERED)\n\n```text\n' +
-              fs.readFileSync('/tmp/q619.out','utf8') +
-              '\n```\n\nQ619 CORE/OVERSHOOT AUDIT\n\n```text\n' +
+            const body = 'Q619 CORE/OVERSHOOT AUDIT\n\n```text\n' +
               fs.readFileSync('/tmp/q619_core.out','utf8') + '\n```';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
