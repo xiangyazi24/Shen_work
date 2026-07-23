@@ -11,14 +11,19 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Run exact BigInt Q619 scan
-        run: node scripts/q619_exact.js | tee /tmp/q619.out
+      - name: Run exact BigInt Q619 scans
+        run: |
+          node scripts/q619_exact.js > /tmp/q619.out
+          node scripts/q619_core.js > /tmp/q619_core.out
       - name: Publish exact output
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const body = 'Q619 EXACT BIGINT OUTPUT\n\n```text\n' + fs.readFileSync('/tmp/q619.out','utf8') + '\n```';
+            const body = 'Q619 EXACT BIGINT OUTPUT (CENTERED)\n\n```text\n' +
+              fs.readFileSync('/tmp/q619.out','utf8') +
+              '\n```\n\nQ619 CORE/OVERSHOOT AUDIT\n\n```text\n' +
+              fs.readFileSync('/tmp/q619_core.out','utf8') + '\n```';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
