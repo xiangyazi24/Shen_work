@@ -122,12 +122,11 @@ for p in primes:
                 right_p2.append((p,j))
             assert (qr - (qj - D[j])) % p == 0
 
-# Independent exact checks of the differentiated recurrence / harmonic formula.
+# Independent exact harmonic-sum values; these need not be integers.
 small_derivative_checks = []
 for j in range(0, 11):
     ex = direct_derivative_exact(j)
-    assert ex.denominator == 1
-    small_derivative_checks.append((j, int(ex)))
+    small_derivative_checks.append((j, str(ex)))
 
 print("Q715 EXACT APERY REFLECTION TEST")
 print(f"prime_limit={LIMIT}")
@@ -156,7 +155,6 @@ print("FIRST_ZERO_PAIRS columns: p j p-1-j A_j/p_mod_p D_j_mod_p A_ref/p_mod_p v
 for r in rows[:MAX_ROWS]:
     print(r.p, r.j, r.jr, r.qj, r.deriv, r.qr, int(r.vj_ge2), int(r.vr_ge2))
 
-# Report a few largest-prime examples too.
 print("LAST_ZERO_PAIRS")
 for r in rows[-20:]:
     print(r.p, r.j, r.jr, r.qj, r.deriv, r.qr, int(r.vj_ge2), int(r.vr_ge2))
