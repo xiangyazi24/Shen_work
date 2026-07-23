@@ -1,7 +1,7 @@
 import ShenWork.Paper1.WholeLineAbstractEnergyDecay
 
 /-!
-# From the exponential barrier to uniform far-left convergence
+# From an exponential barrier to uniform convergence
 
 Fable R2's assembly (2026-07-21) produces, via a first-touch comparison lemma, a
 uniform-in-`z` exponential barrier
@@ -12,8 +12,9 @@ and concludes `u(t,·) → 1` uniformly.  This file proves that final conclusion
 the endpoint of the assembly chain — as a clean `Tendsto`/squeeze statement,
 independent of the (deferred) comparison lemma that supplies the barrier.
 
-Two forms are given: the `ε`-`T` uniform-convergence statement matching
-`UniformCoMovingLeftEquilibriumConvergence`'s shape, and the sup-norm `Tendsto`.
+Two forms are given: the `ε`-`T` uniform-convergence statement and its
+pointwise `Tendsto` consequence.  Both concern the full real line, so they are
+not front conclusions when the right tail tends to zero.
 -/
 
 open Filter Topology
@@ -36,7 +37,7 @@ theorem expBarrier_tendsto_zero {D lam : ℝ} (hlam : 0 < lam) :
     Real.tendsto_exp_atBot.comp hlin
   simpa using (tendsto_const_nhds (x := D)).mul hexp0
 
-/-- **Uniform far-left convergence from the exponential barrier.**  If
+/-- **Uniform convergence from the exponential barrier.**  If
 `|u(t,z) − 1| ≤ D e^{−λt}` for all `z` and all `t ≥ 0` (`λ > 0`), then for every
 `ε > 0` there is a time `T` past which `|u(t,z) − 1| < ε` uniformly in `z`. -/
 theorem uniform_convergence_of_expBarrier

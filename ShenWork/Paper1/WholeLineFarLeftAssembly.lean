@@ -3,19 +3,21 @@ import ShenWork.Paper1.WholeLineFarLeftBarrierCapstone
 import ShenWork.Paper1.WholeLineExpBarrierConsistency
 
 /-!
-# Far-left convergence assembly (exponential barriers instantiated)
+# Global constant-equilibrium assembly (exponential barriers instantiated)
 
 The complete chain, with the symmetric exponential barriers `α(t) = 1 − D e^{−λt}`,
 `β(t) = 1 + D e^{−λt}` instantiated:
 
 `inf/sup trajectories (C¹, touch-slope) → barrier confinement → uniform u → 1`.
 
-This capstone takes the genuinely-remaining PDE obligations as NAMED hypotheses —
+This capstone takes the PDE obligations as named hypotheses —
 the inf/sup trajectories `a, b` being `C¹` (Danskin/envelope), bounding `u`, and
 having the touch-slope gap against the exponential barriers (from the pointwise
 `min_rise`/`max_fall` at the argmin) — and produces the uniform far-left
-convergence conclusion.  Everything between the hypotheses and the conclusion is
-machine-checked.
+global convergence conclusion.  Everything between the hypotheses and the
+conclusion is machine-checked.  It is not an actual traveling-front left-tail
+theorem: the right tail of a front tends to zero.  See
+`WholeLineFarLeftDirectScopeAudit` for the formal obstruction.
 -/
 
 open Filter Topology
@@ -24,7 +26,7 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
-/-- **Far-left convergence from inf/sup trajectories** (exponential barriers). -/
+/-- **Global convergence from inf/sup trajectories** (exponential barriers). -/
 theorem far_left_convergence_from_trajectories
     {u : ℝ → ℝ → ℝ} {a b da db : ℝ → ℝ} {D lam : ℝ} (hlam : 0 < lam)
     (ha : ∀ t, HasDerivAt a (da t) t) (hb : ∀ t, HasDerivAt b (db t) t)

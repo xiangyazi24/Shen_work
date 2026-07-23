@@ -16,7 +16,7 @@ spatial infinity immediately after `t = 0`.
 theorem parabolic_lower_barrier_direct_of_initial_interval
     {u : ℝ → ℝ → ℝ} {a α dα : ℝ → ℝ} {ut : ℝ → ℝ → ℝ}
     (hα : ∀ t, HasDerivAt α (dα t) t)
-    (hut : ∀ t z, HasDerivAt (fun s => u s z) (ut t z) t)
+    (hut : ∀ t z, 0 < t → HasDerivAt (fun s => u s z) (ut t z) t)
     (ha_cont : Continuous a)
     (ha_lb : ∀ t z, a t ≤ u t z)
     (ha_attain : ∀ t, ∃ z0, a t = u t z0)
@@ -147,7 +147,7 @@ theorem parabolic_lower_barrier_direct_of_initial_interval
     -- Hence ψ is negative immediately to the LEFT of t0.
     have hψderiv : HasDerivAt
         (fun s => u s z0 - α s) (ut t0 z0 - dα t0) t0 :=
-      (hut t0 z0).sub (hα t0)
+      (hut t0 z0 ht0pos).sub (hα t0)
     have hpos : 0 < ut t0 z0 - dα t0 := by linarith
     have hslope : Tendsto
         (slope (fun s => u s z0 - α s) t0)

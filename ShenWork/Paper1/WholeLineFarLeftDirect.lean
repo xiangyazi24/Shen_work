@@ -4,17 +4,17 @@ import ShenWork.Paper1.WholeLineFarLeftBarrierCapstone
 import ShenWork.Paper1.WholeLineExpBarrierConsistency
 
 /-!
-# Far-left convergence, direct route (continuous envelopes + hstart)
+# Global constant-equilibrium convergence, direct route
 
 Combines the two direct parabolic barriers (which need only CONTINUOUS attained
 inf/sup envelopes plus the initial-interval `hstart`, no differentiability of the
 envelope) with the symmetric exponential barriers `α = 1 − D e^{−λt}`,
 `β = 1 + D e^{−λt}` and the convergence endpoint.
 
-This is the far-left convergence theorem whose remaining obligations are the
-weakest available: inf/sup CONTINUITY + attainment + `hstart` + the pointwise
-touch-slope (from `min_rise`/`max_fall`), and the solution's time-derivative and
-regularity — all solution-specific PDE facts, no Danskin differentiability.
+The conclusion is uniform over the entire spatial line.  It is therefore an
+abstract constant-equilibrium theorem, not the front's far-left target: a
+traveling front has right tail zero and cannot converge globally to one.
+`WholeLineFarLeftDirectScopeAudit` records concrete no-go regression lemmas.
 -/
 
 open Filter Topology
@@ -23,10 +23,11 @@ noncomputable section
 
 namespace ShenWork.Paper1
 
-/-- **Far-left convergence, direct route.** -/
+/-- **Global constant-equilibrium convergence, direct route.** -/
 theorem far_left_convergence_direct
-    {u : ℝ → ℝ → ℝ} {a b : ℝ → ℝ} {ut : ℝ → ℝ → ℝ} {D lam : ℝ} (hlam : 0 < lam)
-    (hut : ∀ t z, HasDerivAt (fun s => u s z) (ut t z) t)
+    {u : ℝ → ℝ → ℝ} {a b : ℝ → ℝ} {ut : ℝ → ℝ → ℝ}
+    {D lam : ℝ} (hlam : 0 < lam)
+    (hut : ∀ t z, 0 < t → HasDerivAt (fun s => u s z) (ut t z) t)
     (ha_cont : Continuous a) (hb_cont : Continuous b)
     (ha_lb : ∀ t z, a t ≤ u t z) (hb_ub : ∀ t z, u t z ≤ b t)
     (ha_attain : ∀ t, ∃ z0, a t = u t z0) (hb_attain : ∀ t, ∃ z0, b t = u t z0)

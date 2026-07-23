@@ -9,10 +9,10 @@ differentiable function `a` is a pointwise lower bound for `u(t,·)` (think
 `α`, and at every touch `α t = a t` has the strict slope gap `dα t < da t`, then
 `α t ≤ u(t,z)` for all `t ≥ 0`, `z`.
 
-The two carried hypotheses — `a` differentiable (the Danskin/attainment content:
-the inf trajectory is `C¹`) and the touch-slope condition (from the pointwise
-`min_rise` at the argmin) — are the genuinely-remaining analytic obligations; the
-reduction to `scalar_first_touch` and thence to convergence is complete here.
+This is an abstract scalar-to-spatial reduction.  For a traveling front, global
+infimum attainment is false and global convergence to one has the wrong shape;
+these hypotheses are not advertised as obligations of Theorem 1.2.  The
+concrete obstruction is recorded in `WholeLineFarLeftDirectScopeAudit`.
 -/
 
 open Filter Topology

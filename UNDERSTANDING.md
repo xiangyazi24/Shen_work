@@ -5334,3 +5334,64 @@ The exponential restart identity propagates this estimate through all
 canonical segments.  Consequently `Proposition_1_1_negative_branch` now
 contains unconditional global existence, (1.8), and (1.9) for every
 paper-admissible nonnegative BUC datum.
+
+## 2026-07-23: scope correction for the post-headline direct far-left experiment
+
+The repository and every origin branch were reconciled through the 2026-07-22
+main commit.  All paper headline work is already closed; the July 20--21
+far-left material is an extension program for stronger positive-sensitivity
+regimes.
+
+The July 21 direct capstone was misclassified as having one remaining
+solution-specific envelope obligation.  Its actual conclusion is uniform
+convergence to one over the entire spatial line.  That conclusion is false for
+the front family: an `IsTravelingWave` profile is strictly positive and tends
+to zero at the right spatial tail, and its exact co-moving solution is the
+stationary profile.  Hence the profile has no attained global minimum and
+cannot converge globally and uniformly to one.  Exact global extremum
+attainment is therefore not missing regularity; it is an impossible input for
+the intended instance.  The steady-profile `crest_gradient_bound` is also not
+a rate producer for the evolving Cauchy solution, whose differentiated
+equation retains time-dependent terms.
+
+`WholeLineFarLeftDirectScopeAudit.lean` now records this boundary precisely.
+The direct first-touch theorem's time-derivative input is weakened to positive
+times, which is all its proof uses.  No exact-extremum half-line wrapper is
+added: it would duplicate the wrong abstraction and would not advance the
+canonical front proof.
+
+Two axiom-clean regression theorems prevent the old scope error:
+`IsTravelingWave.not_exists_global_min` and
+`IsTravelingWave.not_uniformConvergesToConstant_one_coMoving_self`.
+`not_eventually_global_lower_expBarrier_of_rightTail_zero` additionally rules
+out the direct route's eventual positive whole-line lower barrier.
+The abstract global theorem remains useful for genuinely uniformly positive
+whole-line solutions, but it is no longer documented as Theorem 1.2's front
+route.
+
+For the still-open high-sensitivity extension, the next analytic producer is
+not Danskin continuity or exact extrema.  It must be a dynamic, localized
+gradient/entropy/Liouville estimate for the actual evolving co-moving restart,
+using the existing half-line quadratic approximate-maximum and buffered splice
+machinery.  The already-closed rectangle/half-line routes remain the producers
+in their proved parameter regimes.
+
+The reusable maximum-principle layer is already concrete:
+`exists_leftHalfLineSlab_approx_max_deriv_data` supplies positive-time interior
+almost-maximizers with controlled first/second spatial derivative errors, and
+`leftHalfLineSlabSup_le_of_scalar_pde` closes a half-line slab once the initial
+slice and finite right boundary are controlled.  The positive-sensitivity
+buffered comparisons are
+`leftHalfLine_ge_of_buffered_chiPos_floor` and
+`leftHalfLine_le_of_buffered_chiPos_ceiling`; their iteration feeds
+`uniformCoMovingLeftEquilibriumConvergence_of_halfLine_successors` (and the
+sharp/refined variants).  Thus the extension gap is the sharper dynamic PDE
+inequality required by those consumers, not topology of the envelope.
+
+ChatGPT Q5516 independently audited commit `515f3587` and reached the same
+verdict after tracing the canonical capstones.  In particular,
+`wholeLineCauchyGlobal_uniformCoMovingLeftEquilibriumConvergence_chi_pos_natural`,
+its `m > 1` sharp variant, and the cubic-covered full-window theorem already
+consume the buffered half-line successor construction.  The only
+direct-library change it recommended was the positive-time derivative
+correction above.

@@ -21,7 +21,7 @@ maximum touching `β`, one gets `u(t,z) ≤ β t` for all `t ≥ 0`, `z`. -/
 theorem parabolic_upper_barrier_direct_of_initial_interval
     {u : ℝ → ℝ → ℝ} {b β dβ : ℝ → ℝ} {ut : ℝ → ℝ → ℝ}
     (hβ : ∀ t, HasDerivAt β (dβ t) t)
-    (hut : ∀ t z, HasDerivAt (fun s => u s z) (ut t z) t)
+    (hut : ∀ t z, 0 < t → HasDerivAt (fun s => u s z) (ut t z) t)
     (hb_cont : Continuous b)
     (hb_ub : ∀ t z, u t z ≤ b t)
     (hb_attain : ∀ t, ∃ z0, b t = u t z0)
@@ -34,7 +34,7 @@ theorem parabolic_upper_barrier_direct_of_initial_interval
     (u := fun t z => -u t z) (a := fun t => -b t) (α := fun t => -β t)
     (dα := fun t => -dβ t) (ut := fun t z => -ut t z)
     (fun t => (hβ t).neg)
-    (fun t z => (hut t z).neg)
+    (fun t z ht => (hut t z ht).neg)
     hb_cont.neg
     (fun t z => by simpa using neg_le_neg (hb_ub t z))
     (fun t => by obtain ⟨z0, hz0⟩ := hb_attain t; exact ⟨z0, by show -b t = -u t z0; rw [hz0]⟩)

@@ -1,17 +1,17 @@
 import ShenWork.Paper1.WholeLineExpBarrierConvergence
 
 /-!
-# Far-left convergence from barrier confinement (capstone wiring)
+# Global constant-equilibrium convergence from barrier confinement
 
-This wires the assembly's endpoint to its single remaining obligation: IF the
-solution is confined between the symmetric exponential barriers
+This wires the abstract assembly's endpoint to barrier confinement.  If a
+whole-line spatial family is confined between the symmetric exponential barriers
 `1 − D e^{−λt} ≤ u(t,z) ≤ 1 + D e^{−λt}` (the output of the deferred first-touch
-comparison lemma), THEN `u(t,·) → 1` uniformly on far-left half-lines.
+comparison lemma), then `u(t,·) → 1` uniformly.
 
-So the entire far-left Theorem 1.2 is reduced to the ONE statement
-`barrier_confinement` below (the parabolic comparison), with everything else —
-crest route, Green representation, threshold algebra, barrier self-consistency,
-and this convergence endpoint — machine-checked.
+For the full real line this is stronger than, and incompatible with, a
+traveling front whose right tail tends to zero.  The actual front proof uses
+the buffered half-line rectangle chain.  The lemmas here are endpoint wiring
+only; they do not claim that a front satisfies global barrier confinement.
 -/
 
 open Filter Topology
@@ -31,7 +31,7 @@ theorem abs_sub_one_le_of_barrier {u : ℝ → ℝ → ℝ} {D lam : ℝ}
   obtain ⟨hlo, hhi⟩ := hconf t z ht
   constructor <;> linarith
 
-/-- **Far-left convergence from barrier confinement.**  Confinement between the
+/-- **Uniform convergence from barrier confinement.**  Confinement between the
 symmetric exponential barriers implies uniform `u(t,·) → 1`. -/
 theorem far_left_convergence_of_barrier
     {u : ℝ → ℝ → ℝ} {D lam : ℝ} (hlam : 0 < lam)
