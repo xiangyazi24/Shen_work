@@ -53,35 +53,62 @@ def split_num(n,H,b,A,D):
     M=Matrix([[comb(k,l)*D[k-l][l] if l<=k else 0 for l in range(b+1)] for k in range(a+1,H+1)])
     q=primitive_kernel(M)
     vals=[A[j]*sum(q[l]*comb(j,l) for l in range(b+1)) for j in range(H+1)]
-    # P(n) via Lagrange weights for degree <=H (equal to degree-a P at n).
-    Pn=0
-    for j,v in enumerate(vals):
-        w=(-1)**(H-j)*comb(n,j)*comb(n-j-1,H-j)
-        Pn += w*v
+    # Newton coefficients of P=AQ on the interpolation nodes.
+    cur=vals[:]; pc=[]
+    for k in range(H+1):
+        pc.append(cur[0])
+        cur=[cur[i+1]-cur[i] for i in range(len(cur)-1)]
+    assert all(x==0 for x in pc[a+1:])
+    pc=pc[:a+1]
+    assert reduce(gcd,(abs(x) for x in pc+q if x),0)==1
+    Pn=sum(pc[i]*comb(n,i) for i in range(a+1))
     assert Pn!=0
-    return Pn,q
+    return Pn,pc,q
 
 A=apery(max(TARGETS))
 D=differences(A,max((n-1)//3 for n in TARGETS)+BMAX+3)
-print('Q754 SPLIT-GCD AUDIT')
+print('Q754 SPLIT-GCD AND ADJACENT-DETERMINANT AUDIT')
 for n in TARGETS:
     H=(n-1)//3
-    nums=[]
+    recs=[]
     for b in range(min(BMAX,H)+1):
-        Pn,q=split_num(n,H,b,A,D)
-        nums.append(Pn)
+        Pn,pc,q=split_num(n,H,b,A,D)
+        recs.append((Pn,pc,q))
+    nums=[r[0] for r in recs]
     prefix=[]; g=0
     for z in nums:
         g=gcd(g,abs(z)); prefix.append(g)
     pair=[gcd(abs(nums[i]),abs(nums[i+1])) for i in range(len(nums)-1)]
+    # K_b = top Newton coefficient of P_(H-b,b) times top Newton
+    # coefficient of Q_(H-b-1,b+1).  Factorials are p-units for p>H.
+    Ks=[]
+    for b in range(len(recs)-1):
+        _,pc0,_=recs[b]
+        _,_,q1=recs[b+1]
+        Ks.append(pc0[-1]*q1[-1])
+    Kg=[]; gk=0
+    for z in Ks:
+        gk=gcd(gk,abs(z)); Kg.append(gk)
     bad=[]; R=1
+    cand=[]
     for p in primes_upto(n):
         j=n-p
-        if n//2 < p <= n and 0<=j<=H and A[j]%p==0:
-            bad.append((p,j)); R*=p
+        if n//2 < p <= n and 0<=j<=H:
+            cand.append((p,j))
+            if A[j]%p==0:
+                bad.append((p,j)); R*=p
     assert all(z%R==0 for z in nums)
     print('N',n,'H',H,'bad',bad,'R',R,'Rrate',logint(R)/n)
     print('NUMRATES',' '.join(f'b{i}:{logint(z)/n:.9f}' for i,z in enumerate(nums)))
     print('PREFIXGCD',' '.join(f'k{i}:{logint(z)/n:.9f}' for i,z in enumerate(prefix)))
     print('PAIRGCD',' '.join(f'{i}-{i+1}:{logint(z)/n:.9f}' for i,z in enumerate(pair)))
+    print('K_RATES',' '.join(f'K{i}:{logint(z)/n:.9f}' for i,z in enumerate(Ks)))
+    print('K_PREFIX_GCD',' '.join(f'K0..{i}:{logint(z)/n:.9f}' for i,z in enumerate(Kg)))
+    # Top-half candidate support in common K constants and in all numerators.
+    commonK=[]; commonP=[]
+    for p,j in cand:
+        if Ks and all(z%p==0 for z in Ks): commonK.append((p,j,A[j]%p==0))
+        if all(z%p==0 for z in nums): commonP.append((p,j,A[j]%p==0))
+    print('COMMON_K_CAND',commonK)
+    print('COMMON_P_CAND',commonP)
     print('GCD_OVER_R',prefix[-1]//R,'rate',logint(prefix[-1]//R)/n)
