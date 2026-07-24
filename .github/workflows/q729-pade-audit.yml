@@ -14,13 +14,15 @@ jobs:
       - name: Install SymPy
         run: python3 -m pip install sympy
       - name: Run exact Newton-Pade audit
-        run: python3 scripts/q729_pade_audit.py | tee /tmp/q729.out
+        run: |
+          python3 scripts/q729_pade_audit.py | tee /tmp/q729.out
+          python3 scripts/q729_smith_pade.py | tee /tmp/q729_smith.out
       - name: Publish exact output
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const body = 'Q729 EXACT NEWTON-PADE OUTPUT\n\n```text\n' + fs.readFileSync('/tmp/q729.out','utf8') + '\n```';
+            const body = 'Q729 EXACT NEWTON-PADE OUTPUT\n\n```text\n' + fs.readFileSync('/tmp/q729.out','utf8') + '\n```\n\nQ729 SMITH IDEAL OUTPUT\n\n```text\n' + fs.readFileSync('/tmp/q729_smith.out','utf8') + '\n```';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
