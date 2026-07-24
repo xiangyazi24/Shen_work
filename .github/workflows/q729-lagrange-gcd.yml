@@ -1,0 +1,22 @@
+name: q729-lagrange-gcd
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  calculate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run exact full-degree Lagrange gcd audit
+        run: python3 scripts/q729_lagrange_gcd.py | tee /tmp/q729g.out
+      - name: Publish exact output
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = 'Q729 FULL-DEGREE LAGRANGE GCD OUTPUT\n\n```text\n' + fs.readFileSync('/tmp/q729g.out','utf8') + '\n```';
+            await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.issue.number,body});
