@@ -10,11 +10,11 @@ repo scan. Knock off one by one.
 Mechanical: add the import to `ShenWork.lean`, root-build, confirm clean-3.
 Targeted remote build already passed 9066 jobs (handoff). No new math.
 
-- [ ] **A1. Thm 2.2-m** — `ShenWork.Paper3.IntervalDomainMMinimalFaithfulTheorem22`
+- [x] **A1. Thm 2.2-m** — `ShenWork.Paper3.IntervalDomainMMinimalFaithfulTheorem22`
       headline `intervalDomainM_Theorem_2_2_minimalEventual_branch_unconditional`
-- [ ] **A2. Thm 2.3-m** — `ShenWork.Paper3.IntervalDomainMTheorem23Eventual`
+- [x] **A2. Thm 2.3-m** — `ShenWork.Paper3.IntervalDomainMTheorem23Eventual`
       headline `intervalDomainM_Theorem_2_3_positiveEventual` (+ χ≤0 global minimal)
-- [ ] **A3. Thm 2.4-m** — `ShenWork.Paper3.IntervalDomainMTheorem24Eventual`
+- [x] **A3. Thm 2.4-m** — `ShenWork.Paper3.IntervalDomainMTheorem24Eventual`
       headline `intervalDomainM_Theorem_2_4_EventualGlobalStabilityFormula`
 
 (Already imported general-m: Thm 2.3 AllTimeC1, Thm 2.3 RestartDuhamel, Thm 2.2
@@ -24,7 +24,7 @@ FaithfulTheorem22 — verify which headline each carries during A.)
 - [ ] **B1. Thm 2.5-m** — no `IntervalDomainMTheorem25*` file exists (only the
       `m = 1` `IntervalDomainTheorem25Eventual`). Handoff item 2. Assess
       tractability (ChatGPT) then build or record as deliberate scope stop.
-- [ ] **B2. Thm 2.1-m** — no `IntervalDomainMTheorem21*` file. Assess whether
+- [x] **B2. Thm 2.1-m** — RESOLVED: non-gap. — no `IntervalDomainMTheorem21*` file. Assess whether
       Thm 2.1 (existence/well-posedness class) is ALREADY covered by the general-m
       existence files (`IntervalDomainMSmallDataGlobalExistence`,
       `IntervalDomainMMinimalSmallDataGlobalExistence`) — may be a naming gap, not
@@ -39,3 +39,10 @@ FaithfulTheorem22 — verify which headline each carries during A.)
 ## Order of attack
 A1→A2→A3 (integration, verify clean-3 in root closure) → B2 (likely a non-gap,
 cheap to resolve) → B1 (real new math, ChatGPT-assess first) → C1 continues.
+
+## Status (2026-07-24)
+- SYNC: done (merged mini's far-left scope correction + my weighted-entropy work; origin/main=c496e263; root build 10100 jobs).
+- A1/A2/A3: DONE — 3 general-m headlines integrated into ShenWork.lean closure, clean-3, pushed.
+- B2: RESOLVED non-gap — general-m existence is intervalDomainM_smallDataGlobalExistence_of_linearlyStable (Thm 2.1 covered, just not named 2.1).
+- B1 (Thm 2.5-m): GENUINELY NEW — general-m minimal eventual-stability producers (minimal1/minimal2 analogs) do NOT exist; must be built mirroring the done nonminimal Thm 2.4-m. ChatGPT design fired (Q984). BLOCKED ON IMPLEMENTATION VEHICLE: Codex out of credits until 2026-07-28; conserving Claude per directive.
+- C1 (far-left χ≤4−δ): engine+bridge+dt-wrapper landed clean-3; floor is open crux; ChatGPT quadratic-entropy floor-free angle fired.
