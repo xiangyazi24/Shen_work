@@ -60,3 +60,19 @@ equality — no general-m version exists). Given u≤uBar, the signal floor vLow
 E=∫[u−u*−u* log(u/u*)] on the mass hyperplane. → Build target when a vehicle is available:
 the general-m eventual upper box, then assemble via existing minimal machinery.
 BLOCKED: Codex out until 2026-07-28; conserving Claude.
+
+## C1 resolved (ChatGPT Q985, 2026-07-24) — the floor is FUNDAMENTAL, not removable
+Quadratic/matrix-Lyapunov floor-free angle: NEGATIVE and instructive. There is no
+floor-free unconditional far-left threshold by ANY entropy/Lyapunov method. Reason:
+bistability — the system has the competing equilibrium (u,v)=(0,0); since v−1 is
+elliptically slaved (v−1=(1−∂zz)⁻¹(u−1)), every translation-invariant positive
+quadratic/matrix functional is a positive Fourier multiplier × the same scalar symbol,
+so it cannot change the sign threshold and cannot separate the u=1 and u=0 basins.
+The quadratic entropy gives a clean LOCAL/BASIN theorem for all χ<4, but the basin
+condition itself IS the floor u≥1−ρ>0. This MATCHES the mini scope-correction
+(global uniform convergence to 1 is FALSE for the co-moving self-front). So:
+CONCLUSION: the anti-escape floor is the CORRECT PHYSICAL SCOPE (stay in the u=1
+basin), not a gap to remove. The honest clean deliverable is the χ<4 BASIN-CONDITIONAL
+far-left theorem, which the landed weighted-entropy engine + orbit bridge + dt-wrapper
+now support. Remaining build (needs a vehicle): the discharge engine ⇒ basin-conditional
+far-left χ<4. This CLOSES the "can we get χ<4 floor-free" research question: no.
