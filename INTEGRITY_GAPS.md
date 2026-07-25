@@ -2173,3 +2173,51 @@ solution (the PDE `u_t` at a spatial min, using the landed `resolver_oscillation
 Everything structural is done: ~33 clean-3 lemmas, root build 10013, 0 sorry, 0 axiom.
 The remaining work is PDE-solution-specific (the whole-line solution API) — for a focused
 session, ChatGPT's landing proof, or Codex Jul 24.
+
+### SCOPE CORRECTION (2026-07-23): the direct global-envelope route cannot model a front
+
+This supersedes the two preceding claims that only inf/sup continuity or a
+Danskin rate identity remained.
+
+`far_left_convergence_direct` concludes uniform convergence to one over the
+entire spatial line.  The real target
+`UniformCoMovingLeftEquilibriumConvergence` only quantifies over a left
+half-line.  The difference is fatal, not cosmetic: for every
+`IsTravelingWave p c U V`, `U` is strictly positive and tends to zero at
+`+∞`, while the exact co-moving self-solution is identically `U`.  Therefore
+the global infimum is zero and is not attained, and global uniform convergence
+to one is false.  The new axiom-clean theorems
+`IsTravelingWave.not_exists_global_min` and
+`IsTravelingWave.not_uniformConvergesToConstant_one_coMoving_self` formalize
+both obstructions.
+
+The abstract first-touch theorem itself is sound.  Its spatial index remains
+the full real line, and its derivative hypothesis is now required only for
+positive time, which is all the proof uses.  No exact-extremum half-line
+wrapper is retained: the canonical proof already has the correct buffered
+half-line consumers, while such a wrapper would leave the analytic gap
+unchanged.
+
+This scope correction is not a high-χ closure.  Exact
+half-line extrema still need not be attained, the finite boundary needs
+control, and the existing `crest_gradient_bound` is a steady-profile algebraic
+lemma rather than an evolving-solution estimate.  The remaining extension
+frontier is a dynamic localized estimate (or spectral/Liouville mechanism)
+feeding the already-existing half-line approximate-maximum, buffer/splice, and
+successor machinery.  Do not reopen global Danskin or global extremum
+attainment as a purported Theorem 1.2 obligation.
+
+In particular, the downstream consumers already exist:
+`exists_leftHalfLineSlab_approx_max_deriv_data`,
+`leftHalfLineSlabSup_le_of_scalar_pde`,
+`leftHalfLine_ge_of_buffered_chiPos_floor`,
+`leftHalfLine_le_of_buffered_chiPos_ceiling`, and
+`uniformCoMovingLeftEquilibriumConvergence_of_halfLine_successors` (plus its
+sharp/refined forms).  A future high-χ proof must strengthen the evolving
+solution's localized PDE estimate enough to enter these declarations; adding
+another exact-envelope wrapper would not advance the analytic frontier.
+
+ChatGPT Q5516 independently confirmed this source-grounded map at commit
+`515f3587`.  It also caught the exponent-sensitive resolver fact: the elliptic
+field averages `u^γ`, so an oscillation estimate uses `M^γ - ell^γ`, not
+`M - ell` outside the special case `γ = 1`.

@@ -1058,3 +1058,15 @@ import ShenWork.Paper1.WholeLineChiPosEntropyClassicalCertification
 import ShenWork.Paper1.WholeLineChiPosEntropyFarLeftNormalFamily
 import ShenWork.Paper1.WholeLineChiPosEntropyFarLeftObstruction
 import ShenWork.Paper1.WholeLineChiPosEntropyClassicalCompactness
+import ShenWork.Paper1.WholeLineExpBarrierConvergence
+import ShenWork.Paper1.WholeLineExpBarrierConsistency
+import ShenWork.Paper1.WholeLineScalarComparison
+import ShenWork.Paper1.WholeLineFarLeftBarrierCapstone
+import ShenWork.Paper1.WholeLineScalarFirstTouch
+import ShenWork.Paper1.WholeLineParabolicBarrier
+import ShenWork.Paper1.WholeLineFarLeftAssembly
+import ShenWork.Paper1.WholeLineTouchSlope
+import ShenWork.Paper1.WholeLineParabolicDirect
+import ShenWork.Paper1.WholeLineParabolicDirectUpper
+import ShenWork.Paper1.WholeLineFarLeftDirect
+import ShenWork.Paper1.WholeLineFarLeftDirectScopeAudit

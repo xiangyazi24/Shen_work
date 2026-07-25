@@ -1,28 +1,5 @@
 # UNDERSTANDING.md — Shen_work
 
-## CURRENT PLAN (2026-07-21): clear the outstanding map one by one
-
-Full chart: **`OUTSTANDING_MAP.md`** (source-verified). Per-headline real status:
-**`THEOREM_LIST_BY_PAPER.md`**. Rule: a condition that smuggles the hard content in =
-NOT proved; inherent hypotheses (data closeness) and corrected-wrong-paper statements are
-fine. Don't reinvent — 800K LOC exist; build on the DONE list in the map.
-
-Knock-off order (executing top-down, don't drift):
-1. **O-P1-1 [IN PROGRESS]** — unconditionalize P1 Thm 1.2: compose `Theorem_1_1`
-   construction (wave + `TravelingWaveRegularity` + tails, all proved) into
-   `paper1_Theorem_1_2_paperDatum_of_chi_lt_half`, killing the assumed-wave hypotheses.
-   Note: the `Theorem_1_1` *def* drops regularity from its conclusion → use the fuller
-   `paper1_positiveConstruction_selfStep` / negative Rothe output. Match predicates
-   `ShenUpperBoundPositive`↔`HasStrictWaveUpperTailBound`, speed windows
-   (existence `c>cStarLower`/`c>2` vs stability `paper5CorrectedCStarStar<c`).
-2. O-P1-2 — same for Thm 1.3 uniqueness.
-3. O-P1-5 — drop `hcore`; natural route becomes the headline.
-4. O-P3-1 — eventual→all-time (intervalDomainM).
-5. O-P2-3 / O-P3-3 — the analytic lemma stacks (Neumann-semigroup/sectorial/energy) = the spine.
-6. downstream headlines (O-P2-1/2, O-P3-2), then O-P1-4, then research edge O-P1-3 → (1+√α)².
-
-Progress log appended at the bottom of this file under "## Knock-off log".
-
 ## Paper 1 Theorems 1.2--1.3 statement repair (2026-07-13)
 
 The original Section 5 proof has three independently certified statement
@@ -5358,16 +5335,63 @@ canonical segments.  Consequently `Proposition_1_1_negative_branch` now
 contains unconditional global existence, (1.8), and (1.9) for every
 paper-admissible nonnegative BUC datum.
 
-## Knock-off log
+## 2026-07-23: scope correction for the post-headline direct far-left experiment
 
-- **2026-07-21 — O-P1-1 (positive branch) CLEARED.** `paper1_Theorem_1_2_chi_pos_unconditional`
-  (`Paper1Theorem12ChiPosUnconditional.lean`, clean-3): Paper 1 Thm 1.2 for `0<χ<min(½,chiStar)`
-  now CONSTRUCTS the traveling wave (via `paper1_positiveConstruction_selfStep`) instead of
-  assuming it. Only the inherent `WeightedL2InitialCloseness` on the datum remains. Needed a
-  ∀→∃ conversion on the construction's right-tail (instantiate at midpoint of `(kappa c, UB)`,
-  `UB≤1`).
-  - **O-P1-1b [OPEN, real sub-task]:** the χ≤0 / χ=0 branches also need `TravelingWaveRegularity`,
-    which the negative Rothe construction (`paper1_negativeConstruction_selfStep`) does NOT expose
-    (only monotonicity + `ShenUpperBoundNegative` + tail). Surfacing the full structure (C² for U,V;
-    `deriv U → 0` at ±∞; `|V|,|V'|≤MChi^γ`) for the Rothe wave is analytic work. This same regularity
-    is the shared blocker for the χ≤0 branch of O-P1-2 (uniqueness).
+The repository and every origin branch were reconciled through the 2026-07-22
+main commit.  All paper headline work is already closed; the July 20--21
+far-left material is an extension program for stronger positive-sensitivity
+regimes.
+
+The July 21 direct capstone was misclassified as having one remaining
+solution-specific envelope obligation.  Its actual conclusion is uniform
+convergence to one over the entire spatial line.  That conclusion is false for
+the front family: an `IsTravelingWave` profile is strictly positive and tends
+to zero at the right spatial tail, and its exact co-moving solution is the
+stationary profile.  Hence the profile has no attained global minimum and
+cannot converge globally and uniformly to one.  Exact global extremum
+attainment is therefore not missing regularity; it is an impossible input for
+the intended instance.  The steady-profile `crest_gradient_bound` is also not
+a rate producer for the evolving Cauchy solution, whose differentiated
+equation retains time-dependent terms.
+
+`WholeLineFarLeftDirectScopeAudit.lean` now records this boundary precisely.
+The direct first-touch theorem's time-derivative input is weakened to positive
+times, which is all its proof uses.  No exact-extremum half-line wrapper is
+added: it would duplicate the wrong abstraction and would not advance the
+canonical front proof.
+
+Two axiom-clean regression theorems prevent the old scope error:
+`IsTravelingWave.not_exists_global_min` and
+`IsTravelingWave.not_uniformConvergesToConstant_one_coMoving_self`.
+`not_eventually_global_lower_expBarrier_of_rightTail_zero` additionally rules
+out the direct route's eventual positive whole-line lower barrier.
+The abstract global theorem remains useful for genuinely uniformly positive
+whole-line solutions, but it is no longer documented as Theorem 1.2's front
+route.
+
+For the still-open high-sensitivity extension, the next analytic producer is
+not Danskin continuity or exact extrema.  It must be a dynamic, localized
+gradient/entropy/Liouville estimate for the actual evolving co-moving restart,
+using the existing half-line quadratic approximate-maximum and buffered splice
+machinery.  The already-closed rectangle/half-line routes remain the producers
+in their proved parameter regimes.
+
+The reusable maximum-principle layer is already concrete:
+`exists_leftHalfLineSlab_approx_max_deriv_data` supplies positive-time interior
+almost-maximizers with controlled first/second spatial derivative errors, and
+`leftHalfLineSlabSup_le_of_scalar_pde` closes a half-line slab once the initial
+slice and finite right boundary are controlled.  The positive-sensitivity
+buffered comparisons are
+`leftHalfLine_ge_of_buffered_chiPos_floor` and
+`leftHalfLine_le_of_buffered_chiPos_ceiling`; their iteration feeds
+`uniformCoMovingLeftEquilibriumConvergence_of_halfLine_successors` (and the
+sharp/refined variants).  Thus the extension gap is the sharper dynamic PDE
+inequality required by those consumers, not topology of the envelope.
+
+ChatGPT Q5516 independently audited commit `515f3587` and reached the same
+verdict after tracing the canonical capstones.  In particular,
+`wholeLineCauchyGlobal_uniformCoMovingLeftEquilibriumConvergence_chi_pos_natural`,
+its `m > 1` sharp variant, and the cubic-covered full-window theorem already
+consume the buffered half-line successor construction.  The only
+direct-library change it recommended was the positive-time derivative
+correction above.
