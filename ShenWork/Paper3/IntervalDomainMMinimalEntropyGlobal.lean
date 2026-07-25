@@ -263,8 +263,110 @@ theorem intervalDomainM_minimal_eventualC1_of_lateSupClose_of_massGap
     (Real.exp_pos _)
   exact ⟨C, hC, rate, hrate, tauRestart, htauRestart, hresult⟩
 
+/-- The general-`m` minimal linear-stability threshold: the `firstNonzero`-lower
+bound on the minimal-equilibrium critical sensitivity.  Below it the minimal
+equilibrium is discrete-linearly stable (no `p.m = 1`; the `uStar^(m+γ−1)` factor
+carries the general-`m` diffusion). -/
+def minimalEquilibriumLinStabThresholdM (p : CM2Params) (uStar : ℝ) : ℝ :=
+  ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+      (p.ν * p.γ * (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+    (p.μ + unitIntervalNeumannSpectrum.firstNonzero)
+
+/-- The full general-`m` minimal1 sensitivity threshold: the minimum of the
+linear-stability threshold and the entropy-dissipation threshold. -/
+def chiMinimal1FormulaM (p : CM2Params) (uStar uBar vLower : ℝ) : ℝ :=
+  min (minimalEquilibriumLinStabThresholdM p uStar)
+    (chiMinimal1EntropyThresholdM p uStar uBar vLower)
+
+/-- **Steps 6–7 (capstone lemma).**  Unconditional first minimal-formula branch
+of the faithful eventual Theorem 2.5 on the general-`m` unit-interval equation
+(`1 ≤ m < 2`, `χ₀ > 0`, `a = b = 0`).  No `p.m = 1` hypothesis. -/
+theorem intervalDomainM_eventuallyGloballyExponentiallyStableMinimal_minimal1M
+    (p : CM2Params) (hN : p.N = 1)
+    (hm : 1 ≤ p.m ∧ p.m < 2) (ha0 : p.a = 0) (hb0 : p.b = 0)
+    (hbeta : 1 ≤ p.β) {uStar : ℝ} (huStar : 0 < uStar)
+    (hchi : 0 < p.χ₀)
+    (hthreshold : p.χ₀ < chiMinimal1FormulaM p uStar
+      (intervalDomainMMinimalEventualBoxConstants p uStar).1
+      (intervalDomainMMinimalEventualBoxConstants p uStar).2) :
+    EventuallyGloballyExponentiallyStableMinimal intervalDomainM p
+      intervalDomainMSectorialStabilityNorms
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 := by
+  let eq := minimalEquilibrium p uStar
+  let uBar := (intervalDomainMMinimalEventualBoxConstants p uStar).1
+  let vLower := (intervalDomainMMinimalEventualBoxConstants p uStar).2
+  have heq : Paper3ConstantEquilibrium p eq.1 eq.2 := by
+    simpa [eq] using paper3ConstantEquilibrium_minimal p ha0 hb0 uStar huStar
+  -- Linear stability at general `m` via the firstNonzero-lower critical bound.
+  have hstable : LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+    have hcrit : p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      lt_of_lt_of_le
+        (lt_of_lt_of_le hthreshold (min_le_left _ _))
+        (paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
+          unitIntervalNeumannSpectrum p
+          unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar)
+    simpa [eq] using
+      minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+        unitIntervalNeumannSpectrum p
+        unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hcrit
+  obtain ⟨gap, _hgapPos, hgap⟩ :=
+    unitIntervalLinearMassSpectralGap_of_linearlyStable p heq hstable
+  have hχent : p.χ₀ < chiMinimal1EntropyThresholdM p uStar uBar vLower :=
+    lt_of_lt_of_le hthreshold (min_le_right _ _)
+  have hbox := intervalDomainMMinimalEventualBoxConstants_spec
+    p hm ha0 hb0 hbeta hchi huStar
+  change IntervalDomainMMinimalEventualBox p uStar uBar vLower at hbox
+  obtain ⟨huBar, hvLower, hboxes⟩ := hbox
+  have hproduce : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      PositiveGlobalBoundedSolution intervalDomainM p u v →
+      HasEquilibriumMassOnPositiveTimes intervalDomainM u eq.1 →
+      ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+        EventualExponentialC1ConvergenceWith
+          intervalDomainM intervalDomainMSectorialStabilityNorms
+            u v eq.1 eq.2 C rate t₀ := by
+    intro u v huv hmass
+    obtain ⟨hupper, hfloor⟩ := hboxes u v huv hmass
+    refine intervalDomainM_minimal_eventualC1_of_lateSupClose_of_massGap
+      p ha0 hb0 heq hgap huv hmass ?_
+    intro eps heps
+    exact intervalDomainM_minimal1_exists_late_supClose
+      p hm.1 hb0 heq huBar hvLower.le hchi hχent huv hmass hupper hfloor
+        (T := (1 : ℝ)) heps
+  refine ⟨?_, hproduce⟩
+  intro u v huv hmass
+  obtain ⟨C, hC, rate, hrate, t₀, ht₀, hbound⟩ := hproduce u v huv hmass
+  exact intervalDomainM_uniformConvergesInSup_of_eventualExponentialC1
+    hrate hbound
+
+/-- Minimal1 disjunct of the general-`m` minimal global-stability condition. -/
+def MinimalGlobalStabilityFormulaConditionM
+    (p : CM2Params) (uStar uBar vLower : ℝ) : Prop :=
+  0 < p.χ₀ ∧ p.χ₀ < chiMinimal1FormulaM p uStar uBar vLower
+
+/-- **Step 7 (capstone).**  Faithful eventual Theorem 2.5, minimal1 branch, on
+the general-`m` unit interval (`1 ≤ m < 2`). -/
+theorem intervalDomainM_Theorem_2_5_minimal1_EventualGlobalStabilityFormula
+    (p : CM2Params) (hN : p.N = 1)
+    (hm : 1 ≤ p.m ∧ p.m < 2) (ha0 : p.a = 0) (hb0 : p.b = 0)
+    (hbeta : 1 ≤ p.β) {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityFormulaConditionM p uStar
+      (intervalDomainMMinimalEventualBoxConstants p uStar).1
+      (intervalDomainMMinimalEventualBoxConstants p uStar).2) :
+    EventuallyGloballyExponentiallyStableMinimal intervalDomainM p
+      intervalDomainMSectorialStabilityNorms
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+  intervalDomainM_eventuallyGloballyExponentiallyStableMinimal_minimal1M
+    p hN hm ha0 hb0 hbeta huStar hcond.1 hcond.2
+
 #print axioms intervalDomainM_minimal1_exists_late_supClose
 #print axioms intervalDomainM_minimal_eventualC1_of_lateSupClose_of_massGap
+#print axioms intervalDomainM_eventuallyGloballyExponentiallyStableMinimal_minimal1M
+#print axioms intervalDomainM_Theorem_2_5_minimal1_EventualGlobalStabilityFormula
 
 
 end
