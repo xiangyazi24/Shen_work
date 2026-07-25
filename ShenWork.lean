@@ -124,6 +124,7 @@ import ShenWork.Paper3.IntervalDomainEnergyDissipation
 import ShenWork.Paper3.IntervalDomainTheorem23Eventual
 import ShenWork.Paper3.IntervalDomainTheorem24Eventual
 import ShenWork.Paper3.IntervalDomainTheorem25Eventual
+import ShenWork.Paper3.IntervalDomainMMinimalEventualLp
 import ShenWork.Paper3.IntervalDomainSectorialCorrectedObstruction
 import ShenWork.PDE.IntervalNeumannFullKernel
 import ShenWork.PDE.IntervalFullKernelInterchange
