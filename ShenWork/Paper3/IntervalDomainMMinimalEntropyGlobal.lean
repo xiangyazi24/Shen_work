@@ -1,0 +1,157 @@
+import ShenWork.Paper3.IntervalDomainMMinimalEntropy
+import ShenWork.Paper3.IntervalDomainMMinimalSignalFloor
+import ShenWork.Paper3.IntervalDomainMTheorem23Eventual
+import ShenWork.Paper3.IntervalDomainMEntropyBasinEntry
+import ShenWork.Paper3.IntervalDomainMNegativeSensitivity
+import ShenWork.Paper3.IntervalDomainUniformSpectralGap
+
+/-!
+# M-native χ₀>0 minimal1 branch of faithful eventual Theorem 2.5 (`1 ≤ m < 2`)
+
+Assembly of the general-`m` minimal1 disjunct on the faithful `u^m`-flux domain.
+The entropy route produces arbitrarily late small `L²` slices; the
+`θ(α) ≤ C·L²` bridge feeds the weak-supremum basin-entry consumer; the
+general-`m` mass-constrained bootstrap and the general-`m` minimal linear
+stability (via the `firstNonzero`-lower critical-sensitivity bound) close the
+branch with no `p.m = 1` hypothesis.
+-/
+
+open Filter MeasureTheory Set Topology
+open ShenWork.IntervalDomain ShenWork.Paper2
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- Every bounded physical-mass faithful orbit satisfying the concrete eventual
+box has arbitrarily late slices with small `θ(α)`-dissipation.  The entropy
+half-Young route gives late small `L²`; the bridge converts to `θ(p.α)`. -/
+theorem intervalDomainM_minimal1_exists_late_thetaDissipation_lt
+    (p : CM2Params) (hm : 1 ≤ p.m) (hb0 : p.b = 0)
+    {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1EntropyThresholdM p uStar uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomainM p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomainM u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomainM.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T q : ℝ} (hq : 0 < q) :
+    ∃ t, T ≤ t ∧
+      chemotaxisThetaDissipation intervalDomain uStar p.α (u t) < q := by
+  let c := minimal1MEntropyCoefficient p uStar uBar vLower
+  have hc : 0 < c := by
+    simpa [c] using minimal1MEntropyCoefficient_pos_of_lt
+      p hm heq.u_pos huBar hvLower hχpos hχ
+  set as : ℝ := alphaSlope p uStar uBar with hasdef
+  have has0 : 0 ≤ as := by
+    simpa [hasdef] using alphaSlope_nonneg p heq.u_pos huBar
+  have has1 : 0 < as + 1 := by linarith
+  set qL2 : ℝ := q / (as + 1) with hqL2def
+  have hqL2 : 0 < qL2 := div_pos hq has1
+  rcases eventually_atTop.1 hupper with ⟨Tu, hTu⟩
+  rcases eventually_atTop.1 hfloor with ⟨Tv, hTv⟩
+  let Tbase : ℝ := max (max Tu Tv) (max T 1)
+  have hTbase : 0 < Tbase :=
+    lt_of_lt_of_le zero_lt_one
+      ((le_max_right T 1).trans (le_max_right (max Tu Tv) (max T 1)))
+  have hTle : T ≤ Tbase :=
+    (le_max_left T 1).trans (le_max_right (max Tu Tv) (max T 1))
+  have hTuLe : Tu ≤ Tbase :=
+    (le_max_left Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  have hTvLe : Tv ≤ Tbase :=
+    (le_max_right Tu Tv).trans (le_max_left (max Tu Tv) (max T 1))
+  obtain ⟨t, htbase, htSmall⟩ :=
+    exists_late_dissipation_lt_of_nonnegative_energy_on_Ici
+      (E := fun s => chemotaxisEntropyFunctional intervalDomain p.m uStar u s)
+      (D := fun s => ∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u s) y - uStar) ^ 2)
+      (slope := fun s => intervalDomain.integral (fun x =>
+        chemotaxisEntropyIntegrand p.m uStar (u s x) *
+          intervalDomain.timeDeriv u s x))
+      hc hTbase hqL2
+      (fun s hs =>
+        intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
+          (by linarith : (1 / 2 : ℝ) ≤ p.m) heq.u_pos
+          (fun x hx => huv.pos (t := s) (x := x) hs hx))
+      (intervalDomainM_strongMEntropy_hasDerivAt p heq huv)
+      (fun s hs => by
+        have hs0 : 0 < s := lt_of_lt_of_le hTbase hs
+        have hH : 0 < s + 1 := by linarith
+        have hsH : s < s + 1 := by linarith
+        let hsol := huv.classical (s + 1) hH
+        have hsup : intervalDomainM.supNorm (u s) ≤ uBar :=
+          hTu s (hTuLe.trans hs)
+        have hVfloor : ∀ x : intervalDomainPoint, vLower ≤ v s x :=
+          hTv s (hTvLe.trans hs)
+        have hmassS : intervalDomainM.integral (u s) = uStar := by
+          have h := hmass s hs0
+          simpa [intervalDomainM] using h
+        have huStarBar : uStar ≤ uBar := by
+          have hmassSup := intervalDomainM_classicalSolution_mass_le_supNorm
+            hsol (⟨hs0, hsH⟩ : s ∈ Ioo (0 : ℝ) (s + 1))
+          rw [hmassS] at hmassSup
+          exact hmassSup.trans hsup
+        have hpointUpper : ∀ x : intervalDomainPoint, u s x ≤ uBar := by
+          intro x
+          have hx := intervalDomainM_lift_le_supNorm_of_classical
+            hsol (⟨hs0, hsH⟩ : s ∈ Ioo (0 : ℝ) (s + 1)) x.property
+          have hx' : u s x ≤ intervalDomainM.supNorm (u s) := by
+            simpa [intervalDomainLift, x.property] using hx
+          exact hx'.trans hsup
+        exact intervalDomainM_entropySlope_le_minimal1MCoefficient
+          hm hb0 hsol hs0 hsH heq huBar huStarBar hmassS
+            hpointUpper hvLower hVfloor)
+  -- Convert the small L² slice into a small θ(α) slice through the bridge.
+  refine ⟨t, hTle.trans htbase, ?_⟩
+  have hs0 : 0 < t := lt_of_lt_of_le hTbase htbase
+  have hH : 0 < t + 1 := by linarith
+  have hsH : t < t + 1 := by linarith
+  let hsol := huv.classical (t + 1) hH
+  have hsup : intervalDomainM.supNorm (u t) ≤ uBar :=
+    hTu t (hTuLe.trans htbase)
+  have hmassT : intervalDomainM.integral (u t) = uStar := by
+    have h := hmass t hs0
+    simpa [intervalDomainM] using h
+  have huStarBar : uStar ≤ uBar := by
+    have hmassSup := intervalDomainM_classicalSolution_mass_le_supNorm
+      hsol (⟨hs0, hsH⟩ : t ∈ Ioo (0 : ℝ) (t + 1))
+    rw [hmassT] at hmassSup
+    exact hmassSup.trans hsup
+  have hpointUpper : ∀ x : intervalDomainPoint, u t x ≤ uBar := by
+    intro x
+    have hx := intervalDomainM_lift_le_supNorm_of_classical
+      hsol (⟨hs0, hsH⟩ : t ∈ Ioo (0 : ℝ) (t + 1)) x.property
+    have hx' : u t x ≤ intervalDomainM.supNorm (u t) := by
+      simpa [intervalDomainLift, x.property] using hx
+    exact hx'.trans hsup
+  have hbridge := intervalDomainM_minimal1_theta_le_L2
+    hsol hs0 hsH heq.u_pos huStarBar hpointUpper
+  set L2 : ℝ := ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u t) y - uStar) ^ 2 with hL2def
+  have hL2nonneg : 0 ≤ L2 := by
+    rw [hL2def]
+    apply intervalIntegral.integral_nonneg (by norm_num)
+    intro y _
+    exact sq_nonneg _
+  have hbridge' : chemotaxisThetaDissipation intervalDomain uStar p.α (u t) ≤
+      as * L2 := by
+    simpa [hasdef, hL2def] using hbridge
+  have hstep : as * L2 ≤ (as + 1) * L2 :=
+    mul_le_mul_of_nonneg_right (by linarith) hL2nonneg
+  have hlt : (as + 1) * L2 < q := by
+    have hL2lt : L2 < qL2 := htSmall
+    calc (as + 1) * L2 < (as + 1) * qL2 :=
+          mul_lt_mul_of_pos_left hL2lt has1
+      _ = q := by rw [hqL2def]; field_simp
+  exact lt_of_le_of_lt (hbridge'.trans hstep) hlt
+
+#print axioms intervalDomainM_minimal1_exists_late_thetaDissipation_lt
+
+end
+
+end ShenWork.Paper3
