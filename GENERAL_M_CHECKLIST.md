@@ -76,3 +76,11 @@ basin), not a gap to remove. The honest clean deliverable is the χ<4 BASIN-COND
 far-left theorem, which the landed weighted-entropy engine + orbit bridge + dt-wrapper
 now support. Remaining build (needs a vehicle): the discharge engine ⇒ basin-conditional
 far-left χ<4. This CLOSES the "can we get χ<4 floor-free" research question: no.
+
+## B1 BUILD-READY (ChatGPT Q1003, 2026-07-24) → see SPEC_thm25m_FINAL.md
+Thm 2.5-M tractable for 1≤m<2 (subcritical). Exact obstruction: exponent coincidence
+P+2m−2=P ⟺ m=1. M-native fix: scalar_seed_agmon_absorb (1D GN/Agmon), closes m<2;
+m=2 critical, m>2 supercritical. Final Lp→L∞ already general-m
+(solutionSlice_le_of_restart_affine_lp_general). ONE new lemma: orbit-independent
+eventual L^P bound M-native for 1≤m<2. Rest reuses existing general-m machinery.
+Build-ready; awaiting vehicle (Codex 7/28 or Claude go-ahead).
