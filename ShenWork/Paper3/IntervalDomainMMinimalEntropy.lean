@@ -262,9 +262,95 @@ theorem intervalDomainM_minimal_weightedGradient_ge_l2
     _ = intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t := by
       rw [hG]
 
+/-- **Step 3 (coefficient).** The exact positive coefficient left in the
+general-`m` minimal1 entropy estimate after the half-Young split, the mass-
+Poincaré floor `uBar^(−2m)`, the weighted elliptic multiplier, and the source
+power-difference bound.  For `m = 1` (so `c = uStar` and `uBar^(−2m) = uBar^(−2)`)
+this reduces to `minimal1EntropyCoefficient`. -/
+def minimal1MEntropyCoefficient
+    (p : CM2Params) (uStar uBar vLower : ℝ) : ℝ :=
+  (2 * p.m - 1) * uStar ^ (2 * p.m - 1) / 2 *
+    (uBar ^ (-(2 * p.m) : ℝ) -
+      p.χ₀ ^ 2 * p.ν ^ 2 * minimalPowerSlope p uStar uBar ^ 2 /
+        (4 * p.μ * ((1 + vLower) ^ p.β) ^ 2))
+
+/-- The general-`m` minimal1 entropy threshold: below it the entropy coefficient
+is strictly positive.  This is the `uStar^(−m)`-corrected third entry of
+`chiMinimal1FormulaM`. -/
+def chiMinimal1EntropyThresholdM
+    (p : CM2Params) (uStar uBar vLower : ℝ) : ℝ :=
+  2 * Real.sqrt p.μ * (1 + vLower) ^ p.β * uBar ^ (-p.m : ℝ) /
+    (p.ν * minimalPowerSlope p uStar uBar)
+
+/-- Below the general-`m` minimal1 entropy threshold the concrete entropy
+coefficient is strictly positive. -/
+theorem minimal1MEntropyCoefficient_pos_of_lt
+    (p : CM2Params) {uStar uBar vLower : ℝ}
+    (hm : 1 ≤ p.m)
+    (huStar : 0 < uStar) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1EntropyThresholdM p uStar uBar vLower) :
+    0 < minimal1MEntropyCoefficient p uStar uBar vLower := by
+  set S : ℝ := minimalPowerSlope p uStar uBar with hSdef
+  set B : ℝ := (1 + vLower) ^ p.β with hBdef
+  have hS : 0 < S := by
+    simpa [hSdef] using minimalPowerSlope_pos p huStar huBar
+  have hbase : 0 < 1 + vLower := by linarith
+  have hB : 0 < B := by
+    simpa [hBdef] using Real.rpow_pos_of_pos hbase p.β
+  have hsqrt : 0 < Real.sqrt p.μ := Real.sqrt_pos.mpr p.hμ
+  have hνS : 0 < p.ν * S := mul_pos p.hν hS
+  have huNegm : 0 < uBar ^ (-p.m : ℝ) := Real.rpow_pos_of_pos huBar _
+  -- rewrite the threshold
+  have hthr : p.χ₀ < 2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ) / (p.ν * S) := by
+    simpa [chiMinimal1EntropyThresholdM, hSdef, hBdef] using hχ
+  have hmul : p.χ₀ * (p.ν * S) < 2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ) :=
+    (lt_div_iff₀ hνS).mp hthr
+  have hleft : 0 < p.χ₀ * (p.ν * S) := mul_pos hχpos hνS
+  have hright : 0 < 2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ) :=
+    mul_pos (mul_pos (mul_pos (by norm_num) hsqrt) hB) huNegm
+  have hsqrtSq : (Real.sqrt p.μ) ^ 2 = p.μ := Real.sq_sqrt p.hμ.le
+  have huPowSq : (uBar ^ (-p.m : ℝ)) ^ 2 = uBar ^ (-(2 * p.m) : ℝ) := by
+    rw [sq, ← Real.rpow_add huBar]
+    congr 1
+    ring
+  have hsq : p.χ₀ ^ 2 * p.ν ^ 2 * S ^ 2 <
+      4 * p.μ * B ^ 2 * uBar ^ (-(2 * p.m) : ℝ) := by
+    have hsquare :
+        (p.χ₀ * (p.ν * S)) ^ 2 <
+          (2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ)) ^ 2 := by
+      nlinarith [sq_nonneg
+        (2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ) - p.χ₀ * (p.ν * S))]
+    have hLHSsq : (p.χ₀ * (p.ν * S)) ^ 2 = p.χ₀ ^ 2 * p.ν ^ 2 * S ^ 2 := by
+      ring
+    have hRHSsq :
+        (2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ)) ^ 2 =
+          4 * p.μ * B ^ 2 * uBar ^ (-(2 * p.m) : ℝ) := by
+      have hexpand :
+          (2 * Real.sqrt p.μ * B * uBar ^ (-p.m : ℝ)) ^ 2 =
+            4 * (Real.sqrt p.μ) ^ 2 * B ^ 2 * (uBar ^ (-p.m : ℝ)) ^ 2 := by
+        ring
+      rw [hexpand, hsqrtSq, huPowSq]
+    rw [hLHSsq, hRHSsq] at hsquare
+    exact hsquare
+  have hD : 0 < 4 * p.μ * B ^ 2 :=
+    mul_pos (mul_pos (by norm_num) p.hμ) (sq_pos_of_pos hB)
+  have hquot :
+      p.χ₀ ^ 2 * p.ν ^ 2 * S ^ 2 / (4 * p.μ * B ^ 2) <
+        uBar ^ (-(2 * p.m) : ℝ) := by
+    rw [div_lt_iff₀ hD, mul_comm (uBar ^ (-(2 * p.m) : ℝ)) (4 * p.μ * B ^ 2)]
+    exact hsq
+  have hc2 : 0 < (2 * p.m - 1) * uStar ^ (2 * p.m - 1) / 2 := by
+    have h2m : (0 : ℝ) < 2 * p.m - 1 := by linarith
+    exact div_pos (mul_pos h2m (Real.rpow_pos_of_pos huStar _)) (by norm_num)
+  unfold minimal1MEntropyCoefficient
+  rw [← hSdef, ← hBdef]
+  exact mul_pos hc2 (sub_pos.mpr hquot)
+
 #print axioms entropyCrossHalfYoungM_pointwise
 #print axioms intervalDomainM_entropyDiffusionChemotaxis_half_young
 #print axioms intervalDomainM_minimal_weightedGradient_ge_l2
+#print axioms minimal1MEntropyCoefficient_pos_of_lt
 
 end
 
