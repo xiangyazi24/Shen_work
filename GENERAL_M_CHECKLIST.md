@@ -84,3 +84,20 @@ m=2 critical, m>2 supercritical. Final Lp→L∞ already general-m
 (solutionSlice_le_of_restart_affine_lp_general). ONE new lemma: orbit-independent
 eventual L^P bound M-native for 1≤m<2. Rest reuses existing general-m machinery.
 Build-ready; awaiting vehicle (Codex 7/28 or Claude go-ahead).
+
+## B1 STATUS CORRECTION (2026-07-25, verified) — two halves, not one crux
+CORRECTION: I earlier relayed "step 5 is mostly wiring, Thm 2.5-M is close" — that was a
+SIGN ERROR, now caught + verified. Reality: Thm 2.5-M has TWO halves:
+1. UPPER BOX (eventual L∞ bound, the ChatGPT-Q1003 "crux"): LANDED for 1≤m<2 on branch
+   thm25m-wip — seed + eventual_lp + high_lp + uniform_upper_bound compile clean (8908 jobs).
+   The two "errors" were wiring (namespace + import), fixed. REAL progress.
+2. χ>0 MINIMAL CONVERGENCE: GENUINELY NEW multi-lemma work, NOT wiring (verified):
+   - minimal_completeLyapunov_frontier is χ₀≤0 ONLY (IntervalDomainEnergyDissipation.lean:488);
+     Thm 2.5 minimal condition requires 0<χ₀ (Statements.lean:3596) — direct contradiction.
+   - strongMEntropyCoefficient = p.b − χ₀²·(pos) needs 0<p.b; minimal forces b=0 ⇒ coeff ≤0.
+   - All minimal1/minimal2 entropy machinery is m=1-hardcoded (IntervalDomainMinimalEntropy.lean).
+   Needs (per grep-exhaustive subagent, matches commit ba2398f5): ~6 new M-native minimal1
+   lemmas (half-Young split keeping partial gradient dissipation + mass-Poincaré at weight 2−2m,
+   general-m minimal1 coefficient+threshold, entropy-slope assembly, L2↔θ(α) bridge, late chain)
+   PLUS the full minimal2 signal-energy route re-done M-native (~1900 lines). Real formalization,
+   best for Codex 7/28. Narrower honest milestone possible: Thm 2.5-M restricted to minimal1 disjunct.
