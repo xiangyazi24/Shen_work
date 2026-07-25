@@ -347,10 +347,188 @@ theorem minimal1MEntropyCoefficient_pos_of_lt
   rw [← hSdef, ← hBdef]
   exact mul_pos hc2 (sub_pos.mpr hquot)
 
+/-- M-native integrated power-difference estimate on one eventual minimal box.
+The `m = 1` proof `intervalDomain_minimal_powerDifference_integral_le` is stated
+for legacy `intervalDomain` solutions; this is the identical estimate on the
+faithful `intervalDomainM` domain (only the regularity/positivity accessors and
+the domain change; the pointwise slope bound is domain-agnostic). -/
+theorem intervalDomainM_minimal_powerDifference_integral_le
+    {p : CM2Params} {T t uStar uBar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (huStar : 0 < uStar) (huStarBar : uStar ≤ uBar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar) :
+    (∫ y in (0 : ℝ)..1,
+        (intervalDomainLift (u t) y ^ p.γ - uStar ^ p.γ) ^ 2) ≤
+      minimalPowerSlope p uStar uBar ^ 2 *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hUcont : ContinuousOn U (Set.Icc (0 : ℝ) 1) := by
+    simpa [U] using ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
+  have hUpos : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < U y := by
+    intro y hy
+    simp only [U, intervalDomainLift, hy, dif_pos]
+    exact hsol.u_pos' ht0 htT
+  have hUupper : ∀ y ∈ Set.Icc (0 : ℝ) 1, U y ≤ uBar := by
+    intro y hy
+    simpa [U, intervalDomainLift, hy] using
+      hupper (⟨y, hy⟩ : intervalDomainPoint)
+  have hleftCont : ContinuousOn
+      (fun y => (U y ^ p.γ - uStar ^ p.γ) ^ 2)
+      (Set.Icc (0 : ℝ) 1) :=
+    ((hUcont.rpow_const
+      (fun y hy => Or.inl (ne_of_gt (hUpos y hy)))).sub continuousOn_const).pow 2
+  have hrightCont : ContinuousOn
+      (fun y => minimalPowerSlope p uStar uBar ^ 2 *
+        (U y - uStar) ^ 2) (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul ((hUcont.sub continuousOn_const).pow 2)
+  have hleftInt : IntervalIntegrable
+      (fun y => (U y ^ p.γ - uStar ^ p.γ) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hleftCont
+  have hrightInt : IntervalIntegrable
+      (fun y => minimalPowerSlope p uStar uBar ^ 2 *
+        (U y - uStar) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hrightCont
+  calc
+    (∫ y in (0 : ℝ)..1, (U y ^ p.γ - uStar ^ p.γ) ^ 2) ≤
+        ∫ y in (0 : ℝ)..1,
+          minimalPowerSlope p uStar uBar ^ 2 * (U y - uStar) ^ 2 := by
+      exact intervalIntegral.integral_mono_on (by norm_num) hleftInt hrightInt
+        (fun y hy => powerDifference_sq_le_minimalPowerSlope_sq p
+          (hUpos y hy).le (hUupper y hy) huStar huStarBar)
+    _ = minimalPowerSlope p uStar uBar ^ 2 *
+          (∫ y in (0 : ℝ)..1, (U y - uStar) ^ 2) := by
+      rw [intervalIntegral.integral_const_mul]
+
+/-- **Step 4.** Concrete general-`m` minimal1 entropy slope on every classical
+slice belonging to the eventual upper/lower box and carrying the conserved
+physical mass: the slope is bounded by `−minimal1MEntropyCoefficient · L²`. -/
+theorem intervalDomainM_entropySlope_le_minimal1MCoefficient
+    {p : CM2Params} {T t uStar vStar uBar vLower : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 ≤ p.m) (hb0 : p.b = 0)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (huStarBar : uStar ≤ uBar)
+    (hmass : intervalDomain.integral (u t) = uStar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar)
+    (hvLower : 0 ≤ vLower)
+    (hVfloor : ∀ x : intervalDomainPoint, vLower ≤ v t x) :
+    intervalDomain.integral (fun x =>
+        chemotaxisEntropyIntegrand p.m uStar (u t x) *
+          intervalDomain.timeDeriv u t x) ≤
+      -minimal1MEntropyCoefficient p uStar uBar vLower *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) := by
+  set c : ℝ := (2 * p.m - 1) * uStar ^ (2 * p.m - 1) with hcdef
+  have hc : 0 ≤ c := by
+    have h2m : (0 : ℝ) < 2 * p.m - 1 := by linarith
+    exact mul_nonneg h2m.le (Real.rpow_pos_of_pos heq.u_pos _).le
+  let L2 : ℝ := ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u t) y - uStar) ^ 2
+  let G : ℝ := intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t
+  let W : ℝ := ∫ y in (0 : ℝ)..1,
+    (deriv (intervalDomainLift (v t)) y) ^ 2 *
+      (1 + intervalDomainLift (v t) y) ^ (-2 * p.β)
+  let P : ℝ := ∫ y in (0 : ℝ)..1,
+    (intervalDomainLift (u t) y ^ p.γ - uStar ^ p.γ) ^ 2
+  let S : ℝ := minimalPowerSlope p uStar uBar
+  have hid := intervalDomainM_entropySlope_le_of_classical
+    hm hsol ht0 htT heq
+  have hyoung := intervalDomainM_entropyDiffusionChemotaxis_half_young
+    (c := c) hc hsol ht0 htT
+  have hgradient := intervalDomainM_minimal_weightedGradient_ge_l2
+    hsol ht0 htT huBar hmass hupper
+  have hell := intervalDomain_persistentWeightedElliptic_gradient_estimate
+    hsol ht0 htT heq hvLower hVfloor
+  have hpower := intervalDomainM_minimal_powerDifference_integral_le
+    hsol ht0 htT heq.u_pos huStarBar hupper
+  change uBar ^ (-(2 * p.m) : ℝ) * L2 ≤ G at hgradient
+  change W ≤
+    p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) * P at hell
+  change P ≤ S ^ 2 * L2 at hpower
+  -- half-young in the chosen names
+  have hyoung' :
+      -c * G + p.χ₀ * c *
+          ShenWork.Paper2.IntervalDomainM.lpSignedCrossIntegralM
+            p (2 - 2 * p.m) u v t ≤
+        -(c / 2) * G + p.χ₀ ^ 2 * c / 2 * W := hyoung
+  have hcHalf : 0 ≤ c / 2 := by linarith
+  have hneg : -(c / 2) * G ≤ -(c / 2) * (uBar ^ (-(2 * p.m) : ℝ) * L2) :=
+    mul_le_mul_of_nonpos_left hgradient (by linarith [hcHalf])
+  have hchemScale : 0 ≤ p.χ₀ ^ 2 * c / 2 :=
+    div_nonneg (mul_nonneg (sq_nonneg _) hc) (by norm_num)
+  have hellScaled := mul_le_mul_of_nonneg_left hell hchemScale
+  have hellCoeff : 0 ≤
+      p.χ₀ ^ 2 * c / 2 *
+        (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β))) := by
+    have hden : 0 < 4 * p.μ * (1 + vLower) ^ (2 * p.β) :=
+      mul_pos (mul_pos (by norm_num) p.hμ)
+        (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vLower) _)
+    exact mul_nonneg hchemScale (div_nonneg (sq_nonneg _) hden.le)
+  have hpowerScaled := mul_le_mul_of_nonneg_left hpower hellCoeff
+  have hbase : 0 ≤ 1 + vLower := by linarith
+  have hB2 :
+      (1 + vLower) ^ (2 * p.β) = ((1 + vLower) ^ p.β) ^ 2 := by
+    rw [← Real.rpow_mul_natCast hbase p.β 2]
+    congr 1
+    ring
+  have hWbound :
+      p.χ₀ ^ 2 * c / 2 * W ≤
+        p.χ₀ ^ 2 * c / 2 *
+          (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) *
+            (S ^ 2 * L2)) := by
+    calc
+      p.χ₀ ^ 2 * c / 2 * W ≤
+          p.χ₀ ^ 2 * c / 2 *
+            (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) * P) :=
+        hellScaled
+      _ = (p.χ₀ ^ 2 * c / 2 *
+            (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)))) * P := by ring
+      _ ≤ (p.χ₀ ^ 2 * c / 2 *
+            (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)))) *
+              (S ^ 2 * L2) := hpowerScaled
+      _ = p.χ₀ ^ 2 * c / 2 *
+            (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) *
+              (S ^ 2 * L2)) := by ring
+  calc
+    intervalDomain.integral (fun x =>
+        chemotaxisEntropyIntegrand p.m uStar (u t x) *
+          intervalDomain.timeDeriv u t x) ≤
+        -c * G + p.χ₀ * c *
+            ShenWork.Paper2.IntervalDomainM.lpSignedCrossIntegralM
+              p (2 - 2 * p.m) u v t -
+          p.b * chemotaxisThetaDissipation intervalDomain uStar p.α (u t) := by
+      rw [hcdef]
+      exact hid
+    _ = -c * G + p.χ₀ * c *
+          ShenWork.Paper2.IntervalDomainM.lpSignedCrossIntegralM
+            p (2 - 2 * p.m) u v t := by
+      rw [hb0]; ring
+    _ ≤ -(c / 2) * G + p.χ₀ ^ 2 * c / 2 * W := hyoung'
+    _ ≤ -(c / 2) * (uBar ^ (-(2 * p.m) : ℝ) * L2) +
+          p.χ₀ ^ 2 * c / 2 *
+            (p.ν ^ 2 / (4 * p.μ * (1 + vLower) ^ (2 * p.β)) *
+              (S ^ 2 * L2)) := add_le_add hneg hWbound
+    _ = -minimal1MEntropyCoefficient p uStar uBar vLower * L2 := by
+      rw [hB2]
+      unfold minimal1MEntropyCoefficient
+      rw [hcdef]
+      dsimp [S]
+      ring
+
 #print axioms entropyCrossHalfYoungM_pointwise
 #print axioms intervalDomainM_entropyDiffusionChemotaxis_half_young
 #print axioms intervalDomainM_minimal_weightedGradient_ge_l2
 #print axioms minimal1MEntropyCoefficient_pos_of_lt
+#print axioms intervalDomainM_minimal_powerDifference_integral_le
+#print axioms intervalDomainM_entropySlope_le_minimal1MCoefficient
 
 end
 
