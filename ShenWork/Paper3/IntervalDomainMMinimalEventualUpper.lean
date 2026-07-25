@@ -1,5 +1,6 @@
 import ShenWork.Paper3.IntervalDomainMMinimalEventualLp
 import ShenWork.Paper2.IntervalDomainMRestartedLpLinfGeneral
+import ShenWork.Paper2.IntervalDomainMContinuationExtension
 
 /-!
 # M-native uniform eventual supremum bound, `1 ≤ m < 2`
@@ -69,7 +70,7 @@ theorem exists_intervalDomainM_minimal_eventual_uniform_upper_bound
     intro T₂ hT₂
     have hsum : 0 < T₂ + tau := by linarith
     have hsolT := huv.classical (T₂ + tau) hsum
-    have hshift := classicalSolution_timeShiftM hsolT htau (by linarith)
+    have hshift := ShenWork.Paper2.IntervalDomainMContinuation.classicalSolution_timeShiftM hsolT htau (by linarith)
     simpa only [add_sub_cancel_right] using hshift
   have hpowerShift : ∀ s, 0 < s →
       intervalDomainM.integral (fun z => (us s z) ^ P) ≤ C := by
