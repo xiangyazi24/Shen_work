@@ -46,3 +46,17 @@ cheap to resolve) → B1 (real new math, ChatGPT-assess first) → C1 continues.
 - B2: RESOLVED non-gap — general-m existence is intervalDomainM_smallDataGlobalExistence_of_linearlyStable (Thm 2.1 covered, just not named 2.1).
 - B1 (Thm 2.5-m): GENUINELY NEW — general-m minimal eventual-stability producers (minimal1/minimal2 analogs) do NOT exist; must be built mirroring the done nonminimal Thm 2.4-m. ChatGPT design fired (Q984). BLOCKED ON IMPLEMENTATION VEHICLE: Codex out of credits until 2026-07-28; conserving Claude per directive.
 - C1 (far-left χ≤4−δ): engine+bridge+dt-wrapper landed clean-3; floor is open crux; ChatGPT quadratic-entropy floor-free angle fired.
+
+## B1 refined scope (ChatGPT Q984 verdict, 2026-07-24)
+Thm 2.5-m is DOABLE (no fundamental obstruction), but genuinely new (not a mirror).
+Minimal equilibrium (a=b=0) = mass-parametrized family (u*, (ν/μ)u*^γ); constant mode
+NEUTRAL (no logistic damping) ⇒ work on the physical-mass hyperplane, Poincaré after
+removing mean. ALREADY proved for general-m (reuse): mass-constrained local bootstrap
+intervalDomainM_minimal_eventualC1_of_uniformSup_of_massGap, the χ₀≤0 branch (Thm 2.3-m),
+Stage B. SINGLE NEW CRUX: general-m, positive-χ₀, ORBIT-INDEPENDENT EVENTUAL UPPER BOX
+for u (the m=1 eventual-box producer casts intervalDomain↔intervalDomainM via the m=1
+equality — no general-m version exists). Given u≤uBar, the signal floor vLower is benign
+(conserved positive mass + elliptic resolver). Key functional: relative entropy
+E=∫[u−u*−u* log(u/u*)] on the mass hyperplane. → Build target when a vehicle is available:
+the general-m eventual upper box, then assemble via existing minimal machinery.
+BLOCKED: Codex out until 2026-07-28; conserving Claude.
