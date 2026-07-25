@@ -18,6 +18,8 @@ branch with no `p.m = 1` hypothesis.
 
 open Filter MeasureTheory Set Topology
 open ShenWork.IntervalDomain ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMContinuation
+open ShenWork.PDE.SectorialOperator
 
 namespace ShenWork.Paper3
 
@@ -151,6 +153,119 @@ theorem intervalDomainM_minimal1_exists_late_thetaDissipation_lt
   exact lt_of_le_of_lt (hbridge'.trans hstep) hlt
 
 #print axioms intervalDomainM_minimal1_exists_late_thetaDissipation_lt
+
+/-- The minimal1M entropy slices enter every weak supremum neighborhood at
+arbitrarily late positive times. -/
+theorem intervalDomainM_minimal1_exists_late_supClose
+    (p : CM2Params) (hm : 1 ≤ p.m) (hb0 : p.b = 0)
+    {uStar vStar uBar vLower : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    (huBar : 0 < uBar) (hvLower : 0 ≤ vLower)
+    (hχpos : 0 < p.χ₀)
+    (hχ : p.χ₀ < chiMinimal1EntropyThresholdM p uStar uBar vLower)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomainM p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomainM u uStar)
+    (hupper : ∀ᶠ t : ℝ in atTop,
+      intervalDomainM.supNorm (u t) ≤ uBar)
+    (hfloor : ∀ᶠ t : ℝ in atTop,
+      ∀ x : intervalDomainPoint, vLower ≤ v t x)
+    {T eps : ℝ} (heps : 0 < eps) :
+    ∃ t, T ≤ t ∧ SupCloseToConstant intervalDomainM (u t) uStar eps := by
+  refine intervalDomainM_exists_late_supClose_of_thetaDissipation
+    p heq.u_pos huv ?_ T heps
+  intro T' q _hT' hq
+  exact intervalDomainM_minimal1_exists_late_thetaDissipation_lt
+    p hm hb0 heq huBar hvLower hχpos hχ huv hmass hupper hfloor (T := T') hq
+
+/-- Recurrence variant of the general-`m` minimal mass-constrained bootstrap:
+a single late supremum-close slice (produced recurrently, not by full uniform
+convergence) plus the mass spectral gap upgrades to eventual exponential
+`C¹` convergence.  Structurally identical to
+`intervalDomainM_minimal_eventualC1_of_uniformSup_of_massGap`, sourcing the
+basin-entry slice from a recurrence hypothesis. -/
+theorem intervalDomainM_minimal_eventualC1_of_lateSupClose_of_massGap
+    (p : CM2Params) (ha0 : p.a = 0) (hb0 : p.b = 0)
+    {uStar vStar : ℝ}
+    (heq : Paper3ConstantEquilibrium p uStar vStar)
+    {gap : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar gap)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomainM p u v)
+    (hmass : HasEquilibriumMassOnPositiveTimes intervalDomainM u uStar)
+    (hlate : ∀ eps : ℝ, 0 < eps → ∃ t, 1 ≤ t ∧
+      SupCloseToConstant intervalDomainM (u t) uStar eps) :
+    ∃ C > 0, ∃ rate > 0, ∃ t₀ > 0,
+      EventualExponentialC1ConvergenceWith
+        intervalDomainM intervalDomainMSectorialStabilityNorms
+          u v uStar vStar C rate t₀ := by
+  let sigma : ℝ := 7 / 8
+  have hsigmaStrong : 3 / 4 < sigma := by norm_num [sigma]
+  have hsigma1 : sigma < 1 := by norm_num [sigma]
+  obtain ⟨deltaBasin, hdeltaBasin, T, hT, henter⟩ :=
+    intervalDomainMassSupToStrongBasinEntryGeneralM_proved
+      p hsigmaStrong hsigma1 ha0 hb0 heq hgap
+  obtain ⟨tau₁, htau₁ge, hclose⟩ := hlate deltaBasin hdeltaBasin
+  have htau₁ : 0 < tau₁ := lt_of_lt_of_le one_pos htau₁ge
+  have hsol := huv.classical (tau₁ + 1) (by linarith)
+  have hpid : PositiveInitialDatum intervalDomainM (u tau₁) :=
+    positiveInitialDatum_of_paperPositiveInitialDatumM
+      (classicalSolution_slice_paperPositiveInitialDatumM
+        hsol ⟨htau₁, by linarith⟩)
+  let us : ℝ → intervalDomainPoint → ℝ := fun t x => u (t + tau₁) x
+  let vs : ℝ → intervalDomainPoint → ℝ := fun t x => v (t + tau₁) x
+  have hshiftGlobal :
+      IsPaper2GlobalClassicalSolution intervalDomainM p us vs := by
+    intro T₂ hT₂
+    have hsum : 0 < T₂ + tau₁ := by linarith
+    have hsolT := huv.classical (T₂ + tau₁) hsum
+    have hshift := classicalSolution_timeShiftM hsolT htau₁ (by linarith)
+    simpa only [add_sub_cancel_right] using hshift
+  have hshiftTrace : InitialTrace intervalDomainM (u tau₁) us := by
+    simpa [us] using timeShiftInitialTraceM hsol htau₁ (by linarith)
+  have hshiftMass :
+      HasEquilibriumMassOnPositiveTimes intervalDomainM us uStar := by
+    intro t ht
+    exact hmass (t + tau₁) (by linarith)
+  have hentry := henter (u tau₁) hpid hclose us vs
+    hshiftGlobal hshiftTrace hshiftMass
+  let tauRestart : ℝ := T + tau₁
+  have htauRestart : 0 < tauRestart := by dsimp [tauRestart]; linarith
+  have hrestart :
+      intervalDomainX2SigmaDistance sigma uStar (u tauRestart) ≤
+        intervalDomainStrongBootstrapRadiusGeneralM
+          p sigma uStar vStar gap heq / 2 := by
+    change intervalDomainX2SigmaDistance sigma uStar (u (T + tau₁)) ≤ _
+    simpa [us] using hentry.2
+  have hresult :=
+    intervalDomainM_minimal_eventualC1_of_X2Sigma_restart_of_massGap
+      p ha0 hb0 heq hgap huv.1 hmass htauRestart hrestart
+  let R := intervalDomainStrongBootstrapRadiusGeneralM
+    p sigma uStar vStar gap heq
+  let rate := gap / 4
+  let Cu := intervalDomainX2SigmaValueTrace sigma +
+    intervalDomainX2SigmaDerivativeTrace sigma
+  let Cv := 4 * paper3UniformSignalStrongConstant p uStar heq.u_pos *
+    intervalDomainX2SigmaC1Envelope sigma
+  let C := (1 + Cu + Cv) * R * Real.exp (rate * tauRestart)
+  have hR : 0 < R := intervalDomainStrongBootstrapRadiusGeneralM_pos
+    p heq hgap.1 (by norm_num [sigma] : 0 < sigma) hsigma1
+  have hrate : 0 < rate := by dsimp [rate]; linarith [hgap.1]
+  have hCu : 0 ≤ Cu := add_nonneg
+    (intervalDomainX2SigmaValueTrace_nonneg sigma)
+    (intervalDomainX2SigmaDerivativeTrace_nonneg sigma)
+  have hCv : 0 ≤ Cv := mul_nonneg
+    (mul_nonneg (by norm_num)
+      (paper3UniformSignalStrongConstant_pos p uStar heq.u_pos).le)
+    (intervalDomainX2SigmaC1Envelope_pos sigma).le
+  have hC : 0 < C := mul_pos
+    (mul_pos (by linarith : (0 : ℝ) < 1 + Cu + Cv) hR)
+    (Real.exp_pos _)
+  exact ⟨C, hC, rate, hrate, tauRestart, htauRestart, hresult⟩
+
+#print axioms intervalDomainM_minimal1_exists_late_supClose
+#print axioms intervalDomainM_minimal_eventualC1_of_lateSupClose_of_massGap
+
 
 end
 
