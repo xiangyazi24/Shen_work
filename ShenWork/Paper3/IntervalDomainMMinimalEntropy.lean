@@ -523,12 +523,134 @@ theorem intervalDomainM_entropySlope_le_minimal1MCoefficient
       dsimp [S]
       ring
 
+/-- **Step 5 (bridge constant).** The Lipschitz slope of `x ↦ x^α` on the box
+`[0, uBar]` relative to the fixed positive mass `uStar` (concave `α ≤ 1`: fixed
+reference slope `uStar^(α−1)`; convex `α ≥ 1`: box slope `α·uBar^(α−1)`). -/
+def alphaSlope (p : CM2Params) (uStar uBar : ℝ) : ℝ :=
+  if p.α ≤ 1 then uStar ^ (p.α - 1) else p.α * uBar ^ (p.α - 1)
+
+theorem alphaSlope_nonneg
+    (p : CM2Params) {uStar uBar : ℝ}
+    (huStar : 0 < uStar) (huBar : 0 < uBar) :
+    0 ≤ alphaSlope p uStar uBar := by
+  unfold alphaSlope
+  split_ifs
+  · exact (Real.rpow_pos_of_pos huStar _).le
+  · exact (mul_pos p.hα (Real.rpow_pos_of_pos huBar _)).le
+
+/-- Lipschitz bound for `x ↦ x^α` at exponent `p.α` on the eventual box. -/
+theorem abs_alphaDifference_le_alphaSlope
+    (p : CM2Params) {z uStar uBar : ℝ}
+    (hz : 0 ≤ z) (hzBar : z ≤ uBar)
+    (huStar : 0 < uStar) (huStarBar : uStar ≤ uBar) :
+    |z ^ p.α - uStar ^ p.α| ≤
+      alphaSlope p uStar uBar * |z - uStar| := by
+  unfold alphaSlope
+  by_cases hα1 : p.α ≤ 1
+  · rw [if_pos hα1]
+    exact abs_rpow_sub_fixed_le p.hα hα1 hz huStar
+  · rw [if_neg hα1]
+    exact rpow_lipschitz_on_Icc_zeroM_of_one_le_gamma
+      (le_of_not_ge hα1) (huStar.le.trans huStarBar)
+      ⟨hz, hzBar⟩ ⟨huStar.le, huStarBar⟩
+
+/-- The theta-integrand at exponent `α` is controlled pointwise by the squared
+`L²` integrand times the bridge slope. -/
+theorem alphaTheta_prod_le
+    (p : CM2Params) {z uStar uBar : ℝ}
+    (hz : 0 ≤ z) (hzBar : z ≤ uBar)
+    (huStar : 0 < uStar) (huStarBar : uStar ≤ uBar) :
+    (z - uStar) * (z ^ p.α - uStar ^ p.α) ≤
+      alphaSlope p uStar uBar * (z - uStar) ^ 2 := by
+  have hbound := abs_alphaDifference_le_alphaSlope p hz hzBar huStar huStarBar
+  have hslope0 : 0 ≤ alphaSlope p uStar uBar :=
+    alphaSlope_nonneg p huStar (huStar.trans_le huStarBar)
+  calc
+    (z - uStar) * (z ^ p.α - uStar ^ p.α) ≤
+        |(z - uStar) * (z ^ p.α - uStar ^ p.α)| := le_abs_self _
+    _ = |z - uStar| * |z ^ p.α - uStar ^ p.α| := abs_mul _ _
+    _ ≤ |z - uStar| * (alphaSlope p uStar uBar * |z - uStar|) :=
+      mul_le_mul_of_nonneg_left hbound (abs_nonneg _)
+    _ = alphaSlope p uStar uBar * (z - uStar) ^ 2 := by
+      rw [show |z - uStar| * (alphaSlope p uStar uBar * |z - uStar|)
+            = alphaSlope p uStar uBar * |z - uStar| ^ 2 from by ring,
+        sq_abs]
+
+/-- **Step 5 (bridge).** The chemotactic theta-dissipation at the reaction
+exponent `p.α` is controlled by the `L²` distance on the eventual box.  This
+reconciles the entropy route (which produces `L² = θ(1)`) with the weak-supremum
+basin-entry consumer `intervalDomainM_exists_late_supClose_of_thetaDissipation`,
+which requires `θ(p.α)`. -/
+theorem intervalDomainM_minimal1_theta_le_L2
+    {p : CM2Params} {T t uStar uBar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (huStar : 0 < uStar) (huStarBar : uStar ≤ uBar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar) :
+    chemotaxisThetaDissipation intervalDomain uStar p.α (u t) ≤
+      alphaSlope p uStar uBar *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hUcont : ContinuousOn U (Set.Icc (0 : ℝ) 1) := by
+    simpa [U] using ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
+  have hUpos : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < U y := by
+    intro y hy
+    simp only [U, intervalDomainLift, hy, dif_pos]
+    exact hsol.u_pos' ht0 htT
+  have hUupper : ∀ y ∈ Set.Icc (0 : ℝ) 1, U y ≤ uBar := by
+    intro y hy
+    simpa [U, intervalDomainLift, hy] using
+      hupper (⟨y, hy⟩ : intervalDomainPoint)
+  have hleftCont : ContinuousOn
+      (fun y => (U y - uStar) * (U y ^ p.α - uStar ^ p.α))
+      (Set.Icc (0 : ℝ) 1) :=
+    (hUcont.sub continuousOn_const).mul
+      ((hUcont.rpow_const
+        (fun y hy => Or.inl (ne_of_gt (hUpos y hy)))).sub continuousOn_const)
+  have hrightCont : ContinuousOn
+      (fun y => alphaSlope p uStar uBar * (U y - uStar) ^ 2)
+      (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul ((hUcont.sub continuousOn_const).pow 2)
+  have hleftInt : IntervalIntegrable
+      (fun y => (U y - uStar) * (U y ^ p.α - uStar ^ p.α)) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hleftCont
+  have hrightInt : IntervalIntegrable
+      (fun y => alphaSlope p uStar uBar * (U y - uStar) ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [Set.uIcc_of_le zero_le_one] using hrightCont
+  have hthetaEq :
+      chemotaxisThetaDissipation intervalDomain uStar p.α (u t) =
+        ∫ y in (0 : ℝ)..1, (U y - uStar) * (U y ^ p.α - uStar ^ p.α) := by
+    unfold chemotaxisThetaDissipation
+    change intervalDomainIntegral
+      (fun x => (u t x - uStar) * (u t x ^ p.α - uStar ^ p.α)) = _
+    unfold intervalDomainIntegral
+    apply intervalIntegral.integral_congr
+    intro y hy
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hy
+    simp [U, intervalDomainLift, hy]
+  rw [hthetaEq]
+  calc
+    (∫ y in (0 : ℝ)..1, (U y - uStar) * (U y ^ p.α - uStar ^ p.α)) ≤
+        ∫ y in (0 : ℝ)..1, alphaSlope p uStar uBar * (U y - uStar) ^ 2 := by
+      exact intervalIntegral.integral_mono_on (by norm_num) hleftInt hrightInt
+        (fun y hy => alphaTheta_prod_le p (hUpos y hy).le (hUupper y hy)
+          huStar huStarBar)
+    _ = alphaSlope p uStar uBar *
+          (∫ y in (0 : ℝ)..1, (U y - uStar) ^ 2) := by
+      rw [intervalIntegral.integral_const_mul]
+
 #print axioms entropyCrossHalfYoungM_pointwise
 #print axioms intervalDomainM_entropyDiffusionChemotaxis_half_young
 #print axioms intervalDomainM_minimal_weightedGradient_ge_l2
 #print axioms minimal1MEntropyCoefficient_pos_of_lt
 #print axioms intervalDomainM_minimal_powerDifference_integral_le
 #print axioms intervalDomainM_entropySlope_le_minimal1MCoefficient
+#print axioms intervalDomainM_minimal1_theta_le_L2
 
 end
 
