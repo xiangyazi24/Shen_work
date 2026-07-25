@@ -185,8 +185,86 @@ theorem intervalDomainM_entropyDiffusionChemotaxis_half_young
         intervalIntegral.integral_const_mul,
         intervalIntegral.integral_const_mul]
 
+/-- **Step 2.** On a positive mass-constrained slice lying below `uBar`, the
+general-`m` weighted-gradient dissipation at weight `2 − 2m` controls the squared
+`L²` distance to the conserved mean, with floor constant `uBar^(−2m)` (using
+`0 < U ≤ uBar` and the nonpositive exponent `−2m ≤ 0` for `m ≥ 0`), followed by
+the mass-Poincaré inequality. -/
+theorem intervalDomainM_minimal_weightedGradient_ge_l2
+    {p : CM2Params} {T t uStar uBar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (huBar : 0 < uBar)
+    (hmass : intervalDomain.integral (u t) = uStar)
+    (hupper : ∀ x : intervalDomainPoint, u t x ≤ uBar) :
+    uBar ^ (-(2 * p.m) : ℝ) *
+        (∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (u t) y - uStar) ^ 2) ≤
+      intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  let Ux : ℝ → ℝ := deriv U
+  let g : ℝ → ℝ := fun y => U y ^ ((2 - 2 * p.m) - 2) * Ux y ^ 2
+  have ht : t ∈ Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hU2 : ContDiffOn ℝ 2 U (Icc (0 : ℝ) 1) := by
+    simpa [U] using (hsol.regularity.2.2.2.2.1 t ht).1.1
+  have hUcont : ContinuousOn U (Icc (0 : ℝ) 1) := hU2.continuousOn
+  have hUxcont : ContinuousOn Ux (Icc (0 : ℝ) 1) := by
+    dsimp [Ux]
+    exact (deriv_lift_contDiffOn_one_Icc hU2
+      (derivWithin_left_zero hsol ht0 htT u (Or.inl rfl))
+      (derivWithin_right_zero hsol ht0 htT u (Or.inl rfl))).continuousOn
+  have hUpos : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U y := by
+    intro y hy
+    simpa [U] using solution_lift_pos_Icc hsol ht y hy
+  have hUupper : ∀ y ∈ Icc (0 : ℝ) 1, U y ≤ uBar := by
+    intro y hy
+    simpa [U, intervalDomainLift, hy] using
+      hupper (⟨y, hy⟩ : intervalDomainPoint)
+  have hUxSqInt : IntervalIntegrable (fun y => Ux y ^ 2) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hUxcont.pow 2
+  have hexp : ((2 - 2 * p.m) - 2 : ℝ) = -(2 * p.m) := by ring
+  have hgcont : ContinuousOn g (Icc (0 : ℝ) 1) := by
+    dsimp [g]
+    exact (hUcont.rpow_const
+      (fun y hy => Or.inl (ne_of_gt (hUpos y hy)))).mul (hUxcont.pow 2)
+  have hgint : IntervalIntegrable g volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le zero_le_one] using hgcont
+  have hcoeff : 0 ≤ uBar ^ (-(2 * p.m) : ℝ) :=
+    Real.rpow_nonneg huBar.le _
+  have hpoincare := intervalDomain_classicalSlice_poincare
+    hsol ht0 htT hmass
+  have hweight : ∀ y ∈ Icc (0 : ℝ) 1,
+      uBar ^ (-(2 * p.m) : ℝ) * Ux y ^ 2 ≤ g y := by
+    intro y hy
+    have hpow : uBar ^ (-(2 * p.m) : ℝ) ≤ U y ^ (-(2 * p.m) : ℝ) :=
+      Real.rpow_le_rpow_of_nonpos (hUpos y hy) (hUupper y hy)
+        (by nlinarith [p.hm.le])
+    have hg_eq : g y = U y ^ (-(2 * p.m) : ℝ) * Ux y ^ 2 := by
+      dsimp [g]; rw [hexp]
+    rw [hg_eq]
+    exact mul_le_mul_of_nonneg_right hpow (sq_nonneg _)
+  have hG := intervalDomainM_lpGradient_eq_integral
+    (q := 2 - 2 * p.m) hsol ht0 htT
+  calc
+    uBar ^ (-(2 * p.m) : ℝ) *
+          (∫ y in (0 : ℝ)..1, (U y - uStar) ^ 2) ≤
+        uBar ^ (-(2 * p.m) : ℝ) *
+          (∫ y in (0 : ℝ)..1, Ux y ^ 2) :=
+      mul_le_mul_of_nonneg_left (by simpa [U, Ux] using hpoincare) hcoeff
+    _ = ∫ y in (0 : ℝ)..1, uBar ^ (-(2 * p.m) : ℝ) * Ux y ^ 2 := by
+      rw [intervalIntegral.integral_const_mul]
+    _ ≤ ∫ y in (0 : ℝ)..1, g y := by
+      exact intervalIntegral.integral_mono_on (by norm_num)
+        (hUxSqInt.const_mul _) hgint hweight
+    _ = intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t := by
+      rw [hG]
+
 #print axioms entropyCrossHalfYoungM_pointwise
 #print axioms intervalDomainM_entropyDiffusionChemotaxis_half_young
+#print axioms intervalDomainM_minimal_weightedGradient_ge_l2
 
 end
 
