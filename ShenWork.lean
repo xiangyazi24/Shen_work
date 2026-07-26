@@ -968,6 +968,11 @@ import ShenWork.Paper1.WholeLineChiPosQuantifiedRefinedConvergence
 import ShenWork.Paper1.WholeLineChiPosRectangleWallMOne
 import ShenWork.Paper1.WholeLineChiPosRectangleWallGammaOne
 import ShenWork.Paper1.WholeLineChiPosDispersionSharp
+import ShenWork.Paper1.WholeLineChiPosL2SpectralCoercivity
+import ShenWork.Paper1.WholeLineChiPosL2DeficitEnergy
+import ShenWork.Paper1.WholeLineChiPosL2FarLeftDecay
+import ShenWork.Paper1.WholeLineChiPosDeepHoleRefill
+import ShenWork.Paper1.WholeLineChiPosIntermediateAmplitudeGluing
 import ShenWork.Paper1.WholeLineResolverTestingIdentities
 import ShenWork.Paper1.WholeLineResolverSharpGradient
 import ShenWork.Paper1.ReactionRelativeNonpos
@@ -1075,6 +1080,7 @@ import ShenWork.Paper1.WholeLineParabolicDirect
 import ShenWork.Paper1.WholeLineParabolicDirectUpper
 import ShenWork.Paper1.WholeLineFarLeftDirect
 import ShenWork.Paper1.WholeLineFarLeftDirectScopeAudit
+import ShenWork.Paper1.WholeLineChiPosFloorQuantifierObstruction
 import ShenWork.Paper3.IntervalDomainMMinimalEntropyGlobal
 import ShenWork.Paper2.IntervalDomainTheorem13MLtOneClosure
 import ShenWork.Paper3.IntervalDomainMMinimalSignalEnergyGlobal
