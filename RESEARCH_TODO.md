@@ -9,6 +9,17 @@ and the refuted naive route). This file is the short action list.
       (`0<χ<1/2`), sharp sibling `_chi_pos_full_window` (`χ<chiStar`).
 - [x] Architecture: buffered half-line KPP-rectangle successor (seed → successor →
       abstract endgame), mirroring the χ≤0 proofs.
+- [x] BASIN-CONDITIONAL sharp-range theorem (farleft-push):
+      `WholeLineChiPosEntropyFarLeftBasinConditional.lean`.  For `0 ≤ χ < 4`:
+      {basin floor `EventualCoMovingLeftBand` (honest hypothesis, forced by
+      bistability) + residual FIRST-ORDER translate estimates
+      `ChiOneFarLeftDerivativeCompactness`} ⇒ far-left uniform convergence.
+      All zeroth-order compactness obligations (floor, |u|≤C, u-equibounded,
+      u-equicontinuous) are now DISCHARGED from the basin band + derivative
+      bounds; the residual open input is only the six derivative/resolver
+      translate fields.  Plus the literal window Gronwall inequality
+      `E' ≤ −(1−χ²/16)(1−ρ)·E + explicit errors` on the real orbit
+      (`wholeLineCauchyGlobalU_basinWindow_entropy_production_le`).
 
 ## Open frontier: chiStar < χ < (1+√α)²   (=4 at m=γ=α=1)
 
@@ -35,9 +46,12 @@ and the refuted naive route). This file is the short action list.
       `V ≤ Dup`. Rewrites the `hcoupledDiff`/`hsource` one-sided-Lipschitz block.
 
 ### O4 — Free small win (independent, low risk)
-- [ ] Replace tail charge `tau·G^γ` by exact `tau·(G^γ−M^γ)`
-      (`Dup−b^γ = (M^γ−b^γ)+tau(G^γ−M^γ)`, INJECTION_PLAN §6). Local improvement;
-      does not move the R→∞ threshold, but tightens finite-R constants.
+- [x] DONE (farleft-push): `leftHalfLine_ge_of_weighted_buffered_chiPos_floor_exact_tail`
+      (WholeLineChiPosHalfLineWeightedComparison.lean) charges exactly `tau·(G^γ−M^γ)`;
+      the old `tau·G^γ` theorem now delegates to it.  Restart-level wrapper:
+      `WholeLineChiPosCoMovingRestartData.ge_of_weighted_buffered_floor_exact_tail`.
+      The ceiling side was already exact (`Dlo = (1−tau)·Lhat^γ`, no overcharge).
+      Local improvement only; does not move the R→∞ threshold.
 
 ## Conceptual caveat
 `(1+√α)²` is the **linear/temporal** Turing threshold (dispersion σ(k)). That it is the
