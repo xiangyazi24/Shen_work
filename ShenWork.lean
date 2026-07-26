@@ -1074,3 +1074,4 @@ import ShenWork.Paper1.WholeLineParabolicDirect
 import ShenWork.Paper1.WholeLineParabolicDirectUpper
 import ShenWork.Paper1.WholeLineFarLeftDirect
 import ShenWork.Paper1.WholeLineFarLeftDirectScopeAudit
+import ShenWork.Paper3.IntervalDomainMMinimalSignalEnergyGlobal
