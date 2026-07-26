@@ -1081,6 +1081,7 @@ import ShenWork.Paper1.WholeLineParabolicDirectUpper
 import ShenWork.Paper1.WholeLineFarLeftDirect
 import ShenWork.Paper1.WholeLineFarLeftDirectScopeAudit
 import ShenWork.Paper1.WholeLineChiPosFloorQuantifierObstruction
+import ShenWork.Paper1.WholeLineConvectiveEscapePDE
 import ShenWork.Paper3.IntervalDomainMMinimalEntropyGlobal
 import ShenWork.Paper2.IntervalDomainTheorem13MLtOneClosure
 import ShenWork.Paper3.IntervalDomainMMinimalSignalEnergyGlobal
