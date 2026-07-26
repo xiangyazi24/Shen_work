@@ -968,6 +968,7 @@ import ShenWork.Paper1.WholeLineChiPosQuantifiedRefinedConvergence
 import ShenWork.Paper1.WholeLineChiPosRectangleWallMOne
 import ShenWork.Paper1.WholeLineChiPosRectangleWallGammaOne
 import ShenWork.Paper1.WholeLineChiPosDispersionSharp
+import ShenWork.Paper1.WholeLineChiPosL2SpectralCoercivity
 import ShenWork.Paper1.WholeLineResolverTestingIdentities
 import ShenWork.Paper1.WholeLineResolverSharpGradient
 import ShenWork.Paper1.ReactionRelativeNonpos
