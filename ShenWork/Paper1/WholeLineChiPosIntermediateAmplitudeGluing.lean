@@ -92,6 +92,34 @@ theorem intermediateAmplitude_dispersion_lt_zero
       (ShenWork.Paper1.intermediateAmplitude_lt_turing hchi4 hrho hrho1)
       s hs
 
+/-- There is no amplitude-independent `L²` deficit decay rate all the way
+down to zero.  For the spatially constant logistic equation
+`q_t = q(1-q)`, the derivative of `(q-1)^2/2` is
+`-q(1-q)^2`; choosing `q` below any proposed positive rate violates the
+corresponding uniform coercive inequality.
+
+Thus the deep-hole estimate must be supplemented by a quantitative
+anti-escape/persistence input.  Its multiplicative refill rate alone cannot
+produce a fixed floor from arbitrarily small amplitudes in a fixed time. -/
+theorem logisticDeficit_no_uniform_decay_near_zero
+    {mu : ℝ} (hmu : 0 < mu) :
+    ∃ q : ℝ, 0 < q ∧ q < 1 ∧
+      -mu * (q - 1) ^ 2 < -q * (1 - q) ^ 2 := by
+  let q : ℝ := min (mu / 2) (1 / 2)
+  have hq0 : 0 < q := by
+    dsimp only [q]
+    exact lt_min (half_pos hmu) (by norm_num)
+  have hqhalf : q ≤ 1 / 2 := min_le_right _ _
+  have hqmu : q < mu := by
+    have hq : q ≤ mu / 2 := min_le_left _ _
+    linarith
+  have hsq : 0 < (1 - q) ^ 2 := sq_pos_of_pos (by linarith)
+  have hproduct : 0 < (mu - q) * (1 - q) ^ 2 :=
+    mul_pos (sub_pos.mpr hqmu) hsq
+  refine ⟨q, hq0, by linarith, ?_⟩
+  rw [show (q - 1) ^ 2 = (1 - q) ^ 2 by ring]
+  nlinarith
+
 /-- One positive weighted time slice of the relative equation about a
 spatially constant logistic background `rho`. -/
 structure IntermediateAmplitudeWeightedEntropySlice
@@ -299,6 +327,7 @@ section AxiomAudit
 #print axioms intermediateAmplitudeEntropyMargin_pos
 #print axioms intermediateAmplitude_lt_turing
 #print axioms intermediateAmplitude_dispersion_lt_zero
+#print axioms logisticDeficit_no_uniform_decay_near_zero
 #print axioms
   IntermediateAmplitudeWeightedEntropySlice.toUnitReactionSlice
 #print axioms
