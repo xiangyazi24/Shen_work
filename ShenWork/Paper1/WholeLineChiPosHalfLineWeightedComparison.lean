@@ -790,6 +790,101 @@ theorem leftHalfLine_le_of_weighted_resolver_reaction_supersolution
   exact sub_nonpos.mp (hdnonpos t ht x hx)
 
 
+/-- Exact-tail weighted scalar floor.  The far-tail resolver charge is the
+exact excess `tau * (G ^ γ - M ^ γ)` coming from
+`Dup - b ^ γ = (M ^ γ - b ^ γ) + tau * (G ^ γ - M ^ γ)`, instead of the
+overcharged `tau * G ^ γ`.  This weakens the barrier ODE budget and hence
+tightens every finite-`R` constant; the `R → ∞` threshold is unchanged. -/
+theorem leftHalfLine_ge_of_weighted_buffered_chiPos_floor_exact_tail
+    (p : CMParams) (hchi_pos : 0 < p.χ)
+    {T x₀ R c ell M G : ℝ} {q : ℝ → ℝ → ℝ} {b : ℝ → ℝ}
+    (hT : 0 < T) (hR : 0 ≤ R)
+    (hell : 0 ≤ ell) (hM : 0 ≤ M) (_hellM : ell ≤ M) (hMG : M ≤ G)
+    (hcontq : Continuous (fun z : ℝ × ℝ => q z.1 z.2))
+    (hcontb : Continuous b)
+    (hqglobal : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x,
+      q t x ∈ Set.Icc (0 : ℝ) G)
+    (hqlocal : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x,
+      x ≤ x₀ + R → q t x ∈ Set.Icc ell M)
+    (hbrange : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      b t ∈ Set.Icc (0 : ℝ) M)
+    (hinit : ∀ x ∈ Set.Iic x₀, b 0 ≤ q 0 x)
+    (hbuffer : ∀ t ∈ Set.Icc (0 : ℝ) T,
+      ∀ x ∈ Set.Icc x₀ (x₀ + R), b t ≤ q t x)
+    (htimeq : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun s : ℝ => q s x)
+        (deriv (fun s : ℝ => q s x) t) t)
+    (hspace1q : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => q t y)
+        (deriv (fun y : ℝ => q t y) x) x)
+    (hspace2q : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt (fun y : ℝ => deriv (fun z : ℝ => q t z) y)
+        (deriv (fun y : ℝ => deriv (fun z : ℝ => q t z) y) x) x)
+    (htimeb : ∀ ⦃t : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      HasDerivAt b (deriv b t) t)
+    (hpdeq : ∀ ⦃t x : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T → x < x₀ →
+      deriv (fun s : ℝ => q s x) t =
+        deriv (fun y : ℝ => deriv (fun z : ℝ => q t z) y) x +
+          c * deriv (fun y : ℝ => q t y) x -
+          p.χ *
+            (p.m * (q t x) ^ (p.m - 1) *
+                deriv (fun y : ℝ => q t y) x *
+                deriv (frozenElliptic p (q t)) x +
+              (q t x) ^ p.m *
+                (frozenElliptic p (q t) x - (q t x) ^ p.γ)) +
+          reactionFun p.α (q t x))
+    (hpdeb : ∀ ⦃t : ℝ⦄, t ∈ Set.Ioc (0 : ℝ) T →
+      deriv b t ≤
+        b t * (1 - (b t) ^ p.α) -
+          p.χ * (b t) ^ p.m * (M ^ p.γ - (b t) ^ p.γ) -
+          p.χ * (b t) ^ p.m * (Real.exp (-R) / 2) *
+            (G ^ p.γ - M ^ p.γ)) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Iic x₀, b t ≤ q t x := by
+  let tau : ℝ := Real.exp (-R) / 2
+  let Dup : ℝ := (1 - tau) * M ^ p.γ + tau * G ^ p.γ
+  have hG : 0 ≤ G := hM.trans hMG
+  have htau : 0 ≤ tau := by
+    dsimp [tau]
+    positivity
+  refine leftHalfLine_ge_of_coupled_resolver_reaction_subsolution
+    p hchi_pos (T := T) (x₀ := x₀) (c := c) (M := M) (G := G)
+      (Dup := Dup) (q := q) (b := b) hT hM hMG hcontq hcontb hqglobal
+      ?_ hbrange hinit ?_ htimeq hspace1q hspace2q htimeb hpdeq ?_ ?_
+  · intro t ht x hx
+    have hxR : x ≤ x₀ + R := hx.trans (by linarith)
+    have hlocal := hqlocal t ht x hxR
+    exact ⟨hell.trans hlocal.1, hlocal.2⟩
+  · intro t ht
+    exact hbuffer t ht x₀ ⟨le_rfl, by linarith⟩
+  · intro t x ht hx
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1.le, ht.2⟩
+    have hsliceCont : Continuous (q t) :=
+      hcontq.comp (continuous_const.prodMk continuous_id)
+    have hsliceC : IsCUnifBdd (q t) := by
+      refine ⟨hsliceCont, ⟨G, ?_⟩⟩
+      intro y
+      rw [abs_of_nonneg (hqglobal t htIcc y).1]
+      exact (hqglobal t htIcc y).2
+    dsimp [Dup, tau]
+    apply frozenElliptic_upper_of_left_halfLine_ceiling
+      p hsliceC (fun y => (hqglobal t htIcc y).1) hM hMG
+      (fun y => (hqglobal t htIcc y).2)
+      (fun y hy => (hqlocal t htIcc y hy).2) hR
+    linarith
+  · intro t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1.le, ht.2⟩
+    have hb0 : 0 ≤ b t := (hbrange t htIcc).1
+    have hweighted : p.χ * (b t) ^ p.m * (Dup - (b t) ^ p.γ) =
+        p.χ * (b t) ^ p.m * (M ^ p.γ - (b t) ^ p.γ) +
+          p.χ * (b t) ^ p.m * tau * (G ^ p.γ - M ^ p.γ) := by
+      dsimp [Dup]
+      ring
+    have hbudget := hpdeb ht
+    rw [show b t * (1 - (b t) ^ p.α) = reactionFun p.α (b t) by rfl]
+      at hbudget
+    dsimp [tau] at hbudget hweighted
+    linarith
+
 /-- A weighted scalar floor stays below a positive-sensitivity solution on a
 buffered left half-line.  The resolver tail is charged at the barrier value
 `b ^ m`; in particular, no constant-in-`b` defect is introduced. -/
@@ -837,53 +932,19 @@ theorem leftHalfLine_ge_of_weighted_buffered_chiPos_floor
           p.χ * (b t) ^ p.m * (M ^ p.γ - (b t) ^ p.γ) -
           p.χ * (b t) ^ p.m * (Real.exp (-R) / 2) * G ^ p.γ) :
     ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Iic x₀, b t ≤ q t x := by
-  let tau : ℝ := Real.exp (-R) / 2
-  let Dup : ℝ := (1 - tau) * M ^ p.γ + tau * G ^ p.γ
-  have hG : 0 ≤ G := hM.trans hMG
-  have htau : 0 ≤ tau := by
-    dsimp [tau]
-    positivity
-  refine leftHalfLine_ge_of_coupled_resolver_reaction_subsolution
-    p hchi_pos (T := T) (x₀ := x₀) (c := c) (M := M) (G := G)
-      (Dup := Dup) (q := q) (b := b) hT hM hMG hcontq hcontb hqglobal
-      ?_ hbrange hinit ?_ htimeq hspace1q hspace2q htimeb hpdeq ?_ ?_
-  · intro t ht x hx
-    have hxR : x ≤ x₀ + R := hx.trans (by linarith)
-    have hlocal := hqlocal t ht x hxR
-    exact ⟨hell.trans hlocal.1, hlocal.2⟩
-  · intro t ht
-    exact hbuffer t ht x₀ ⟨le_rfl, by linarith⟩
-  · intro t x ht hx
-    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1.le, ht.2⟩
-    have hsliceCont : Continuous (q t) :=
-      hcontq.comp (continuous_const.prodMk continuous_id)
-    have hsliceC : IsCUnifBdd (q t) := by
-      refine ⟨hsliceCont, ⟨G, ?_⟩⟩
-      intro y
-      rw [abs_of_nonneg (hqglobal t htIcc y).1]
-      exact (hqglobal t htIcc y).2
-    dsimp [Dup, tau]
-    apply frozenElliptic_upper_of_left_halfLine_ceiling
-      p hsliceC (fun y => (hqglobal t htIcc y).1) hM hMG
-      (fun y => (hqglobal t htIcc y).2)
-      (fun y hy => (hqlocal t htIcc y hy).2) hR
-    linarith
-  · intro t ht
-    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1.le, ht.2⟩
-    have hb0 : 0 ≤ b t := (hbrange t htIcc).1
-    have hMpow : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM _
-    have hgap : Dup - (b t) ^ p.γ ≤
-        (M ^ p.γ - (b t) ^ p.γ) + tau * G ^ p.γ := by
-      dsimp [Dup]
-      nlinarith [mul_nonneg htau hMpow]
-    have hcoeff : 0 ≤ p.χ * (b t) ^ p.m :=
-      mul_nonneg hchi_pos.le (Real.rpow_nonneg hb0 _)
-    have hweighted := mul_le_mul_of_nonneg_left hgap hcoeff
-    have hbudget := hpdeb ht
-    rw [show b t * (1 - (b t) ^ p.α) = reactionFun p.α (b t) by rfl]
-      at hbudget
-    dsimp [tau] at hbudget hweighted
-    nlinarith
+  refine leftHalfLine_ge_of_weighted_buffered_chiPos_floor_exact_tail
+    p hchi_pos hT hR hell hM _hellM hMG hcontq hcontb hqglobal hqlocal
+      hbrange hinit hbuffer htimeq hspace1q hspace2q htimeb hpdeq ?_
+  intro t ht
+  have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨ht.1.le, ht.2⟩
+  have hb0 : 0 ≤ b t := (hbrange t htIcc).1
+  have hMpow : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM _
+  have hcoeff : 0 ≤ p.χ * (b t) ^ p.m * (Real.exp (-R) / 2) := by
+    have hbm : 0 ≤ (b t) ^ p.m := Real.rpow_nonneg hb0 _
+    have hexp : 0 ≤ Real.exp (-R) / 2 := by positivity
+    exact mul_nonneg (mul_nonneg hchi_pos.le hbm) hexp
+  have hbudget := hpdeb ht
+  nlinarith [mul_nonneg hcoeff hMpow]
 
 /-- A weighted scalar ceiling stays above a positive-sensitivity solution on
 a buffered left half-line.  The lower resolver estimate gives the exact
@@ -967,6 +1028,7 @@ theorem leftHalfLine_le_of_weighted_buffered_chiPos_ceiling
 
 section AxiomAudit
 
+#print axioms leftHalfLine_ge_of_weighted_buffered_chiPos_floor_exact_tail
 #print axioms leftHalfLine_ge_of_weighted_buffered_chiPos_floor
 #print axioms leftHalfLine_le_of_weighted_buffered_chiPos_ceiling
 

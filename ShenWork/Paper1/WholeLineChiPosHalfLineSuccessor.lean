@@ -205,6 +205,47 @@ theorem WholeLineChiPosCoMovingRestartData.ge_of_weighted_buffered_floor
       (fun _r hr => hpdeb hr.1)
   exact hcomp s ⟨hs, by dsimp [T]; linarith⟩ x hx
 
+/-- Exact-tail version of the weighted buffered floor: the far-tail charge
+in the barrier ODE is only the excess `(exp (-R) / 2) * (G ^ γ - M ^ γ)`. -/
+theorem WholeLineChiPosCoMovingRestartData.ge_of_weighted_buffered_floor_exact_tail
+    {p : CMParams} {u₀ : WholeLineBUC} {c t₀ G : ℝ}
+    (d : WholeLineChiPosCoMovingRestartData p u₀ c t₀ G)
+    (hchi : 0 < p.χ) {x₀ R ell M : ℝ} {b : ℝ → ℝ}
+    (hR : 0 ≤ R) (hell : 0 ≤ ell) (hM : 0 ≤ M)
+    (hellM : ell ≤ M) (hMG : M ≤ G)
+    (hcontb : Continuous b)
+    (hqlocal : ∀ s, 0 ≤ s → ∀ x, x ≤ x₀ + R →
+      d.q s x ∈ Set.Icc ell M)
+    (hbrange : ∀ s, 0 ≤ s → b s ∈ Set.Icc (0 : ℝ) M)
+    (hinit : ∀ x ∈ Set.Iic x₀, b 0 ≤ d.q 0 x)
+    (hbuffer : ∀ s, 0 ≤ s →
+      ∀ x ∈ Set.Icc x₀ (x₀ + R), b s ≤ d.q s x)
+    (htimeb : ∀ ⦃s : ℝ⦄, 0 < s → HasDerivAt b (deriv b s) s)
+    (hpdeb : ∀ ⦃s : ℝ⦄, 0 < s →
+      deriv b s ≤ b s * (1 - (b s) ^ p.α) -
+        p.χ * (b s) ^ p.m * (M ^ p.γ - (b s) ^ p.γ) -
+        p.χ * (b s) ^ p.m * (Real.exp (-R) / 2) *
+          (G ^ p.γ - M ^ p.γ)) :
+    ∀ s, 0 ≤ s → ∀ x ∈ Set.Iic x₀, b s ≤ d.q s x := by
+  intro s hs x hx
+  let T : ℝ := s + 1
+  have hT : 0 < T := by dsimp [T]; linarith
+  have hcomp := leftHalfLine_ge_of_weighted_buffered_chiPos_floor_exact_tail
+    p hchi (T := T) (x₀ := x₀) (R := R) (c := c)
+      (ell := ell) (M := M) (G := G) (q := d.q) (b := b)
+      hT hR hell hM hellM hMG d.continuous hcontb
+      (fun r hr y => d.mem_Icc hr.1 y)
+      (fun r hr y hy => hqlocal r hr.1 y hy)
+      (fun r hr => hbrange r hr.1) hinit
+      (fun r hr y hy => hbuffer r hr.1 y hy)
+      (fun _r _y hr => d.time_hasDerivAt hr.1)
+      (fun _r _y hr => d.space_hasDerivAt hr.1)
+      (fun _r _y hr => d.space_deriv_hasDerivAt hr.1)
+      (fun _r hr => htimeb hr.1)
+      (fun _r _y hr _hy => d.expanded_pde hr.1)
+      (fun _r hr => hpdeb hr.1)
+  exact hcomp s ⟨hs, by dsimp [T]; linarith⟩ x hx
+
 /-- Apply the finite-slab weighted ceiling comparison on an arbitrary forward
 time, using the regularity stored in a co-moving restart. -/
 theorem WholeLineChiPosCoMovingRestartData.le_of_weighted_buffered_ceiling
@@ -750,6 +791,8 @@ section AxiomAudit
 #print axioms wholeLineCauchyGlobal_positiveCoMovingRestartData
 #print axioms
   WholeLineChiPosCoMovingRestartData.ge_of_weighted_buffered_floor
+#print axioms
+  WholeLineChiPosCoMovingRestartData.ge_of_weighted_buffered_floor_exact_tail
 #print axioms
   WholeLineChiPosCoMovingRestartData.le_of_weighted_buffered_ceiling
 #print axioms exists_chiPos_halfLine_round_buffer_width
