@@ -189,6 +189,122 @@ theorem intervalDomainM_negativePower_oscillation_le
   simpa [minimalMNegativePowerOscillationRadius, intervalDomainLift,
     x.property, z.property, show (2 - 2 * p.m) / 2 = 1 - p.m by ring] using hraw
 
+/-- The mass anchor and the oscillation estimate give the explicit
+negative-power pointwise box from the good-slice argument. -/
+theorem intervalDomainM_negativePower_pointwise_box
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 < p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hmass : intervalDomainM.integral (u t) = uStar) :
+    ∀ x : intervalDomainPoint,
+      uStar ^ (1 - p.m) -
+          minimalMNegativePowerOscillationRadius p
+            (intervalDomainLpWeightedGradientDissipation
+              (2 - 2 * p.m) u t) ≤
+        (u t x) ^ (1 - p.m) ∧
+      (u t x) ^ (1 - p.m) ≤
+        uStar ^ (1 - p.m) +
+          2 * minimalMNegativePowerOscillationRadius p
+            (intervalDomainLpWeightedGradientDissipation
+              (2 - 2 * p.m) u t) := by
+  let U : ℝ → ℝ := intervalDomainLift (u t)
+  let r : ℝ := minimalMNegativePowerOscillationRadius p
+    (intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t)
+  have ht : t ∈ Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hUcont : ContinuousOn U (Icc (0 : ℝ) 1) := by
+    simpa [U] using solution_lift_continuousOn_Icc hsol ht
+  have hUint : IntervalIntegrable U volume (0 : ℝ) 1 := by
+    apply ContinuousOn.intervalIntegrable
+    simpa [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hUcont
+  have hmassLift : (∫ y in (0 : ℝ)..1, U y) = uStar := by
+    simpa [U, intervalDomainM] using hmass
+  have hzero : (∫ y in (0 : ℝ)..1, (U y - uStar)) = 0 := by
+    rw [intervalIntegral.integral_sub hUint intervalIntegrable_const,
+      intervalIntegral.integral_const, hmassLift]
+    norm_num [smul_eq_mul]
+  obtain ⟨z, hz, hzroot⟩ :=
+    ShenWork.Poincare.continuous_zero_integral_has_root
+      (L := 1) (by norm_num) (hUcont.sub continuousOn_const) hzero
+  let zPoint : intervalDomainPoint := ⟨z, hz⟩
+  have hzval : u t zPoint = uStar := by
+    have : U z = uStar := by linarith
+    simpa [U, zPoint, intervalDomainLift, hz] using this
+  intro x
+  have hosc := intervalDomainM_negativePower_oscillation_le
+    hm hsol ht0 htT x zPoint
+  rw [hzval] at hosc
+  change
+    uStar ^ (1 - p.m) - r ≤ (u t x) ^ (1 - p.m) ∧
+      (u t x) ^ (1 - p.m) ≤ uStar ^ (1 - p.m) + 2 * r
+  change
+    |(u t x) ^ (1 - p.m) - uStar ^ (1 - p.m)| ≤ r at hosc
+  have hr0 : 0 ≤ r :=
+    (abs_nonneg ((u t x) ^ (1 - p.m) - uStar ^ (1 - p.m))).trans hosc
+  constructor
+  · linarith [neg_abs_le ((u t x) ^ (1 - p.m) - uStar ^ (1 - p.m))]
+  · linarith [le_abs_self ((u t x) ^ (1 - p.m) - uStar ^ (1 - p.m))]
+
+/-- Inversion of the negative-power box.  This is the explicit two-sided
+`u` box (GT3) at a good slice. -/
+theorem intervalDomainM_negativePower_u_pointwise_box
+    {p : CM2Params} {T t uStar : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hm : 1 < p.m)
+    (hsol : IsPaper2ClassicalSolution intervalDomainM p T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hmass : intervalDomainM.integral (u t) = uStar)
+    (hr :
+      minimalMNegativePowerOscillationRadius p
+          (intervalDomainLpWeightedGradientDissipation
+            (2 - 2 * p.m) u t) <
+        uStar ^ (1 - p.m)) :
+    ∀ x : intervalDomainPoint,
+      (uStar ^ (1 - p.m) +
+          2 * minimalMNegativePowerOscillationRadius p
+            (intervalDomainLpWeightedGradientDissipation
+              (2 - 2 * p.m) u t)) ^ (-1 / (p.m - 1)) ≤
+        u t x ∧
+      u t x ≤
+        (uStar ^ (1 - p.m) -
+          minimalMNegativePowerOscillationRadius p
+            (intervalDomainLpWeightedGradientDissipation
+              (2 - 2 * p.m) u t)) ^ (-1 / (p.m - 1)) := by
+  let r : ℝ := minimalMNegativePowerOscillationRadius p
+    (intervalDomainLpWeightedGradientDissipation (2 - 2 * p.m) u t)
+  have hr0 : 0 ≤ r := mul_nonneg (by linarith)
+    (Real.sqrt_nonneg _)
+  have hbaseLow : 0 < uStar ^ (1 - p.m) - r := by
+    simpa [r] using sub_pos.mpr hr
+  have hbaseHigh : 0 < uStar ^ (1 - p.m) + 2 * r := by
+    linarith
+  have hexpInv : -1 / (p.m - 1) < 0 := by
+    exact div_neg_of_neg_of_pos (by norm_num) (sub_pos.mpr hm)
+  have hcancel : ∀ w : ℝ, 0 < w →
+      (w ^ (1 - p.m)) ^ (-1 / (p.m - 1)) = w := by
+    intro w hw
+    rw [← Real.rpow_mul hw.le]
+    have hexp : (1 - p.m) * (-1 / (p.m - 1)) = 1 := by
+      field_simp [ne_of_gt (sub_pos.mpr hm)]
+      ring
+    rw [hexp, Real.rpow_one]
+  intro x
+  have hpowBox :=
+    intervalDomainM_negativePower_pointwise_box
+      hm hsol ht0 htT hmass x
+  change
+    uStar ^ (1 - p.m) - r ≤ (u t x) ^ (1 - p.m) ∧
+      (u t x) ^ (1 - p.m) ≤ uStar ^ (1 - p.m) + 2 * r at hpowBox
+  have hux : 0 < u t x := u_pos hsol ht0 htT x
+  constructor
+  · have hinv := (Real.rpow_le_rpow_iff_of_neg
+      hbaseHigh (Real.rpow_pos_of_pos hux _) hexpInv).2 hpowBox.2
+    simpa [hcancel (u t x) hux, r] using hinv
+  · have hinv := (Real.rpow_le_rpow_iff_of_neg
+      (Real.rpow_pos_of_pos hux _) hbaseLow hexpInv).2 hpowBox.1
+    simpa [hcancel (u t x) hux, r] using hinv
+
 /-- A continuous interval profile which is pointwise strictly below a fixed
 absolute bound is strictly below it in the concrete interval supremum norm. -/
 theorem intervalDomain_supNorm_lt_of_continuous_pointwise_abs_lt
@@ -391,6 +507,8 @@ theorem intervalDomainM_minimal_exists_late_supClose_smallSensitivity
 #print axioms intervalDomainLift_rpow_oscillation_le
 #print axioms minimalMNegativePowerBasinRadius_pos
 #print axioms intervalDomainM_negativePower_oscillation_le
+#print axioms intervalDomainM_negativePower_pointwise_box
+#print axioms intervalDomainM_negativePower_u_pointwise_box
 #print axioms intervalDomainM_supClose_of_negativePower_oscillation
 #print axioms chi_lt_supercriticalSmallSensitivityThresholdM_iff
 #print axioms intervalDomainM_minimal_exists_late_supClose_smallSensitivity
