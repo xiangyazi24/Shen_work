@@ -19,3 +19,20 @@ hardest only; Codex out until 7/28. Conserve Claude.
 ChatGPT writes math + Lean; I ferry to files + lake-build + feed errors back. Fable for the
 single hardest analytic construction. Verify-don't-transcribe every drop. Commit per verified
 lemma. main stays green (work on branches).
+
+## STATE 2026-07-26 — unconditional χ<4 reduced to ONE crux (all else built)
+Every piece of the unconditional far-left χ<4 chain is now built and verified clean-3
+EXCEPT the crux floor:
+- L² spectral coercivity, deficit energy, decay framework, deep-hole refill, intermediate-
+  amplitude entropy coercivity: BUILT on branch farleft-L2 (8295 jobs, sorry-free).
+- Shallow-regime L² plateau stability: citable literature (Nadin–Perthame–Ryzhik, Q1050).
+- Intermediate regime: the landed weighted-entropy engine (log-entropy, coercive given floor).
+- Downstream: persistent_plateau ⇒ EventualCoMovingLeftBand (CeilingFreeFarLeftBand producers)
+  ⇒ landed basin-conditional theorem ⇒ unconditional χ<4. WIRED.
+THE SOLE REMAINING CRUX: establish the persistent-plateau / EventualCoMovingLeftBand (the
+uniform far-left floor) NON-CIRCULARLY from front-like StrictlyPositiveAtLeft data + the
+time-dependent orbit. Q1048 verdict: bare-L² fails at intermediate amplitude (χ>2); the
+correct route is a comparison/no-pocket floor (stage 1). NoSmallLeftPocket/LeftFloorProducer
+handle only the STEADY wave, not the orbit. Q1051 (comparison/no-pocket floor for the orbit)
+is the pending decider. This is the fundamental anti-escape — resisted multiple rounds; it is
+the honest open frontier. Basin-conditional χ<4 (landed) is the current unconditional-modulo-floor ceiling.
