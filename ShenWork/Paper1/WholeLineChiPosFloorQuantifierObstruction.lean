@@ -6,7 +6,7 @@ import ShenWork.Paper1.WholeLineMaximalBUCImport
 import ShenWork.Paper1.WholeLinePhysicalMildSegments
 
 /-!
-# The quantifier obstruction in the positive-sensitivity far-left floor
+# Convective escape and the far-left floor quantifier obstruction
 
 The canonical positivity theory preserves `StrictlyPositiveAtLeft` on every
 fixed co-moving time slice.  This gives
@@ -16,25 +16,25 @@ fixed co-moving time slice.  This gives
 The persistent floor needed by `EventualCoMovingLeftBand` reverses the first
 three quantifiers: one needs a single `ell`, `T`, and `R` for every `t ≥ T`.
 
-The explicit smooth family
+The earlier version of this module used the artificial smooth family
 
 `q(t,z) = 1 / (1 + exp (z+t))`
 
-records why slice positivity and an interior-minimum refill certificate do not
-by themselves justify that reversal.  Every slice has the fixed height `1/2`
-on `z ≤ -t`, but the cut retreats to `-∞`, so there is no eventual positive
-floor on any fixed left half-line.  Moreover every slice is strictly
-decreasing and has no spatial local minimum.  Thus a refill result whose
-hypotheses begin at an interior minimum, such as
-`deepHole_minimum_refill_of_local_ceiling`, cannot see this escape mode.
+to record the quantifier mismatch.  Here it is superseded by the exact
+convective-escape family from an arbitrary traveling-wave profile.  If `U`
+connects `1` at `-∞` to `0` at `+∞`, has laboratory speed `s`, and is observed
+in a faster frame `c > s`, then
 
-This is a logical obstruction only, not a counterexample to the
-chemotaxis--logistic PDE.  Closing the PDE floor requires an additional
-anti-escape estimate that uniformly controls the location of the left
-plateau (or an equivalent boundary/nondegeneracy estimate).
+`q(t,z) = U (z + (c-s)t)`.
+
+Every fixed slice tends to `1` at the left endpoint, but at every fixed
+co-moving point it tends to `0` as time tends to infinity.  Thus no positive
+uniform far-left floor exists.  For an `IsTravelingWave`, the laboratory orbit
+is a genuine solution of the chemotaxis--logistic system; the remaining
+theorems below wire this exact solution to the quantifier obstruction.
 -/
 
-open Filter Function Set
+open Filter Function Set Topology
 
 noncomputable section
 
@@ -173,129 +173,137 @@ theorem wholeLineGlobalMaximalBUCOrbit_exists_timeSlice_coMoving_left_floor
         p u₀ hu₀ hleft horbit ht).shift (c * t)
   exact hslice.exists_leftHalfLine_floor
 
-/-- A smooth positive plateau whose transition point retreats linearly to
-the left. -/
-def retreatingLogisticPlateau (t z : ℝ) : ℝ :=
-  1 / (1 + Real.exp (z + t))
+/-- A profile of laboratory speed `s`, viewed in the faster frame of speed
+`c`.  Its transition moves to the left with speed `c-s`. -/
+def convectiveEscapeProfile
+    (U : ℝ → ℝ) (s c t z : ℝ) : ℝ :=
+  U (z + (c - s) * t)
 
-/-- At time `t`, the retreating plateau still has height at least `1/2` on
-the time-dependent half-line `z ≤ -t`. -/
-theorem retreatingLogisticPlateau_ge_half
-    (t : ℝ) {z : ℝ} (hz : z ≤ -t) :
-    1 / 2 ≤ retreatingLogisticPlateau t z := by
-  have hexp : Real.exp (z + t) ≤ 1 := by
-    calc
-      Real.exp (z + t) ≤ Real.exp 0 := Real.exp_le_exp.mpr (by linarith)
-      _ = 1 := Real.exp_zero
-  have hden : 0 < 1 + Real.exp (z + t) := by positivity
-  rw [retreatingLogisticPlateau]
-  apply (le_div_iff₀ hden).2
-  nlinarith
+/-- The laboratory-coordinate traveling profile with speed `s`. -/
+def travelingWaveLaboratoryProfile
+    (s : ℝ) (U : ℝ → ℝ) (t x : ℝ) : ℝ :=
+  U (x - s * t)
 
-/-- Every fixed time slice of the retreating plateau is strictly positive at
-the left end. -/
-theorem retreatingLogisticPlateau_strictlyPositiveAtLeft (t : ℝ) :
-    StrictlyPositiveAtLeft (retreatingLogisticPlateau t) := by
-  refine ⟨1 / 2, by norm_num, eventually_atBot.2 ⟨-t, ?_⟩⟩
-  intro z hz
-  exact retreatingLogisticPlateau_ge_half t hz
+/-- Observing a laboratory traveling profile in the frame of speed `c`
+produces exactly `convectiveEscapeProfile`. -/
+@[simp] theorem coMovingPath_travelingWaveLaboratoryProfile
+    (U : ℝ → ℝ) (s c t z : ℝ) :
+    coMovingPath c (travelingWaveLaboratoryProfile s U) t z =
+      convectiveEscapeProfile U s c t z := by
+  simp only [coMovingPath, travelingWaveLaboratoryProfile,
+    convectiveEscapeProfile]
+  congr 1
+  ring
 
-/-- Exact spatial derivative of the retreating plateau. -/
-theorem retreatingLogisticPlateau_hasDerivAt (t z : ℝ) :
-    HasDerivAt (retreatingLogisticPlateau t)
-      (-Real.exp (z + t) / (1 + Real.exp (z + t)) ^ 2) z := by
-  have hlin : HasDerivAt (fun y : ℝ => y + t) 1 z := by
-    simpa using (hasDerivAt_id z).add_const t
-  have hexp : HasDerivAt (fun y : ℝ => Real.exp (y + t))
-      (Real.exp (z + t)) z := by
-    simpa only [Function.comp_apply, mul_one] using
-      (Real.hasDerivAt_exp (z + t)).comp z hlin
-  have hden : HasDerivAt (fun y : ℝ => 1 + Real.exp (y + t))
-      (Real.exp (z + t)) z := by
-    simpa only [zero_add] using
-      (hasDerivAt_const z (1 : ℝ)).add hexp
-  have hraw := (hasDerivAt_const z (1 : ℝ)).div hden
-    (by positivity : 1 + Real.exp (z + t) ≠ 0)
-  simpa only [retreatingLogisticPlateau, zero_mul, one_mul, zero_sub] using hraw
+/-- Every fixed time slice retains the left endpoint limit of the profile. -/
+theorem convectiveEscapeProfile_tendsto_atBot
+    {U : ℝ → ℝ} (hleft : Tendsto U atBot (𝓝 1))
+    (s c t : ℝ) :
+    Tendsto (convectiveEscapeProfile U s c t) atBot (𝓝 1) := by
+  simpa only [convectiveEscapeProfile] using
+    hleft.comp
+      (tendsto_atBot_add_const_right atBot ((c - s) * t) tendsto_id)
 
-/-- Every spatial slice is strictly decreasing. -/
-theorem retreatingLogisticPlateau_deriv_neg (t z : ℝ) :
-    deriv (retreatingLogisticPlateau t) z < 0 := by
-  rw [(retreatingLogisticPlateau_hasDerivAt t z).deriv]
-  exact div_neg_of_neg_of_pos
-    (neg_neg_iff_pos.mpr (Real.exp_pos _))
-    (sq_pos_of_pos (by positivity))
+/-- In particular, convergence to `1` at the left endpoint gives the
+`StrictlyPositiveAtLeft` property on every fixed slice. -/
+theorem convectiveEscapeProfile_strictlyPositiveAtLeft
+    {U : ℝ → ℝ} (hleft : Tendsto U atBot (𝓝 1))
+    (s c t : ℝ) :
+    StrictlyPositiveAtLeft (convectiveEscapeProfile U s c t) := by
+  refine ⟨1 / 2, by norm_num, ?_⟩
+  have hnhds : Set.Ioi (1 / 2 : ℝ) ∈ 𝓝 (1 : ℝ) :=
+    Ioi_mem_nhds (by norm_num)
+  filter_upwards
+      [(convectiveEscapeProfile_tendsto_atBot hleft s c t) hnhds] with z hz
+  exact hz.le
 
-/-- In particular, the retreating plateau has no spatial local minimum, so
-an interior-minimum refill lemma is vacuous on this escape mode. -/
-theorem retreatingLogisticPlateau_not_isLocalMin (t z : ℝ) :
-    ¬ IsLocalMin (retreatingLogisticPlateau t) z := by
-  intro hmin
-  have hzero :=
-    hmin.hasDerivAt_eq_zero
-      (retreatingLogisticPlateau_hasDerivAt t z)
-  have hneg : -Real.exp (z + t) /
-      (1 + Real.exp (z + t)) ^ 2 < 0 :=
-    div_neg_of_neg_of_pos
-      (neg_neg_iff_pos.mpr (Real.exp_pos _))
-      (sq_pos_of_pos (by positivity))
-  linarith
+/-- At every fixed point of a strictly faster frame, the profile samples the
+right endpoint and therefore converges to zero in time. -/
+theorem convectiveEscapeProfile_tendsto_atTop_time
+    {U : ℝ → ℝ} (hright : Tendsto U atTop (𝓝 0))
+    {s c : ℝ} (hsc : s < c) (z : ℝ) :
+    Tendsto (fun t => convectiveEscapeProfile U s c t z) atTop (𝓝 0) := by
+  apply hright.comp
+  have hrate : 0 < c - s := sub_pos.mpr hsc
+  apply tendsto_atTop_add_const_left
+  exact (tendsto_const_mul_atTop_of_pos hrate).2 tendsto_id
 
-/-- At every proposed start time and fixed cut, the retreating plateau
-eventually falls below any prescribed positive height. -/
-theorem exists_late_retreatingLogisticPlateau_lt
-    {ell : ℝ} (hell : 0 < ell) (start cut : ℝ) :
-    ∃ t : ℝ, start ≤ t ∧ retreatingLogisticPlateau t cut < ell := by
-  let t : ℝ := max start (Real.log (1 / ell) - cut + 1)
-  have hstart : start ≤ t := by
-    exact le_max_left _ _
-  have hlog_lt : Real.log (1 / ell) < cut + t := by
-    have ht : Real.log (1 / ell) - cut + 1 ≤ t := le_max_right _ _
-    linarith
-  have hinvpos : 0 < 1 / ell := one_div_pos.mpr hell
-  have hexp : 1 / ell < Real.exp (cut + t) := by
-    calc
-      1 / ell = Real.exp (Real.log (1 / ell)) :=
-        (Real.exp_log hinvpos).symm
-      _ < Real.exp (cut + t) := Real.exp_lt_exp.mpr hlog_lt
-  have hden : 0 < 1 + Real.exp (cut + t) := by positivity
-  refine ⟨t, hstart, ?_⟩
-  rw [retreatingLogisticPlateau]
-  apply (div_lt_iff₀ hden).2
-  have hscaled := mul_lt_mul_of_pos_left hexp hell
-  have hcancel : ell * (1 / ell) = 1 := by
-    field_simp
-  rw [hcancel] at hscaled
-  nlinarith
+/-- Pure quantifier obstruction: for every proposed positive height, start
+time, and left cut, a later point in that fixed half-line lies below the
+height.  The witness is the boundary point `z = -R`. -/
+theorem convectiveEscapeProfile_exists_late_left_lt
+    {U : ℝ → ℝ} (hright : Tendsto U atTop (𝓝 0))
+    {s c ell : ℝ} (hsc : s < c) (hell : 0 < ell) (T R : ℝ) :
+    ∃ t z : ℝ, T ≤ t ∧ z ≤ -R ∧
+      convectiveEscapeProfile U s c t z < ell := by
+  have hsmall : ∀ᶠ t in atTop,
+      convectiveEscapeProfile U s c t (-R) < ell :=
+    (tendsto_order.1
+      (convectiveEscapeProfile_tendsto_atTop_time hright hsc (-R))).2
+        ell hell
+  obtain ⟨t, ht, hlt⟩ :=
+    ((eventually_ge_atTop T).and hsmall).exists
+  exact ⟨t, -R, ht, le_rfl, hlt⟩
 
-/-- Slice-by-slice left positivity does not imply a persistent lower band:
-the smooth retreating plateau has no positive
-`EventualCoMovingLeftBand` even in the stationary frame. -/
-theorem retreatingLogisticPlateau_not_eventualCoMovingLeftBand
-    {ell M : ℝ} (hell : 0 < ell) :
-    ¬ EventualCoMovingLeftBand 0 ell M retreatingLogisticPlateau := by
-  rintro ⟨start, cut, hband⟩
-  obtain ⟨t, ht, hsmall⟩ :=
-    exists_late_retreatingLogisticPlateau_lt hell start cut
+/-- Equivalently, no positive lower floor can be uniform in all late times
+and all points of one fixed left half-line. -/
+theorem convectiveEscapeProfile_no_uniform_left_floor
+    {U : ℝ → ℝ} (hright : Tendsto U atTop (𝓝 0))
+    {s c : ℝ} (hsc : s < c) :
+    ¬ ∃ ell T R : ℝ, 0 < ell ∧
+      ∀ t, T ≤ t → ∀ z, z ≤ -R →
+        ell ≤ convectiveEscapeProfile U s c t z := by
+  rintro ⟨ell, T, R, hell, hfloor⟩
+  obtain ⟨t, z, ht, hz, hlt⟩ :=
+    convectiveEscapeProfile_exists_late_left_lt
+      hright hsc hell T R
+  exact (not_lt_of_ge (hfloor t ht z hz)) hlt
+
+/-- The same obstruction in the repository's physical-orbit interface:
+a laboratory wave of speed `s` has no positive
+`EventualCoMovingLeftBand` in any faster frame `c`. -/
+theorem travelingWaveLaboratoryProfile_not_eventualCoMovingLeftBand
+    {U : ℝ → ℝ} (hright : Tendsto U atTop (𝓝 0))
+    {s c ell M : ℝ} (hsc : s < c) (hell : 0 < ell) :
+    ¬ EventualCoMovingLeftBand c ell M
+      (travelingWaveLaboratoryProfile s U) := by
+  rintro ⟨T, cut, hband⟩
+  have hsmall : ∀ᶠ t in atTop,
+      convectiveEscapeProfile U s c t cut < ell :=
+    (tendsto_order.1
+      (convectiveEscapeProfile_tendsto_atTop_time hright hsc cut)).2
+        ell hell
+  obtain ⟨t, ht, hlt⟩ :=
+    ((eventually_ge_atTop T).and hsmall).exists
   have hlower := (hband t ht cut le_rfl).1
-  simp only [coMovingPath, zero_mul, add_zero] at hlower
-  exact (not_lt_of_ge hlower) hsmall
+  rw [coMovingPath_travelingWaveLaboratoryProfile] at hlower
+  exact (not_lt_of_ge hlower) hlt
 
-/-- Combined quantifier counterexample: every slice has a positive left
-plateau and no spatial local minimum, yet no fixed positive eventual band
-exists. -/
-theorem
-    exists_strictlyPositiveAtLeft_slices_without_eventualCoMovingLeftBand :
-    ∃ orbit : ℝ → ℝ → ℝ,
-      (∀ t, StrictlyPositiveAtLeft (orbit t)) ∧
-      (∀ t z, ¬ IsLocalMin (orbit t) z) ∧
-      ∀ ell M, 0 < ell →
-        ¬ EventualCoMovingLeftBand 0 ell M orbit := by
-  exact ⟨retreatingLogisticPlateau,
-    retreatingLogisticPlateau_strictlyPositiveAtLeft,
-    retreatingLogisticPlateau_not_isLocalMin,
-    fun _ell _M hell =>
-      retreatingLogisticPlateau_not_eventualCoMovingLeftBand hell⟩
+/-- For every genuine traveling-wave profile, slice positivity and failure of
+the uniform floor coexist whenever the observation frame is faster than the
+wave. -/
+theorem IsTravelingWave.convectiveEscape_quantifier_obstruction
+    {p : CMParams} {s c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p s U V) (hsc : s < c) :
+    (∀ t, Tendsto (convectiveEscapeProfile U s c t) atBot (𝓝 1)) ∧
+    (∀ t, StrictlyPositiveAtLeft (convectiveEscapeProfile U s c t)) ∧
+    (∀ ell, 0 < ell → ∀ T R,
+      ∃ t z : ℝ, T ≤ t ∧ z ≤ -R ∧
+        convectiveEscapeProfile U s c t z < ell) ∧
+    (∀ ell M, 0 < ell →
+      ¬ EventualCoMovingLeftBand c ell M
+        (travelingWaveLaboratoryProfile s U)) := by
+  refine ⟨fun t =>
+      convectiveEscapeProfile_tendsto_atBot hTW.lim_neg_inf.1 s c t,
+    fun t =>
+      convectiveEscapeProfile_strictlyPositiveAtLeft
+        hTW.lim_neg_inf.1 s c t, ?_, ?_⟩
+  · intro ell hell T R
+    exact convectiveEscapeProfile_exists_late_left_lt
+      hTW.lim_pos_inf.1 hsc hell T R
+  · intro ell M hell
+    exact travelingWaveLaboratoryProfile_not_eventualCoMovingLeftBand
+      hTW.lim_pos_inf.1 hsc hell
 
 section AxiomAudit
 
@@ -304,15 +312,15 @@ section AxiomAudit
 #print axioms wholeLineGlobalMaximalBUCOrbit_strictlyPositiveAtLeft
 #print axioms
   wholeLineGlobalMaximalBUCOrbit_exists_timeSlice_coMoving_left_floor
-#print axioms retreatingLogisticPlateau_ge_half
-#print axioms retreatingLogisticPlateau_strictlyPositiveAtLeft
-#print axioms retreatingLogisticPlateau_hasDerivAt
-#print axioms retreatingLogisticPlateau_deriv_neg
-#print axioms retreatingLogisticPlateau_not_isLocalMin
-#print axioms exists_late_retreatingLogisticPlateau_lt
-#print axioms retreatingLogisticPlateau_not_eventualCoMovingLeftBand
+#print axioms coMovingPath_travelingWaveLaboratoryProfile
+#print axioms convectiveEscapeProfile_tendsto_atBot
+#print axioms convectiveEscapeProfile_strictlyPositiveAtLeft
+#print axioms convectiveEscapeProfile_tendsto_atTop_time
+#print axioms convectiveEscapeProfile_exists_late_left_lt
+#print axioms convectiveEscapeProfile_no_uniform_left_floor
 #print axioms
-  exists_strictlyPositiveAtLeft_slices_without_eventualCoMovingLeftBand
+  travelingWaveLaboratoryProfile_not_eventualCoMovingLeftBand
+#print axioms IsTravelingWave.convectiveEscape_quantifier_obstruction
 
 end AxiomAudit
 
