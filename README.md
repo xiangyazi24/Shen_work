@@ -37,8 +37,11 @@ the repository root with:
 
 ```bash
 tectonic ERRATA.tex --outdir .
+tectonic ERRATA_MATHEMATICAL.tex --outdir .
 tectonic research_notes/FARLEFT_CHI4_RESOLUTION.tex --outdir research_notes
+tectonic research_notes/FARLEFT_CHI4_MATHEMATICAL.tex --outdir research_notes
 tectonic research_notes/GENERAL_M_STABILITY_RESOLUTION.tex --outdir research_notes
+tectonic research_notes/GENERAL_M_STABILITY_MATHEMATICAL.tex --outdir research_notes
 ```
 
 ## Formalized results
@@ -67,9 +70,12 @@ The principal stability entry points are
 - The analytic stack behind the headline results, including the full-exponent
   Neumann semigroup estimates obtained by subordination.
 
-Several printed statements require corrected formulations for the paper's data class;
-these are recorded in the detailed [`ERRATA.pdf`](ERRATA.pdf)
-([LaTeX source](ERRATA.tex), [Markdown index](ERRATA.md)).
+Several printed statements require corrected formulations for the paper's data class.
+For a standalone mathematical treatment, see
+[`ERRATA_MATHEMATICAL.pdf`](ERRATA_MATHEMATICAL.pdf)
+([LaTeX source](ERRATA_MATHEMATICAL.tex)). The companion
+[`ERRATA.pdf`](ERRATA.pdf) ([source](ERRATA.tex), [index](ERRATA.md))
+also records the formalization audit.
 
 ### Part 3: bounded-interval nonlinear-flux theory
 
@@ -84,16 +90,17 @@ all-time `C¹` claims, which are too strong for merely continuous initial data.
 
 ## Beyond the papers
 
-The [`research_notes/`](research_notes/) directory records two sharp-limit results:
+The [`research_notes/`](research_notes/) directory records two sharp-limit results.
+Each has a standalone mathematical edition and a formalization companion:
 
-- [`FARLEFT_CHI4_RESOLUTION.pdf`](research_notes/FARLEFT_CHI4_RESOLUTION.pdf)
-  ([summary](research_notes/FARLEFT_CHI4_RESOLUTION.md)): the sharp
-  far-left threshold `χ = 4`, an optimal basin-conditional convergence theorem, and a
-  formalized convective-escape counterexample to unconditional convergence.
-- [`GENERAL_M_STABILITY_RESOLUTION.pdf`](research_notes/GENERAL_M_STABILITY_RESOLUTION.pdf)
-  ([summary](research_notes/GENERAL_M_STABILITY_RESOLUTION.md)): proved general-`m`
-  stability regions, the mechanized `m = 3` subcritical steady counterexample, and the
-  first-branch direction threshold detected analytically and numerically.
+- Far-left threshold `χ = 4`:
+  [`mathematical PDF`](research_notes/FARLEFT_CHI4_MATHEMATICAL.pdf),
+  [`formalization PDF`](research_notes/FARLEFT_CHI4_RESOLUTION.pdf), and
+  [`summary`](research_notes/FARLEFT_CHI4_RESOLUTION.md).
+- General-`m` stability and the exact `m = 3` subcritical steady obstruction:
+  [`mathematical PDF`](research_notes/GENERAL_M_STABILITY_MATHEMATICAL.pdf),
+  [`formalization PDF`](research_notes/GENERAL_M_STABILITY_RESOLUTION.pdf), and
+  [`summary`](research_notes/GENERAL_M_STABILITY_RESOLUTION.md).
 
 ## Repository layout
 
@@ -101,6 +108,9 @@ The [`research_notes/`](research_notes/) directory records two sharp-limit resul
   formalizations.
 - `ShenWork/PDE/`, `ShenWork/Wiener/`: shared analytic infrastructure.
 - `ShenWork.lean`: root import closure.
-- `ERRATA.pdf`, `ERRATA.tex`, `ERRATA.md`: detailed statement audit and public index.
+- `ERRATA_MATHEMATICAL.pdf`, `ERRATA_MATHEMATICAL.tex`: standalone mathematical
+  errata.
+- `ERRATA.pdf`, `ERRATA.tex`, `ERRATA.md`: formalization-aware statement audit
+  and public index.
 - `research_notes/`: detailed PDF/LaTeX notes and summaries for results beyond the papers.
 - `papers/`: the three source papers.

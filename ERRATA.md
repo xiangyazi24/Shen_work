@@ -1,8 +1,13 @@
 # Errata and statement audit for the chemotaxis–logistic trilogy
 
-The detailed public record is [`ERRATA.pdf`](ERRATA.pdf), with source in
-[`ERRATA.tex`](ERRATA.tex). It gives the original claim, the calculation or
-counterexample, the corrected form, and the exact Lean certificates.
+The standalone mathematical edition is
+[`ERRATA_MATHEMATICAL.pdf`](ERRATA_MATHEMATICAL.pdf), with source in
+[`ERRATA_MATHEMATICAL.tex`](ERRATA_MATHEMATICAL.tex). It gives the original
+claim, the calculation or counterexample, the corrected form, and complete
+mathematical arguments without formalization terminology.
+
+The companion formalization record is [`ERRATA.pdf`](ERRATA.pdf), with source
+in [`ERRATA.tex`](ERRATA.tex).
 
 The audit distinguishes four outcomes:
 

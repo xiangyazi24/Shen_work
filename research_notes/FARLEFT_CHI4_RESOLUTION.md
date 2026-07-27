@@ -1,6 +1,10 @@
 # Far-left stability of the chemotaxis front: sharp threshold χ=4
 
-The rigorous write-up is
+The standalone mathematical write-up is
+[`FARLEFT_CHI4_MATHEMATICAL.pdf`](FARLEFT_CHI4_MATHEMATICAL.pdf), with source
+in [`FARLEFT_CHI4_MATHEMATICAL.tex`](FARLEFT_CHI4_MATHEMATICAL.tex).
+
+The formalization companion is
 [`FARLEFT_CHI4_RESOLUTION.pdf`](FARLEFT_CHI4_RESOLUTION.pdf), with source in
 [`FARLEFT_CHI4_RESOLUTION.tex`](FARLEFT_CHI4_RESOLUTION.tex).
 

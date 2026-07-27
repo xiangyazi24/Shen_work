@@ -1,0 +1,471 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{array,booktabs,longtable}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={Mathematical errata and statement audit for three chemotaxis--logistic papers}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Om}{\Omega}
+\newcommand{\Tmax}{T_{\max}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\newcommand{\False}{\textsc{False statement}}
+\newcommand{\Gap}{\textsc{Proof gap}}
+\newcommand{\Clarify}{\textsc{Clarification}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\emergencystretch}{3em}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+\title{Mathematical Errata and Statement Audit\\
+\large Three papers on chemotaxis systems with logistic sources}
+\author{}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note gives a self-contained mathematical audit of three papers on
+parabolic--elliptic chemotaxis systems.  Each finding is classified as an
+explicitly false statement, a gap in a printed proof, or a clarification of
+the intended continuation or regularity framework.  False statements are
+accompanied by explicit counterexamples.  For proof gaps, the invalid step,
+the missing hypothesis, and the range actually supported by the calculation
+are stated separately.  Every conclusion below follows from the displayed
+mathematical arguments.
+\end{abstract}
+
+\tableofcontents
+
+\section{Sources and logical classification}
+
+The audited sources are:
+\begin{enumerate}[leftmargin=2em]
+\item Wenxian Shen, \emph{Existence, uniqueness, stability, and monotonicity
+  of traveling waves for repulsion/attraction chemotaxis models with logistic
+  type source}, arXiv:2605.04401v1 (the ``traveling-wave paper'');
+\item Le Chen, Ian Ruau, and Wenxian Shen,
+  \emph{Chemotaxis models with signal-dependent sensitivity and a
+  logistic-type source, I: Boundedness and global existence},
+  arXiv:2512.14858v1 (``Part~I'');
+\item Le Chen, Ian Ruau, and Wenxian Shen,
+  \emph{Chemotaxis models with signal-dependent sensitivity and a
+  logistic-type source, II: Persistence and stabilization},
+  arXiv:2604.02599v1 (``Part~II'').
+\end{enumerate}
+
+\begin{description}[leftmargin=2.1em,style=nextline]
+\item[\False] The printed hypotheses admit an explicit solution or test
+  object for which the printed conclusion fails.
+\item[\Gap] A displayed implication is invalid or a hypothesis required by
+  an invoked estimate is missing.  This classification does not assert that
+  the theorem itself is false.
+\item[\Clarify] The mathematical intent is recoverable, but the literal
+  statement is stronger than the continuation or regularity framework
+  supports.
+\end{description}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}L{0.05\textwidth}L{0.15\textwidth}L{0.44\textwidth}L{0.25\textwidth}@{}}
+\toprule
+\# & Source & Finding & Status\\
+\midrule
+\endhead
+E1 & Traveling wave & Theorems 1.2--1.3: the Section 5 weighted-energy
+  calculation contains a root obstruction, a frame mismatch, and four
+  coefficient defects & \Gap\\
+E2 & Traveling wave & Lemma 4.2: the asserted constant subsolution fails for
+  an admissible member of the printed trap set & \False\\
+E3 & Part I & Theorem 1.2 permits \(a>0,b=0\), for which spatially constant
+  solutions grow exponentially & \False\\
+E4 & Part I & Theorem 1.3(iv) invokes an elliptic estimate outside its
+  exponent range & \Gap\\
+E5 & Part I & Proposition 1.1 attaches an endpoint alternative to a finite
+  horizon instead of the maximal continuation & \Clarify\\
+E6 & Part I & Lemma 2.7 assumes an inequality only for \(t>0\) but concludes
+  a bound including \(t=0\) & \False\ as written\\
+E7 & Part II & Theorem 2.1(1) permits the pure-decay regime \(a=0<b\) &
+  \False\\
+E8 & Part II & Theorems 2.2--2.5 claim an all-time \(C^1\) estimate from
+  continuous or merely \(L^\infty\)-small initial data & \Clarify\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Traveling-wave paper}
+
+\subsection{E1: the weighted stability calculation}
+
+Let
+\[
+  \kappa=\frac{c-\sqrt{c^2-4}}2,
+  \qquad \kappa^2-c\kappa+1=0.
+\]
+The printed stability interval begins at \(\eta=\kappa\).  The coefficient
+produced by the global estimate in Section~5 is instead
+\begin{equation}
+  q(\eta)=\eta^2-(c-A)\eta+(1+B),                       \label{eq:q}
+\end{equation}
+where the displayed quantities in the paper have \(A\ge0\), and \(B>0\)
+when \(\chi\ne0\).
+
+\begin{proposition}[root obstruction]
+Suppose \(A\ge0\), \(B>0\), and the discriminant of \(q\) is positive.  Then
+\(\kappa\) is not in the negative set of \(q\).  If \(\kappa\) lies to the
+left of the smaller root
+\[
+  \kappa^-=\frac{(c-A)-\sqrt{(c-A)^2-4(1+B)}}2,
+\]
+then \(q(\eta)>0\) for every \(\eta\) in a nonempty right-neighborhood of
+\(\kappa\).
+\end{proposition}
+
+\begin{proof}
+Using the defining equation for \(\kappa\),
+\[
+ q(\kappa)
+ =(\kappa^2-c\kappa+1)+A\kappa+B
+ =A\kappa+B>0.
+\]
+Since \(q\) is continuous, it remains positive near \(\kappa\).  When
+\(\kappa<\kappa^-\), the quadratic is positive on
+\((-\infty,\kappa^-)\), negative only between its two roots, and hence the
+claimed neighborhood is contained in the positive region.
+\end{proof}
+
+Consequently, the displayed global coefficient estimate can prove decay only
+for weights above \(\kappa^-\), not for every \(\eta>\kappa\).  This is a
+gap in the proof: it does not rule out a different localized or spectral
+argument recovering the larger interval.
+
+\paragraph{Frame mismatch.}
+After the change of variables \(z=x-ct\), the estimated energy is
+\[
+ E_{\rm mov}(t)=
+ \int_\R e^{2\eta z}\abs{u(t,z+ct)-U(z)}^2\,dz.
+\]
+The quantity printed in (1.21) is
+\[
+ E_{\rm lab}(t)=
+ \int_\R e^{2\eta x}\abs{u(t,x)-U(x-ct)}^2\,dx.
+\]
+The substitution \(x=z+ct\) gives the exact relation
+\begin{equation}
+ E_{\rm lab}(t)=e^{2\eta ct}E_{\rm mov}(t).             \label{eq:frames}
+\end{equation}
+Therefore decay of \(E_{\rm mov}\) does not by itself imply decay of the
+printed laboratory-weighted quantity.  Either the conclusion must use the
+co-moving weight \(e^{2\eta(x-ct)}\), or the decay rate must be strong enough
+to absorb the factor in \eqref{eq:frames}.  There is also a sign error:
+if \(\lambda=q(\eta)<0\), then \(e^{\lambda t}\), not \(e^{-\lambda t}\),
+is the decaying exponential.
+
+\paragraph{Coefficient audit.}
+Writing \(w=u-U\) and \(z=v-V\), the elliptic identity
+\(v_{xx}=v-u^\gamma\) gives the zero-order flux difference
+\[
+  (v a_m-a_{m+\gamma})w+U^m z.
+\]
+After multiplication by \(-\chi\), the perturbation equation contains
+\[
+ -\chi(v a_m-a_{m+\gamma}+b_2)w-\chi b_4z.
+\]
+Thus the signs of both \(a_{m+\gamma}\) and \(b_4z\) in (5.18)--(5.19)
+must be reversed.  Absolute-value estimates can repair those two signs, but
+three subsequent numerical coefficients must also be changed:
+\begin{align}
+ \abs{\chi b_1w_xw}
+ &\le \frac12w_x^2+\frac12\abs{\chi}^2b_1^2w^2,
+                                                               \label{eq:young}\\
+ \int_\R V^2
+ &\le\frac{\gamma^2M^{2(\gamma-1)}}{(1-\eta)^2}
+       \int_\R W^2,                                           \label{eq:V}\\
+ \int_\R V_x^2
+ &\le\frac{\gamma^2M^{2(\gamma-1)}}{1-\eta^2}
+       \int_\R W^2.                                           \label{eq:Vx}
+\end{align}
+Equation \eqref{eq:young} is Young's inequality with
+\(a=w_x\) and \(b=\chi b_1w\).  The factor
+\(M^{2(\gamma-1)}\) in \eqref{eq:V}--\eqref{eq:Vx} follows by squaring the
+Lipschitz bound
+\(\abs{s^\gamma-t^\gamma}\le\gamma M^{\gamma-1}\abs{s-t}\).
+Finally, an upper bound on \(U_x/U\) does not imply an absolute-value bound;
+the use in (5.23) requires a two-sided estimate for the logarithmic
+derivative.
+
+\paragraph{Range supported by the corrected calculation.}
+After correcting the flux signs, \eqref{eq:young}--\eqref{eq:Vx}, and the
+logarithmic-derivative estimate, the same global quadratic argument supports
+the window
+\[
+  \kappa^-<\eta<
+  \frac{1}{1+\abs{\chi}^{1/6}},
+\]
+provided this interval is nonempty and the corrected discriminant is
+positive.  The energy must be written in the co-moving coordinate.  Any
+claim for the larger interval beginning at \(\kappa\) needs an additional
+argument not present in Section~5.
+
+\subsection{E2: the constant subsolution in Lemma 4.2}
+
+The lemma asserts that a sufficiently small constant \(W=d\) is a
+subsolution for every profile in a printed trap set.  Consider
+\[
+ u(y)=\min\{1,e^{-y/2}\}\min\{1,\abs{y+1}\}.
+\]
+This function is continuous, nonnegative, satisfies the printed upper
+barrier for \(\kappa=\tfrac12\), \(M=1\), and has
+\[
+ u(-1)=0,\qquad u(0)=1.
+\]
+For \(m=\alpha=\gamma=1\), its frozen elliptic response at \(-1\) is
+\[
+ V_0=\frac12\int_\R e^{-\abs{-1-y}}u(y)\,dy>0.
+\]
+Choose
+\[
+ \chi=\frac2{V_0},\qquad
+ \kappa=\frac12,\quad \widetilde\kappa=1,\quad M=1,\quad c=\frac52,
+\]
+take \(D\) above the printed threshold, and choose a positive \(d\) below
+the printed constant threshold.  At \(x=-1\), all derivatives of \(W=d\)
+vanish, whereas the frozen operator is
+\[
+\begin{aligned}
+ \mathcal A(d;u)(-1)
+ &= -\chi d\bigl(V_0-u(-1)\bigr)+d(1-d)\\
+ &= -2d+d-d^2=-d(1+d)<0.
+\end{aligned}
+\]
+A subsolution requires \(\mathcal A(d;u)\ge0\).  The universal statement is
+therefore false.
+
+\begin{proposition}[a sufficient repaired condition]
+Assume the trap satisfies \(0\le u\le M\), so its elliptic response obeys
+\(0\le V\le M^\gamma\).  A constant \(d>0\) is a subsolution whenever
+\begin{equation}
+  \abs{\chi}\,d^{m-1}M^\gamma\le 1-d^\alpha.             \label{eq:repair}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For a constant test function the diffusion and first-derivative terms
+vanish.  The chemotactic zero-order contribution is bounded below by
+\(-\abs{\chi}d^mM^\gamma\), while the logistic contribution is
+\(d(1-d^\alpha)\).  Hence
+\[
+ \mathcal A(d;u)\ge
+ d\bigl(1-d^\alpha-\abs{\chi}d^{m-1}M^\gamma\bigr),
+\]
+which is nonnegative under \eqref{eq:repair}.
+\end{proof}
+
+For example, when \(m=1\), the simple assumptions
+\(\abs{\chi}M^\gamma\le\tfrac12\) and \(0<d^\alpha\le\tfrac12\)
+imply \eqref{eq:repair}.
+
+\section{Part I: boundedness and global existence}
+
+\subsection{E3: Theorem 1.2 needs a reaction guard}
+
+The printed assumptions \(a,b\ge0\) include \(a>0,b=0\).  On any smooth
+bounded Neumann domain, take \(c_0>0\) and set
+\[
+ u(t,x)=c_0e^{at},\qquad
+ v(t,x)=\frac{\nu}{\mu}u(t,x)^\gamma.
+\]
+All spatial derivatives and boundary fluxes vanish.  The elliptic equation
+holds, and the parabolic equation reduces to \(u_t=au\).  Thus this is a
+positive global classical solution for every \(m,\beta,\chi_0\), but
+\[
+ \norm{u(t)}_\infty=c_0e^{at}\longrightarrow\infty.
+\]
+The counterexample even satisfies the small-sensitivity condition by taking
+\(\chi_0=0\).  Under the standing nonnegativity assumptions, the natural
+repair is
+\[
+  a=0\quad\text{or}\quad b>0,
+\]
+which excludes exactly the branch \(a>0,b=0\).  The more conservative
+case split used by the printed proof is
+\((a=b=0)\lor(a>0\land b>0)\).
+
+\subsection{E4: Theorem 1.3(iv) uses an inadmissible exponent}
+
+Alternative (iv) assumes
+\[
+ \beta\ge\frac12,\qquad \alpha=2m+\gamma-2.
+\]
+Section~5.4 applies Proposition~2.2 with
+\[
+ s(P)=\frac{P+\alpha}{\gamma},
+\]
+although that proposition requires \(s(P)>1\).  Under the critical identity,
+\[
+ s(P)>1
+ \quad\Longleftrightarrow\quad
+ P>2-2m.
+\]
+The iteration begins at
+\[
+ q_*=\max\{1,N\alpha/2\};
+\]
+hence the printed route requires the missing condition
+\begin{equation}
+ \boxed{\max\{1,N\alpha/2\}>2-2m.}                     \label{eq:missing-exp}
+\end{equation}
+
+The printed hypotheses do not imply \eqref{eq:missing-exp}.  Indeed,
+\[
+ N=1,\quad m=\frac14,\quad \gamma=\frac72,\quad
+ \alpha=2,\quad\beta=1
+\]
+satisfies \(\alpha=2m+\gamma-2\), but
+\[
+ q_*=1,\qquad s(q_*)=\frac67<1.
+\]
+Moreover \((N\alpha-2)_+=0\), so the first smallness disjunct in (1.25) is
+automatic.  Thus Proposition~2.2 is invoked outside its stated domain.
+Adding \eqref{eq:missing-exp} repairs this proof route; without it, a
+different argument is required.
+
+\subsection{E5: Proposition 1.1 must use the maximal horizon}
+
+A finite endpoint alternative cannot hold for every finite local horizon.
+When \(a,b>0\), the positive equilibrium
+\[
+ u(t,x)=\left(\frac ab\right)^{1/\alpha}
+\]
+is a classical solution on every finite interval and neither blows up nor
+approaches zero at its endpoint.
+
+The standard corrected statement is as follows.  Let \(\mathcal T\) be the
+set of times to which the initial solution can be continued, and put
+\[
+ T_{\max}=\sup\mathcal T.
+\]
+Uniqueness makes the local solutions compatible on overlaps, so they glue to
+a solution on \([0,T_{\max})\).  If \(T_{\max}<\infty\), the continuation
+criterion implies that at least one controlling norm becomes unbounded or
+the positive lower bound degenerates as \(t\uparrow T_{\max}\).  If neither
+happened, local existence at a terminal slice would extend the solution
+beyond \(T_{\max}\), contradicting its definition.  The endpoint alternative
+therefore belongs to the distinguished maximal continuation, not to an
+arbitrary finite restriction of it.
+
+\subsection{E6: Lemma 2.7 omits the initial trace}
+
+The lemma assumes a differential inequality only on \((0,\Tmax)\) but
+concludes a supremum bound on \([0,\Tmax)\).  Let \(\Tmax=1\) and take
+\[
+ u(t,x)=t^{-1},\qquad 0<t<1.
+\]
+For \(p=2\), the mass quantity is \(Y(t)=t^{-2}\), and
+\[
+ Y'(t)=-2t^{-3}\le-t^{-3}.
+\]
+Thus the interior inequality is compatible with the lemma's nonnegative
+constants, while
+\[
+ \sup_{0<t<1}Y(t)=\infty.
+\]
+No inequality imposed only at positive times can control an omitted initial
+trace.
+
+The repair is to assume \(Y\) extends continuously to \(t=0\), or at least
+that \(Y(0)<\infty\) is part of the data.  Scalar comparison may then be
+applied on \([0,T]\) for every \(T<\Tmax\), with the comparison constant
+depending on \(Y(0)\) and the coefficients in the differential inequality.
+The classical PDE initial trace supplies exactly this datum.
+
+\section{Part II: persistence and stabilization}
+
+\subsection{E7: Theorem 2.1(1) omits the pure-decay regime}
+
+The printed assumptions allow \(a=0<b\).  For \(c_0>0\), define
+\[
+ u(t,x)=\bigl(c_0^{-\alpha}+\alpha bt\bigr)^{-1/\alpha},
+ \qquad
+ v(t,x)=\frac{\nu}{\mu}u(t,x)^\gamma.
+\]
+All spatial terms vanish and
+\[
+ u_t=-bu^{1+\alpha}.
+\]
+The solution is global, bounded, and strictly positive for every finite
+time, yet
+\[
+ \lim_{t\to\infty}\inf_{x\in\Om}u(t,x)=0.
+\]
+The positive persistence conclusion is therefore false in this regime.  The
+case split actually used in the proof is
+\[
+ (a=b=0)\quad\text{or}\quad(a>0\land b>0).
+\]
+When \(a>0,b=0\), a globally bounded positive solution cannot exist because
+its mass satisfies
+\[
+ \frac{d}{dt}\int_\Om u=a\int_\Om u,
+\]
+so that branch of an implication restricted to bounded global solutions is
+vacuous.
+
+\subsection{E8: an all-time \(C^1\) estimate cannot follow from \(C^0\) data}
+
+Equation (2.12) asserts a \(C^1\) exponential estimate for every \(t\ge0\),
+whereas Theorem~2.2 assumes only continuous, positive initial data close in
+\(L^\infty\).  On \(\Om=(0,1)\), consider the Neumann data
+\[
+ u_{0,N}(x)=u_*+N^{-1/2}\cos(N\pi x).
+\]
+For large \(N\) they are positive, have the same prescribed mass as \(u_*\),
+and satisfy
+\[
+ \norm{u_{0,N}-u_*}_{L^\infty}=N^{-1/2}\to0,
+ \qquad
+ \norm{\partial_xu_{0,N}}_{L^\infty}=\pi N^{1/2}\to\infty.
+\]
+Thus no \(L^\infty\)-ball has a uniform \(C^1\) bound at \(t=0\).  For a
+merely continuous datum, the \(C^1\) norm may not even be defined.  This is
+consistent with parabolic smoothing, whose first-derivative estimate has the
+short-time form
+\[
+ \norm{\partial_x e^{t\Delta}f}_\infty
+ \le Ct^{-1/2}\norm f_\infty.
+\]
+
+There are two correct formulations:
+\begin{enumerate}[leftmargin=2em]
+\item if the initial perturbation is small in a fractional domain embedded
+  into \(C^1\), sectorial stability gives an all-time strong-norm estimate;
+\item for continuous or \(L^\infty\)-small data, first evolve to any suitable
+  \(t_0>0\), then obtain exponential \(C^1\) convergence for \(t\ge t_0\).
+\end{enumerate}
+The linear stability threshold is unaffected; only the initial-time
+regularity assertion changes.
+
+\section{Conclusion}
+
+Four findings, E2, E3, E6, and E7, are false as literally stated and are
+settled by explicit counterexamples.  E1 and E4 identify precise gaps in
+printed estimates without asserting that the associated final theorems are
+false.  E5 and E8 are repaired by attaching the conclusions to the correct
+maximal-continuation and positive-time regularity frameworks.  Keeping these
+logical categories separate is essential: a defective proof step, an
+overstated norm at \(t=0\), and a counterexample to the conclusion are
+different mathematical claims.
+
+\end{document}

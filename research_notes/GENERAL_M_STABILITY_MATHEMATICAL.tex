@@ -1,0 +1,735 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={General-m minimal-equilibrium stability: mathematical proofs and an exact subcritical steady obstruction}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\setlength{\emergencystretch}{3em}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+\title{General-\(m\) Minimal-Equilibrium Stability\\
+\large Explicit sufficient regions, the bifurcation boundary, and an exact
+\(m=3\) counterexample}
+\author{}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study the one-dimensional Neumann minimal chemotaxis system with mobility
+\(u^m\).  The sufficient stability conditions are written explicitly.  For
+\(1\le m<2\), two energy routes give global attraction on the conserved-mass
+hyperplane.  At \(m=2\), the same conclusion holds under a sharp
+parameter-level endpoint admissibility condition.  For every \(m>1\), a
+negative-power oscillation estimate gives a separate small-sensitivity
+theorem.
+
+The boundary \(m=2\) belongs to the energy method, not to the dynamics.  A
+weakly nonlinear calculation determines the direction of the first Neumann
+steady branch.  For
+\[
+ m=3,\qquad \beta=\gamma=\mu=\nu=U=1,
+\]
+a Banach-space implicit-function argument constructs a positive nonconstant
+steady state at a sensitivity strictly below the linear threshold.  This
+steady state is an exact obstruction to global attraction.  The proof is
+analytic and does not rely on numerical continuation.
+\end{abstract}
+
+\tableofcontents
+
+\section{Model and meaning of stability}
+
+On \(I=(0,1)\), consider
+\begin{align}
+ u_t
+ &=u_{xx}-\chi_0\partial_x
+   \left(\frac{u^m}{(1+v)^\beta}v_x\right),             \label{eq:u}\\
+ 0&=v_{xx}-\mu v+\nu u^\gamma,                          \label{eq:v}\\
+ u_x(t,0)&=u_x(t,1)=v_x(t,0)=v_x(t,1)=0.                \label{eq:bc}
+\end{align}
+All parameters satisfy
+\[
+ m>0,\quad \beta\ge1,\quad \gamma,\mu,\nu>0,\quad
+ \chi_0>0.
+\]
+Integration of \eqref{eq:u} gives the conserved mass
+\[
+ \int_0^1u(t,x)\,dx=U>0.
+\]
+The constant equilibrium on this mass hyperplane is
+\begin{equation}
+ u_*=U,\qquad v_*=\frac{\nu}{\mu}U^\gamma.              \label{eq:eq}
+\end{equation}
+
+Here ``global attraction'' means the following statement about every
+positive, bounded, global classical solution with mass \(U\):
+\[
+ \norm{u(t)-U}_{L^\infty}\longrightarrow0,
+\]
+and there are orbit-dependent constants \(C,\rho,t_0>0\) such that
+\begin{equation}
+ \norm{u(t)-U}_{C^1}+\norm{v(t)-v_*}_{C^1}
+ \le Ce^{-\rho t}\qquad(t\ge t_0).                     \label{eq:eventualC1}
+\end{equation}
+The positive entry time is necessary when the initial datum is only
+continuous.
+
+\section{Linear stability threshold}
+
+Let \(\lambda_n=n^2\pi^2\) be the Neumann eigenvalues.  Write
+\[
+ u=U+p,\qquad v=v_*+q.
+\]
+For the \(n\)-th nonconstant mode, \eqref{eq:v} gives
+\[
+ \widehat q_n
+ =\frac{\nu\gamma U^{\gamma-1}}{\mu+\lambda_n}
+   \widehat p_n.
+\]
+Linearization of \eqref{eq:u} therefore gives the growth rate
+\begin{equation}
+ \sigma_n(\chi_0)
+ =-\lambda_n+
+ \chi_0\frac{\nu\gamma U^{m+\gamma-1}\lambda_n}
+ {(1+v_*)^\beta(\mu+\lambda_n)}.                       \label{eq:sigma}
+\end{equation}
+
+\begin{proposition}[linear threshold]
+The constant equilibrium is linearly stable on the mass-zero subspace if
+\begin{equation}
+ \chi_0<\chi_{\rm lin}:=
+ \frac{(1+v_*)^\beta(\mu+\pi^2)}
+ {\nu\gamma U^{m+\gamma-1}}.                           \label{eq:chilin}
+\end{equation}
+At equality the first cosine mode is neutral, and it is the first
+nonconstant mode to lose stability.
+\end{proposition}
+
+\begin{proof}
+For \(n\ge1\), \(\sigma_n<0\) is equivalent to
+\[
+ \chi_0<
+ \frac{(1+v_*)^\beta(\mu+\lambda_n)}
+ {\nu\gamma U^{m+\gamma-1}}.
+\]
+The right-hand side is strictly increasing with \(\lambda_n\), so its
+minimum occurs at \(n=1\).
+\end{proof}
+
+For the normalized tuple \(U=\beta=\gamma=\mu=\nu=1\),
+\begin{equation}
+ \chi_{\rm lin}=2(1+\pi^2)\approx21.73920880.           \label{eq:fixedlin}
+\end{equation}
+
+\section{Explicit sufficient stability conditions}
+
+\subsection{Constants appearing in the two energy routes}
+
+Define the sharp signal saturation factor
+\begin{equation}
+ \sigma_\beta=
+ \sup_{z\ge0}\frac{z}{(1+z)^\beta}
+ =
+ \begin{cases}
+ 1,&\beta=1,\\[1mm]
+ \dfrac{(\beta-1)^{\beta-1}}{\beta^\beta},&\beta>1,
+ \end{cases}                                           \label{eq:sigmabeta}
+\end{equation}
+and
+\begin{equation}
+ \chi_\beta=\frac{2(2\beta-1)}{\max\{2,\gamma\}}.       \label{eq:chibeta}
+\end{equation}
+The formula for \(\sigma_\beta\) follows by differentiating
+\(z(1+z)^{-\beta}\); for \(\beta>1\) its unique maximum is
+\(z=(\beta-1)^{-1}\).
+
+The energy estimates use an eventual box.  Namely, choose
+\(\overline u>0\) and \(\underline v>0\), depending only on the parameters
+and \(U\), such that every orbit under consideration satisfies
+\begin{equation}
+ u(t,x)\le\overline u,\qquad v(t,x)\ge\underline v
+ \quad\text{for all sufficiently large \(t\), uniformly in \(x\)}.
+                                                               \label{eq:box}
+\end{equation}
+For \(1\le m<2\), standard one-dimensional \(L^P\) recurrence, Agmon
+interpolation, the conserved mass, and positivity of the Neumann elliptic
+Green function produce such orbit-independent constants.  The same
+construction works at \(m=2\) under the endpoint condition
+\begin{equation}
+ \chi_0\sqrt\mu\,\sigma_\beta U\max\{2,\gamma\}<1.      \label{eq:critical}
+\end{equation}
+The role of \eqref{eq:critical} is to leave room for a restarted exponent
+strictly larger than \(2\) and at least \(\gamma\).
+
+On the interval \([0,\overline u]\), define the power slope
+\begin{equation}
+ L_\gamma(U,\overline u)=
+ \begin{cases}
+ U^{\gamma-1},&0<\gamma\le1,\\[1mm]
+ \gamma\overline u^{\gamma-1},&\gamma>1.
+ \end{cases}                                           \label{eq:slope}
+\end{equation}
+Then
+\[
+ \abs{s^\gamma-U^\gamma}
+ \le L_\gamma(U,\overline u)\abs{s-U},
+ \qquad 0\le s\le\overline u.
+\]
+
+The entropy threshold is
+\begin{equation}
+ \chi_E=
+ \frac{2\sqrt\mu\,(1+\underline v)^\beta\overline u^{-m}}
+ {\nu L_\gamma(U,\overline u)},                        \label{eq:chiE}
+\end{equation}
+and the signal-energy threshold is
+\begin{equation}
+ \chi_S=
+ \min\left\{
+ \frac{\chi_\beta}{2},\
+ \sqrt{\chi_\beta},\
+ \frac{\mu(1+\underline v)^\beta}
+ {\nu\overline u^m}
+ \right\}.                                             \label{eq:chiS}
+\end{equation}
+
+\begin{theorem}[two explicit stability branches]
+Assume \(1\le m<2\), and let \(\overline u,\underline v\) satisfy
+\eqref{eq:box}.  The equilibrium \eqref{eq:eq} is globally attracting if
+either
+\begin{equation*}
+ 0<\chi_0<\min\{\chi_{\rm lin},\chi_E\},                \tag{E}
+\end{equation*}
+or
+\begin{equation*}
+ \gamma=1,\qquad
+ 0<\chi_0<\min\{\chi_{\rm lin},\chi_S\}.                \tag{S}
+\end{equation*}
+At \(m=2\), the same conclusion holds under
+\eqref{eq:critical} and either \emph{(E)} or \emph{(S)}.
+\end{theorem}
+
+\subsection{Proof of the entropy branch}
+
+Define
+\begin{equation}
+ H_m(s)=\int_U^s
+ \left[1-\left(\frac{U}{\tau}\right)^{2m-1}\right]d\tau,
+ \qquad
+ \mathcal E_u(t)=\int_0^1H_m(u(t,x))\,dx.               \label{eq:entropy}
+\end{equation}
+For \(m\ge1\), \(H_m\ge0\) and \(H_m(s)=0\) only at \(s=U\).
+Put
+\[
+ c_m=(2m-1)U^{2m-1},
+\quad
+ G=\int_0^1u^{-2m}u_x^2,
+\quad
+ X=\int_0^1\frac{u^{-m}u_xv_x}{(1+v)^\beta}.
+\]
+Differentiation of \eqref{eq:entropy}, followed by integration by parts,
+gives
+\begin{equation}
+ \mathcal E_u'(t)\le-c_mG+\chi_0c_mX.                  \label{eq:Eslope}
+\end{equation}
+The boundary terms vanish because of \eqref{eq:bc}.
+
+Young's inequality, with
+\[
+ A=u^{-m}u_x,\qquad B=(1+v)^{-\beta}v_x,
+\]
+gives
+\begin{equation}
+ -c_mG+\chi_0c_mX
+ \le-\frac{c_m}{2}G+
+ \frac{\chi_0^2c_m}{2}
+ \int_0^1\frac{v_x^2}{(1+v)^{2\beta}}.                 \label{eq:halfyoung}
+\end{equation}
+Inside the eventual box, mass conservation and the Neumann Poincaré
+inequality imply
+\begin{equation}
+ G\ge\overline u^{-2m}
+ \int_0^1(u-U)^2.                                      \label{eq:Gcoercive}
+\end{equation}
+The elliptic equation, tested against \(v-v_*\), and the sharp
+one-dimensional multiplier bound give
+\begin{equation}
+ \int_0^1\frac{v_x^2}{(1+v)^{2\beta}}
+ \le
+ \frac{\nu^2}
+ {4\mu(1+\underline v)^{2\beta}}
+ \int_0^1(u^\gamma-U^\gamma)^2.                        \label{eq:ellbound}
+\end{equation}
+Using \eqref{eq:slope},
+\[
+ \int_0^1(u^\gamma-U^\gamma)^2
+ \le L_\gamma(U,\overline u)^2\int_0^1(u-U)^2.
+\]
+Consequently,
+\begin{equation}
+ \mathcal E_u'(t)
+ \le-C_E\int_0^1(u-U)^2,                               \label{eq:Ediss}
+\end{equation}
+where
+\begin{equation}
+ C_E=\frac{c_m}{2}\left[
+ \overline u^{-2m}
+ -\frac{\chi_0^2\nu^2L_\gamma(U,\overline u)^2}
+ {4\mu(1+\underline v)^{2\beta}}
+ \right].                                              \label{eq:CE}
+\end{equation}
+Condition \(\chi_0<\chi_E\) is exactly \(C_E>0\).
+
+Since \(\mathcal E_u\ge0\), integration of \eqref{eq:Ediss} gives
+\[
+ \int_T^\infty\norm{u(t)-U}_{L^2}^2\,dt<\infty.
+\]
+Thus there are arbitrarily late times \(t_j\) with
+\(\norm{u(t_j)-U}_{L^2}\to0\).  Uniform late-time parabolic H\"older bounds
+upgrade this to
+\begin{equation}
+ \norm{u(t_j)-U}_{L^\infty}\longrightarrow0.           \label{eq:basinentry}
+\end{equation}
+Indeed, otherwise a point with deviation at least \(\varepsilon\), together
+with a uniform spatial modulus of continuity, would produce an interval of
+fixed positive length on which the deviation is at least
+\(\varepsilon/2\), contradicting the \(L^2\) convergence.
+
+Finally, \(\chi_0<\chi_{\rm lin}\) supplies a spectral gap on the mass-zero
+subspace.  The nonlinear remainder is quadratic in a fractional domain
+embedded in \(C^1\).  The analytic semigroup estimate and variation of
+constants give, for sufficiently small data,
+\[
+ \norm{(u-U,v-v_*)(t)}_{C^1}
+ \le Ce^{-\rho(t-t_j)}
+ \norm{u(t_j)-U}_{L^\infty}.
+\]
+Parabolic smoothing during a fixed positive time connects the
+\(L^\infty\)-small slice \eqref{eq:basinentry} to that fractional domain.
+This proves \eqref{eq:eventualC1}; the supremum convergence follows
+immediately.
+
+\subsection{Proof of the signal-energy branch}
+
+Assume \(\gamma=1\).  Then \(v_*=\nu U/\mu\), and integration of the elliptic
+equation gives
+\[
+ \int_0^1(v-v_*)\,dx=0.
+\]
+Define
+\begin{equation}
+ \mathcal E_v(t)=\int_0^1
+ \left[v_x^2+\mu(v-v_*)^2\right]dx.                    \label{eq:signalE}
+\end{equation}
+Differentiating the elliptic equation in time, pairing with \(v-v_*\), and
+using the population equation gives the exact identity
+\begin{align}
+ \mathcal E_v'(t)
+ ={}&-2\int_0^1v_{xx}^2
+     -2\mu\int_0^1v_x^2 \notag\\
+ &\quad
+ +2\nu\chi_0\int_0^1
+ \frac{u^m v_x^2}{(1+v)^\beta}.                        \label{eq:signalid}
+\end{align}
+On the eventual box,
+\[
+ \mathcal E_v'(t)
+ \le-2\int_0^1v_{xx}^2-2C_S\int_0^1v_x^2,
+\quad
+ C_S=\mu-\frac{\nu\chi_0\overline u^m}
+ {(1+\underline v)^\beta}.                             \label{eq:CS}
+\]
+The last entry of \eqref{eq:chiS} makes \(C_S>0\).  Since the signal
+perturbation has zero mean, Poincaré's inequality gives
+\[
+ \mathcal E_v(t)\le(\mu+1)\int_0^1v_x^2.
+\]
+Hence \(\mathcal E_v\) decays exponentially.  Integration of
+\eqref{eq:signalid} also supplies arbitrarily late slices with small
+\(\norm{v_{xx}}_{L^2}\).  Because
+\[
+ u-U=\frac{\mu(v-v_*)-v_{xx}}{\nu},
+\]
+such slices are \(L^2\)-close to \(U\); smoothing and the one-dimensional
+embedding give the same \(L^\infty\) basin entry as in
+\eqref{eq:basinentry}.  The linear spectral bootstrap then proves
+\eqref{eq:eventualC1}.  The first two entries in \eqref{eq:chiS} are the
+smallness bounds used to produce the eventual box and its persistence
+estimates.
+
+\subsection{Why the same proof reaches \(m=2\)}
+
+The entropy and signal-energy arguments above use only \(m\ge1\) after the
+eventual box has been obtained.  The restriction \(m<2\) enters earlier, in
+the \(L^P\) recurrence that produces \eqref{eq:box}.  At \(m=2\), the
+recurrence is critical.  Condition \eqref{eq:critical} makes the coefficient
+of the restarted moment positive for an exponent \(P>\max\{2,\gamma\}\).
+The endpoint Agmon estimate then yields \eqref{eq:box}, after which the same
+calculations \eqref{eq:Eslope}--\eqref{eq:CS} apply without change.  Thus
+\(m=2\) is an endpoint of this a priori estimate, not a dynamical
+bifurcation value.
+
+\section{Every \(m>1\): a separate small-sensitivity route}
+
+For \(m>1\), define
+\begin{equation}
+ G(t)=\int_0^1u(t,x)^{-2m}u_x(t,x)^2\,dx.               \label{eq:negG}
+\end{equation}
+The negative-power entropy identity and the sharp saturation inequality
+\[
+ \frac{v}{(1+v)^\beta}\le\sigma_\beta
+\]
+give a parameter-only differential inequality.  Indeed, the elliptic
+log-gradient bound
+\[
+ \abs{v_x}\le\sqrt\mu\,v
+\]
+implies
+\[
+ \int_0^1\frac{v_x^2}{(1+v)^{2\beta}}
+ \le\mu\sigma_\beta^2.
+\]
+The half-Young estimate \eqref{eq:halfyoung} therefore yields
+\begin{equation}
+ \mathcal E_u'(t)
+ \le-\frac{c_m}{2}
+ \left(G(t)-\chi_0^2\mu\sigma_\beta^2\right).           \label{eq:goodslope}
+\end{equation}
+It follows that, for every \(T>0\) and
+\(\varepsilon>0\), there is \(t\ge T\) such that
+\begin{equation}
+ G(t)<\chi_0^2\mu\sigma_\beta^2+\varepsilon.            \label{eq:goodslice}
+\end{equation}
+Otherwise \eqref{eq:goodslope} would force \(\mathcal E_u\) to decrease at a
+fixed negative rate for all \(t\ge T\), contradicting
+\(\mathcal E_u(t)\ge0\).
+
+\begin{lemma}[negative-power oscillation]
+For every positive \(C^1\) profile \(u\) on \([0,1]\),
+\begin{equation}
+ \abs{u(x)^{1-m}-u(z)^{1-m}}
+ \le(m-1)\sqrt{G}
+ \qquad(x,z\in[0,1]).                                  \label{eq:osc}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The fundamental theorem of calculus and Cauchy--Schwarz give
+\begin{align*}
+ \abs{u(x)^{1-m}-u(z)^{1-m}}
+ &\le(m-1)\int_0^1u^{-m}\abs{u_x}\\
+ &\le(m-1)
+ \left(\int_0^1u^{-2m}u_x^2\right)^{1/2}.
+\end{align*}
+\end{proof}
+
+For \(0<\delta<U\), set
+\begin{equation}
+ r_m(U,\delta)=
+ \min\left\{
+ U^{1-m}-(U+\delta)^{1-m},\
+ \frac{(U-\delta)^{1-m}-U^{1-m}}2
+ \right\}.                                             \label{eq:radius}
+\end{equation}
+Both entries are positive because \(1-m<0\).  Continuity and the mass
+constraint provide a point \(z\) with \(u(z)=U\).  Hence
+\eqref{eq:osc} implies
+\begin{equation}
+ (m-1)\sqrt G<r_m(U,\delta)
+ \quad\Longrightarrow\quad
+ \norm{u-U}_{L^\infty}<\delta.                         \label{eq:powerbox}
+\end{equation}
+To verify \eqref{eq:powerbox}, note that \(s\mapsto s^{1-m}\) is strictly
+decreasing.  A point with \(u\ge U+\delta\) or \(u\le U-\delta\) would force
+the oscillation from \(U^{1-m}\) to be at least one of the two quantities
+used in \eqref{eq:radius}.
+
+\begin{theorem}[all-\(m>1\) small-sensitivity branch]
+Assume \(m>1\), \(\chi_0<\chi_{\rm lin}\), and let
+\(\delta\in(0,U)\) be any \(L^\infty\) radius contained in the local
+spectral basin of the equilibrium.  If
+\begin{equation}
+ (m-1)\chi_0\sqrt\mu\,\sigma_\beta<r_m(U,\delta),       \label{eq:small}
+\end{equation}
+then the equilibrium is globally attracting among positive bounded
+mass-\(U\) solutions.
+\end{theorem}
+
+\begin{proof}
+Choose \(\varepsilon>0\) so small that
+\[
+ (m-1)\sqrt{\chi_0^2\mu\sigma_\beta^2+\varepsilon}
+ <r_m(U,\delta).
+\]
+At the good time supplied by \eqref{eq:goodslice}, the oscillation estimate
+and \eqref{eq:powerbox} put the solution inside the local
+\(L^\infty\)-basin.  Restarting the autonomous equation at that time and
+using the linearly stable semigroup bootstrap proves
+\eqref{eq:eventualC1}.
+\end{proof}
+
+Equivalently, the explicit threshold associated with \(\delta\) is
+\[
+ \chi_0<
+ \frac{r_m(U,\delta)}
+ {(m-1)\sqrt\mu\,\sigma_\beta}.
+\]
+Linear stability guarantees the existence of at least one positive local
+basin radius \(\delta<U\).
+
+\section{Steady-state bifurcation}
+
+\subsection{Integrated steady equation}
+
+Specialize to
+\[
+ \beta=\gamma=\mu=\nu=1.
+\]
+At a positive steady state, integration of the zero-flux equation gives
+\[
+ u_x-\chi\frac{u^m}{1+v}v_x=0.
+\]
+If \(H_m'(u)=u^{-m}\), then
+\[
+ H_m(u)=
+ \begin{cases}
+ \log u,&m=1,\\[1mm]
+ \dfrac{u^{1-m}}{1-m},&m\ne1,
+ \end{cases}
+\]
+and every positive steady state satisfies
+\begin{equation}
+ H_m(u)-\chi\log(1+v)=C,\qquad
+ -v_{xx}+v=u,\qquad \int_0^1u=U.                       \label{eq:integrated}
+\end{equation}
+
+\subsection{Weakly nonlinear direction coefficient}
+
+Let
+\[
+ e_1(x)=\cos(\pi x),\qquad e_2(x)=\cos(2\pi x),
+\]
+and set
+\[
+ r_1=\frac1{1+\pi^2},\qquad
+ r_2=\frac1{1+4\pi^2},\qquad b=1+U.
+\]
+Seek a mass-preserving branch
+\begin{align}
+ u&=U+\varepsilon e_1+\varepsilon^2a_2e_2+O(\varepsilon^3), \label{eq:uexp}\\
+ v&=U+\varepsilon r_1e_1+\varepsilon^2a_2r_2e_2
+       +O(\varepsilon^3),                              \label{eq:vexp}\\
+ \chi&=\chi_{\rm lin}+\varepsilon^2\chi_2
+       +O(\varepsilon^3).                              \label{eq:chiexp}
+\end{align}
+Substitution into \eqref{eq:integrated} gives, successively,
+\begin{align}
+ \chi_{\rm lin}&=\frac{b}{r_1U^m},                     \label{eq:wlin}\\
+ a_2&=\frac{m/U-r_1/b}{4(1-r_2/r_1)},                  \label{eq:a2}\\
+ \chi_2&=\chi_{\rm lin}S(m,U),                         \label{eq:chi2}\\
+ S(m,U)
+ &=\frac{a_2}{2}\left(\frac{r_2}{b}-\frac mU\right)
+   +\frac{m(m+1)}{8U^2}
+   -\frac{r_1^2}{4b^2}.                               \label{eq:S}
+\end{align}
+The order-\(\varepsilon\) equation yields \eqref{eq:wlin}; the
+\(e_2\)-projection at order \(\varepsilon^2\) yields \eqref{eq:a2}; and the
+\(e_1\)-solvability condition at order \(\varepsilon^3\) yields
+\eqref{eq:chi2}--\eqref{eq:S}.
+
+Thus \(S>0\) gives a forward branch and \(S<0\) gives a backward branch.
+The roots of the explicit function \(S\) are approximately
+\[
+\begin{array}{c|c}
+U&m_c(U)\\ \hline
+0.5&2.866754572143\\
+1&2.936658202934\\
+2&3.005668668328
+\end{array}
+\]
+within the normalized family.  These values describe only the direction of
+the local steady branch; they do not constitute a global stability diagram.
+
+\section{An exact subcritical steady state at \(m=3\)}
+
+\subsection{Banach-space branch construction}
+
+Fix
+\[
+ m=3,\qquad \beta=\gamma=\mu=\nu=U=1.
+\]
+Let \(\mathcal A_2\) be the real even Wiener space
+\[
+ f(x)=\sum_{n\in\mathbb Z}f_ne^{in\pi x},\qquad
+ f_{-n}=f_n\in\R,\qquad
+ \norm f_{\mathcal A_2}
+ =\sum_{n\in\mathbb Z}(1+\abs n)^2\abs{f_n}<\infty.
+\]
+It is a Banach algebra and embeds continuously into \(C^2\).
+Let \(R=(-\partial_{xx}+1)^{-1}\), so
+\[
+ R e_n=\frac1{1+n^2\pi^2}e_n.
+\]
+Restrict to the mean-zero subspace and write
+\[
+ h=e_1+z,\qquad z\perp e_1.
+\]
+For amplitude \(a\), set
+\[
+ u=1+ah,\qquad v=1+aRh.
+\]
+After dividing the steady flux equation by \(a\), define
+\begin{equation}
+ \mathcal F(a,z,\chi)=
+ h-\chi\,\partial_x^{-1}
+ \left[\frac{(1+ah)^3}{2+aRh}\,\partial_xRh\right].
+                                                               \label{eq:F}
+\end{equation}
+The inverse derivative is taken on odd mean-zero Fourier series.  Near
+\((a,z,\chi)=(0,0,2(1+\pi^2))\), the denominator is invertible in the
+Banach algebra, so \(\mathcal F\) is \(C^3\).
+
+At the base point, the derivative in the complement direction is
+\[
+ L=I-(1+\pi^2)R.
+\]
+On the \(n\)-th cosine mode,
+\begin{equation}
+ Le_n=
+ \frac{(n^2-1)\pi^2}{1+n^2\pi^2}e_n.                  \label{eq:Lmode}
+\end{equation}
+Its kernel on the mean-zero space is precisely the first cosine mode, which
+has been removed from \(z\).  For \(n\ge2\), the reciprocal multiplier is
+\[
+ \frac{1+n^2\pi^2}{(n^2-1)\pi^2},
+\]
+uniformly bounded in \(n\), so \(L\) has a bounded inverse on the complement.
+The derivative in the sensitivity direction is
+\[
+ -\frac1{2(1+\pi^2)}e_1,
+\]
+which spans the missing first-mode line.  Hence
+\[
+ D_{(z,\chi)}\mathcal F
+ \colon \{e_1\}^{\perp}\times\R
+ \longrightarrow \{\text{mean-zero even profiles}\}
+\]
+is a bounded isomorphism.
+
+The Banach implicit-function theorem now gives \(a_0>0\) and a \(C^3\)
+branch
+\[
+ a\longmapsto\bigl(z(a),\chi(a)\bigr),
+ \qquad
+ z(0)=0,\quad \chi(0)=2(1+\pi^2),
+\]
+for \(\abs a<a_0\), satisfying \(\mathcal F=0\).
+
+\subsection{Exact branch direction}
+
+Multiplying \eqref{eq:F} by the signal denominator and differentiating gives
+the polynomial flux identity
+\begin{equation}
+ (2+aRh)\,\partial_xh
+ =\chi(a)(1+ah)^3\partial_xRh.                          \label{eq:poly}
+\end{equation}
+Projecting the first derivative of \eqref{eq:poly} onto \(e_1\) gives
+\(\chi'(0)=0\).  The mode \(e_2\) determines \(z'(0)\), equivalently the
+coefficient \(a_2\) in \eqref{eq:a2}.  Projecting the second derivative onto
+\(e_1\), or substituting \(m=3,U=1\) into
+\eqref{eq:a2}--\eqref{eq:S}, gives
+\begin{equation}
+ \chi''(0)=
+ -\frac{6\pi^4+37\pi^2+25}
+ {24\pi^2(\pi^2+1)}<0.                                \label{eq:second}
+\end{equation}
+Every factor in the denominator is positive and the numerator is positive,
+so the sign is strict.
+
+By continuity of \(\chi''\), after reducing \(a_0\) if necessary,
+\(\chi'(a)<0\) for \(0<a<a_0\).  Since \(\chi(0)>0\), there is
+\(a_1\in(0,a_0)\) such that
+\begin{equation}
+ 0<\chi(a)<2(1+\pi^2)
+ \qquad(0<a<a_1).                                      \label{eq:backward}
+\end{equation}
+
+\subsection{Positivity and the dynamical obstruction}
+
+The embedding \(\mathcal A_2\hookrightarrow C^2\) and
+\(z(a)\to0\) show that, for small \(a>0\),
+\[
+ u_a=1+a(e_1+z(a))>0,\qquad
+ v_a=1+aR(e_1+z(a))>0.
+\]
+The cosine representation gives the Neumann boundary conditions, the
+missing zero Fourier coefficient gives
+\[
+ \int_0^1u_a\,dx=1,
+\]
+and the normalized first coefficient makes \(u_a\) nonconstant.
+Differentiating \eqref{eq:poly} recovers
+\begin{align*}
+ 0&=(u_a)_{xx}
+ -\chi(a)\partial_x\left(\frac{u_a^3(v_a)_x}{1+v_a}\right),\\
+ 0&=(v_a)_{xx}-v_a+u_a.
+\end{align*}
+
+\begin{theorem}[subcritical nonconstant steady state]
+There exist \(0<\chi<2(1+\pi^2)\) and positive, nonconstant \(C^2\)
+Neumann profiles \(u,v\), of mass one, satisfying the \(m=3\) steady system.
+\end{theorem}
+
+Regard these profiles as constant-in-time functions.  They are a positive,
+bounded, global classical orbit.  If the constant equilibrium \((1,1)\)
+attracted every such orbit, then the time-independent function \(u\) would
+converge uniformly to \(1\), forcing \(u\equiv1\), contrary to
+nonconstancy.
+
+\begin{theorem}[failure of global attraction below the linear threshold]
+For \(m=3\), \(\beta=\gamma=\mu=\nu=U=1\), there is a sensitivity
+\(0<\chi<\chi_{\rm lin}\) for which the constant equilibrium is linearly
+stable but not globally attracting on the mass-one hyperplane.
+\end{theorem}
+
+\section{Resolved region and remaining gap}
+
+The proved picture is:
+\begin{enumerate}[leftmargin=2em]
+\item for \(1\le m<2\), the explicit entropy or signal-energy conditions
+  \emph{(E)}--\emph{(S)} imply global attraction;
+\item \(m=2\) is included under \eqref{eq:critical};
+\item for every \(m>1\), \eqref{eq:small} gives a separate
+  small-sensitivity stability region;
+\item at \(m=3,U=1\), a nonconstant positive steady state exists strictly
+  below the linear threshold, so linear stability does not imply global
+  attraction.
+\end{enumerate}
+
+No necessary-and-sufficient global stability diagram is claimed in the
+region between the sufficient thresholds and the backward steady branch.
+In particular, \(m<m_c(U)\) only means that the first local branch points
+forward; it does not prove global attraction all the way to
+\(\chi_{\rm lin}\).  Conversely, \(m>m_c(U)\) predicts a local backward
+branch, but the analytic branch construction above was carried out for the
+fixed \(m=3,U=1\) tuple.
+
+\end{document}

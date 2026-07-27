@@ -1,0 +1,515 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={Far-left stability of a chemotaxis front: a mathematical proof of the sharp threshold chi=4}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\setlength{\emergencystretch}{3em}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+\title{Far-Left Stability of a Chemotaxis Front\\
+\large A mathematical proof of the sharp threshold \(\chi=4\), with the
+necessary basin condition}
+\author{}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For the normalized one-dimensional chemotaxis--logistic equation
+\[
+ u_t=u_{zz}+(c-\chi v_z)u_z
+      +u\bigl(1-\chi v+(\chi-1)u\bigr),
+ \qquad -v_{zz}+v=u,
+\]
+we identify the exact stability threshold of the plateau
+\((u,v)=(1,1)\).  The linear dispersion relation is strictly stable exactly
+for \(0\le\chi<4\).  A nonlinear logarithmic entropy has the same sharp
+coercive coefficient \(1-\chi^2/16\).  A slowly varying integrable weight
+turns this identity into a whole-line Liouville theorem, and a
+translation-compactness argument gives uniform far-left convergence for
+orbits that remain in a persistent positive far-left band.
+
+The band hypothesis is necessary for a broad class of front-like solutions.
+A Fisher--KPP traveling front observed from a faster frame remains positive
+at the left end of every fixed time slice, yet converges to zero at each
+fixed point of that frame.  Thus slice-by-slice positivity cannot replace a
+time-uniform basin or phase condition.
+\end{abstract}
+
+\tableofcontents
+
+\section{Equation and far-left convergence}
+
+In the normalized case \(m=\alpha=\gamma=1\), write the equation in a frame
+moving at speed \(c\):
+\begin{align}
+ u_t
+ &=u_{zz}+cu_z-\chi(uv_z)_z+u(1-u),                    \label{eq:div}\\
+ -v_{zz}+v&=u.                                         \label{eq:ell}
+\end{align}
+Putting \(r=v-1\), equation \eqref{eq:ell} becomes
+\[
+ -r_{zz}+r=u-1.
+\]
+Since \(v_{zz}=v-u\), expanding the chemotactic divergence in
+\eqref{eq:div} gives the equivalent equation
+\[
+ u_t=u_{zz}+(c-\chi v_z)u_z
+      +u\bigl(1-\chi v+(\chi-1)u\bigr).
+\]
+
+A traveling front has the end states
+\[
+ (u,v)=(1,1)\quad\text{as }z\to-\infty,
+ \qquad
+ (u,v)=(0,0)\quad\text{as }z\to+\infty.
+\]
+The desired far-left conclusion for a time-dependent orbit is
+\begin{equation}
+ \forall\varepsilon>0\ \exists R,T\
+ \forall t\ge T\ \forall z\le-R,\qquad
+ \abs{u(t,z)-1}<\varepsilon.                            \label{eq:goal}
+\end{equation}
+
+\section{The exact linear threshold}
+
+Set \(u=1+p\), \(v=1+r\).  The linearized equations are
+\[
+ p_t=p_{zz}+cp_z+(\chi-1)p-\chi r,
+ \qquad -r_{zz}+r=p.
+\]
+For \(p=e^{\lambda t+ikz}\) and \(s=k^2\), the elliptic equation gives
+\(\widehat r=\widehat p/(1+s)\), hence
+\begin{equation}
+ \lambda(s)=-s+ick+(\chi-1)-\frac{\chi}{1+s}.           \label{eq:lambda}
+\end{equation}
+The real growth rate is
+\begin{equation}
+ d_\chi(s)=\operatorname{Re}\lambda(s)
+ =-1-s+\frac{\chi s}{1+s}.                             \label{eq:disp}
+\end{equation}
+
+\begin{theorem}[sharp dispersion threshold]
+For \(0\le\chi<4\), \(d_\chi(s)<0\) for every \(s\ge0\).  At \(\chi=4\),
+the modes \(k=\pm1\) are neutral.  For \(\chi>4\), a nonempty band of
+Fourier modes grows exponentially.
+\end{theorem}
+
+\begin{proof}
+If \(0\le\chi\le1\), then
+\[
+ d_\chi'(s)=-1+\frac{\chi}{(1+s)^2}\le0,
+\]
+so the maximum is \(d_\chi(0)=-1\).  If \(\chi>1\), the unique critical
+point is \(s_*=\sqrt\chi-1\), and \(d_\chi''(s)<0\), so it is the global
+maximum.  Substitution gives
+\[
+ d_\chi(s_*)=\chi-2\sqrt\chi.
+\]
+This is negative, zero, or positive according as \(\chi<4\), \(\chi=4\),
+or \(\chi>4\).  At equality \(s_*=1\), hence \(k=\pm1\).
+\end{proof}
+
+More generally, a reaction exponent \(\alpha>0\) and coupling
+\(\chi\gamma\ge0\) give
+\[
+ d_{\alpha,\chi\gamma}(s)
+ =-\alpha-s+\frac{\chi\gamma\,s}{1+s}.
+\]
+When \(\chi\gamma>1\), its maximum is
+\((\sqrt{\chi\gamma}-1)^2-\alpha\).  The exact stability condition is
+\[
+ \chi\gamma<(1+\sqrt\alpha)^2.
+\]
+
+\section{The sharp nonlinear entropy}
+
+For \(u>0\), define
+\[
+ h(u)=u-1-\log u,\qquad h'(u)=1-\frac1u,
+\]
+and abbreviate
+\[
+ A=\frac{u_z}{u},\qquad W=u-1.
+\]
+
+\begin{lemma}[unweighted entropy identity]
+On a periodic interval, or on the whole line when all boundary terms vanish,
+\begin{equation}
+ \frac{d}{dt}\int h(u)
+ =-\int A^2+\chi\int A r_z-\int W^2.                   \label{eq:raw}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Multiplying \eqref{eq:div} by \(h'(u)\) gives
+\[
+ \int h'(u)u_{zz}=-\int h''(u)u_z^2=-\int A^2.
+\]
+The constant drift is the integral of a derivative.  For the chemotactic
+term,
+\begin{align*}
+ -\chi\int h'(u)(uv_z)_z
+ &= -\chi\int\left(1-\frac1u\right)
+       (u_zr_z+ur_{zz})\\
+ &= -\chi\int\bigl(W_zr_z+Wr_{zz}-Ar_z\bigr)
+  =\chi\int Ar_z.
+\end{align*}
+The first two terms cancel after integration by parts.  Finally,
+\[
+ \int h'(u)u(1-u)=\int (u-1)(1-u)=-\int W^2.
+\]
+\end{proof}
+
+\begin{lemma}[sharp elliptic resolver estimate]
+If \(-r_{zz}+r=W\), then
+\begin{equation}
+ \int r_z^2\le\frac14\int W^2.                         \label{eq:quarter}
+\end{equation}
+The constant \(1/4\) is optimal.
+\end{lemma}
+
+\begin{proof}
+Taking Fourier transforms gives
+\[
+ \widehat{r_z}(k)=\frac{ik}{1+k^2}\widehat W(k).
+\]
+By Plancherel,
+\[
+ \int r_z^2
+ =\int\frac{k^2}{(1+k^2)^2}\abs{\widehat W(k)}^2\,dk.
+\]
+The multiplier is at most \(1/4\), with equality when \(k^2=1\).
+\end{proof}
+
+Young's inequality gives
+\[
+ \chi Ar_z\le A^2+\frac{\chi^2}{4}r_z^2.
+\]
+Combining this with \eqref{eq:raw} and \eqref{eq:quarter} yields
+\begin{equation}
+ \frac{d}{dt}\int h(u)
+ \le-\left(1-\frac{\chi^2}{16}\right)\int(u-1)^2.
+                                                               \label{eq:sharp}
+\end{equation}
+No smallness assumption on \(u-1\) was used.  The nonlinear entropy margin
+is positive exactly for \(\abs\chi<4\), matching the linear threshold.
+
+\section{Slow localization on the whole line}
+
+The unweighted entropy need not be integrable for a bounded entire solution.
+For \(0<k<1\) and a center \(x_0\), introduce
+\begin{equation}
+ \phi_{k,x_0}(x)
+ =\exp\!\left[-k\sqrt{1+(x-x_0)^2}\right].             \label{eq:weight}
+\end{equation}
+Then \(\phi>0\), \(\phi\in L^1(\R)\), and
+\[
+ \abs{\phi_x}\le k\phi.
+\]
+
+\subsection{A near-sharp weighted resolver bound}
+
+Let
+\[
+\begin{aligned}
+ S&=\int\phi W^2,&
+ A_0&=\int\phi r^2,&
+ I&=\int\phi r_z^2,\\
+ C_0&=\int\phi r_{zz}^2,&
+ J&=\int\phi_xrr_z,&
+ P&=\int\phi Wr.
+\end{aligned}
+\]
+Testing \(-r_{zz}+r=W\) by \(\phi r\) and expanding the square of the
+equation give
+\begin{align}
+ A_0+I+J&=P,                                           \label{eq:test}\\
+ 2P&\le S+A_0,                                         \label{eq:pair}\\
+ S&=A_0+2I+2J+C_0.                                    \label{eq:square}
+\end{align}
+Moreover,
+\[
+ \abs J\le\frac{k}{2}(A_0+I),
+\]
+and the nonnegativity of
+\(\int\phi(r+r_{zz})^2\) gives
+\[
+ 2I+2J\le A_0+C_0.
+\]
+
+\begin{lemma}[weighted resolver]
+For \(0\le k<1\),
+\begin{equation}
+ I\le G(k)S,\qquad
+ G(k)=\frac{1+k}{4(1-k)}.                              \label{eq:gain}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Equations \eqref{eq:test}--\eqref{eq:pair} and the lower bound on \(J\)
+give
+\[
+ (1-k)(A_0+I)\le S.
+\]
+Equation \eqref{eq:square} and \(2I+2J\le A_0+C_0\) give
+\[
+ 4I+4J\le S.
+\]
+Hence
+\[
+ 4I\le S+4\abs J
+ \le S+2k(A_0+I).
+\]
+Multiplying by \(1-k\) and using
+\((1-k)(A_0+I)\le S\) yields
+\[
+ 4(1-k)I\le(1+k)S,
+\]
+which is \eqref{eq:gain}.
+\end{proof}
+
+The gain \(G(k)\) tends to the sharp value \(1/4\) as \(k\downarrow0\).
+
+\subsection{The explicit localization loss}
+
+Assume that \(u\ge\ell>0\).  The elementary inequality
+\begin{equation}
+ h(u)\le\frac{(u-1)^2}{u}\le\frac{(u-1)^2}{\ell}        \label{eq:hbound}
+\end{equation}
+follows from \(1-u^{-1}\le\log u\).  Weighted integration by parts, reserving
+a fraction \(k\) of the diffusion to control the weight flux, gives
+\begin{equation}
+ \frac{d}{dt}\int_\R\phi h(u)
+ \le-\bigl(1-\mathcal L(\chi,c,\ell,k)\bigr)
+       \int_\R\phi(u-1)^2,                             \label{eq:localized}
+\end{equation}
+where
+\begin{equation}
+\begin{aligned}
+ \mathcal L(\chi,c,\ell,k)
+ ={}&\frac{\chi^2G(k)}{4(1-k)}
+     +\frac{k}{4}
+     +\frac{\chi k}{2}\bigl(1+G(k)\bigr)
+     +\frac{\abs c\,k}{\ell}.                          \label{eq:loss}
+\end{aligned}
+\end{equation}
+
+For completeness, the two estimates containing all weight losses are
+\begin{align*}
+ \chi X
+ &\le(1-k)D+\frac{\chi^2}{4(1-k)}I,\\
+ F
+ &\le kD+
+ \left(\frac{k}{4}+\frac{\chi k}{2}
+              +\frac{\abs c\,k}{\ell}\right)S
+ +\frac{\chi k}{2}I.
+\end{align*}
+Here
+\[
+ D=\int\phi\left(\frac{u_z}{u}\right)^2,\quad
+ X=\int\phi\frac{u_z}{u}r_z,\quad
+ S=\int\phi(u-1)^2,
+\]
+and \(F\) is the sum of terms in which a derivative falls on \(\phi\).
+The first inequality is Young's inequality.  The second follows from
+\(\abs{\phi_x}\le k\phi\), \eqref{eq:hbound}, and Young's inequality on
+each diffusion and chemotactic flux.  Inserting \(I\le G(k)S\) gives
+\eqref{eq:localized}--\eqref{eq:loss}.
+
+At \(k=0\),
+\[
+ \mathcal L(\chi,c,\ell,0)=\frac{\chi^2}{16}.
+\]
+The loss is continuous at \(k=0\).  Therefore, for every
+\(0\le\chi<4\), every \(c\in\R\), and every \(\ell>0\), one can choose
+\begin{equation}
+ 0<k<1,\qquad \mathcal L(\chi,c,\ell,k)<1.              \label{eq:kchoice}
+\end{equation}
+
+\section{A whole-line Liouville theorem}
+
+\begin{theorem}[entropy rigidity]
+Let \((u,r)\) be a bounded classical solution on all
+\((t,x)\in\R^2\) of
+\[
+ u_t=u_{xx}+cu_x-\chi(ur_x)_x+u(1-u),
+ \qquad -r_{xx}+r=u-1.
+\]
+Assume \(0\le\chi<4\) and
+\[
+ 0<\ell\le u(t,x)\le M
+ \qquad\text{for all }(t,x)\in\R^2,
+\]
+together with the regularity and boundedness needed for the weighted
+integrations above.  Then \(u\equiv1\) and \(r\equiv0\).
+\end{theorem}
+
+\begin{proof}
+Choose \(k\) as in \eqref{eq:kchoice}, fix \(x_0\), and define
+\[
+ E(t)=\int_\R\phi_{k,x_0}(x)h(u(t,x))\,dx.
+\]
+The bounded range and \(\phi\in L^1\) give a uniform bound
+\[
+ 0\le E(t)\le K\qquad(t\in\R).
+\]
+By \eqref{eq:hbound} and \eqref{eq:localized},
+\[
+ E'(t)\le-\rho E(t),\qquad
+ \rho=\bigl(1-\mathcal L(\chi,c,\ell,k)\bigr)\ell>0.
+\]
+Starting at \(t-T\) and applying Gronwall's inequality gives
+\[
+ 0\le E(t)\le E(t-T)e^{-\rho T}\le Ke^{-\rho T}.
+\]
+Letting \(T\to\infty\) yields \(E(t)=0\).  Since \(\phi>0\),
+\(h(u)\ge0\), and \(h(u)=0\) only at \(u=1\), continuity implies
+\(u(t,x)=1\) for every \(t,x\).  The elliptic equation then gives the
+bounded solution \(r\equiv0\).
+\end{proof}
+
+The use of negative time is legitimate because the theorem concerns an
+entire translated limit.  This is the decisive advantage of combining
+entropy with late-time translation compactness.
+
+\section{Far-left convergence by compactness}
+
+We state the remaining analytic input without any hidden notation.
+Assume:
+\begin{enumerate}[label=\textup{(H\arabic*)},leftmargin=2.8em]
+\item there are \(T,Z,\ell,M\), with \(\ell>0\), such that
+\begin{equation}
+ \ell\le u(t,z)\le M
+ \qquad(t\ge T,\ z\le Z);                              \label{eq:band}
+\end{equation}
+\item for every pair of sequences \(t_n\to+\infty\) and
+  \(z_n\to-\infty\), the translates
+\[
+ u_n(t,x)=u(t+t_n,x+z_n),\qquad
+ r_n(t,x)=r(t+t_n,x+z_n)
+\]
+and the fields
+\[
+ (u_n)_x,\ (u_n)_{xx},\ (u_n)_t,\ r_n,\ (r_n)_x,\
+ (r_n)_{xx}
+\]
+are locally equicontinuous.  Moreover, there is a constant \(C\), independent
+of the chosen sequences and of the compact box, such that all seven fields
+have absolute value at most \(C\) on each fixed compact box for all
+sufficiently large \(n\).  Consequently a common subsequence converges
+locally uniformly to globally bounded fields, with the differential
+identities passing to the limit.
+\end{enumerate}
+
+\begin{theorem}[basin-conditional far-left convergence]
+If \(0\le\chi<4\) and \emph{(H1)--(H2)} hold, then
+\eqref{eq:goal} holds.
+\end{theorem}
+
+\begin{proof}
+Suppose \eqref{eq:goal} fails.  Then there are
+\(\varepsilon_0>0\), \(t_n\to\infty\), and \(z_n\to-\infty\) such that
+\[
+ \abs{u(t_n,z_n)-1}\ge\varepsilon_0.
+\]
+By \emph{(H2)}, a subsequence of the translates converges locally uniformly
+to a bounded entire classical solution \((U,R)\).  Hypothesis
+\eqref{eq:band} passes to the limit and gives
+\(\ell\le U\le M\) on all of \(\R^2\).  The differential equations also
+pass to the limit.  The Liouville theorem therefore gives \(U\equiv1\).
+On the other hand, local convergence at the origin gives
+\[
+ \abs{U(0,0)-1}
+ =\lim_n\abs{u(t_n,z_n)-1}
+ \ge\varepsilon_0,
+\]
+a contradiction.
+\end{proof}
+
+\section{Why the basin condition is necessary}
+
+Slice-by-slice left positivity has the quantifier pattern
+\[
+ \forall t\ \exists\ell_t>0\ \exists Z_t\
+ \forall z\le Z_t,\qquad u(t,z)\ge\ell_t.
+\]
+The persistent band \eqref{eq:band} instead requires
+\[
+ \exists\ell>0\ \exists T,Z\
+ \forall t\ge T\ \forall z\le Z,\qquad u(t,z)\ge\ell.
+\]
+The order of the quantifiers cannot be interchanged.
+
+\begin{proposition}[convective escape]
+At \(\chi=0\), there is a genuine global classical front which is positive
+at the left end of every fixed time slice but has no persistent positive
+floor when observed from a sufficiently fast frame.
+\end{proposition}
+
+\begin{proof}
+For every \(s\ge2\), the Fisher--KPP equation has a monotone traveling front
+\(U_s\) satisfying
+\[
+ U_s''+sU_s'+U_s(1-U_s)=0,\qquad
+ U_s(-\infty)=1,\quad U_s(+\infty)=0.
+\]
+Take \(s=3\), and let \(V_s\) be the bounded solution of
+\(-V_s''+V_s=U_s\).  In a frame of speed \(c=4\), set
+\[
+ q(t,z)=U_s\bigl(z+(c-s)t\bigr),\qquad
+ w(t,z)=V_s\bigl(z+(c-s)t\bigr).
+\]
+The chain rule and the wave equation give
+\[
+ q_t=q_{zz}+cq_z+q(1-q),\qquad -w_{zz}+w=q,
+\]
+which is precisely the \(\chi=0\) moving-frame system.  For each fixed
+\(t\), \(q(t,z)\to1\) as \(z\to-\infty\).  But for each fixed \(z\),
+\[
+ z+(c-s)t\to+\infty,\qquad q(t,z)\to0.
+\]
+Given any proposed \(\ell>0,T,Z\), choose \(t\ge T\) so large that
+\(q(t,Z)<\ell\).  Thus no persistent band exists.
+\end{proof}
+
+This counterexample does not contradict stability relative to a fixed wave
+under a weighted closeness or phase condition: such a condition pins the
+solution to the same wave speed.  It rules out only an unconditional
+far-left theorem over arbitrarily phased front-like orbits.
+
+\section{Conclusion}
+
+The number \(4\) is sharp in three compatible senses:
+\begin{enumerate}[leftmargin=2em]
+\item below \(4\), every Fourier mode decays; at \(4\), \(k^2=1\) is
+  neutral; above \(4\), a band of modes grows;
+\item the nonlinear entropy has the exact coefficient
+  \(1-\chi^2/16\);
+\item throughout \(0\le\chi<4\), slow localization, the entire-orbit
+  Liouville theorem, and translation compactness yield uniform far-left
+  convergence once a persistent positive band is supplied.
+\end{enumerate}
+The band or an equivalent wave-phase condition is structural, not technical:
+without it, a genuine front can leave a faster observation frame by
+convective escape.
+
+\end{document}

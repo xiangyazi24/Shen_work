@@ -1,6 +1,11 @@
 # General-m minimal-equilibrium stability
 
-The rigorous write-up is
+The standalone mathematical write-up is
+[`GENERAL_M_STABILITY_MATHEMATICAL.pdf`](GENERAL_M_STABILITY_MATHEMATICAL.pdf),
+with source in
+[`GENERAL_M_STABILITY_MATHEMATICAL.tex`](GENERAL_M_STABILITY_MATHEMATICAL.tex).
+
+The formalization companion is
 [`GENERAL_M_STABILITY_RESOLUTION.pdf`](GENERAL_M_STABILITY_RESOLUTION.pdf),
 with source in
 [`GENERAL_M_STABILITY_RESOLUTION.tex`](GENERAL_M_STABILITY_RESOLUTION.tex).

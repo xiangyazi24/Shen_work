@@ -1,12 +1,14 @@
 # Beyond-paper research notes
 
-The two public notes have detailed PDF versions, LaTeX sources, and shorter
-Markdown summaries.
+The two public notes each have a standalone mathematical edition, a
+formalization companion, LaTeX sources, and a shorter Markdown summary.
 
 ## Far-left front stability
 
-- [Detailed PDF](FARLEFT_CHI4_RESOLUTION.pdf)
-- [LaTeX source](FARLEFT_CHI4_RESOLUTION.tex)
+- [Standalone mathematical PDF](FARLEFT_CHI4_MATHEMATICAL.pdf)
+- [Mathematical LaTeX source](FARLEFT_CHI4_MATHEMATICAL.tex)
+- [Formalization PDF](FARLEFT_CHI4_RESOLUTION.pdf)
+- [Formalization LaTeX source](FARLEFT_CHI4_RESOLUTION.tex)
 - [Markdown summary](FARLEFT_CHI4_RESOLUTION.md)
 
 The sharp threshold is `χ=4`, simultaneously from the dispersion relation and
@@ -16,8 +18,10 @@ orbit shows why an unconditional result in an arbitrary frame is false.
 
 ## General-m minimal stability
 
-- [Detailed PDF](GENERAL_M_STABILITY_RESOLUTION.pdf)
-- [LaTeX source](GENERAL_M_STABILITY_RESOLUTION.tex)
+- [Standalone mathematical PDF](GENERAL_M_STABILITY_MATHEMATICAL.pdf)
+- [Mathematical LaTeX source](GENERAL_M_STABILITY_MATHEMATICAL.tex)
+- [Formalization PDF](GENERAL_M_STABILITY_RESOLUTION.pdf)
+- [Formalization LaTeX source](GENERAL_M_STABILITY_RESOLUTION.tex)
 - [Markdown summary](GENERAL_M_STABILITY_RESOLUTION.md)
 - [Bifurcation probe](m_supercritical_bifurcation_probe.py)
 
