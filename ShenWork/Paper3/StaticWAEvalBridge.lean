@@ -252,6 +252,25 @@ theorem deriv_staticEval_eq_wD {r : ℕ} (a : WA (r + 1)) (x : ℝ) :
     deriv (staticEval a) x = staticEval (WA.wD a) x :=
   (staticEval_hasDerivAt_wD a x).deriv
 
+/-- The complex synthesis of the Fourier derivative of an even-real profile
+is the real derivative, embedded in `ℂ`. -/
+theorem evalC_wD_evenReal_eq_ofReal_deriv {r : ℕ}
+    (a : EvenRealWA (r + 1)) (x : ℝ) :
+    WA.evalC (WA.toZero (WA.wD a.1)) (x : WA.Circ) =
+      ((deriv (staticEval a.1) x : ℝ) : ℂ) := by
+  have hc := WA.evalC_hasDerivAt_wD a.1 x
+  have heq :
+      (fun y : ℝ => WA.evalC (WA.toZero a.1) (y : WA.Circ)) =
+        fun y : ℝ => ((staticEval a.1 y : ℝ) : ℂ) := by
+    funext y
+    exact evalC_evenReal_eq_ofReal_staticEval a y
+  rw [heq] at hc
+  have hr :=
+    (staticEval_hasDerivAt_wD a.1 x).ofReal_comp
+  have hunique := hc.unique hr
+  rw [deriv_staticEval_eq_wD]
+  exact hunique
+
 theorem secondDeriv_staticEval_eq_wD_wD (a : WA 2) (x : ℝ) :
     deriv (deriv (staticEval a)) x =
       staticEval (WA.wD (WA.wD a)) x := by
