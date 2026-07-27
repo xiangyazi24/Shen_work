@@ -27,3 +27,28 @@ BACKWARD. Numerical confirms: (U=1,m=4) Δχ=−1.7e-3, (U=0.5,m=3) Δχ=−9.6e
 Formalizing this in Lean requires bifurcation theory (Crandall–Rabinowitz / Lyapunov–Schmidt
 for the nonconstant steady state existence) — a separate project; the mathematical resolution
 is complete. Script: research_notes/m_supercritical_bifurcation_probe.py.
+
+## Formalized theorems (Lean 4, on `main`, clean-3)
+Proved (stability holds):
+- 1≤m<2 subcritical: `intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula`
+  (`Paper3/IntervalDomainMMinimalSignalEnergyGlobal.lean`; minimal1 entropy route +
+  minimal2 signal-energy route, both disjuncts; seed
+  `exists_intervalDomainM_minimal_subcritical_lp_damping_constant`).
+- m=2 critical: `intervalDomainM_Theorem_2_5_critical_EventualGlobalStabilityFormula`
+  (`Paper3/IntervalDomainMMinimalCriticalGlobal.lean`; endpoint-Agmon seed).
+- all m>1, small χ₀: `intervalDomainM_Theorem_2_5_supercritical_smallSensitivity`
+  (`Paper3/IntervalDomainMSupercriticalSmallSensitivity.lean`; good-slice route,
+  `∫u^{−2m}u_x² ≤ χ₀²μσ_β²` ⇒ oscillation of u^{1−m} < basin radius ⇒ restart local stability).
+
+FALSE (counterexample), m≳m_c(U)≈2.9, large χ₀ < χ_lin:
+- Mathematics: subcritical Lyapunov–Schmidt bifurcation (χ₂<0, leading m-dependence a negative
+  quadratic), cross-validated numerically (pseudo-arclength, residual ~1e-11). Explicit tuple
+  m=3, β=γ=μ=ν=u_*=1, χ_lin=2(1+π²). Script: `research_notes/m_supercritical_bifurcation_probe.py`.
+- Lean formalization of the m=3 nonconstant steady state (via amplitude-factored Banach IFT in
+  the repo's Wiener algebra): IN PROGRESS on branch `m3-counterexample`.
+
+## What is genuinely NEW vs the papers
+The papers treat `m=1`. New here: the full m-dependence of minimal-equilibrium stability, the
+identification that the sharp divider is a PATTERN-BIFURCATION threshold m_c(U)≈2.9 (not the
+m=2 energy-method limit), the small-sensitivity route valid for ALL m>1, and the subcritical
+steady counterexample for m>2 large χ₀.
