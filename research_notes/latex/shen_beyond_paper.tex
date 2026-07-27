@@ -1,0 +1,114 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+\title{Sharp thresholds and counterexamples for the chemotaxis--logistic trilogy\\
+\large Beyond-paper results, machine-checked in Lean~4}
+\author{Formalization: \texttt{Shen\_work} (Lean 4 / Mathlib v4.29.1)}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We record the results proved beyond the three Chen--Ruau--Shen chemotaxis--logistic papers.
+The traveling front's far-left stability is driven to the sharp threshold $\chi=4$, with a
+basin-conditional convergence theorem shown \emph{optimal} by a convective-escape
+counterexample; and Paper~3's general-$m$ stability is resolved completely, the sharp divider
+being a pattern-bifurcation threshold $m_c(U)\approx 2.9$. Every stability statement and the
+convective-escape counterexample are formalized in Lean~4 (clean-3: only
+\texttt{propext, Classical.choice, Quot.sound}); the $m>2$ steady counterexample is established
+mathematically (Lyapunov--Schmidt, cross-validated numerically) with Lean formalization in progress.
+\end{abstract}
+
+\section{Far-left stability of the front: the sharp threshold $\chi<4$}
+
+Normalized co-moving chemotaxis--logistic system ($m=\gamma=\alpha=1$, $z=x-ct$):
+\[
+u_t = u_{zz} + (c-\chi v_z)u_z + u(1-\chi v+(\chi-1)u),\qquad -v_{zz}+v=u .
+\]
+Behind the front ($z\to-\infty$) the solution approaches the plateau $u\equiv1$; the paper proves
+stability only for $\chi$ near $\chi^*\approx1$.
+
+\subsection{Sharp linear threshold}
+Linearizing about $(u,v)=(1,1)$, the dispersion relation ($s=k^2$) is
+\[
+\operatorname{Re}\lambda(s) = -s+(\chi-1)-\frac{\chi}{1+s},\qquad
+\max_{s\ge0}\operatorname{Re}\lambda = \chi-2\sqrt\chi = -(2\sqrt\chi-\chi)<0 \iff \chi<4,
+\]
+with critical mode $k_*=1$ at $\chi=4$. The general form gives $\chi\gamma<(1+\sqrt\alpha)^2$.
+This coincides with the sharp entropy coefficient $1-\chi^2/16>0\iff\chi<4$.
+(\texttt{WholeLineChiPosDispersionSharp.lean}: \texttt{dispersion\_le\_of\_lt\_turing}, and the
+positive/attained companions.)
+
+\subsection{A whole-line weighted sharp-entropy engine}
+With a strictly positive slowly varying weight $w$, the moving-window relative entropy
+$E=\int w\,(u-1-\log u)$ satisfies
+\[
+\int w\,M(u)\,u_t \le -\Bigl(1-\tfrac{\chi^2}{16}\Bigr)\int w\,(u-1)^2
+ + \frac{C}{\ell}\Bigl(E+\int w(A^2+W^2)\Bigr) + \text{explicit boundary},
+\]
+$A=u_z/u,\ W=u-1,\ C=|c|+\chi+2$. The sharp resolver constant $\tfrac14$ survives the weighting
+by a real-space integration by parts (no Fourier / multiplier obstruction).
+(\texttt{WholeLineChiPosWeightedEntropyDissipation.lean};
+\texttt{weighted\_sharp\_entropy\_production\_le}.)
+
+\subsection{Basin-conditional convergence, and its optimality}
+\begin{theorem}[basin-conditional, formalized]
+For every $0\le\chi<4$, a global front-like orbit that remains in the plateau basin (a uniform
+far-left lower band) converges to $u\equiv1$ on the moving far left.
+(\texttt{...FarLeftBasinConditional.lean};
+\texttt{uniformCoMovingLeftEquilibriumConvergence\_chiPos\_upto\_four\_basinConditional}.)
+\end{theorem}
+\begin{proposition}[unconditional $\chi<4$ is false; formalized counterexample]
+Let $(U,W)$ be a traveling wave of lab speed $s$, and view it in a faster frame $z=x-ct$, $c>s$:
+$q(t,z)=U(z+(c-s)t)$ solves the co-moving system exactly, with $q(t,z)\to1$ as $z\to-\infty$
+(each slice positive at left), yet $q(t,R)=U(R+(c-s)t)\to0$ as $t\to\infty$ for every fixed $R$.
+No uniform far-left floor exists. This is \emph{convective escape} (speed mismatch), already at
+$\chi=0$; the closeness hypothesis is exactly what pins $c$ to the wave speed.
+(\texttt{WholeLineChiPosFloorQuantifierObstruction.lean},
+\texttt{WholeLineConvectiveEscapePDE.lean}.)
+\end{proposition}
+Thus basin-conditional $\chi<4$ is the optimal statement. The $L^1$-mass, bare-$L^2$,
+deep-hole-KPP, front-anchor, and Harnack routes all fail for reasons recorded in the notes.
+
+\section{General-$m$ stability (Paper 3, Theorem 2.5): the complete picture}
+
+Interval Neumann chemotaxis with $u^m$ mobility, minimal equilibrium on the physical-mass
+hyperplane. The full $m$-dependence:
+\[
+\begin{array}{ll}
+1\le m\le 2,\ \text{in-range }\chi_0 & \textbf{TRUE (proved)}\\
+\text{all } m>1,\ \text{small }\chi_0 & \textbf{TRUE (proved)}\\
+m\gtrsim m_c(U)\approx2.9,\ \text{large }\chi_0<\chi_{\mathrm{lin}} & \textbf{FALSE (counterexample)}\\
+\chi_0>\chi_{\mathrm{lin}} & \text{false (linear instability)}
+\end{array}
+\]
+\begin{theorem}[proved, Lean]
+$\bullet$ $1\le m\le2$: \texttt{intervalDomainM\_Theorem\_2\_5\_EventualGlobalStabilityFormula}
+(subcritical + critical $m=2$, both minimal disjuncts).
+$\bullet$ all $m>1$, small $\chi_0$:
+\texttt{intervalDomainM\_Theorem\_2\_5\_supercritical\_smallSensitivity}, via the good-slice bound
+$\liminf_t\int u^{-2m}u_x^2 \le \chi_0^2\mu\sigma_\beta^2$ controlling the oscillation of $u^{1-m}$.
+\end{theorem}
+\begin{proposition}[false for $m>m_c$; steady counterexample]
+The first Neumann branch's Lyapunov--Schmidt direction coefficient has leading dependence a
+negative quadratic in $m$; for $m\gtrsim m_c(U)$ the bifurcation is backward, producing positive
+nonconstant mass-preserving steady states for $\chi_0<\chi_{\mathrm{lin}}$. Starting there never
+converges to the constant. Explicit: $m=3,\ \beta=\gamma=\mu=\nu=u_*=1,\ \chi_{\mathrm{lin}}=2(1+\pi^2)$.
+Cross-validated numerically (pseudo-arclength, residual $\sim10^{-11}$):
+$m_c=2.867,\,2.937,\,3.006$ at $U=0.5,\,1,\,2$.
+\end{proposition}
+The sharp divider is a \emph{pattern-bifurcation} threshold $m_c(U)\approx2.9$, not the $m=2$
+limit of the mass-seeded energy method.
+
+\section*{Integrity}
+All theorems above are Lean~4 / Mathlib formalizations on the \texttt{Shen\_work} \texttt{main}
+branch, with axiom audit \texttt{[propext, Classical.choice, Quot.sound]} and no
+\texttt{sorry}/\texttt{axiom}/\texttt{admit}/\texttt{native\_decide}. The Lean formalization of the
+$m=3$ steady counterexample (amplitude-factored Banach IFT in the repository's Wiener algebra)
+is in progress on branch \texttt{m3-counterexample}.
+
+\end{document}
