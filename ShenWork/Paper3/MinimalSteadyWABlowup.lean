@@ -25,21 +25,45 @@ open ShenWork.Wiener
 
 /-! ## Fixed coordinates and constants -/
 
+/-- Complement profile and sensitivity, packaged with canonical product
+instances to avoid instance diamonds from the nested closed subspaces. -/
+@[reducible]
+def BranchImplicit := BranchComplement × ℝ
+
+noncomputable instance branchImplicitAddCommGroup :
+    AddCommGroup BranchImplicit :=
+  @Prod.instAddCommGroup BranchComplement ℝ
+    BranchComplement.addCommGroup inferInstance
+
+noncomputable instance branchImplicitNormedAddCommGroup :
+    NormedAddCommGroup BranchImplicit :=
+  inferInstanceAs
+    (NormedAddCommGroup (BranchComplement × ℝ))
+
+noncomputable instance branchImplicitNormedSpace :
+    NormedSpace ℝ BranchImplicit :=
+  @Prod.normedSpace ℝ BranchComplement ℝ _ _ _
+    BranchComplement.normedSpace
+    (inferInstanceAs (NormedSpace ℝ ℝ))
+
+noncomputable instance branchImplicitCompleteSpace :
+    CompleteSpace BranchImplicit :=
+  @CompleteSpace.prod BranchComplement ℝ _ _
+    (firstComplementWACompleteSpace 2) inferInstance
+
 /-- Amplitude, complement profile, and sensitivity. -/
-def BranchVariables := ℝ × (BranchComplement × ℝ)
+def BranchVariables := ℝ × BranchImplicit
 
 noncomputable instance branchVariablesNormedAddCommGroup :
     NormedAddCommGroup BranchVariables :=
   inferInstanceAs
-    (NormedAddCommGroup (ℝ × (BranchComplement × ℝ)))
+    (NormedAddCommGroup (ℝ × BranchImplicit))
 
 noncomputable instance branchVariablesNormedSpace :
     NormedSpace ℝ BranchVariables :=
-  @Prod.normedSpace ℝ ℝ (BranchComplement × ℝ) _ _ _
+  @Prod.normedSpace ℝ ℝ BranchImplicit _ _ _
     (inferInstanceAs (NormedSpace ℝ ℝ))
-    (@Prod.normedSpace ℝ BranchComplement ℝ _ _ _
-      BranchComplement.normedSpace
-      (inferInstanceAs (NormedSpace ℝ ℝ)))
+    branchImplicitNormedSpace
 
 /-- The exact first-mode linear threshold for the fixed tuple. -/
 def minimalChiLin : ℝ :=
@@ -50,15 +74,15 @@ theorem minimalChiLin_pos : 0 < minimalChiLin := by
   positivity
 
 def branchAmplitudeCLM : BranchVariables →L[ℝ] ℝ :=
-  ContinuousLinearMap.fst ℝ ℝ (BranchComplement × ℝ)
+  ContinuousLinearMap.fst ℝ ℝ BranchImplicit
 
 def branchComplementCLM : BranchVariables →L[ℝ] BranchComplement :=
   (ContinuousLinearMap.fst ℝ BranchComplement ℝ).comp
-    (ContinuousLinearMap.snd ℝ ℝ (BranchComplement × ℝ))
+    (ContinuousLinearMap.snd ℝ ℝ BranchImplicit)
 
 def branchSensitivityCLM : BranchVariables →L[ℝ] ℝ :=
   (ContinuousLinearMap.snd ℝ BranchComplement ℝ).comp
-    (ContinuousLinearMap.snd ℝ ℝ (BranchComplement × ℝ))
+    (ContinuousLinearMap.snd ℝ ℝ BranchImplicit)
 
 @[simp]
 theorem branchAmplitudeCLM_apply (p : BranchVariables) :
