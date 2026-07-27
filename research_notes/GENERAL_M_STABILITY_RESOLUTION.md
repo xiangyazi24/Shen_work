@@ -44,8 +44,9 @@ FALSE (counterexample), m≳m_c(U)≈2.9, large χ₀ < χ_lin:
 - Mathematics: subcritical Lyapunov–Schmidt bifurcation (χ₂<0, leading m-dependence a negative
   quadratic), cross-validated numerically (pseudo-arclength, residual ~1e-11). Explicit tuple
   m=3, β=γ=μ=ν=u_*=1, χ_lin=2(1+π²). Script: `research_notes/m_supercritical_bifurcation_probe.py`.
-- Lean formalization of the m=3 nonconstant steady state (via amplitude-factored Banach IFT in
-  the repo's Wiener algebra): IN PROGRESS on branch `m3-counterexample`.
+- Lean formalization of the m=3 nonconstant steady state (amplitude-factored Banach IFT in the
+  repo's Wiener algebra): **DONE** — `exists_nonconstant_minimal_steady_below_threshold_m3` and
+  `minimal_equilibrium_global_stability_false_m3` (`Paper3/MinimalSteadyWACounterexample.lean`, clean-3).
 
 ## What is genuinely NEW vs the papers
 The papers treat `m=1`. New here: the full m-dependence of minimal-equilibrium stability, the

@@ -64,8 +64,7 @@ faithful form — see `ERRATA.md`.
 
 ## Follow-on projects (separable)
 
-1. Formalizing the m=3 steady counterexample in Lean (amplitude-factored Banach IFT in the
-   repo's Wiener algebra; branch `m3-counterexample`).
+1. ~~Formalizing the m=3 steady counterexample~~ **DONE** — `minimal_equilibrium_global_stability_false_m3` (`Paper3/MinimalSteadyWACounterexample.lean`), clean-3: `∃χ, 0<χ<χ_lin ∧ ¬(minimal equilibrium globally attracts bounded mass-1 orbits)` for m=3, via amplitude-factored Banach IFT in the repo's Wiener algebra.
 2. Discharging the far-left first-order derivative residual — blocked on a parabolic interior
    Schauder theorem absent from Mathlib.
 
