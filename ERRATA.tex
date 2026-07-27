@@ -1,0 +1,586 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs,longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{seqsplit}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={Detailed errata and statement audit for the chemotaxis--logistic trilogy},
+  pdfauthor={ShenWork formalization project}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Om}{\Omega}
+\newcommand{\Tmax}{T_{\max}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\newcommand{\False}{\textsc{False statement}}
+\newcommand{\Gap}{\textsc{Proof gap}}
+\newcommand{\Clarify}{\textsc{Clarification}}
+\newcommand{\Interface}{\textsc{Interface only}}
+\setlength{\emergencystretch}{3em}
+\sloppy
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\title{Detailed Errata and Statement Audit\\
+\large Three chemotaxis--logistic papers formalized in Lean~4}
+\author{\code{ShenWork} formalization project}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document records statement defects and proof gaps found while formalizing
+three papers on parabolic--elliptic chemotaxis systems.  It deliberately
+separates four logically different outcomes: an explicit counterexample to a
+printed conclusion, a gap in the printed proof without a counterexample to the
+conclusion, a wording clarification, and a defect in an earlier Lean interface
+that is not an error in the paper.  For every mathematical counterexample we
+give the calculation, the corrected statement, and the exact Lean certificate.
+The repository is pinned to Lean~4.30.0 and Mathlib~v4.30.0.  The cited
+certificates are \code{sorry}-free and their headline axiom audits contain only
+\code{propext}, \code{Classical.choice}, and \code{Quot.sound}.
+\end{abstract}
+
+\tableofcontents
+
+\section{Scope, sources, and classification}
+
+The audited sources are:
+\begin{enumerate}[leftmargin=2em]
+\item Wenxian Shen, \emph{Existence, uniqueness, stability, and monotonicity
+  of traveling waves for repulsion/attraction chemotaxis models with logistic
+  type source}, arXiv:2605.04401v1 (the ``traveling-wave paper'');
+\item Le Chen, Ian Ruau, and Wenxian Shen,
+  \emph{Chemotaxis models with signal-dependent sensitivity and a
+  logistic-type source, I: Boundedness and global existence},
+  arXiv:2512.14858v1 (``Part~I'');
+\item Le Chen, Ian Ruau, and Wenxian Shen,
+  \emph{Chemotaxis models with signal-dependent sensitivity and a
+  logistic-type source, II: Persistence and stabilization},
+  arXiv:2604.02599v1 (``Part~II'').
+\end{enumerate}
+
+\noindent The labels used below have precise meanings.
+\begin{description}[leftmargin=2.1em,style=nextline]
+\item[\False] The printed hypotheses admit an explicit object for which the
+  printed conclusion fails.
+\item[\Gap] A displayed step is invalid or a required hypothesis is missing
+  from the proof.  No counterexample to the theorem itself is asserted.
+\item[\Clarify] The mathematical intent is recoverable, but a literal reading
+  is stronger or less precise than the continuation or regularity framework
+  supports.
+\item[\Interface] An earlier Lean definition quantified over more objects, or
+  stored less semantic information, than the paper.  A refutation of that Lean
+  definition is not evidence against the paper.
+\end{description}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}p{0.06\textwidth}p{0.17\textwidth}p{0.44\textwidth}p{0.22\textwidth}@{}}
+\toprule
+\# & Source & Finding & Status\\
+\midrule
+\endhead
+E1 & Traveling wave & Theorems 1.2--1.3: seven defects in the Section 5
+  weighted-energy argument & \Gap; corrected proof window\\
+E2 & Traveling wave & Lemma 4.2: the constant subsolution is not valid for
+  every member of the printed trap set & \False\\
+E3 & Part I & Theorem 1.2 admits \(a>0,b=0\), where constant solutions grow
+  exponentially & \False\\
+E4 & Part I & Theorem 1.3(iv) invokes an elliptic estimate outside its exponent
+  domain & \Gap\\
+E5 & Part I & Proposition 1.1: the endpoint alternative belongs to the maximal
+  continuation, not an arbitrary finite witness & \Clarify\\
+E6 & Part I & Lemma 2.7 controls only \(t>0\) but concludes a bound including
+  \(t=0\) & \False\ as written\\
+E7 & Part II & Theorem 2.1(1) admits the pure-decay regime \(a=0<b\) & \False\\
+E8 & Part II & Theorems 2.2--2.5 reuse an all-time \(C^1\) estimate from merely
+  continuous or \(L^\infty\)-small data & \Clarify; ill-posed at \(t=0\)\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Traveling-wave paper}
+
+\subsection{E1: Theorems 1.2--1.3, weighted stability}
+
+\paragraph{Printed claim.}
+Let
+\[
+  \kappa=\frac{c-\sqrt{c^2-4}}2,\qquad
+  \kappa^2-c\kappa+1=0.
+\]
+Theorem~1.2 states weighted stability for
+\[
+  \kappa<\eta<\frac{1}{1+\abs{\chi}^{1/6}},
+\]
+and (1.21) is printed with the laboratory-coordinate weight
+\(e^{2\eta x}\).  Theorem~1.3 uses the same stability theorem in its uniqueness
+argument.
+
+\paragraph{The load-bearing root error.}
+The coefficient produced by (5.31) is
+\[
+  q(\eta)=\eta^2-(c-A)\eta+(1+B),
+\]
+where the displayed quantities in (5.32)--(5.33) have \(A\ge0\) and, for
+\(\chi\ne0\), \(B>0\).  Evaluation at the unperturbed tail exponent is exact:
+\[
+  q(\kappa)
+   =(\kappa^2-c\kappa+1)+A\kappa+B
+   =A\kappa+B>0.
+\]
+Therefore \(\kappa\) is not between the two roots of \(q\).  Under the speed
+condition it lies below the lower perturbed root
+\[
+  \kappa^-=\frac{(c-A)-\sqrt{(c-A)^2-4(1+B)}}2.
+\]
+Continuity of \(q\) then gives \(\eta>\kappa\), arbitrarily close to
+\(\kappa\), for which \(q(\eta)>0\).  The global coefficient estimate written
+in Section~5 proves decay only for \(\eta>\kappa^-\), not for every
+\(\eta>\kappa\).  This is a proof gap, not a constructed unstable solution:
+a new localized-coercivity or weighted spectral argument could conceivably
+recover the larger interval.
+
+\paragraph{Coordinate and exponential signs.}
+The energy actually estimated after changing to \(z=x-ct\) is
+\[
+ E_{\mathrm{move}}(t)=
+   \int_{\R}e^{2\eta z}\abs{u(t,z+ct)-U(z)}^2\,dz.
+\]
+The printed (1.21) is
+\[
+ E_{\mathrm{lab}}(t)=
+   \int_{\R}e^{2\eta x}\abs{u(t,x)-U(x-ct)}^2\,dx.
+\]
+Changing variables \(x=z+ct\) yields
+\[
+  E_{\mathrm{lab}}(t)=e^{2\eta ct}E_{\mathrm{move}}(t).
+\]
+Thus decay of the moving-frame quantity does not by itself imply the printed
+laboratory-weighted limit.  The correct laboratory notation is
+\(e^{2\eta(x-ct)}\).  In addition, the paper declares
+\(\lambda=q(\eta)<0\) and then uses \(e^{-\lambda t}\) as a decaying factor.
+For this sign convention the decaying factor is \(e^{\lambda t}\), or,
+equivalently, \(e^{-\rho t}\) with \(\rho=-\lambda>0\).
+
+\paragraph{Four coefficient errors.}
+Writing \(w=u-U\), \(z=v-V\), the elliptic relation
+\(v_{xx}=v-u^\gamma\) gives the zero-order chemotactic flux difference
+\[
+  (v a_m-a_{m+\gamma})w+U^m z.
+\]
+After multiplication by \(-\chi\), the perturbation equation contains
+\[
+ -\chi(v a_m-a_{m+\gamma}+b_2)w-\chi b_4z.
+\]
+Equations (5.18)--(5.19) reverse both the \(a_{m+\gamma}\) and \(b_4z\)
+signs.  These signs can be repaired by absolute-value estimates.  Three
+further estimates must also be corrected:
+\begin{align*}
+ \abs{\chi b_1 w_xw}
+   &\le \frac12w_x^2+\frac12\abs{\chi}^2b_1^2w^2,
+   &&\text{not a term linear in \(b_1\)},\\
+ \int_\R V^2
+   &\le \frac{\gamma^2M^{2(\gamma-1)}}{(1-\eta)^2}\int_\R W^2,\\
+ \int_\R V_x^2
+   &\le \frac{\gamma^2M^{2(\gamma-1)}}{1-\eta^2}\int_\R W^2.
+\end{align*}
+The factor \(M^{2(\gamma-1)}\) is absent from (5.29)--(5.30).  Finally,
+Lemma~5.2 proves only \(U_x/U\le C\), while (5.23) uses
+\(\abs{U_x/U}\le C\).  The latter requires a two-sided logarithmic-derivative
+estimate.
+
+\paragraph{Corrected form and Lean evidence.}
+The formalization retains the full corrected budget \(A_\chi,B_\chi\), the
+root window
+\[
+  \kappa^-_{c,\chi,m,\alpha,\gamma}<\eta
+  <\frac{1}{1+\abs{\chi}^{1/6}},
+\]
+and moving-frame weighted convergence.  The main certificates are:
+\begin{itemize}[leftmargin=2em]
+\item \code{paper531_kappa_not_between_perturbed_roots},
+  \code{paper531_kappa_lt_rootMinus}, and
+  \code{paper531_positive_inside_stated_weight_window} in
+  \code{Paper1/Theorem12RootObstruction.lean};
+\item \code{laboratoryWeightedL2Energy_eq_exp_mul_coMoving} in
+  \code{Paper1/Theorem12CoordinateAudit.lean};
+\item the corrected flux identity in
+  \code{Paper1/Theorem12MeanCoefficients.lean};
+\item the squared Young term and resolver cap in
+  \code{Paper1/Theorem12WeightedEnergy.lean};
+\item the two-sided Riccati fencing estimate in
+  \code{Paper1/Theorem12LogDerivative.lean}.
+\end{itemize}
+The corrected headline theorems are
+\code{paper1_Theorem_1_2_chi_pos_unconditional},
+\code{paper1_Theorem_1_2_chi_zero_unconditional}, and
+\code{paper1_Theorem_1_2_chi_neg_unconditional}.  Their quantified weight
+range begins at the corrected \code{paper531RootMinus}.
+
+\subsection{E2: Lemma 4.2, constant subsolution}
+
+\paragraph{Printed claim.}
+For \(0<\kappa<\widetilde\kappa\) in the displayed parameter range,
+\(M\ge1\), \(D>D_{M,\kappa,\widetilde\kappa,\chi,m,\gamma}\), every
+\(u\in E_{\kappa,M,T}\), and every
+\[
+  0<d\le d_{\kappa,\widetilde\kappa,D,\chi},
+\]
+Lemma~4.2(2) asserts that the constant function \(W=d\) is a subsolution on
+the whole line.
+
+\paragraph{Counterexample.}
+Suppress time and take the admissible trap profile
+\[
+ u(y)=\min\{1,e^{-y/2}\}\min\{1,\abs{y+1}\}.
+\]
+It is continuous, nonnegative, bounded by the printed upper barrier for
+\(\kappa=\frac12\), \(M=1\), and satisfies
+\[
+  u(-1)=0,\qquad u(0)=1.
+\]
+For \(m=\alpha=\gamma=1\), the frozen elliptic response at \(-1\) is
+\[
+  V_0=\frac12\int_\R e^{-\abs{-1-y}}u(y)\,dy>0.
+\]
+Choose
+\[
+  \chi=\frac2{V_0},\qquad
+  \kappa=\frac12,\quad\widetilde\kappa=1,\quad M=1,\quad c=\frac52,
+\]
+and any \(D\) one unit above the printed \(D\)-threshold.  The printed
+constant threshold is positive; let \(d\) be half of it.  At \(x=-1\), all
+spatial derivatives of \(W=d\) vanish, while the frozen operator equals
+\[
+\begin{aligned}
+ \mathcal A(d;u)(-1)
+  &= -\chi d\bigl(V_0-u(-1)\bigr)+d(1-d)\\
+  &= -2d+d-d^2\\
+  &= -d(1+d)<0.
+\end{aligned}
+\]
+A subsolution requires \(\mathcal A(d;u)\ge0\).  Hence the literal universal
+statement is false.  The problem is not the nonsmooth interface of a minimum:
+the counterexample uses the separately stated constant subsolution and tests
+it at a regular point.
+
+\paragraph{Repair.}
+The missing content is a pointwise or uniform control of the frozen elliptic
+forcing.  A transparent sufficient condition on a trap bounded by \(M\) is
+\[
+  \abs{\chi}\,d^{m-1}M^\gamma\le 1-d^\alpha.
+\]
+For example, the formalization proves the constant branch from
+\[
+  \abs{\chi}M^\gamma\le\frac12,\qquad 0<d\le\frac12.
+\]
+It also proves the \(\chi=0\) lower- and constant-subsolution slices under
+the corresponding \(D\)-scale hypotheses.  The refutation is
+\code{not_Lemma_4_2} in \code{Paper1/Statements.lean}; the strengthened
+lemmas in the same file include
+\code{constant_subsolution_frozenWaveOperator_nonneg_of_half_bound_trap} and
+\code{Lemma_4_2_chi_zero_subsolutions_of_D_ge_one}.
+
+\section{Part I: boundedness and global existence}
+
+\subsection{E3: Theorem 1.2, missing reaction guard}
+
+\paragraph{Printed range.}
+The theorem assumes \(a,b\ge0\) and \(\beta\ge1\), which includes
+\(a>0,b=0\), and asserts uniform boundedness in both its \(0<m<1\) and
+small-sensitivity \(m=1\) branches.
+
+\paragraph{Counterexample.}
+On any smooth bounded Neumann domain, let \(c_0>0\) and set
+\[
+  u(t,x)=c_0e^{at},\qquad
+  v(t,x)=\frac{\nu}{\mu}u(t,x)^\gamma.
+\]
+The functions are spatially constant, so diffusion, chemotactic divergence,
+and all boundary fluxes vanish.  The elliptic equation holds, and the
+parabolic equation reduces to \(u_t=au\).  Thus this is a positive global
+classical solution for every \(m,\beta,\chi_0\), but
+\[
+  \norm{u(t)}_\infty=c_0e^{at}\longrightarrow\infty.
+\]
+Equivalently, every positive solution in this branch satisfies
+\[
+  \frac{d}{dt}\int_\Om u=a\int_\Om u.
+\]
+The counterexample already satisfies the \(m=1,\beta=1,\chi_0=0\) smallness
+condition.
+
+\paragraph{Correction and certificate.}
+Under the standing nonnegativity assumptions, the maximal natural correction
+is
+\[
+  a=0\quad\text{or}\quad b>0,
+\]
+which excludes exactly \(a>0,b=0\).  The more conservative split used
+verbatim in the paper's proof is
+\((a=b=0)\lor(a>0\land b>0)\).  The Lean refutations are
+\code{not_Theorem_1_2_intervalDomain_of_a_pos_b_zero} and
+\code{not_Theorem_1_2_intervalDomain_when_a_pos_b_zero} in
+\code{Paper2/IntervalDomainTheorem12Refutation.lean}.  The corrected
+headline is \code{Theorem_1_2_intervalDomain_unconditional}.
+
+\subsection{E4: Theorem 1.3(iv), exponent-domain gap}
+
+The printed alternative (iv) assumes
+\[
+  \beta\ge\frac12,\qquad \alpha=2m+\gamma-2.
+\]
+Section~5.4 invokes Proposition~2.2 at
+\[
+  s(P)=\frac{P+\alpha}{\gamma},
+\]
+but that proposition requires \(s(P)>1\).  At the critical identity this is
+equivalent to
+\[
+  P>2-2m.
+\]
+The proof starts from
+\[
+  q_*=\max\left\{1,\frac{N\alpha}{2}\right\},
+\]
+so its stated route needs the missing condition
+\[
+  \boxed{q_*>2-2m.}
+\]
+
+This condition is not implied by the printed hypotheses.  For example,
+\[
+  N=1,\quad m=\frac14,\quad\gamma=\frac72,\quad
+  \alpha=2,\quad\beta=1
+\]
+satisfies \(\alpha=2m+\gamma-2\), while
+\[
+  q_*=1,\qquad s(q_*)=\frac67<1.
+\]
+Moreover \((N\alpha-2)_+=0\), so the first smallness disjunct in (1.25) is
+automatic.  The printed argument therefore invokes Proposition~2.2 outside
+its domain.  This is a proof gap, not a counterexample to boundedness.
+
+The proof-supported amendment is
+\[
+  \max\{1,N\alpha/2\}>2-2m.
+\]
+The formalization records the corrected paper-constant route in
+\code{Theorem_1_3_intervalDomainM_caseIV_with_paperConstants}.  It also closes
+the printed theorem's actual one-dimensional conclusion for \(m<1\) by a
+separate guard analysis: the global conjunct is printed only for \(m\ge1\),
+while the bounded local branch is proved by
+\code{Theorem_1_3_intervalDomainM_of_m_lt_one}.  The combined capstone is
+\code{Theorem_1_3_intervalDomainM_caseIV_all_m}.  This alternative closure
+does not make the displayed Section~5.4 invocation valid; it explains why
+the repository can prove the final disjunct without silently endorsing that
+step.
+
+\subsection{E5: Proposition 1.1, maximal-continuation wording}
+
+The finite endpoint alternative must be attached to the distinguished maximal
+continuation.  Read instead as a dichotomy for every positive finite local
+horizon \(T\), it is false: for \(a,b>0\), the positive logistic equilibrium
+\[
+  u(t,x)=\left(\frac ab\right)^{1/\alpha}
+\]
+is a classical solution on every finite interval, yet it neither blows up nor
+approaches zero there.  The corrected statement constructs the supremum of
+reachable horizons and asserts the blow-up/floor-loss alternative only when
+that maximal horizon is finite; otherwise it glues the compatible local
+solutions into a global branch.
+
+This is a wording and carrier clarification.  The Lean witness against the
+over-literal producer is
+\code{not_legacyFiniteHorizonAlternativeProducer_of_positive_equilibrium};
+the corrected endpoint-tail statement is
+\code{correctedProposition_1_1_intervalDomainM} in
+\code{Paper2/IntervalDomainMMaximalContinuationAlternative.lean}.
+
+\subsection{E6: Lemma 2.7, missing control at the initial endpoint}
+
+The literal statement assumes a differential inequality only for
+\(t\in(0,\Tmax)\), but concludes a supremum bound on
+\([0,\Tmax)\).  Take \(\Tmax=1\) and a spatially constant function
+\[
+  u(t,x)=t^{-1},\qquad t\in(0,1).
+\]
+With \(p=2\), its mass quantity is \(Y(t)=t^{-2}\), and
+\[
+  Y'(t)=-2t^{-3}\le -t^{-3}.
+\]
+Thus the interior differential inequality is satisfied for a suitable
+choice of the lemma's nonnegative constants (the formal witness uses
+\(C_1=C_2=C_3=0\), \(C_4=1\), and unit auxiliary exponents), while
+\[
+  \sup_{0<t<1}Y(t)=\infty.
+\]
+No interior differential inequality can control an omitted initial trace.
+
+The corrected form assumes continuity, or merely a finite bound, for the
+relevant \(L^p\)-mass at \(t=0\), then applies the scalar comparison on the
+closed interval.  The exact certificates are
+\code{not_Lemma_2_7_intervalDomain} and
+\code{Lemma_2_7_intervalDomain_from_continuous_bound} in
+\code{Paper2/IntervalDomainLemma27Unconditional.lean}.  In the PDE
+application the classical initial trace supplies precisely this missing
+endpoint information.
+
+\section{Part II: persistence and stabilization}
+
+\subsection{E7: Theorem 2.1(1), omitted pure-decay branch}
+
+The printed part (1) assumes only \(m\ge1\) and claims a positive asymptotic
+spatial lower bound for every global bounded positive solution.  The proof,
+however, treats \(a=b=0\) and \(a>0,b>0\), omitting the allowed regime
+\(a=0<b\).
+
+For \(c_0>0\), define
+\[
+ u(t,x)=\bigl(c_0^{-\alpha}+\alpha bt\bigr)^{-1/\alpha},
+ \qquad
+ v(t,x)=\frac{\nu}{\mu}u(t,x)^\gamma.
+\]
+Again all spatial derivatives vanish, and the parabolic equation becomes
+\[
+  u_t=-bu^{1+\alpha}.
+\]
+The orbit is global, bounded, and strictly positive for every finite time,
+but
+\[
+  \lim_{t\to\infty}\inf_{x\in\Om}u(t,x)=0.
+\]
+Thus the printed part (1) is false in the pure-decay regime.
+
+The proof-faithful guard is
+\[
+  (a=b=0)\quad\text{or}\quad(a>0\land b>0).
+\]
+When \(a>0,b=0\), a globally bounded positive solution cannot exist because
+its mass grows like \(e^{at}\), so the implication is vacuous.  The explicit
+Lean refutation is
+\code{not_Theorem_2_1_part1_intervalDomain_pureDecay}; the corrected statement
+is \code{Theorem_2_1_part1_corrected}, assembled into
+\code{Theorem_2_1_corrected_intervalDomainM}.
+
+\subsection{E8: Theorems 2.2--2.5, all-time \(C^1\) decay}
+
+Equation (2.12) asserts a \(C^1\) exponential estimate for every \(t\ge0\).
+Theorem~2.2 assumes only \(u_0\in C(\overline\Om)\), positive and close in
+\(L^\infty\).  Theorems~2.3--2.5 quantify over global bounded positive
+solutions and reuse (2.12), again with no uniform \(C^1\) control at the
+initial time.
+
+On \(\Om=(0,1)\) with Neumann boundary conditions, take
+\[
+  u_{0,N}(x)=u_*+N^{-1/2}\cos(N\pi x).
+\]
+For large \(N\) the datum is positive, has the exact minimal-model mass, and
+\[
+ \norm{u_{0,N}-u_*}_{L^\infty}=N^{-1/2}\longrightarrow0,
+ \qquad
+ \norm{\partial_xu_{0,N}}_{L^\infty}=\pi N^{1/2}\longrightarrow\infty.
+\]
+Therefore an \(L^\infty\)-ball cannot have a uniform \(C^1\) bound at
+\(t=0\).  For merely continuous \(u_0\), the \(C^1\) norm at \(t=0\) need not
+even be defined.  Analytic-semigroup smoothing naturally has a
+\(t^{-1/2}\)-type singularity as \(t\downarrow0\).
+
+The correct statement separates two regimes:
+\begin{enumerate}[leftmargin=2em]
+\item if the initial perturbation is small in a fractional-power space
+  \(X^\theta\hookrightarrow C^1\), then the sectorial stability theorem gives
+  an all-time strong-norm estimate;
+\item from \(L^\infty\)-small or merely continuous data, one first evolves to
+  some \(t_0>0\), and then obtains \(C^1\) exponential convergence for
+  \(t\ge t_0\).
+\end{enumerate}
+The linear stability/instability threshold itself is unaffected.
+
+The interval-domain obstruction is
+\code{not_intervalDomain_Theorem_2_5_original_allTime} in
+\code{Paper3/IntervalDomainSectorialCorrectedObstruction.lean}.  The public
+headline theorems in the repository use
+\code{EventualExponentialC1ConvergenceWith} and orbit-dependent positive entry
+times.  The same correction applies wherever Theorems~2.3--2.5 invoke
+(2.12).
+
+\section{Findings deliberately excluded from the paper errata}
+
+Formal proof assistants make over-quantification easy to detect.  The
+following refutations are valuable interface audits, but they must not be
+reported as counterexamples to the source papers.
+
+\begin{enumerate}[leftmargin=2em,itemsep=5pt]
+\item \textbf{Traveling-wave Lemma 4.1.}
+  The Lean proposition \code{Lemma_4_1} in
+  \code{Paper1/Statements.lean} omitted the printed negative-branch speed
+  threshold and upper bound on \(M\), and combined the two separately stated
+  barriers into a global minimum.  Consequently \code{not_Lemma_4_1} refutes
+  that stronger Lean proposition.  Likewise,
+  \code{not_differentiableAt_upperBarrier_of_interface} observes that the
+  minimum is not \(C^1\) at its interface, whereas the paper states
+  \(e^{-\kappa x}\) only on one side and \(M\) separately.  Neither theorem is
+  a paper-level refutation.
+
+\item \textbf{Traveling-wave Lemma 2.1.}
+  \code{not_forall_Lemma_2_1} chooses fabricated norms and semigroup data in
+  an abstract structure.  The paper concerns the concrete heat semigroup, so
+  this is a test of an overly universal API.
+
+\item \textbf{Part I Theorem 1.3 \code{FrontierData}.}
+  \code{not_IntervalDomainTheorem13FrontierData_of_real_regime} refutes an
+  earlier structure containing arbitrary total functions and a global
+  extension field.  Those fields are not printed hypotheses.  The genuine
+  paper issue is only the exponent-domain gap E4.
+
+\item \textbf{Part I Lemma 2.6.}
+  An early abstract bootstrap interface stored a gradient frontier strong
+  enough to encode the desired endpoint and did not expose the initial
+  \(L^p\)-mass continuity.  The repository proves
+  \code{Lemma_2_6_intervalDomain_from_continuous_lp_bounds}, but it does not
+  claim a mathematical counterexample to the PDE lemma as used in the paper.
+
+\item \textbf{Positive-time mass and zero-time signal storage.}
+  Earlier Lean trajectory records constrained the solution only for \(t>0\)
+  while allowing the stored slices \(u(0)\) or \(v(0)\) to be changed.
+  Refutations obtained by re-anchoring those slices diagnose the data model.
+  The paper starts from a genuine initial datum and trace.  The corrected Lean
+  predicates use conserved positive-time mass or an explicit initial trace.
+\end{enumerate}
+
+\section{Reproducibility and interpretation}
+
+The calculations above were checked against the archived paper text, not
+against paraphrased Lean comments.  The repository's root build checks all
+headline imports.  The intended interpretation of a Lean theorem name is:
+\begin{itemize}[leftmargin=2em]
+\item a theorem of the form \code{not_X} is evidence against the paper only
+  after the hypotheses of \code{X} have been compared with the printed
+  hypotheses;
+\item a proof of a corrected headline establishes the corrected mathematical
+  statement, but does not retroactively validate a defective displayed step;
+\item an axiom-clean proof certifies deduction from the formal statement; it
+  does not by itself certify that the formal statement has the intended
+  semantics.
+\end{itemize}
+
+\noindent This distinction is why E2, E3, E6, and E7 are presented with
+explicit mathematical counterexamples, E1 and E4 as proof gaps, E5 and E8 as
+statement repairs, and the five interface findings in a separate section.
+
+\end{document}

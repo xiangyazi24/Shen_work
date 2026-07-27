@@ -1,0 +1,673 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={General-m minimal-equilibrium stability: proved regions and a subcritical steady obstruction},
+  pdfauthor={ShenWork formalization project}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\setlength{\emergencystretch}{3em}
+\sloppy
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+\title{General-\(m\) Minimal-Equilibrium Stability\\
+\large Proved stability regions, the bifurcation boundary, and an exact
+\(m=3\) counterexample}
+\author{\code{ShenWork} formalization project}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study the one-dimensional Neumann minimal chemotaxis system with
+population mobility \(u^m\), extending the \(m=1\) stability results in
+Chen--Ruau--Shen Part~II.  Three positive results are formalized: the full
+two-disjunct global-stability formula for \(1\le m<2\); its critical \(m=2\)
+version under an explicit endpoint admissibility condition; and a
+small-sensitivity theorem for every \(m>1\), obtained from good times for the
+negative-power energy and oscillation control of \(u^{1-m}\).
+
+The energy-method boundary \(m=2\) is not a boundary of the dynamics.  A
+weakly nonlinear calculation gives the direction coefficient of the first
+Neumann steady branch.  Its sign changes at
+\(m_c(U)\approx2.867,2.937,3.006\) for masses
+\(U=0.5,1,2\), respectively.  A negative coefficient predicts a backward
+branch and hence a steady obstruction below the linear threshold.  For the
+fixed tuple
+\[
+ m=3,\qquad \beta=\gamma=\mu=\nu=U=1,
+\]
+this obstruction is not merely numerical: an amplitude-factored implicit
+branch in a Wiener algebra, its negative direction coefficient, the positive
+classical steady state, and the failure of global attraction are all
+formalized in Lean 4.30.0 / Mathlib v4.30.0.
+
+We distinguish rigorously between the proved \(m=3\) counterexample, the
+formalized sufficient stability regions, and the analytically/numerically
+located direction-change curve.  In particular, the sign \(m<m_c(U)\) by
+itself is not claimed to prove global stability up to the linear threshold.
+\end{abstract}
+
+\tableofcontents
+
+\section{Model, mass constraint, and the stability question}
+
+On the unit interval \(I=(0,1)\), consider
+\begin{align}
+ u_t
+  &=u_{xx}-\chi_0\partial_x
+     \left(\frac{u^m}{(1+v)^\beta}v_x\right),
+                                                         \label{eq:u}\\
+ 0&=v_{xx}-\mu v+\nu u^\gamma,                           \label{eq:v}\\
+ u_x(t,0)&=u_x(t,1)=v_x(t,0)=v_x(t,1)=0.                 \label{eq:bc}
+\end{align}
+This is the minimal model \(a=b=0\).  Integrating \eqref{eq:u} and using
+\eqref{eq:bc} shows that
+\[
+  \int_0^1u(t,x)\,dx=U
+\]
+is conserved.  On this mass hyperplane, the corresponding constant
+equilibrium is
+\begin{equation}
+  u_*=U,\qquad v_*=\frac{\nu}{\mu}U^\gamma.              \label{eq:eq}
+\end{equation}
+
+The global-stability property formalized in the repository quantifies over
+positive global bounded classical solutions with this conserved mass.  It
+has two conclusions:
+\begin{enumerate}[leftmargin=2em]
+\item uniform convergence \(u(t)\to U\) in the supremum norm;
+\item for each orbit, constants \(C,\rho,t_0>0\) such that the population
+  and signal converge exponentially in the stated \(C^1\)-type norms for
+  \(t\ge t_0\).
+\end{enumerate}
+The positive entry time is essential because the paper's data are not
+assumed \(C^1\) at \(t=0\).
+
+\section{Linear threshold}
+
+Let \(\lambda_n=n^2\pi^2\), \(n\ge0\), be the Neumann eigenvalues.  Linearize
+at \eqref{eq:eq}, writing \(u=U+p\), \(v=v_*+q\).  For mode \(n\ge1\),
+\eqref{eq:v} gives
+\[
+  \widehat q_n
+   =\frac{\nu\gamma U^{\gamma-1}}{\mu+\lambda_n}
+      \widehat p_n.
+\]
+The population growth rate is therefore
+\begin{equation}
+ \sigma_n(\chi_0)
+ =-\lambda_n+
+ \chi_0
+ \frac{\nu\gamma U^{m+\gamma-1}\lambda_n}
+ {(1+v_*)^\beta(\mu+\lambda_n)}.                        \label{eq:sigma}
+\end{equation}
+For the unit interval, the threshold for the first nonzero mode is
+\begin{equation}
+ \chi_{\mathrm{lin}}(U,m)
+ =\frac{(1+v_*)^\beta(\mu+\pi^2)}
+        {\nu\gamma U^{m+\gamma-1}}.                     \label{eq:chilin}
+\end{equation}
+Since \(\mu+\lambda_n\) increases with \(n\), the first mode is the first to
+lose stability.  Thus \(\chi_0<\chi_{\mathrm{lin}}\) is the relevant
+linearly stable half-line for the unit interval.
+
+For the tuple used in the exact counterexample,
+\[
+ U=\beta=\gamma=\mu=\nu=1,
+\]
+so \(v_*=1\) and
+\begin{equation}
+  \chi_{\mathrm{lin}}=2(1+\pi^2)\approx21.73920880.
+  \label{eq:fixed-chilin}
+\end{equation}
+
+\section{Formalized positive stability results}
+
+\subsection{The exact status table}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{0.22\textwidth}p{0.31\textwidth}p{0.38\textwidth}@{}}
+\toprule
+Exponent range & Additional condition & Formalized conclusion\\
+\midrule
+\(1\le m<2\) &
+Either disjunct of the explicit full-\(m\) global-stability formula &
+Mass-constrained global sup convergence and orbitwise eventual exponential
+\(C^1\) convergence\\
+\(m=2\) &
+The same formula plus
+\(\chi_0\sqrt\mu\,\sigma_\beta U\max\{2,\gamma\}<1\) &
+The critical endpoint version of the same conclusion\\
+Every \(m>1\) &
+Linear stability and the explicit small-sensitivity inequality associated
+with a certified local basin radius &
+The same global/eventual conclusion\\
+\(m=3\), fixed tuple, some
+\(0<\chi_0<\chi_{\mathrm{lin}}\) &
+None &
+Global attraction is false: an exact nonconstant positive steady orbit
+exists\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The first two rows are sufficient conditions, not the assertion
+that every linearly stable parameter is globally stable.  The fourth row is
+an exact false-side theorem.  Together they show that \(m=2\) is an analytic
+method boundary, not a universal dynamical threshold.
+
+\subsection{\(1\le m<2\): entropy and signal-energy disjuncts}
+
+The formal predicate
+\code{MinimalGlobalStabilityFormula}\allowbreak\code{ConditionFullM}
+packages two explicit conditions:
+\[
+ \text{minimal1 entropy condition}
+ \quad\lor\quad
+ \text{minimal2 signal-energy condition}.
+\]
+The minimal2 branch additionally has \(\gamma=1\).  Both thresholds include
+the relevant linear-stability and nonlinear basin-entry inequalities,
+evaluated using the canonical eventual upper and signal-lower constants.
+
+\begin{theorem}[subcritical full formula]
+Assume \(1\le m<2\), \(a=b=0\), \(\beta\ge1\), \(U>0\), and either
+full-\(m\) formula disjunct.  Then \((U,\nu U^\gamma/\mu)\) is globally
+attracting among positive bounded mass-\(U\) orbits, with orbitwise eventual
+exponential \(C^1\) convergence.
+\end{theorem}
+
+\noindent This is
+\code{intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula} in
+\code{Paper3/IntervalDomainMMinimalSignalEnergyGlobal.lean}.  Its two
+components are
+\code{intervalDomainM_Theorem_2_5_minimal1_EventualGlobalStabilityFormula}
+and
+\code{intervalDomainM_Theorem_2_5_minimal2_EventualGlobalStabilityFormula}.
+
+\subsection{The critical endpoint \(m=2\)}
+
+At \(m=2\), the mass-seeded \(L^P\) recurrence becomes critical.  The missing
+room is supplied by the explicit admissibility condition
+\begin{equation}
+ \chi_0\sqrt\mu\,\sigma_\beta\,U\max\{2,\gamma\}<1,
+ \qquad
+ \sigma_\beta=
+ \begin{cases}
+  1,&\beta=1,\\[2mm]
+  \dfrac{(\beta-1)^{\beta-1}}{\beta^\beta},&\beta>1.
+ \end{cases}                                           \label{eq:critical-adm}
+\end{equation}
+Here \(\sigma_\beta\) is the sharp upper factor for
+\(z/(1+z)^\beta\) on \(z\ge0\).  Condition
+\eqref{eq:critical-adm} leaves room for a restarted exponent strictly above
+two and at least \(\gamma\); the endpoint Agmon estimate then supplies the
+eventual box used by both formula branches.
+
+\begin{theorem}[critical full formula]
+Assume \(m=2\), \(a=b=0\), \(\beta\ge1\), \(U>0\),
+\eqref{eq:critical-adm}, and either full-\(m\) formula disjunct.  Then the
+same global and eventual exponential conclusion holds.
+\end{theorem}
+
+\noindent The Lean capstone is
+\code{intervalDomainM_Theorem_2_5_critical_EventualGlobalStabilityFormula}
+in \code{Paper3/IntervalDomainMMinimalCriticalGlobal.lean}.
+
+\subsection{Every \(m>1\): the small-sensitivity route}
+
+This route is independent of the \(m<2\) interpolation budget.  Its key
+quantity is the negative-power weighted gradient
+\begin{equation}
+ G(t)=\int_0^1u(t,x)^{-2m}u_x(t,x)^2\,dx.               \label{eq:G}
+\end{equation}
+The entropy production provides arbitrarily late good times at which \(G\)
+is as close as desired to the explicit floor
+\begin{equation}
+  \chi_0^2\mu\sigma_\beta^2.                            \label{eq:floor}
+\end{equation}
+
+Since
+\[
+  \partial_x u^{1-m}=(1-m)u^{-m}u_x,
+\]
+Cauchy--Schwarz on the unit interval gives the exact oscillation estimate
+\begin{equation}
+ \abs{u(t,x)^{1-m}-u(t,z)^{1-m}}
+ \le(m-1)\sqrt{G(t)}.                                  \label{eq:osc}
+\end{equation}
+The mass constraint and continuity provide a point \(z\) with \(u(t,z)=U\).
+Thus a good time controls \(u^{1-m}\) uniformly around \(U^{1-m}\).
+
+For a desired local supremum radius \(0<\delta<U\), define
+\begin{equation}
+ r_m(U,\delta)=
+ \min\left\{
+  U^{1-m}-(U+\delta)^{1-m},\
+  \frac{(U-\delta)^{1-m}-U^{1-m}}2
+ \right\}.                                             \label{eq:r}
+\end{equation}
+Because \(1-m<0\), both entries are positive.  If
+\begin{equation}
+  (m-1)\chi_0\sqrt\mu\,\sigma_\beta<r_m(U,\delta),
+  \label{eq:small}
+\end{equation}
+then a sufficiently late good slice satisfies
+\[
+  \norm{u(t,\cdot)-U}_\infty<\delta.
+\]
+Linear stability supplies a positive local basin radius \(\delta\); after
+the good slice enters that basin, an autonomous time shift and the strong
+sectorial bootstrap give eventual exponential convergence.
+
+Equivalently, the explicit sensitivity threshold is
+\begin{equation}
+ \chi_0<
+ \frac{r_m(U,\delta)}
+ {(m-1)\sqrt\mu\,\sigma_\beta}.
+ \label{eq:small-threshold}
+\end{equation}
+
+\begin{theorem}[all-\(m>1\) small-sensitivity branch]
+Assume \(m>1\), \(a=b=0\), \(\beta\ge1\), \(U>0\), linear stability, and
+\eqref{eq:small-threshold} for a certified local basin radius
+\(0<\delta<U\).  Then the constant equilibrium is globally attracting on the
+mass-\(U\) hyperplane, and every positive bounded orbit converges
+exponentially in \(C^1\) after an orbit-dependent positive time.
+\end{theorem}
+
+\noindent The principal Lean statements are
+\code{intervalDomainM_negativePower_oscillation_le},
+\code{intervalDomainM_minimal_exists_late_supClose_smallSensitivity}, and
+\code{intervalDomainM_Theorem_2_5_supercritical_smallSensitivity}.  The
+theorem
+\code{intervalDomainM_supercritical_smallSensitivity_exists_threshold}
+constructs an admissible \(\delta\) from linear stability and exposes
+\eqref{eq:small-threshold} as the remaining sufficient inequality.
+
+\section{The steady-state bifurcation mechanism}
+
+\subsection{Integrated flux equation}
+
+To locate a false side, specialize first to
+\[
+  \beta=\gamma=\mu=\nu=1.
+\]
+At a positive steady state, the first equation and Neumann conditions give
+\[
+  u_x-\chi\frac{u^m}{1+v}v_x=0.
+\]
+Let \(H_m'(u)=u^{-m}\):
+\[
+ H_m(u)=
+ \begin{cases}
+  \log u,&m=1,\\[1mm]
+  \dfrac{u^{1-m}}{1-m},&m\ne1.
+ \end{cases}
+\]
+Then every positive steady state satisfies
+\begin{equation}
+  H_m(u)-\chi\log(1+v)=C,\qquad
+  -v_{xx}+v=u,                                         \label{eq:integrated}
+\end{equation}
+together with \(\int_0^1u=U\).  This removes one derivative and is the
+equation used by both the weakly nonlinear calculation and the finite
+difference continuation.
+
+\subsection{Weakly nonlinear expansion}
+
+Let
+\[
+ e_1(x)=\cos(\pi x),\qquad e_2(x)=\cos(2\pi x),
+\]
+and define the elliptic response factors
+\[
+ r_1=\frac1{1+\pi^2},\qquad
+ r_2=\frac1{1+4\pi^2},\qquad b=1+U.
+\]
+Seek a mass-preserving branch
+\begin{align}
+ u&=U+\varepsilon e_1+\varepsilon^2a_2e_2+O(\varepsilon^3), \label{eq:uexp}\\
+ v&=U+\varepsilon r_1e_1+\varepsilon^2a_2r_2e_2
+       +O(\varepsilon^3),                               \label{eq:vexp}\\
+ \chi&=\chi_{\mathrm{lin}}+\varepsilon^2\chi_2
+       +O(\varepsilon^3).                               \label{eq:chiexp}
+\end{align}
+The first-order solvability condition gives
+\begin{equation}
+ \chi_{\mathrm{lin}}=\frac{b}{r_1U^m}.                  \label{eq:weak-lin}
+\end{equation}
+The second harmonic at order \(\varepsilon^2\) gives
+\begin{equation}
+ a_2=
+ \frac{m/U-r_1/b}{4(1-r_2/r_1)}.                       \label{eq:a2}
+\end{equation}
+Projecting the third-order equation onto \(e_1\) yields
+\begin{align}
+ \chi_2&=\chi_{\mathrm{lin}}S(m,U),                     \label{eq:chi2}\\
+ S(m,U)
+ &=\frac{a_2}{2}\left(\frac{r_2}{b}-\frac mU\right)
+   +\frac{m(m+1)}{8U^2}
+   -\frac{r_1^2}{4b^2}.                                \label{eq:S}
+\end{align}
+At the level of this weakly nonlinear expansion:
+\[
+  S>0\ \Longrightarrow\ \text{the local branch points to }
+       \chi>\chi_{\mathrm{lin}},
+\]
+whereas
+\[
+  S<0\ \Longrightarrow\ \text{the branch is backward and contains }
+       \chi<\chi_{\mathrm{lin}}.
+\]
+If the formal branch is promoted to an actual nonconstant positive steady
+branch, every point on its backward side is a bounded global orbit that
+cannot converge to the constant equilibrium.  The required analytic branch
+construction is supplied below for the fixed \(m=3,U=1\) tuple; no
+all-\(m\) branch theorem is being asserted here.
+
+\subsection{Direction-change curve}
+
+Solving \(S(m,U)=0\) gives:
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+Mass \(U\) & \(m_c(U)\) & Sign for \(m>m_c(U)\)\\
+\midrule
+\(0.5\) & \(2.866754572143\) & backward\\
+\(1\)   & \(2.936658202934\) & backward\\
+\(2\)   & \(3.005668668328\) & backward\\
+\bottomrule
+\end{tabular}
+\end{center}
+These numbers are roots of the explicit coefficient
+\eqref{eq:S}, not fitted continuation parameters.
+
+\begin{remark}[scope of the curve]
+The curve \(S=0\) is a local steady-bifurcation direction boundary.  For
+\(m>m_c(U)\), the coefficient predicts a direct obstruction below the linear
+threshold.  The required local branch theorem and the resulting obstruction
+are carried out completely in Lean for the fixed \(m=3,U=1\) tuple.  For
+\(m<m_c(U)\), a positive coefficient merely removes this predicted local
+obstruction.  It does not prove global attraction for every
+\(0<\chi_0<\chi_{\mathrm{lin}}\).
+\end{remark}
+
+\section{Numerical cross-check}
+
+The script \code{research_notes/m_supercritical_bifurcation_probe.py}
+performs two independent checks.
+
+\paragraph{Discrete weak coefficient.}
+For \(N\) finite-difference subintervals it replaces
+\[
+ \pi^2,\ 4\pi^2
+\quad\text{by}\quad
+ \lambda_{1,h}=\frac4{h^2}\sin^2\frac{\pi}{2N},\qquad
+ \lambda_{2,h}=\frac4{h^2}\sin^2\frac{\pi}{N}
+\]
+in \eqref{eq:a2}--\eqref{eq:S}.
+
+\paragraph{Nonlinear solve.}
+At every grid node it enforces the integrated flux equation
+\eqref{eq:integrated}, the finite-difference elliptic equation with reflected
+Neumann ghost points, the trapezoidal mass constraint, and a prescribed first
+cosine coefficient.  It then compares the fitted quadratic branch direction
+with the discrete analytic coefficient.
+
+For \(N=160\):
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+\(m\)&\(U\)&\(\chi_{\mathrm{lin},h}\)&analytic \(\chi_{2,h}\)&fitted
+\(\chi_{2,h}\)&largest residual\\
+\midrule
+4&1&21.7385746366&\(-4.24003585072\)&\(-4.24003584422\)&\(1.1\times10^{-11}\)\\
+3&0.5&130.431447819&\(-9.59085815306\)&\(-9.59085814853\)&\(4.8\times10^{-12}\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+At relative amplitude \(0.02\), the sensitivity shifts are
+\[
+ \Delta\chi=-1.6966\times10^{-3}\quad(m=4,U=1),
+\]
+and
+\[
+ \Delta\chi=-9.5917\times10^{-4}\quad(m=3,U=0.5).
+\]
+Pseudo-arclength continuation preserves the backward direction through the
+reported steps.  These computations validate the coefficient and the
+implementation, but numerical residuals are not used as proof of the exact
+\(m=3\) counterexample.
+
+\section{Exact Lean proof of the \(m=3\) false side}
+
+\subsection{Functional setting}
+
+Fix
+\[
+  m=3,\qquad \beta=\gamma=\mu=\nu=U=1.
+\]
+The steady system is
+\begin{align}
+ 0&=u_{xx}-\chi\partial_x\left(\frac{u^3v_x}{1+v}\right),
+                                                               \label{eq:m3u}\\
+ 0&=v_{xx}-v+u.                                                \label{eq:m3v}
+\end{align}
+The formalization works in a weighted \(\ell^1\) Wiener algebra of Fourier
+coefficients.  This choice has four useful properties:
+\begin{enumerate}[leftmargin=2em]
+\item multiplication is continuous, so nonlinear products remain in the
+  algebra;
+\item the coefficient norm controls pointwise evaluation;
+\item two Wiener weights control the two spatial derivatives needed for a
+  classical steady state;
+\item even real sequences encode Neumann cosine profiles, and the mean-zero
+  subspace enforces the mass constraint.
+\end{enumerate}
+
+Split the mean-zero even profile into its first cosine mode and a closed
+complement:
+\[
+  h=e_1+z,\qquad z\perp e_1.
+\]
+With amplitude \(a\),
+\[
+  u_a=1+ah,\qquad v_a=1+aRh,
+\]
+where \(R=(-\partial_{xx}+1)^{-1}\) is the diagonal Fourier resolver.
+Dividing the steady residual by the amplitude produces a smooth blown-up
+map in \((a,z,\chi)\).  At
+\[
+  (a,z,\chi)=(0,0,2(1+\pi^2))
+\]
+its derivative in \((z,\chi)\) is a bounded linear isomorphism.  The Banach
+implicit function theorem therefore yields a \(C^3\) branch
+\[
+  a\longmapsto(z(a),\chi(a)).
+\]
+The construction and inverse are in
+\code{MinimalSteadyWABlowup.lean},
+\code{MinimalSteadyWALinearIso.lean}, and
+\code{MinimalSteadyWAImplicitBranch.lean}.
+
+\subsection{Exact branch direction}
+
+After multiplying out the harmless signal denominator, the branch satisfies
+the polynomial flux identity
+\begin{equation}
+  (2+aRh)\,Dh=\chi(a)(1+ah)^3DRh.                       \label{eq:poly}
+\end{equation}
+The mode-two component of the first derivative determines the second-harmonic
+correction.  The mode-one component of the second derivative gives
+\begin{equation}
+ \chi'(0)=0,\qquad
+ \chi''(0)=
+ -\frac{6\pi^4+37\pi^2+25}
+ {24\pi^2(\pi^2+1)}<0.                                 \label{eq:exact-second}
+\end{equation}
+Since the expansion convention \eqref{eq:chiexp} has
+\(\chi_2=\chi''(0)/2\), \eqref{eq:exact-second} equals
+\[
+  \chi_2\approx-0.189271408,
+\]
+exactly matching \eqref{eq:S} at \(m=3,U=1\).
+
+The formal theorems are
+\code{minimalSensitivityFirstJet_eq_zero},
+\code{minimalSensitivitySecondJet_eq}, and
+\code{minimalSensitivitySecondJet_neg} in
+\code{Paper3/MinimalSteadyWADirection.lean}.  Elementary derivative tests
+then show that \(\chi(a)\) is strictly decreasing for all sufficiently small
+\(a>0\), while continuity keeps it positive:
+\begin{equation}
+  0<\chi(a)<2(1+\pi^2).                                 \label{eq:backward}
+\end{equation}
+This selection is formalized in
+\code{Paper3/MinimalSteadyWABranchSelection.lean}.
+
+\subsection{From the Banach branch to a classical counterexample}
+
+For sufficiently small positive \(a\), the Wiener norm bound gives
+\[
+  u_a(x)>0,\qquad v_a(x)>0\quad\text{for all }x.
+\]
+Coefficient evaluation and Fourier differentiation turn the algebraic
+residual into the pointwise classical equations
+\eqref{eq:m3u}--\eqref{eq:m3v}.  Evenness gives the Neumann boundary
+conditions, the missing zero Fourier coefficient gives
+\[
+  \int_0^1u_a(x)\,dx=1,
+\]
+and the fixed first coefficient makes \(u_a\) nonconstant.
+
+\begin{theorem}[exact subcritical steady state]
+There exist \(0<\chi<2(1+\pi^2)\) and positive, nonconstant, \(C^2\) Neumann
+profiles \(u,v\) satisfying \eqref{eq:m3u}--\eqref{eq:m3v} and
+\(\int_0^1u=1\).
+\end{theorem}
+
+\noindent This is
+\code{exists_nonconstant_minimal_steady_below_threshold_m3} in
+\code{Paper3/MinimalSteadyWACounterexample.lean}.
+
+View the profiles as constant-in-time functions.  They form a positive,
+bounded, mass-one global classical orbit.  If the constant equilibrium
+\((1,1)\) attracted every such orbit, then \(u(x)\) would converge both to
+its constant-in-time value \(u(x)\) and to \(1\).  Uniqueness of limits would
+force \(u\equiv1\), contradicting nonconstancy.
+
+\begin{theorem}[global attraction is false below the linear threshold]
+For the fixed \(m=3\) tuple, there exists
+\(0<\chi<\chi_{\mathrm{lin}}\) such that the minimal equilibrium does not
+attract all positive bounded mass-one classical orbits.
+\end{theorem}
+
+\noindent The exact Lean theorem is
+\code{minimal_equilibrium_global_stability_false_m3}.  This completes the
+false side inside the proof assistant; no unformalized
+Crandall--Rabinowitz theorem or numerical existence assumption remains in
+this tuple.
+
+\section{What is resolved, and what is not claimed}
+
+The results establish the following.
+\begin{enumerate}[leftmargin=2em]
+\item The \(m<2\) energy method extends the paper's \(m=1\) result to
+  \(1\le m<2\) under the full explicit formula conditions.
+\item The critical exponent \(m=2\) is included under the explicit endpoint
+  admissibility \eqref{eq:critical-adm}.
+\item For every \(m>1\), sufficiently small sensitivity in the explicit
+  sense \eqref{eq:small-threshold} gives global attraction, provided the
+  equilibrium is linearly stable.
+\item The assertion ``every linearly stable minimal equilibrium is globally
+  attracting for every \(m>1\)'' is false.  It already fails at \(m=3\) for
+  a sensitivity strictly below \(\chi_{\mathrm{lin}}\).
+\item The direction curve \(m_c(U)\) explains why the false side begins near
+  \(m\approx2.9\) in the normalized family and why the energy boundary
+  \(m=2\) is not sharp dynamically.
+\end{enumerate}
+
+\noindent What is \emph{not} proved is a complete necessary-and-sufficient
+global-stability diagram in the region between the sufficient thresholds and
+the subcritical steady branch.  In particular:
+\begin{itemize}[leftmargin=2em]
+\item \(m<m_c(U)\) does not imply global stability all the way to
+  \(\chi_{\mathrm{lin}}\);
+\item \(m>m_c(U)\) makes the weak coefficient negative; the corresponding
+  local steady obstruction is proved here only for the fixed \(m=3,U=1\)
+  tuple and does not classify every smaller sensitivity;
+\item the three numerical values of \(m_c(U)\) belong to the normalized
+  \(\beta=\gamma=\mu=\nu=1\) family, not to arbitrary parameter tuples.
+\end{itemize}
+These qualifications are part of the result: they separate exact theorems
+from the phase diagram suggested by bifurcation analysis.
+
+\section{Lean theorem map}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{@{}p{0.34\textwidth}p{0.57\textwidth}@{}}
+\toprule
+Component & Principal source / theorem\\
+\midrule
+\(1\le m<2\), full formula &
+\code{IntervalDomainMMinimalSignalEnergyGlobal.lean}:
+\code{intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula}\\
+\(m=2\), critical endpoint &
+\code{IntervalDomainMMinimalCriticalGlobal.lean}:
+\code{intervalDomainM_Theorem_2_5_critical_EventualGlobalStabilityFormula}\\
+All \(m>1\), negative-power good slice &
+\code{IntervalDomainMNegativePowerBox.lean}:
+\code{intervalDomainM_minimal_exists_late_supClose_smallSensitivity}\\
+All \(m>1\), small-sensitivity capstone &
+\code{IntervalDomainMSupercriticalSmallSensitivity.lean}:
+\code{intervalDomainM_Theorem_2_5_supercritical_smallSensitivity}\\
+\(m=3\) Banach branch and direction &
+\code{MinimalSteadyWAImplicitBranch.lean},
+\code{MinimalSteadyWADirection.lean},
+\code{MinimalSteadyWABranchSelection.lean}\\
+Exact classical steady state &
+\code{MinimalSteadyWACounterexample.lean}:
+\code{exists_nonconstant_minimal_steady_below_threshold_m3}\\
+Failure of global attraction &
+\code{MinimalSteadyWACounterexample.lean}:
+\code{minimal_equilibrium_global_stability_false_m3}\\
+Analytic/numerical cross-check &
+\code{research_notes/m_supercritical_bifurcation_probe.py}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent All Lean capstones above are \code{sorry}-free.  Their printed axiom
+audits use only the standard classical axioms
+\code{propext}, \code{Classical.choice}, and \code{Quot.sound}.  The numerical
+script is reproducible but is supplementary; the \(m=3\) false-side theorem
+does not depend on it.
+
+\end{document}

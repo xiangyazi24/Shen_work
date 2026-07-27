@@ -58,7 +58,8 @@ The principal stability entry points are
   Neumann semigroup estimates obtained by subordination.
 
 Several printed statements require corrected formulations for the paper's data class;
-these are recorded in [`ERRATA.md`](ERRATA.md).
+these are recorded in the detailed [`ERRATA.pdf`](ERRATA.pdf)
+([LaTeX source](ERRATA.tex), [Markdown index](ERRATA.md)).
 
 ### Part 3: bounded-interval nonlinear-flux theory
 
@@ -75,12 +76,14 @@ all-time `C¹` claims, which are too strong for merely continuous initial data.
 
 The [`research_notes/`](research_notes/) directory records two sharp-limit results:
 
-- [`FARLEFT_CHI4_RESOLUTION.md`](research_notes/FARLEFT_CHI4_RESOLUTION.md): the sharp
+- [`FARLEFT_CHI4_RESOLUTION.pdf`](research_notes/FARLEFT_CHI4_RESOLUTION.pdf)
+  ([summary](research_notes/FARLEFT_CHI4_RESOLUTION.md)): the sharp
   far-left threshold `χ = 4`, an optimal basin-conditional convergence theorem, and a
   formalized convective-escape counterexample to unconditional convergence.
-- [`GENERAL_M_STABILITY_RESOLUTION.md`](research_notes/GENERAL_M_STABILITY_RESOLUTION.md):
-  the general-`m` stability picture, including the mechanized `m = 3` counterexample and
-  the bifurcation threshold detected analytically and numerically.
+- [`GENERAL_M_STABILITY_RESOLUTION.pdf`](research_notes/GENERAL_M_STABILITY_RESOLUTION.pdf)
+  ([summary](research_notes/GENERAL_M_STABILITY_RESOLUTION.md)): proved general-`m`
+  stability regions, the mechanized `m = 3` subcritical steady counterexample, and the
+  first-branch direction threshold detected analytically and numerically.
 
 ## Repository layout
 
@@ -88,6 +91,6 @@ The [`research_notes/`](research_notes/) directory records two sharp-limit resul
   formalizations.
 - `ShenWork/PDE/`, `ShenWork/Wiener/`: shared analytic infrastructure.
 - `ShenWork.lean`: root import closure.
-- `ERRATA.md`: false or overstated printed statements and their proved replacements.
-- `research_notes/`: results beyond the original papers.
+- `ERRATA.pdf`, `ERRATA.tex`, `ERRATA.md`: detailed statement audit and public index.
+- `research_notes/`: detailed PDF/LaTeX notes and summaries for results beyond the papers.
 - `papers/`: the three source papers.

@@ -1,55 +1,89 @@
-# General-m minimal stability — complete resolution (2026-07-26)
+# General-m minimal-equilibrium stability
 
-Paper 3 Theorem 2.5 (minimal-equilibrium eventual global stability), general-m u^m flux,
-1D Neumann, physical-mass hyperplane. The full m-dependence is now resolved:
+The rigorous write-up is
+[`GENERAL_M_STABILITY_RESOLUTION.pdf`](GENERAL_M_STABILITY_RESOLUTION.pdf),
+with source in
+[`GENERAL_M_STABILITY_RESOLUTION.tex`](GENERAL_M_STABILITY_RESOLUTION.tex).
 
-| range | verdict | how |
-|-------|---------|-----|
-| 1 ≤ m ≤ 2, in-range χ₀ | **TRUE** (proved, on main) | mass/Agmon energy method (subcritical + critical m=2) |
-| all m > 1, small χ₀ | **TRUE** (proved, on main) | small-sensitivity good-slice route (∫u^{−2m}u_x² ≤ χ₀²μσ_β²) |
-| m ≳ 2.9, large χ₀ (< χ_lin) | **FALSE** | subcritical steady bifurcation ⇒ mass-preserving nonconstant steady state below the Turing threshold; starting there never converges to the constant |
-| χ₀ > χ_lin | FALSE (known) | linear instability |
+**Status:** the sufficient stability regions and the exact `m=3` false-side
+counterexample are formalized in Lean 4.30.0 / Mathlib v4.30.0. The
+bifurcation-direction curve is an explicit weakly nonlinear calculation,
+cross-checked by finite-difference and pseudo-arclength continuation.
 
-**The sharp divider for global stability is a PATTERN-BIFURCATION threshold m_c(U), NOT the
-m=2 energy-method divider.** m=2 is where the mass-seeded L^P energy method stops; the
-constant equilibrium remains globally stable past it (small χ₀ always; up to χ_lin for m < m_c).
+## Exact formalized results
 
-**Critical m_c (supercritical→subcritical transition), cross-validated analytic (Lyapunov–
-Schmidt χ₂) + numerical (pseudo-arclength continuation, residual ~1e-11):**
-- U=0.5: m_c ≈ 2.867
-- U=1:   m_c ≈ 2.937
-- U=2:   m_c ≈ 3.006
+| Range | Hypotheses | Conclusion |
+|---|---|---|
+| `1≤m<2` | either disjunct of the explicit full-m stability formula | mass-constrained global sup convergence and orbitwise eventual exponential `C¹` convergence |
+| `m=2` | same formula plus the explicit critical endpoint admissibility | same conclusion |
+| every `m>1` | linear stability plus the explicit small-sensitivity inequality associated with a certified local basin radius | same conclusion |
+| `m=3`, `β=γ=μ=ν=u*=1` | some `0<χ₀<χ_lin` | global attraction is false: an exact nonconstant positive steady orbit exists |
 
-Explicit counterexample (analytic, Q1181): m=3, β=γ=μ=ν=u_*=1, χ_lin=2(1+π²)≈21.739, branch
-BACKWARD. Numerical confirms: (U=1,m=4) Δχ=−1.7e-3, (U=0.5,m=3) Δχ=−9.6e-4 (both backward).
-χ₂'s leading m-dependence is a negative quadratic ⇒ backward for all large m.
+Principal theorems:
 
-Formalizing this in Lean requires bifurcation theory (Crandall–Rabinowitz / Lyapunov–Schmidt
-for the nonconstant steady state existence) — a separate project; the mathematical resolution
-is complete. Script: research_notes/m_supercritical_bifurcation_probe.py.
+- `intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula`
+- `intervalDomainM_Theorem_2_5_critical_EventualGlobalStabilityFormula`
+- `intervalDomainM_Theorem_2_5_supercritical_smallSensitivity`
+- `exists_nonconstant_minimal_steady_below_threshold_m3`
+- `minimal_equilibrium_global_stability_false_m3`
 
-## Formalized theorems (Lean 4, on `main`, clean-3)
-Proved (stability holds):
-- 1≤m<2 subcritical: `intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula`
-  (`Paper3/IntervalDomainMMinimalSignalEnergyGlobal.lean`; minimal1 entropy route +
-  minimal2 signal-energy route, both disjuncts; seed
-  `exists_intervalDomainM_minimal_subcritical_lp_damping_constant`).
-- m=2 critical: `intervalDomainM_Theorem_2_5_critical_EventualGlobalStabilityFormula`
-  (`Paper3/IntervalDomainMMinimalCriticalGlobal.lean`; endpoint-Agmon seed).
-- all m>1, small χ₀: `intervalDomainM_Theorem_2_5_supercritical_smallSensitivity`
-  (`Paper3/IntervalDomainMSupercriticalSmallSensitivity.lean`; good-slice route,
-  `∫u^{−2m}u_x² ≤ χ₀²μσ_β²` ⇒ oscillation of u^{1−m} < basin radius ⇒ restart local stability).
+The all-`m>1` route uses good times for
 
-FALSE (counterexample), m≳m_c(U)≈2.9, large χ₀ < χ_lin:
-- Mathematics: subcritical Lyapunov–Schmidt bifurcation (χ₂<0, leading m-dependence a negative
-  quadratic), cross-validated numerically (pseudo-arclength, residual ~1e-11). Explicit tuple
-  m=3, β=γ=μ=ν=u_*=1, χ_lin=2(1+π²). Script: `research_notes/m_supercritical_bifurcation_probe.py`.
-- Lean formalization of the m=3 nonconstant steady state (amplitude-factored Banach IFT in the
-  repo's Wiener algebra): **DONE** — `exists_nonconstant_minimal_steady_below_threshold_m3` and
-  `minimal_equilibrium_global_stability_false_m3` (`Paper3/MinimalSteadyWACounterexample.lean`, clean-3).
+```text
+G(t)=∫u^(-2m)u_x²
+```
 
-## What is genuinely NEW vs the papers
-The papers treat `m=1`. New here: the full m-dependence of minimal-equilibrium stability, the
-identification that the sharp divider is a PATTERN-BIFURCATION threshold m_c(U)≈2.9 (not the
-m=2 energy-method limit), the small-sensitivity route valid for ALL m>1, and the subcritical
-steady counterexample for m>2 large χ₀.
+and the oscillation identity
+
+```text
+|u(x)^(1−m)−u(z)^(1−m)| ≤ (m−1)√G(t).
+```
+
+For a local basin radius `0<δ<u*`, this yields the explicit sufficient
+condition
+
+```text
+χ₀ < r_m(u*,δ) / ((m−1)√μ σ_β),
+```
+
+where `r_m` is the negative-power basin radius and `σ_β` is the sharp
+signal-saturation factor.
+
+## Bifurcation boundary
+
+In the normalized family `β=γ=μ=ν=1`, write
+
+```text
+u = U + ε cos(πx) + ε² a₂ cos(2πx) + …
+χ = χ_lin + ε² χ₂ + …
+```
+
+The explicit Lyapunov–Schmidt coefficient changes sign at:
+
+- `U=0.5`: `m_c=2.866754572143`
+- `U=1`: `m_c=2.936658202934`
+- `U=2`: `m_c=3.005668668328`
+
+For `m>m_c(U)`, the weakly nonlinear coefficient predicts that the first
+steady branch is backward. The repository promotes that prediction to an
+actual local obstruction below the linear threshold for the fixed
+`m=3, U=1` tuple, by proving the branch exactly in a Wiener algebra:
+
+```text
+χ_lin = 2(1+π²),
+χ′(0)=0,
+χ″(0)=−(6π⁴+37π²+25)/(24π²(π²+1)) < 0.
+```
+
+It then proves positivity, Neumann boundary conditions, mass one,
+nonconstancy, both classical steady equations, and failure of global
+attraction.
+
+The direction curve is not a complete necessary-and-sufficient global
+stability diagram. In particular, `m<m_c(U)` only makes this coefficient
+positive; it does not prove stability for every `χ₀<χ_lin`, and the note does
+not assert an all-`m` local branch theorem. The PDF states the remaining
+unclassified region explicitly.
+
+The reproducible calculation and continuation code is
+[`m_supercritical_bifurcation_probe.py`](m_supercritical_bifurcation_probe.py).

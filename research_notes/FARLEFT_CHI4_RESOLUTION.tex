@@ -1,0 +1,553 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={Far-left stability of a chemotaxis front: the sharp threshold chi=4},
+  pdfauthor={ShenWork formalization project}
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1\right\rvert}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\setlength{\emergencystretch}{3em}
+\sloppy
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+\title{Far-Left Stability of a Chemotaxis Front\\
+\large The sharp threshold \(\chi=4\), a localized entropy proof, and the
+necessary basin hypothesis}
+\author{\code{ShenWork} formalization project}
+\date{27 July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For the normalized one-dimensional chemotaxis--logistic equation
+\[
+ u_t=u_{zz}+(c-\chi v_z)u_z
+      +u\bigl(1-\chi v+(\chi-1)u\bigr),\qquad -v_{zz}+v=u,
+\]
+we determine the exact stability threshold of the plateau \((u,v)=(1,1)\)
+behind a traveling front.  The linear dispersion relation is strictly
+negative for every Fourier mode exactly when \(0\le\chi<4\); at \(\chi=4\)
+the mode \(k=1\) is neutral, and for \(\chi>4\) an unstable band appears.
+A nonlinear relative-entropy calculation has the same sharp coefficient
+\(1-\chi^2/16\).  We localize that calculation on the whole line with a
+slowly varying weight and explicit boundary errors, and obtain uniform
+far-left convergence throughout \(0\le\chi<4\), conditional on a persistent
+positive far-left band and the stated derivative compactness.
+
+The basin condition cannot be removed for the natural broad class of
+front-like solutions.  A genuine traveling wave of speed \(s\), observed in
+a faster frame \(c>s\), is positive at the left end on every time slice but
+converges to zero at every fixed point of that frame.  This convective-escape
+example is formalized for an actual PDE orbit already at \(\chi=0\).
+All theorem and counterexample statements cited below are checked in Lean
+4.30.0 / Mathlib v4.30.0, without \code{sorry}; their axiom audits use only
+\code{propext}, \code{Classical.choice}, and \code{Quot.sound}.
+\end{abstract}
+
+\tableofcontents
+
+\section{Problem and normalization}
+
+In the traveling-wave problem the original population--signal system is
+placed in the frame \(z=x-ct\).  In the normalized case
+\[
+  m=\alpha=\gamma=1
+\]
+the equation can be written in either of two equivalent ways:
+\begin{align}
+ u_t
+  &=u_{zz}+(c-\chi v_z)u_z
+    +u\bigl(1-\chi v+(\chi-1)u\bigr),
+    &-v_{zz}+v&=u,                                      \label{eq:expanded}\\
+ u_t
+  &=u_{zz}+cu_z-\chi(uv_z)_z+u(1-u),
+    &-r_{zz}+r&=u-1,\qquad r=v-1.                       \label{eq:divergence}
+\end{align}
+Indeed \(v_{zz}=v-u\), so expanding the divergence in
+\eqref{eq:divergence} gives \eqref{eq:expanded}.
+
+The traveling profile connects
+\[
+  (u,v)=(1,1)\quad\text{at }z=-\infty
+  \qquad\text{to}\qquad
+  (u,v)=(0,0)\quad\text{at }z=+\infty.
+\]
+The question addressed here is not construction of the wave, but stability
+of the left plateau in the moving frame.  The target conclusion is the
+quantified statement
+\begin{equation}
+ \forall\varepsilon>0\ \exists R,T\ \forall t\ge T\ \forall z\le-R,
+ \qquad \abs{u(t,z+ct)-1}<\varepsilon.                  \label{eq:uniform-left}
+\end{equation}
+In Lean this is
+\code{UniformCoMovingLeftEquilibriumConvergence c orbit}.
+
+\section{The exact linear threshold}
+
+\subsection{Dispersion relation}
+
+Write
+\[
+  u=1+p,\qquad v=1+r.
+\]
+The elliptic equation linearizes exactly to
+\[
+  -r_{zz}+r=p.
+\]
+The product \(r_zp_z\) is quadratic, while the linearization of the reaction
+term in \eqref{eq:expanded} is \((\chi-1)p-\chi r\).  Hence
+\[
+  p_t=p_{zz}+cp_z+(\chi-1)p-\chi r.
+\]
+For a Fourier mode \(p=e^{\lambda t+ikz}\), \(s=k^2\ge0\), the resolver gives
+\[
+  \widehat r=\frac{\widehat p}{1+s},
+\]
+and therefore
+\begin{equation}
+ \lambda(s)=-s+ick+(\chi-1)-\frac{\chi}{1+s}.
+ \label{eq:lambda}
+\end{equation}
+The transport \(ick\) affects only the imaginary part.  The real growth rate
+has the useful form
+\begin{equation}
+ d_\chi(s):=\operatorname{Re}\lambda(s)
+   =-1-s+\frac{\chi s}{1+s}.                            \label{eq:dispersion}
+\end{equation}
+
+\subsection{Maximization}
+
+There are two regimes.  If \(0\le\chi\le1\), then
+\[
+  d_\chi'(s)=-1+\frac{\chi}{(1+s)^2}\le0,
+\]
+so the maximum on \(s\ge0\) is \(d_\chi(0)=-1\).
+If \(\chi>1\), the unique critical point is
+\[
+  s_*=\sqrt\chi-1>0,
+\]
+and it is the global maximizer.  Substitution gives
+\begin{equation}
+  d_\chi(s_*)=(\sqrt\chi-1)^2-1
+             =\chi-2\sqrt\chi.                         \label{eq:max}
+\end{equation}
+Consequently
+\[
+  d_\chi(s)<0\quad\text{for all }s\ge0
+  \quad\Longleftrightarrow\quad 0\le\chi<4.
+\]
+At \(\chi=4\), \(s_*=1\), hence \(k_*=\pm1\), and the maximal real part is
+zero.  For \(\chi>4\), the maximizing mode has positive growth.
+
+The formalized general scalar dispersion is
+\[
+  d_{\alpha,\chi\gamma}(s)
+    =-\alpha-s+\frac{\chi\gamma\,s}{1+s}.
+\]
+For \(\chi\gamma>1\), its maximum is
+\[
+  (\sqrt{\chi\gamma}-1)^2-\alpha,
+\]
+so the exact threshold is
+\begin{equation}
+  \chi\gamma<(1+\sqrt\alpha)^2.                         \label{eq:general-threshold}
+\end{equation}
+For \(\chi\gamma\le1\), the maximum is the zero mode
+\(-\alpha\), which is already negative.
+
+\begin{theorem}[sharp dispersion threshold]
+Let \(\alpha>0\) and \(\chi\gamma\ge0\).
+If \(\chi\gamma<(1+\sqrt\alpha)^2\), then
+\(d_{\alpha,\chi\gamma}(s)<0\) for every \(s\ge0\).
+If \(\chi\gamma>(1+\sqrt\alpha)^2\), then some \(s\ge0\)
+has positive growth.  When \(\chi\gamma>1\), the maximum is attained at
+\(s=\sqrt{\chi\gamma}-1\).
+\end{theorem}
+
+\noindent The corresponding Lean theorems are
+\code{dispersion_le_of_lt_turing},
+\code{dispersion_pos_of_gt_turing}, and
+\code{dispersion_attains_at_sqrt} in
+\code{Paper1/WholeLineChiPosDispersionSharp.lean}.
+
+\section{The sharp nonlinear entropy identity}
+
+\subsection{Relative entropy and the exact cancellation}
+
+For \(u>0\), define
+\[
+  h(u)=u-1-\log u,\qquad h'(u)=1-\frac1u.
+\]
+Let
+\[
+  A=\frac{u_z}{u},\qquad W=u-1.
+\]
+On a periodic interval, or before boundary terms are restored, multiply
+\eqref{eq:divergence} by \(h'(u)\) and integrate.  The diffusion term is
+\[
+  \int h'(u)u_{zz}=-\int A^2.
+\]
+The constant drift is a total derivative and integrates to zero.  For the
+chemotaxis term,
+\begin{align*}
+ -\chi\int h'(u)(uv_z)_z
+ &= -\chi\int
+     \left(1-\frac1u\right)(u_zr_z+ur_{zz})\\
+ &= \chi\int A r_z.
+\end{align*}
+The second equality follows by integrating the \(Wr_{zz}\) term by parts;
+this is the cancellation that keeps the logarithmic entropy sharp.  Finally,
+\[
+  \int h'(u)u(1-u)=-\int W^2.
+\]
+Thus
+\begin{equation}
+  \frac{d}{dt}\int h(u)
+   =-\int A^2+\chi\int A r_z-\int W^2.                  \label{eq:entropy-raw}
+\end{equation}
+
+Young's inequality gives
+\[
+  \chi A r_z\le A^2+\frac{\chi^2}{4}r_z^2.
+\]
+The coefficient \(1/4\) in the one-dimensional elliptic resolver estimate is
+also sharp:
+\begin{equation}
+  \int r_z^2\le\frac14\int W^2,
+  \qquad -r_{zz}+r=W.                                  \label{eq:resolver}
+\end{equation}
+In Fourier variables, the multiplier is
+\[
+  \frac{k^2}{(1+k^2)^2}\le\frac14,
+\]
+with equality at \(k^2=1\).  Combining
+\eqref{eq:entropy-raw}--\eqref{eq:resolver} yields
+\begin{equation}
+  \frac{d}{dt}\int h(u)
+  \le-\left(1-\frac{\chi^2}{16}\right)\int(u-1)^2.
+  \label{eq:sharp-entropy}
+\end{equation}
+The coefficient is positive exactly for \(\abs\chi<4\).  In the attractive
+range considered here, this is precisely \(0\le\chi<4\), matching the linear
+threshold and the critical mode.
+
+\noindent Equation \eqref{eq:sharp-entropy} is formalized as
+\code{sharp_entropy_production_le} in
+\code{Paper1/WholeLineChiPosSharpEntropyDissipation.lean}.  The proof is
+genuinely nonlinear: it assumes positivity of \(u\), not smallness of
+\(u-1\).
+
+\subsection{Why Fourier analysis is not enough on the moving far left}
+
+The target \eqref{eq:uniform-left} is a whole-line, moving-half-line
+statement.  A periodic calculation has no boundary flux, while a sharp
+Fourier multiplier does not directly localize to a moving window.  The
+formalization therefore proves the resolver estimate in real space with a
+positive weight \(w\) satisfying
+\begin{equation}
+  \abs{w'(z)}\le\frac1\ell w(z),\qquad \ell>0.           \label{eq:slow-weight}
+\end{equation}
+On a finite interval \([a,b]\), integration by parts gives
+\begin{align}
+ \int_a^b w r_z^2
+ &\le \frac14\int_a^b wW^2
+ +\frac1{2\ell}
+   \left(\int_a^b wr^2+\int_a^b wr_z^2\right) \notag\\
+ &\quad
+ +\abs{w(b)r(b)r_z(b)-w(a)r(a)r_z(a)}.                 \label{eq:weighted-resolver}
+\end{align}
+The leading source coefficient remains exactly \(1/4\); every loss is
+displayed as a slow-weight or endpoint term.
+
+\subsection{The localized production inequality}
+
+Applying the same weighted integration by parts to the population equation
+gives
+\begin{align}
+ \int_a^b w h'(u)u_t
+ &\le
+ -\left(1-\frac{\chi^2}{16}\right)
+     \int_a^b wW^2                                      \label{eq:weighted-main}\\
+ &\quad+\frac{\abs c+\chi+2}{\ell}
+   \left[
+     \int_a^b wh(u)+
+     \int_a^b w(A^2+W^2)
+   \right] \notag\\
+ &\quad+
+ \left(\frac{\chi^2}{4}+\frac{\chi}{2\ell}\right)
+ \left[
+  \frac1{2\ell}\left(\int_a^b wr^2+\int_a^b wr_z^2\right)
+  +B_{\mathrm{res}}
+ \right]
+ +B_{\mathrm{pop}}, \notag
+\end{align}
+where the boundary terms are explicit:
+\begin{align*}
+ B_{\mathrm{res}}
+  &=\abs{w(b)r(b)r_z(b)-w(a)r(a)r_z(a)},\\
+ B_{\mathrm{pop}}
+  &=\bigl[w h'(u)u_z\bigr]_a^b
+    +c\bigl[wh(u)\bigr]_a^b
+    -\chi\bigl[wWr_z\bigr]_a^b.
+\end{align*}
+No unspecified \(O(1/\ell)\) term hides dependence on the solution.  The
+complete inequality is
+\code{weighted_sharp_entropy_production_le}, and
+\eqref{eq:weighted-resolver} is \code{weighted_resolver_le}, both in
+\code{Paper1/WholeLineChiPosWeightedEntropyDissipation.lean}.  The
+instantiation on the canonical Cauchy orbit is
+\code{wholeLineCauchyGlobalU_weighted_sharp_dissipation}; the literal time
+derivative of the entropy window is proved in
+\code{Paper1/WholeLineChiPosWeightedEntropyOrbitDeriv.lean}.
+
+\section{From entropy to far-left convergence}
+
+\subsection{The two nontrivial hypotheses}
+
+The theorem uses a persistent far-left band
+\begin{equation}
+ \exists T,Z\ \forall t\ge T\ \forall z\le Z,\qquad
+   \ell\le u(t,z+ct)\le M,\qquad \ell>0,                \label{eq:band}
+\end{equation}
+formalized as \code{EventualCoMovingLeftBand c ell M orbit}.
+The upper bound is available from the global ceiling.  The important part is
+the time-uniform positive floor.
+
+It also assumes \code{ChiOneFarLeftDerivativeCompactness}: every sequence of
+time shifts \(t_n\to+\infty\) and far-left space shifts \(z_n\to-\infty\)
+carries the first- and second-order population/resolver fields with the
+uniform estimates needed to extract a classical translated limit.  This is
+the precise compactness input; the theorem does not hide it inside a
+statement called ``regularity.''
+
+\subsection{Liouville/compactness mechanism}
+
+The proof follows four steps.
+\begin{enumerate}[leftmargin=2em]
+\item Suppose \eqref{eq:uniform-left} fails.  Then some
+  \(\varepsilon_0>0\) and sequences \(t_n\to\infty\),
+  \(z_n\to-\infty\) satisfy
+  \(\abs{u(t_n,z_n+ct_n)-1}\ge\varepsilon_0\).
+\item Translate the orbit by \((t_n,z_n)\).  The band
+  \eqref{eq:band} gives uniform positive lower and upper bounds on every
+  fixed compact box.  Derivative compactness extracts an entire classical
+  limit.
+\item Apply the localized entropy inequality on successively larger windows.
+  The slow-weight and endpoint errors vanish in the exhaustion.  Since
+  \(1-\chi^2/16>0\), the entire limit has zero displacement dissipation:
+  \(\int (u-1)^2=0\) on every compact interval.
+\item Hence the limit is \(u\equiv1\), contradicting the nontrivial value at
+  the translated origin.
+\end{enumerate}
+
+\begin{theorem}[basin-conditional sharp-range convergence]
+Let \(0\le\chi<4\), \(\ell>0\), and let an orbit satisfy
+\code{EventualCoMovingLeftBand c ell M orbit} and
+\code{ChiOneFarLeftDerivativeCompactness chi c orbit}.  Then
+\code{UniformCoMovingLeftEquilibriumConvergence c orbit}; equivalently,
+\eqref{eq:uniform-left} holds.
+\end{theorem}
+
+\noindent This is
+\code{uniformCoMovingLeftEquilibriumConvergence_chiPos_upto_four_basinConditional}
+in
+\code{Paper1/WholeLineChiPosEntropyFarLeftBasinConditional.lean}.  The same
+file contains the canonical-orbit version.  A separate theorem derives the
+band from a persistent lower-barrier plateau and the global ceiling, leaving
+only the derivative compactness input.
+
+\section{Why the basin floor cannot be omitted}
+
+\subsection{The quantifier distinction}
+
+Positivity at the left endpoint on each time slice says
+\begin{equation}
+ \forall t\ \exists\ell_t>0\ \exists Z_t\ \forall z\le Z_t,
+ \qquad u(t,z+ct)\ge\ell_t.                             \label{eq:slice}
+\end{equation}
+The persistent band needed above says
+\begin{equation}
+ \exists\ell>0\ \exists T,Z\ \forall t\ge T\ \forall z\le Z,
+ \qquad u(t,z+ct)\ge\ell.                              \label{eq:uniform}
+\end{equation}
+The order of the first three quantifiers is reversed.  Classical positivity
+on fixed slices does not imply \eqref{eq:uniform}.
+
+\subsection{Convective escape}
+
+Let \((U,V)\) be a genuine traveling wave of laboratory speed \(s\):
+\[
+  u_{\mathrm{lab}}(t,x)=U(x-st),\qquad
+  v_{\mathrm{lab}}(t,x)=V(x-st),
+\]
+with \(U(-\infty)=1\) and \(U(+\infty)=0\).  Observe it in a frame of speed
+\(c>s\).  The population profile is
+\begin{equation}
+  q(t,z)=u_{\mathrm{lab}}(t,z+ct)
+        =U\bigl(z+(c-s)t\bigr).                         \label{eq:escape}
+\end{equation}
+For every fixed \(t\),
+\[
+  \lim_{z\to-\infty}q(t,z)=1,
+\]
+so \eqref{eq:slice} holds.  On the other hand, for every fixed \(z\),
+\[
+  z+(c-s)t\longrightarrow+\infty,
+  \qquad q(t,z)\longrightarrow0.
+\]
+Therefore, for every proposed \(\ell>0,T,Z\), one can choose \(t\ge T\)
+so that \(q(t,Z)<\ell\).  No persistent floor exists.
+
+This is a speed mismatch, not a failure of pointwise positivity and not an
+artifact of a fabricated trajectory.  The chain rule verifies that
+\((q,W)\), with \(W(t,z)=V(z+(c-s)t)\), solves the exact moving-frame PDE.
+The repository constructs a concrete example at
+\[
+  \chi=0,\qquad s=3,\qquad c=4.
+\]
+
+\begin{proposition}[genuine PDE obstruction]
+There exists a global classical traveling-wave orbit at \(\chi=0\) such that
+every fixed co-moving time slice is strictly positive at the left endpoint,
+but no positive \code{EventualCoMovingLeftBand} exists in the faster frame.
+\end{proposition}
+
+\noindent The pure quantifier theorem is
+\code{convectiveEscapeProfile_no_uniform_left_floor}; the wave-level
+statement is
+\code{IsTravelingWave.convectiveEscape_quantifier_obstruction}; and the
+constructed \(\chi=0\) PDE counterexample is
+\code{exists_genuine_convectiveEscape_counterexample_chi_zero} in
+\code{Paper1/WholeLineConvectiveEscapePDE.lean}.
+
+\subsection{What the counterexample does and does not refute}
+
+It refutes an unconditional theorem quantified over broad front-like data
+and an arbitrary observation speed.  It does not refute the paper's
+wave-stability theorem with a weighted initial-closeness condition to a fixed
+wave.  Such a condition pins the orbit and the frame to the same wave speed;
+the convective-escape orbit is not close to the incorrectly framed wave in
+the required weighted norm.
+
+Thus the optimal sharp-range statement has one of two equivalent kinds of
+extra information:
+\begin{itemize}[leftmargin=2em]
+\item a persistent plateau-band hypothesis such as \eqref{eq:band}; or
+\item a wave-closeness/phase condition strong enough to rule out speed
+  mismatch and imply that band.
+\end{itemize}
+
+\section{Audited alternative routes}
+
+Several plausible approaches were developed far enough to identify their
+exact obstruction.  They are recorded here to distinguish a failed estimate
+from an untried idea.
+
+\paragraph{Localized \(L^1\) mass.}
+For a cutoff of width \(L\), \(\abs{\phi_L'}=O(L^{-1})\), but the transition
+annulus has length \(O(L)\).  With only a uniform bound on the orbit, the
+transport/chemotaxis leakage is \(O(1)\), not \(o(1)\).  Increasing the window
+therefore does not prevent all mass from convecting through its boundary.
+The escape profile \eqref{eq:escape} realizes exactly this mechanism.
+
+\paragraph{Bare \(L^2\) deficit energy.}
+The linearized quadratic form has the correct gap
+\(2\sqrt\chi-\chi\) in the range \(1<\chi<4\), but the nonlinear
+intermediate-amplitude terms are not sign-definite; for \(\chi>2\), the raw
+quadratic deficit energy can increase.  The formalized files
+\code{WholeLineChiPosL2SpectralCoercivity.lean},
+\code{WholeLineChiPosL2DeficitEnergy.lean}, and
+\code{WholeLineChiPosL2FarLeftDecay.lean} isolate the valid shallow-basin
+part.  The logarithmic entropy succeeds because its multiplier cancels the
+nonlinear mobility exactly.
+
+\paragraph{Deep-hole refill.}
+At a sufficiently deep interior minimum, locality of the elliptic resolver
+makes \(v\) small and the logistic reaction positive, uniformly in \(\chi\).
+This KPP-type refill mechanism is formalized in
+\code{WholeLineChiPosDeepHoleRefill.lean}.  It controls symmetric interior
+holes, but it cannot stop a monotone transition layer from crossing the
+boundary of the moving half-line.
+
+\paragraph{Front anchoring.}
+If convergence to the selected traveling wave were already known, the
+far-left floor would follow.  Using that convergence to prove the floor is
+circular in the enlarged \(\chi<4\) range; the available wave-stability
+assembly itself consumes far-left control or weighted closeness.
+
+\paragraph{Parabolic Harnack.}
+A Harnack inequality can propagate a positive local-mass seed into a pointwise
+floor.  It does not create the seed.  The missing estimate is precisely a
+uniform late-time local mass bound in a fixed moving half-line, and convective
+escape shows that no such seed exists without phase/speed information.
+
+\section{Lean theorem map and final conclusion}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.18}
+\begin{tabular}{@{}p{0.36\textwidth}p{0.55\textwidth}@{}}
+\toprule
+Mathematical component & Principal source file / theorem\\
+\midrule
+Sharp dispersion threshold &
+\code{WholeLineChiPosDispersionSharp.lean}:
+\code{dispersion_le_of_lt_turing},
+\code{dispersion_pos_of_gt_turing}\\
+Sharp periodic entropy &
+\code{WholeLineChiPosSharpEntropyDissipation.lean}:
+\code{sharp_entropy_production_le}\\
+Weighted resolver and entropy &
+\code{WholeLineChiPosWeightedEntropyDissipation.lean}:
+\code{weighted_resolver_le},
+\code{weighted_sharp_entropy_production_le}\\
+Canonical-orbit instantiation &
+\code{WholeLineChiPosWeightedEntropyOrbit.lean}:
+\code{wholeLineCauchyGlobalU_weighted_sharp_dissipation}\\
+Basin-conditional convergence &
+\code{WholeLineChiPosEntropyFarLeftBasinConditional.lean}:
+\code{uniformCoMovingLeftEquilibriumConvergence_chiPos_upto_four_basinConditional}\\
+Convective quantifier obstruction &
+\code{WholeLineChiPosFloorQuantifierObstruction.lean}:
+\code{convectiveEscapeProfile_no_uniform_left_floor}\\
+Genuine PDE counterexample &
+\code{WholeLineConvectiveEscapePDE.lean}:
+\code{exists_genuine_convectiveEscape_counterexample_chi_zero}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent The value \(4\) is sharp in three independent senses:
+\begin{enumerate}[leftmargin=2em]
+\item below \(4\), every linear Fourier mode decays; at \(4\), the mode
+  \(k^2=1\) is neutral; above \(4\), a mode grows;
+\item the nonlinear entropy has the exact coercive coefficient
+  \(1-\chi^2/16\);
+\item throughout \(0\le\chi<4\), the localized entropy and compactness
+  argument proves uniform far-left convergence once a persistent plateau
+  band is supplied.
+\end{enumerate}
+The basin/phase condition is structural: without it, a genuine front can
+escape convectively from a faster observation frame.  The resolved theorem is
+therefore the basin-conditional sharp-range result, together with the
+convective-escape counterexample delimiting any unconditional extension.
+
+\end{document}
