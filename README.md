@@ -45,6 +45,11 @@ tactics — the gate above is the authoritative check.)
 Detailed per-headline status and the correct-the-paper record: `OUTSTANDING_MAP.md`,
 `THEOREM_LIST_BY_PAPER.md`.
 
+**Errata.** The formalization proved several printed statements false/overstated for the
+papers' own data class (P1 Lem 4.1/4.2, P2 Thm 1.2 guard / Thm 1.3 frontier / Lem 2.6/2.7, P3
+all-time-$C^1$ overstatement, Thm 2.1 guard), each refuted in Lean and replaced by a proved
+faithful form — see `ERRATA.md`.
+
 ## Beyond-paper results — see `research_notes/`
 
 - **`research_notes/FARLEFT_CHI4_RESOLUTION.md`** — the traveling front's far-left stability
