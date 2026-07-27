@@ -11,8 +11,7 @@
     v ≤ B/μ,    |v'| ≤ 2B,    |v''| ≤ 2B    on the open interior.
 
   Instantiated at `Src = ν·u^γ`, `B = ν·M'^γ` (the regime sup bound), these
-  are exactly the `v`-field bounds of the MinPersistence battle plan
-  (`HANDOFF/minpersistence-design.md`, Phase B4).
+  are exactly the `v`-field bounds needed by the MinPersistence argument.
 
   No `sorry`/`admit`/custom `axiom`.
 -/

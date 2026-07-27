@@ -20,7 +20,7 @@ import ShenWork.Paper3.Statements
 import Mathlib.Analysis.Complex.RealDeriv
 
 open MeasureTheory
-open scoped ENNReal
+open scoped ENNReal lp
 
 noncomputable section
 

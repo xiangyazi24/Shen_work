@@ -16,8 +16,7 @@
   `s = 0`.  For a `GradientMildSolutionData D`, the slice `D.u 0` is UNCONSTRAINED
   (`D.hbound`/`D.hpos` only cover `0 < t`), so the canonical family
   `s ↦ coeffs (logisticLifted p (D.u s))` has no a-priori bound at `s = 0`.  The
-  design (`HANDOFF/hsrc0-splitenv-design.md`, ChatGPT cron verdict) resolves this by
-  the PATCHED family
+  construction resolves this by the PATCHED family
 
       `aP s k := if s ≤ 0 then coeffs (logisticLifted p u₀) k
                  else coeffs (logisticLifted p (D.u s)) k`,

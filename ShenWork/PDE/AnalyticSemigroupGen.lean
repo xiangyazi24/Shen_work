@@ -29,7 +29,7 @@ namespace ShenWork.PDE.AnalyticSemigroupGen
 
 open ShenWork.Paper3
 open ShenWork.PDE.ResolventEstimate
-open scoped ENNReal
+open scoped ENNReal lp
 
 /-! ### Diagonal complex-time semigroup -/
 

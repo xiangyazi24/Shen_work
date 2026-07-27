@@ -1512,7 +1512,8 @@ theorem not_finRotate_symm_lt_of_zero {n : ℕ} {s : Fin n} (hs : s.val = 0)
   intro hlt
   have hval : s.val = ((finRotate n).symm s).val + 1 := by
     have hrot := finRotate_val_of_lt (s := (finRotate n).symm s) (by omega)
-    simpa [Equiv.apply_symm_apply] using hrot
+    rw [Equiv.apply_symm_apply] at hrot
+    exact hrot
   omega
 
 noncomputable def endpointFwd {n : ℕ} (hn : 0 < n) (c : Cell n) : Cell n :=
@@ -1547,9 +1548,7 @@ theorem chainVZ_endpoint_shift {n : ℕ} (hn : 0 < n) (p : Fin n → ℤ)
   funext i
   unfold chainVZ
   have hsymm : (σ * finRotate n).symm i = (finRotate n).symm (σ.symm i) := by
-    apply (σ * finRotate n).injective
-    rw [Equiv.apply_symm_apply]
-    simp [Equiv.Perm.coe_mul]
+    rfl
   rw [hsymm]
   change p i + unitVec (σ ⟨0, hn⟩) i +
       (if ((finRotate n).symm (σ.symm i)).val < u.val then (1 : ℤ) else 0) =
@@ -2110,7 +2109,7 @@ theorem finRotate_symm_zero {n : ℕ} :
     (finRotate (n + 1)).symm (0 : Fin (n + 1)) = Fin.last n := by
   apply (finRotate (n + 1)).injective
   rw [Equiv.apply_symm_apply]
-  rw [finRotate_succ_apply]
+  rw [finRotate_apply]
   ext
   simp [Fin.add_def, Fin.val_last]
 

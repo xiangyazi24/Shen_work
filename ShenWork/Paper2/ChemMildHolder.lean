@@ -4,8 +4,7 @@
   **Paper2 Theorem 1.1 (χ₀ < 0) — P2-T11 hregularize pass-1: heat-semigroup
   Hölder-smoothing by elementary interpolation.**
 
-  GOAL (the route-(c) "pass 1", see `ShenWork/HEADLINES.md`, section
-  "P2-T11 hregularize — CORRECTION + LIVE ROUTE"):  manufacture the fractional
+  GOAL (the route-(c) "pass 1"): manufacture the fractional
   Hölder gain `S(t)f ∈ C^θ` (with `t^{−θ/2}` blow-up) by INTERPOLATING two already
   committed `L∞→L∞` endpoint bounds for the interval-Neumann heat semigroup
   `S(t) = intervalNeumannHeatSemigroup t`:

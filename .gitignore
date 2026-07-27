@@ -1,1 +1,10 @@
-/.lake
+/.lake/
+/.DS_Store
+/.tmp/
+/HANDOFF/
+/answers/
+/scratch/
+/working_notes/
+/SPEC_*.md
+*.lean.draft
+*_chatgpt.md

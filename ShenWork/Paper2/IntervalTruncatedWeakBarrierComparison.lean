@@ -528,10 +528,10 @@ theorem intervalFullSemigroup_pairing_hasDerivAt_dirichlet
     have hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1,
         ‖deriv (deriv S) x‖₊ ≤ ⟨Cq, hCq⟩ := by
       intro x _hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      simpa [S, Cq] using
-        (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_secondDeriv_Linfty_pointwise_inv_t
-          hq hf_meas hf_bound x)
+      exact_mod_cast (by
+        simpa [S, Cq] using
+          (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_secondDeriv_Linfty_pointwise_inv_t
+            hq hf_meas hf_bound x))
     have hlip : LipschitzOnWith ⟨Cq, hCq⟩ (deriv S) (Set.Icc (0 : ℝ) 1) :=
       Convex.lipschitzOnWith_of_nnnorm_hasDerivWithin_le (convex_Icc 0 1) hhas hbd
     have hlip_u : LipschitzOnWith ⟨Cq, hCq⟩ (deriv S)
@@ -2487,8 +2487,7 @@ theorem truncatedDriftFactor_regular
     · intro x hx
       exact (truncatedDriftFactor_hasDerivAt p hw hM hbound hx).hasDerivWithinAt
     · intro x hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      exact truncatedDriftFactor_deriv_abs_le p hw hM hbound hx
+      exact_mod_cast truncatedDriftFactor_deriv_abs_le p hw hM hbound hx
   have hglip : LipschitzOnWith ⟨C1, hC1⟩ (truncatedDriftFactor p w)
       (Set.Icc (0 : ℝ) 1) := by
     rw [← closure_Ioo (zero_ne_one' ℝ)]

@@ -1,5 +1,5 @@
 /-
-  Phase-0 atom (R2′ gate, DESIGN_F2_CONSENSUS.md): QUANTITATIVE cosine
+  Phase-0 atom (R2′ gate): QUANTITATIVE cosine
   coefficient decay for weak-H²ₙ sources.
 
   `intervalWeakH2Neumann_cosineCoeff_quadratic_decay` exposes its constant

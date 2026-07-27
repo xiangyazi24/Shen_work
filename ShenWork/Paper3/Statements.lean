@@ -117,7 +117,7 @@ lemma minimalEquilibrium_reaction_zero_of_a_b_zero
       (p.a - p.b * (minimalEquilibrium p uStar).1 ^ p.α) = 0 := by
   simp [minimalEquilibrium, ha, hb]
 
-/-- FAITHFULNESS NOTE (2026-06-15, deferred — see `FAITHFULNESS_AUDIT.md` §PART 2).
+/-- FAITHFULNESS NOTE (2026-06-15, deferred).
 The paper's "positive global classical solution" (Def 2.1) carries, for each
 time `t ∈ (0, ∞)`, a *per-time spatial floor* `inf_{Ω} u(t, ·) > 0`
 (`∃ η > 0, ∀ x, η ≤ u t x`).  The conjunct below only records pointwise

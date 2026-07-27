@@ -1976,7 +1976,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time_of_contraction
       exact hlip_open.closure (by rwa [closure_Ioo (zero_ne_one' ℝ)])
     -- Convert LipschitzOnWith to the desired pointwise bound
     have hdist := hlip_closed.dist_le_mul _ hx _ hy
-    rwa [Real.dist_eq, Real.dist_eq, NNReal.coe_mk] at hdist
+    simpa [f, Real.dist_eq, NNReal.coe_mk] using hdist
   obtain ⟨G, hG_nn, hiter⟩ := hiter_lip
   refine ⟨G, hG_nn, fun x hx y hy => ?_⟩
   -- Step 2: Derive pointwise convergence from DT's geometric bound

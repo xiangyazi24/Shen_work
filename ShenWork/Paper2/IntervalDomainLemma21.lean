@@ -22,7 +22,7 @@ import ShenWork.Paper2.Statements
 import ShenWork.PDE.HeatKernelGradientEstimates
 
 open MeasureTheory
-open scoped ENNReal
+open scoped ENNReal lp
 
 noncomputable section
 

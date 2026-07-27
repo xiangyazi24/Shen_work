@@ -16,7 +16,7 @@
 
   with NO new analytic estimate — pure assembly of already-formalized pieces.
 
-  ## Mathematical chain (verdict: HANDOFF/chatgpt-k1-r2-verdict.md, SOUND)
+  ## Mathematical chain
 
   1. **Weak restart identity** (`picardLimitRestart_general`) at base `τ := σ/2`
      gives, on a genuine NEIGHBOURHOOD `Ioo τ d ∋ σ`,
@@ -24,7 +24,7 @@
      where `aC` is the soft-clamped source family (= the genuine family on the
      id-zone `[τ,d]`), whose `DuhamelSourceTimeC1` package `srcC` is built by
      `clampedSource_duhamelSourceTimeC1` from per-compact K2 + UNSHIFTED K1.
-     The τ=σ/2 choice is the ChatGPT adversarial correction: it makes the
+     The τ=σ/2 choice makes the
      representation hold on an open two-sided neighbourhood, so the per-mode
      FTC gives a genuine two-sided `HasDerivAt` (not a one-sided one).
 

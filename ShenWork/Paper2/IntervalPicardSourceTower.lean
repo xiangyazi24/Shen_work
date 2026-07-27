@@ -3,8 +3,7 @@
 
   **Tower campaign stage 2 — the tower carrier + induction (items 11–13).**
 
-  The executable WINDOW/LOCAL-WITNESS tower of the ChatGPT tower verdict
-  (`HANDOFF/chatgpt-tower-verdict.md`).  For each Picard level `n`, `TowerLevel`
+  The executable WINDOW/LOCAL-WITNESS tower. For each Picard level `n`, `TowerLevel`
   packages exactly the per-level reproducible content the endgame consumes:
 
     * `hrepr_sum`/`hrepr_agree` — the horizon-local cosine representation triple

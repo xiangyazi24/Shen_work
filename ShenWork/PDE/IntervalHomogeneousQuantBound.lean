@@ -11,8 +11,7 @@
   which are finite for `τ > 0`.  Together with the Duhamel-part gains
   (IntervalDuhamelQuantGain: `C·τ^{1/4}·B` for G2, `C·B` for G1) and the
   explicit logistic source bound `B_log` (IntervalLogisticSourceQuantBound),
-  these are the constants of the n-uniform iterate recursion (R2′ Phase-0,
-  DESIGN_F2_CONSENSUS.md).
+  these are the constants of the n-uniform iterate recursion (R2′ Phase-0).
 
   No `sorry`/`admit`/custom `axiom`.
 -/

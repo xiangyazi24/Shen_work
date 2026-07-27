@@ -86,7 +86,7 @@ theorem truncatedPicardLimit_lipschitzOn_of_window_grad
       exact hlip_open.closure (by
         simpa [closure_Ioo (zero_ne_one' ℝ)] using hcont)
     have hdist := hlip_closed.dist_le_mul x hx y hy
-    rwa [Real.dist_eq, Real.dist_eq, NNReal.coe_mk] at hdist
+    simpa [f, Real.dist_eq, NNReal.coe_mk] using hdist
   intro x hx y hy
   have hball_cont := fun n =>
     truncatedConjugatePicardIter_ball p u₀ DT.hbase_ball DT.hbase_cont

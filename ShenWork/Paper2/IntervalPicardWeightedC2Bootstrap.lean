@@ -6,9 +6,8 @@
 
   ## What the campaign already gives (A–E, landed elsewhere)
 
-  The hybrid weighted bootstrap of the design doc
-  (`HANDOFF/chatgpt-r2-hybrid-verdict.md`) is, structurally, already discharged
-  by `ShenWork.IntervalPicardIterateUniform.picardIterateUniformData_all`:
+  The hybrid weighted bootstrap is, structurally, already discharged by
+  `ShenWork.IntervalPicardIterateUniform.picardIterateUniformData_all`:
 
     * **(A) Kernel first-derivative envelope** — `n`-free, no recursion:
         `|∂ₓ lift(uₙ(t)) x| ≤ G1profile p M t`

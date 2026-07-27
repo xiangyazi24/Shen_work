@@ -207,7 +207,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- (the per-compact K2 / PDE-smoothing estimate), NOT the right-continuity `hcontP`
   -- (which the inclusive producer takes as its own named-satisfiable hypothesis).  No
   -- patched `DuhamelSourceL1ContOn` producer exists either (the global ℓ¹ envelope is
-  -- unfillable for merely-continuous `u₀` as `s → 0⁺`; see `HANDOFF/hsrc0-splitenv-design.md`).
+  -- unfillable for merely-continuous `u₀` as `s → 0⁺`).
   -- **F2 iterate-side bootstrap** (circularity broken).  The package is now built
   -- by `IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates`, whose `hM`
   -- comes DIRECTLY from `D` (no representation) and whose per-window `env` comes
@@ -977,8 +977,8 @@ It is a FRAGMENT, restricted on FIVE axes, and is CONDITIONAL:
      residual `TowerConeAnalyticResidual = { hsrc0 }`.  `hsrc0` is the paper's
      genuine analytic content (time-C¹ / ℓ¹ Duhamel-source regularity) carried
      as a HYPOTHESIS, and its as-typed satisfiability (an ℓ¹ envelope at `s = 0`
-     for merely-continuous `u₀`) is OPEN — see HANDOFF/k1-wall-plan.md.  Until
-     `hsrc0` is discharged or shown satisfiable, this is a conditional theorem.
+     for merely-continuous `u₀`) is OPEN. Until `hsrc0` is discharged or shown
+     satisfiable, this is a conditional theorem.
 Per the formalization-playbook verdict labels: statement layer FAITHFUL (the
 PDE, both equations, Neumann BC, genuine C² regularity, the exact (1.21) bound
 are all real, not hollow), parameter coverage FRAGMENT, residual CONDITIONAL.

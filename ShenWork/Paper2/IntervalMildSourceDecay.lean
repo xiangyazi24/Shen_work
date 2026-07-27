@@ -99,7 +99,7 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
   have hrpow_bound : u_val ^ (γ - 2) ≤ c ^ (γ - 2) + M ^ (γ - 2) := by
     rcases le_or_gt (γ - 2) (0 : ℝ) with hr | hr
     · exact le_add_of_le_of_nonneg
-        (Real.rpow_le_rpow_of_exponent_nonpos hc hcu hr)
+        (Real.rpow_le_rpow_of_nonpos hc hcu hr)
         (Real.rpow_nonneg hM_pos.le _)
     · exact le_add_of_nonneg_of_le
         (Real.rpow_nonneg hc.le _)
@@ -114,7 +114,7 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
       have hrpow1_bound : u_val ^ (γ - 1) ≤ c ^ (γ - 1) + M ^ (γ - 1) := by
         rcases le_or_gt (γ - 1) (0 : ℝ) with h1 | h1
         · exact le_add_of_le_of_nonneg
-            (Real.rpow_le_rpow_of_exponent_nonpos hc hcu h1)
+            (Real.rpow_le_rpow_of_nonpos hc hcu h1)
             (Real.rpow_nonneg hM_pos.le _)
         · exact le_add_of_nonneg_of_le
             (Real.rpow_nonneg hc.le _)

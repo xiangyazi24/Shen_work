@@ -3,8 +3,8 @@
 The Lean 4 formalization uncovered several printed statements that are **false or overstated**
 for the papers' own data class. Each is *formally refuted* in Lean (a machine-checked
 counterexample or impossibility theorem), and a **faithful corrected form is proved**. Per the
-project's rule, correcting a wrong printed statement counts as completing it. Axiom audits are
-clean-3 (`[propext, Classical.choice, Quot.sound]`).
+project's rule, correcting a wrong printed statement counts as completing it. Axiom audits use
+exactly the standard classical axioms `[propext, Classical.choice, Quot.sound]`.
 
 ## Paper 1 (whole-line traveling wave)
 
@@ -59,4 +59,4 @@ clean-3 (`[propext, Classical.choice, Quot.sound]`).
   (subcritical steady pattern); the sharp divider is a bifurcation threshold, not the `m=2`
   energy-method limit. See `research_notes/GENERAL_M_STABILITY_RESOLUTION.md`.
 
-See `OUTSTANDING_MAP.md` and `THEOREM_LIST_BY_PAPER.md` for the full per-item record.
+The repository README lists the public headline results and their principal Lean entry points.

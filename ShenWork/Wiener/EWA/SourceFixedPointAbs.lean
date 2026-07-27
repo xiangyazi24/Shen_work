@@ -33,8 +33,8 @@ Neumann heat flow** `UniformFloor (heatEWA u₀E) δ`.
 
 The **heat-floor positivity** `UniformFloor (heatEWA u₀E) δ` from `u₀ ≥ δ > 0` is NOT
 committed in the current tree: the heat eval bridge for `heatEWA` (the EWA analogue of
-`intervalFullSemigroupOperator_eq_cosineHeatValue`) is flagged MODERATE/gated in
-`ROUTE.md` (it needs `hkernel = intervalNeumannFullKernel_eq_cosineKernel` plus the
+`intervalFullSemigroupOperator_eq_cosineHeatValue`) needs
+`hkernel = intervalNeumannFullKernel_eq_cosineKernel` plus the
 `FullKernelIntegralInterchange` Prop), and `HeatFlow.lean` is a pure construction
 (norm bound only, no eval, no positivity, no constant preservation).  The MISSING lemma
 is precisely:

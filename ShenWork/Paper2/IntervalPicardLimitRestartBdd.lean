@@ -37,8 +37,6 @@
   + continuity on `[0, τ]` + per-compact summable envelopes on `[a', τ]`,
   `a' > 0`.  This file proves the weak-chain entry points against it.
 
-  Design: HANDOFF/hsrc0-splitenv-design.md (+ ChatGPT cron consult 2026-06-09).
-
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak

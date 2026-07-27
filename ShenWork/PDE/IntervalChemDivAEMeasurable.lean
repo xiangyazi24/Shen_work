@@ -314,7 +314,7 @@ theorem intervalDomainChemDiv_v_lift_aestronglyMeasurable
       rcases eq_or_lt_of_le hx_Icc.1 with h0 | h0
       · exact Or.inl h0.symm
       · exact Or.inr (le_antisymm hx_Icc.2 (hx_notIoo h0))
-    refine le_antisymm ?_ (zero_le _)
+    refine le_antisymm ?_ bot_le
     calc
       μ (((Set.Ioo (0 : ℝ) T)ᶜ ×ˢ (Set.univ : Set ℝ)) ∪
             ((Set.univ : Set ℝ) ×ˢ (Set.Ioo (0 : ℝ) 1)ᶜ))
@@ -383,7 +383,7 @@ theorem aestronglyMeasurable_of_eqOn_interiorSlab
       rcases eq_or_lt_of_le hx_Icc.1 with h0 | h0
       · exact Or.inl h0.symm
       · exact Or.inr (le_antisymm hx_Icc.2 (hx_notIoo h0))
-    refine le_antisymm ?_ (zero_le _)
+    refine le_antisymm ?_ bot_le
     calc
       μ (((Set.Ioo (0 : ℝ) T)ᶜ ×ˢ (Set.univ : Set ℝ)) ∪
             ((Set.univ : Set ℝ) ×ˢ (Set.Ioo (0 : ℝ) 1)ᶜ))

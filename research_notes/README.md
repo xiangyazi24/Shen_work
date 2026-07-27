@@ -1,8 +1,9 @@
 # Shen chemotaxis trilogy — beyond-paper research notes
 
-Results proved this campaign that go beyond the three papers (all Lean-formalized on `main`,
-clean-3, unless marked). The papers cover m=1 and χ near χ*≈1; these notes push both frontiers
-to their sharp limits and record the counterexamples that delimit them.
+Results that go beyond the three papers. The Lean theorems use exactly the standard classical
+axioms `[propext, Classical.choice, Quot.sound]`. The papers cover m=1 and χ near χ*≈1;
+these notes push both frontiers to their sharp limits and record the counterexamples that
+delimit them.
 
 - **`FARLEFT_CHI4_RESOLUTION.md`** — the traveling-front far-left stability. Sharp threshold
   χ=4 (dispersion + entropy); whole-line weighted sharp-entropy engine; basin-conditional χ<4
@@ -14,7 +15,6 @@ to their sharp limits and record the counterexamples that delimit them.
   (subcritical steady pattern). The sharp divider m_c(U)≈2.9 is a bifurcation threshold, cross-
   validated analytic + numerical. Bifurcation probe script alongside.
 
-Each note lists the exact Lean theorem names + files. Two items are separable follow-on
-projects: (i) formalizing the m=3 steady counterexample (branch `m3-counterexample`, in
-progress); (ii) discharging the far-left first-order derivative residual (needs parabolic
-interior Schauder, absent from Mathlib).
+Each note lists the exact Lean theorem names and source files. The `m=3` steady
+counterexample is mechanized as
+`minimal_equilibrium_global_stability_false_m3`.

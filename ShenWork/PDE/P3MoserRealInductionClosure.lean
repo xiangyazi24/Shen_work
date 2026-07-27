@@ -8,8 +8,7 @@ This file discharges the order-theoretic part of
 right-extension step force `BoundedBeforeOnSubinterval` all the way up to `T`.
 
 The remaining conversion from pointwise-in-time existential bounds to a single
-uniform constant is kept as a named residual, as allowed by
-`CODEX_SPEC_task32_real_induction_closure.md`.
+uniform constant is kept as a named residual.
 -/
 
 open Set

@@ -12,8 +12,8 @@ Scope note (faithful, not an over-claim): the paper states Theorem 1.2 for
 invokes Proposition 1.2, whose positive branch the paper proves only for
 `χ < 1/2`.  Our positive branch therefore carries `χ < 1/2` — exactly the range
 the source's own argument supports.  The window `[1/2, χ*)` is recorded as open
-in HANDOFF/CAPSTONE_REGISTRY.md (no linear instability, no bifurcation and no
-known counterexample there, so it is plausibly true but unproved).
+(no linear instability, bifurcation, or known counterexample is available
+there, so it is plausibly true but unproved).
 -/
 
 open Filter Topology MeasureTheory

@@ -10,9 +10,9 @@
   concrete finite-dimensional Euclidean instance is real — it typechecks and
   is clean-3 — rather than merely asserted in prose.
 
-  Everything else in Paper2/Paper3 requires the smooth-domain trace/Green layer
-  and the domain-linked Neumann elliptic/semigroup theory catalogued in
-  `HANDOFF/generalN-phase1-report.md`; those are NOT provided here.
+  Everything else in Paper2/Paper3 requires a smooth-domain trace/Green layer
+  and domain-linked Neumann elliptic/semigroup theory; those are NOT provided
+  here.
 -/
 import ShenWork.PDE.EuclideanDomainBasic
 import ShenWork.Paper3.Statements

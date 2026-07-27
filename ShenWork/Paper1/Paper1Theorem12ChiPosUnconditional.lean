@@ -18,7 +18,6 @@ stability assembly intersected with the `χ < chiStar` needed to build the wave;
 `chiStar p < ½` occurs for large `m`).  Speed `2 < c` is derived from the stability
 speed threshold via `two_lt_of_stabilitySpeedBaseline_lt`.
 
-Clears **O-P1-1** of `OUTSTANDING_MAP.md`.
 -/
 
 namespace ShenWork.Paper1

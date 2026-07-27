@@ -6,8 +6,8 @@ import ShenWork.Paper1.WavePositiveConstruction
 
 `paper1_negativeConstruction_selfStep_reg` upgrades the genuine negative Schauder
 construction `paper1_negativeConstruction_selfStep` so that it ALSO exposes
-`TravelingWaveRegularity p c U (frozenElliptic p U)`.  This is the crux `O-P1-1b`
-of `OUTSTANDING_MAP.md`: the stationary self-step producer only outputs
+`TravelingWaveRegularity p c U (frozenElliptic p U)`.  The key point is that the
+stationary self-step producer only outputs
 `Differentiable U` and `Differentiable (deriv U)`, not `ContDiff 2 U`; but the
 `ContDiff 2` is already present at the fixed-point step data
 (`PaperLocalFixedStepData.contDiff_two`) and, since the fixed point `W` IS the

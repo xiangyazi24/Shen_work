@@ -16,7 +16,7 @@ conditions `α + 1 ≥ m + γ + (β≠0)γ` and `α + 1 ≥ m + 2γ`.
 The neutral / repulsive case `χ₀ ≤ 0` is supplied as an explicit
 per-branch hypothesis (`hchiNonpos`): its faithful general-`m` proof needs the
 mass-floor + max-decay chain rebuilt for the `u^m` flux, a separate scoped
-frontier (`DOCTRINE_thm24_fable.md`, item 7 note).
+frontier.
 -/
 
 open Filter Set Topology

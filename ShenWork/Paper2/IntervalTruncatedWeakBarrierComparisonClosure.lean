@@ -406,8 +406,7 @@ theorem deriv_absolutelyContinuousOnInterval_of_contDiff_two
     · intro x _hx
       exact (hF.differentiable_deriv_two x).hasDerivAt.hasDerivWithinAt
     · intro x hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      exact hbound x hx
+      exact_mod_cast hbound x hx
   have hIcc : Set.Icc (0 : ℝ) 1 = Set.uIcc (0 : ℝ) 1 := by
     rw [Set.uIcc_of_le (by norm_num)]
   rw [hIcc] at hlip
@@ -439,8 +438,7 @@ private theorem polynomial_eval_absolutelyContinuousOnInterval (P : ℝ[X]) :
     · intro x _hx
       exact (P.hasDerivAt x).hasDerivWithinAt
     · intro x hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      exact hbound x hx
+      exact_mod_cast hbound x hx
   have hIcc : Set.Icc (0 : ℝ) 1 = Set.uIcc (0 : ℝ) 1 := by
     rw [Set.uIcc_of_le (by norm_num)]
   rw [hIcc] at hlip
@@ -1837,8 +1835,8 @@ def truncatedSquareHeatBarrier_terminalTestData
     · intro x hx
       exact (hreg.hasDerivAt x hx).hasDerivWithinAt
     · intro x hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      simpa [(hreg.hasDerivAt x hx).deriv] using hGwbound x hx
+      exact_mod_cast (by
+        simpa [(hreg.hasDerivAt x hx).deriv] using hGwbound x hx)
   have hw_lip : ∀ x ∈ Set.Icc (0 : ℝ) 1, ∀ y ∈ Set.Icc (0 : ℝ) 1,
       |intervalDomainLift W x - intervalDomainLift W y| ≤
         Gw * |x - y| := by

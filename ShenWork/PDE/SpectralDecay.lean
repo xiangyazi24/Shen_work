@@ -21,7 +21,7 @@ open MeasureTheory
 open ShenWork.Paper3
 open ShenWork.IntervalDomain
 open ShenWork.HeatKernelGradientEstimates
-open scoped ENNReal
+open scoped ENNReal lp
 
 /-! ### Interval Neumann spectrum -/
 

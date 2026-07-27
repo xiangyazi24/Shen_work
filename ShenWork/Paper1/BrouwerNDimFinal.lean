@@ -282,7 +282,7 @@ theorem finRotate_val_of_lt {n : ℕ} {s : Fin n} (hs : s.val + 1 < n) :
   cases n with
   | zero => exact absurd s.isLt (by omega)
   | succ m =>
-    rw [finRotate_succ_apply]
+    rw [finRotate_apply]
     have : ((s + 1 : Fin (m + 1))).val = (s.val + 1) % (m + 1) := by
       rw [Fin.add_def]; simp
     rw [this, Nat.mod_eq_of_lt hs]
@@ -324,7 +324,7 @@ theorem chainVZ_endpoint_shift {n : ℕ} (hn : 0 < n) (p : Fin (n + 1) → ℤ)
         · exact h
       have hslt : s.val < n := s.isLt
       have hsub : s.val - 1 < n := by omega
-      refine ⟨(finRotate n).symm s, ?_, by simp⟩
+      refine ⟨(finRotate n).symm s, ?_, Equiv.apply_symm_apply (finRotate n) s⟩
       have hrw : (finRotate n ⟨s.val - 1, hsub⟩).val = (s.val - 1) + 1 :=
         finRotate_val_of_lt (s := ⟨s.val - 1, hsub⟩) (by simpa using (by omega : s.val - 1 + 1 < n))
       have hpred : (finRotate n).symm s = ⟨s.val - 1, hsub⟩ := by

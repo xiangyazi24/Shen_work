@@ -41,6 +41,7 @@ open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverWeight_s
 open ShenWork.IntervalResolverPositivity
   (laplaceHeatTrunc_nonneg laplaceHeatTrunc_tendsto)
 open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
+open scoped lp
 
 /-- A dummy `CM2Params` carrying an arbitrary `μ > 0` in its `μ` field (all other
 fields are inert positives), used only to instantiate the `p.μ`-parametrized

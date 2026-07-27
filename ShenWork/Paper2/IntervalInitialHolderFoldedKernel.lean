@@ -88,7 +88,7 @@ theorem heatKernelNoiseMeasure_isProbability {t : ℝ} (ht : 0 < t) :
     _ = ENNReal.ofReal (∫ z : ℝ, (heatKernelNN t ht z : ℝ) ∂volume) := by
           exact lintegral_coe_eq_integral (heatKernelNN t ht) hint
     _ = ENNReal.ofReal (∫ z : ℝ, heatKernel t z ∂volume) := by
-          simp [heatKernelNN]
+          rfl
     _ = 1 := by
           rw [heatKernel_integral_eq_one ht, ENNReal.ofReal_one]
 
@@ -160,7 +160,7 @@ theorem heatKernelNoiseMeasure_integral_eq_foldedHeatIntegral
           =
           ∫ z : ℝ, heatKernel t z *
             f (addCircleTwoFoldTranslatePoint x z).1 ∂volume
-        simp [heatKernelNN]
+        rfl
 
 /-- On one period-2 cell in the real noise variable, the folded real-line
 integral is exactly the sum of the two image branches over `[0,1]`. -/

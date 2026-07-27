@@ -39,8 +39,8 @@ already carry (no new analysis):
 **What this file does NOT supply: the uniform bound `Mdot`.**  `Mdot` is a SINGLE
 constant dominating `|coupledChemDivAdot p u s n|` for ALL `n`.  `coupledChemDivAdot`
 is the cosine coefficient of `∂ₜ(∂ₓB) = ∂ₓ(B_t)`; a uniform-in-`n` bound on these
-coefficients is precisely the EWA-T-3 time-chain residual (`B_t ∈ A⁰`, the `gDeriv`
-operator-norm route — DOCTRINE §6/§(d), RUN_LOG "B8 time-chain@EWA3").  It is NOT
+coefficients is precisely the EWA-T-3 time-chain residual (`B_t ∈ A⁰`, via the
+`gDeriv` operator-norm route).  It is NOT
 dischargeable from per-mode smoothness alone (smoothness gives continuity of each
 `s ↦ adot s n`, hence a per-`n` bound on `[0,T]`, but NOT a uniform-in-`n` one).  See
 the residual theorem `chemDivAdot_Mdot_residual` below, which isolates exactly the

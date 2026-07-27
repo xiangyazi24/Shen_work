@@ -19,7 +19,7 @@ open ShenWork.Paper3
 open ShenWork.HeatKernelGradientEstimates
 open ShenWork.PDE.ResolventEstimate
 open ShenWork.PDE.AnalyticSemigroupGen
-open scoped ENNReal
+open scoped ENNReal lp
 
 abbrev unitIntervalL2 : Type :=
   ShenWork.PDE.SpectralDecay.unitIntervalL2

@@ -682,7 +682,11 @@ theorem
           (htimeOp (t := t) (x := x) ht)
         have htimeEq : deriv (fun s : ℝ => A x - we s x) t =
             -paperWaveOperator p c (we t) (we t) x := by
-          simpa using htimeDeriv.deriv
+          calc
+            deriv (fun s : ℝ => A x - we s x) t =
+                0 - paperWaveOperator p c (we t) (we t) x :=
+              htimeDeriv.deriv
+            _ = -paperWaveOperator p c (we t) (we t) x := zero_sub _
         rw [htimeEq]
         linarith [hsub, hop'])
       (by
@@ -738,7 +742,11 @@ theorem
           (htimeOp (t := t) (x := X) ht)
         have htimeEq : deriv (fun s : ℝ => A X - we s X) t =
             -paperWaveOperator p c (we t) (we t) X := by
-          simpa using htimeDeriv.deriv
+          calc
+            deriv (fun s : ℝ => A X - we s X) t =
+                0 - paperWaveOperator p c (we t) (we t) X :=
+              htimeDeriv.deriv
+            _ = -paperWaveOperator p c (we t) (we t) X := zero_sub _
         rw [htimeEq]
         linarith [hsub, hop])
   intro t ht x

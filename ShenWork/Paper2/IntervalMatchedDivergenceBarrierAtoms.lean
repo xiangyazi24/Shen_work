@@ -720,8 +720,7 @@ theorem squareHeatBarrierSliceRegularData_of_semigroup
     · intro x hx
       exact (hhas x hx).hasDerivWithinAt
     · intro x hx
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      exact hbound x hx
+      exact_mod_cast hbound x hx
   have hIcc : Set.Icc (0 : ℝ) 1 = Set.uIcc (0 : ℝ) 1 := by
     rw [Set.uIcc_of_le (by norm_num)]
   have hwac : AbsolutelyContinuousOnInterval w 0 1 := by
@@ -1209,8 +1208,7 @@ theorem squareHeatBarrier_timeIncrement_pairing_tendsto
       exact (squareHeatBarrier_time_hasDerivAt_rep
         (M := M) (t := r) (x := x) (hhalf.trans_le hr.1) hf hK hx).hasDerivWithinAt
     · intro r hr
-      rw [← NNReal.coe_le_coe, coe_nnnorm, NNReal.coe_mk, Real.norm_eq_abs]
-      exact htime_bound r hr x hx
+      exact_mod_cast htime_bound r hr x hx
   have hsmall : ∀ᶠ q in nhdsWithin 0 (Set.Ioi 0), q < t / 2 :=
     Filter.Eventually.filter_mono nhdsWithin_le_nhds (Iio_mem_nhds hhalf)
   have hVmeas : ∀ᶠ q in nhdsWithin 0 (Set.Ioi 0),

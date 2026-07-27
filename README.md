@@ -1,76 +1,93 @@
-# Shen_work — a Lean 4 formalization of the chemotaxis–logistic trilogy
+# A Lean formalization of the chemotaxis–logistic trilogy
 
-A machine-checked (Lean 4 / Mathlib v4.29.1) formalization of the Chen–Ruau–Shen
-chemotaxis–logistic papers — the traveling-wave stability paper and the two bounded-domain
-papers — together with a body of **beyond-paper** results that push the theorems to their sharp
-limits and record the counterexamples that delimit them.
+This repository formalizes three papers on parabolic–elliptic chemotaxis models with
+logistic sources in Lean 4 and Mathlib. It contains the paper-level results, corrected
+versions of several overstated statements, and machine-checked results that sharpen or
+delimit the original theorems.
 
-## Integrity gate (verified)
+The project is pinned to **Lean 4.30.0 / Mathlib v4.30.0**.
 
-- **0 `sorry`, 0 custom `axiom`, 0 `admit`, 0 `native_decide`** in all tracked Lean sources.
-- Every root-imported headline replays with exactly **`[propext, Classical.choice, Quot.sound]`**
-  (Lean's classical logic — no `sorryAx`, no `Lean.ofReduceBool`).
-- **Root build:** `lake build ShenWork` completes clean (~10,122 jobs).
-- **Size:** 2,243 tracked `.lean` files, ~843k lines.
+## Source papers
 
-Verify: `lake build ShenWork`, then `#print axioms <headline>` for any theorem below.
-(The docstring phrases "No sorry/admit/native_decide" and the word "admissible" are prose, not
-tactics — the gate above is the authoritative check.)
+| Part | Paper | Local copy |
+|---|---|---|
+| 1 | Wenxian Shen, [*Existence, uniqueness, stability, and monotonicity of traveling waves for repulsion/attraction chemotaxis models with logistic type source*](https://arxiv.org/abs/2605.04401) | [`papers/shen-traveling-waves.pdf`](papers/shen-traveling-waves.pdf) |
+| 2 | Le Chen, Ian Ruau, and Wenxian Shen, [*Chemotaxis models with signal-dependent sensitivity and a logistic-type source, I: Boundedness and global existence*](https://arxiv.org/abs/2512.14858) | [`papers/chen-ruau-shen-boundedness-global-existence.pdf`](papers/chen-ruau-shen-boundedness-global-existence.pdf) |
+| 3 | Le Chen, Ian Ruau, and Wenxian Shen, [*Chemotaxis models with signal-dependent sensitivity and a logistic-type source, II: Persistence and stabilization*](https://arxiv.org/abs/2604.02599) | [`papers/chen-ruau-shen-persistence-stabilization.pdf`](papers/chen-ruau-shen-persistence-stabilization.pdf) |
 
-## The three papers (formalized headlines)
+## Integrity
 
-**Paper 1 — whole-line traveling-wave stability.**
-- Thm 1.1: front construction (Schauder / Rothe), producing the traveling wave used downstream.
-- Thm 1.2: co-moving stability of the front, **unconditional in the wave** for all sign regimes
-  — `paper1_Theorem_1_2_chi_pos_unconditional` (0<χ<min(½,χ*)), `..._chi_zero_...`,
-  `..._chi_neg_...`; only the inherent `WeightedL2InitialCloseness` remains.
-- Thm 1.3: uniqueness within the regular wave class (`Theorem_1_3_amended_*`); inherent
-  hypotheses only.
-- Prop 1.1: global Cauchy existence + a-priori bounds, **fully unconditional**
-  (`paper1_Proposition_1_1_unconditional : Proposition_1_1`, all χ).
-- Prop 1.2, Lemmas 4.1, 5.1–5.3: proved.
+- The tracked Lean sources contain no `sorry`, custom `axiom`, `admit`, or
+  `native_decide`.
+- Root-imported headline theorems use exactly the standard classical axioms
+  `[propext, Classical.choice, Quot.sound]`; they do not use `sorryAx` or
+  `Lean.ofReduceBool`.
+- `lake build ShenWork` checks the complete root import closure.
 
-**Paper 2 — bounded-interval mild / linear-flux theory.**
-- Thm 1.1: `Theorem_1_1 intervalDomain` end-to-end. Thm 1.2: unconditional. Thm 1.3: case-(iv)
-  closed for m≥1 (`Theorem_1_3_intervalDomainM_caseIV_with_paperConstants`) and for m<1
-  (`Theorem_1_3_intervalDomainM_of_m_lt_one`); the analytic lemma stack (Lem 2.1–2.4, incl.
-  full-q semigroup via subordination) is proved. Some printed statements were shown *overstated*
-  for the paper's data class and replaced with faithful forms (see `OUTSTANDING_MAP.md`).
+To reproduce the build:
 
-**Paper 3 — bounded-interval nonlinear-flux (u^m) theory.**
-- Thm 2.1–2.5 eventual stability on `intervalDomainM`, general-m. Thm 2.2/2.3/2.4 and the full
-  Thm 2.5 (`intervalDomainM_Theorem_2_5_EventualGlobalStabilityFormula`, both minimal disjuncts)
-  proved for **1 ≤ m ≤ 2**, plus the small-sensitivity route for **all m > 1**.
+```bash
+lake exe cache get
+lake build ShenWork
+```
 
-Detailed per-headline status and the correct-the-paper record: `OUTSTANDING_MAP.md`,
-`THEOREM_LIST_BY_PAPER.md`.
+## Formalized results
 
-**Errata.** The formalization proved several printed statements false/overstated for the
-papers' own data class (P1 Lem 4.1/4.2, P2 Thm 1.2 guard / Thm 1.3 frontier / Lem 2.6/2.7, P3
-all-time-$C^1$ overstatement, Thm 2.1 guard), each refuted in Lean and replaced by a proved
-faithful form — see `ERRATA.md`.
+### Part 1: traveling waves on the whole line
 
-## Beyond-paper results — see `research_notes/`
+- Theorem 1.1: traveling-front construction by the Schauder and Rothe routes.
+- Theorem 1.2: co-moving stability in all sign regimes, with only the inherent
+  weighted initial-closeness hypothesis.
+- Theorem 1.3: uniqueness within the regular traveling-wave class.
+- Proposition 1.1: unconditional global Cauchy existence and a priori bounds for all
+  sensitivity signs.
+- Proposition 1.2 and Lemmas 2.1–2.5, 4.1, and 5.1–5.3.
 
-- **`research_notes/FARLEFT_CHI4_RESOLUTION.md`** — the traveling front's far-left stability
-  driven to its sharp limit: threshold **χ = 4** (dispersion + entropy coincide), a whole-line
-  weighted sharp-entropy engine, a **basin-conditional χ<4 convergence theorem (optimal)**, and
-  a **formalized convective-escape counterexample proving unconditional χ<4 is false**.
-- **`research_notes/GENERAL_M_STABILITY_RESOLUTION.md`** — Paper 3 Theorem 2.5 for general m:
-  stable for `1≤m≤2` and all `m>1` small-χ₀; **false for m ≳ 2.9 large χ₀** (subcritical steady
-  pattern). The sharp divider `m_c(U) ≈ 2.9` is a *bifurcation* threshold, cross-validated
-  analytically (Lyapunov–Schmidt) and numerically (script alongside).
-- **`research_notes/README.md`** — index.
+The principal stability entry points are
+`paper1_Theorem_1_2_chi_pos_unconditional`,
+`paper1_Theorem_1_2_chi_zero_unconditional`, and
+`paper1_Theorem_1_2_chi_neg_unconditional`.
 
-## Follow-on projects (separable)
+### Part 2: bounded-interval linear-flux theory
 
-1. ~~Formalizing the m=3 steady counterexample~~ **DONE** — `minimal_equilibrium_global_stability_false_m3` (`Paper3/MinimalSteadyWACounterexample.lean`), clean-3: `∃χ, 0<χ<χ_lin ∧ ¬(minimal equilibrium globally attracts bounded mass-1 orbits)` for m=3, via amplitude-factored Banach IFT in the repo's Wiener algebra.
-2. Discharging the far-left first-order derivative residual — blocked on a parabolic interior
-   Schauder theorem absent from Mathlib.
+- Theorem 1.1 on `intervalDomain`, end to end.
+- The corrected Theorem 1.2, unconditionally.
+- Theorem 1.3 case (iv) for every positive diffusion exponent: the
+  `m ≥ 1` and `m < 1` branches are both closed.
+- The analytic stack behind the headline results, including the full-exponent
+  Neumann semigroup estimates obtained by subordination.
 
-## Layout
+Several printed statements require corrected formulations for the paper's data class;
+these are recorded in [`ERRATA.md`](ERRATA.md).
 
-`ShenWork/Paper1/`, `ShenWork/Paper2/`, `ShenWork/Paper3/` — the three papers; `ShenWork/PDE/`,
-`ShenWork/Wiener/` — shared analytic infrastructure (heat kernels, Wiener/Fourier algebra,
-resolvers, Agmon/Moser). `ShenWork.lean` is the root import closure. Planning/audit docs and
-`research_notes/` at the top level.
+### Part 3: bounded-interval nonlinear-flux theory
+
+- Eventual forms of Theorems 2.1–2.5 on `intervalDomainM`.
+- The full Theorem 2.5 formula for `1 ≤ m ≤ 2`.
+- The small-sensitivity route for every `m > 1`.
+- A mechanized `m = 3` subcritical steady-pattern counterexample:
+  `minimal_equilibrium_global_stability_false_m3`.
+
+The formalization distinguishes the valid eventual statements from the printed
+all-time `C¹` claims, which are too strong for merely continuous initial data.
+
+## Beyond the papers
+
+The [`research_notes/`](research_notes/) directory records two sharp-limit results:
+
+- [`FARLEFT_CHI4_RESOLUTION.md`](research_notes/FARLEFT_CHI4_RESOLUTION.md): the sharp
+  far-left threshold `χ = 4`, an optimal basin-conditional convergence theorem, and a
+  formalized convective-escape counterexample to unconditional convergence.
+- [`GENERAL_M_STABILITY_RESOLUTION.md`](research_notes/GENERAL_M_STABILITY_RESOLUTION.md):
+  the general-`m` stability picture, including the mechanized `m = 3` counterexample and
+  the bifurcation threshold detected analytically and numerically.
+
+## Repository layout
+
+- `ShenWork/Paper1/`, `ShenWork/Paper2/`, `ShenWork/Paper3/`: paper-specific
+  formalizations.
+- `ShenWork/PDE/`, `ShenWork/Wiener/`: shared analytic infrastructure.
+- `ShenWork.lean`: root import closure.
+- `ERRATA.md`: false or overstated printed statements and their proved replacements.
+- `research_notes/`: results beyond the original papers.
+- `papers/`: the three source papers.

@@ -60,8 +60,8 @@ NOT dischargeable from the fixed point in the current tree):
 
 * the **realization** `realizes`: the real-space slice equals its cosine synthesis
   `u t x = Σₙ b̂ₙ(t) cos(nπx)` on `[0,1]`.  This is the eval of `Φ(u*)`; its heat leg
-  needs the UNCOMMITTED heat eval bridge `heatEWA_evalST_eq`
-  (`SourceFixedPointAbs.lean:42`, flagged MODERATE/gated in `ROUTE.md`).
+  needs the heat eval bridge `heatEWA_evalST_eq` described in
+  `SourceFixedPointAbs.lean`.
 * the capstone's discharge inputs (chemDiv early/window/continuity inputs — the
   `hcap*` fields, exactly the hypotheses of `chemDiv_eigenvalueSummableOn_uncond`);
 * the **logistic source** time-`C¹` package `logSrc : DuhamelSourceTimeC1 …`;
