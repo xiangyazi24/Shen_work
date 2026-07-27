@@ -31,6 +31,16 @@ lake exe cache get
 lake build ShenWork
 ```
 
+The public PDFs are generated directly from the committed LaTeX sources.
+With [Tectonic](https://tectonic-typesetting.github.io/), rebuild them from
+the repository root with:
+
+```bash
+tectonic ERRATA.tex --outdir .
+tectonic research_notes/FARLEFT_CHI4_RESOLUTION.tex --outdir research_notes
+tectonic research_notes/GENERAL_M_STABILITY_RESOLUTION.tex --outdir research_notes
+```
+
 ## Formalized results
 
 ### Part 1: traveling waves on the whole line
