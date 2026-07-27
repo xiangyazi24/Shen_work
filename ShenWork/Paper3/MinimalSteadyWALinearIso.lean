@@ -352,7 +352,7 @@ def criticalComplementEquiv :
 /-! ## Add the sensitivity direction -/
 
 def implicitCoordinateForwardCLM :
-    BranchComplement × ℝ →L[ℝ] BranchComplement × ℝ :=
+    BranchImplicit →L[ℝ] BranchImplicit :=
   criticalComplementCLM.comp
       (ContinuousLinearMap.fst ℝ BranchComplement ℝ) |>.prod
     (((-1 / minimalChiLin : ℝ) •
@@ -360,7 +360,7 @@ def implicitCoordinateForwardCLM :
         (ContinuousLinearMap.snd ℝ BranchComplement ℝ))
 
 def implicitCoordinateInverseCLM :
-    BranchComplement × ℝ →L[ℝ] BranchComplement × ℝ :=
+    BranchImplicit →L[ℝ] BranchImplicit :=
   complementInverseCLM.comp
       (ContinuousLinearMap.fst ℝ BranchComplement ℝ) |>.prod
     (((-minimalChiLin : ℝ) •
@@ -369,7 +369,7 @@ def implicitCoordinateInverseCLM :
 
 @[simp]
 theorem implicitCoordinateForwardCLM_apply
-    (p : BranchComplement × ℝ) :
+    (p : BranchImplicit) :
     implicitCoordinateForwardCLM p =
       (criticalComplementCLM p.1,
         (-1 / minimalChiLin) * p.2) :=
@@ -377,7 +377,7 @@ theorem implicitCoordinateForwardCLM_apply
 
 @[simp]
 theorem implicitCoordinateInverseCLM_apply
-    (p : BranchComplement × ℝ) :
+    (p : BranchImplicit) :
     implicitCoordinateInverseCLM p =
       (complementInverseCLM p.1,
         (-minimalChiLin) * p.2) :=
@@ -404,18 +404,18 @@ theorem implicitCoordinate_rightInverse :
     field_simp
 
 def implicitCoordinateEquiv :
-    (BranchComplement × ℝ) ≃L[ℝ] (BranchComplement × ℝ) :=
+    BranchImplicit ≃L[ℝ] BranchImplicit :=
   ContinuousLinearEquiv.equivOfInverse implicitCoordinateForwardCLM
     implicitCoordinateInverseCLM implicitCoordinate_leftInverse
       implicitCoordinate_rightInverse
 
 /-- The exact implicit-variable derivative equivalence. -/
 def implicitLinearEquiv :
-    (BranchComplement × ℝ) ≃L[ℝ] BranchSpace :=
+    BranchImplicit ≃L[ℝ] BranchSpace :=
   implicitCoordinateEquiv.trans branchCoordinates
 
 @[simp]
-theorem implicitLinearEquiv_apply (p : BranchComplement × ℝ) :
+theorem implicitLinearEquiv_apply (p : BranchImplicit) :
     implicitLinearEquiv p =
       (criticalComplementCLM p.1).1 -
         (p.2 / minimalChiLin) • firstModeMeanZero 2 := by
