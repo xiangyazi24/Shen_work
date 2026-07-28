@@ -1,0 +1,1 @@
+n=1: beta=37/108, gamma=7/144, delta=0

@@ -1,0 +1,1 @@
+n=0: beta=1/4, gamma=0, delta=0
