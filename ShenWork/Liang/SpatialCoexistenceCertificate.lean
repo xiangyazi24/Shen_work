@@ -632,6 +632,287 @@ theorem corridorFloorCertificate_forces_growth_restriction
     linarith
   exact ⟨by simpa using hmargin, hαhalf, hρlarge⟩
 
+/-! ## Finite-block persistence certificates -/
+
+/-- A finite linear block certificate supplies the eventual positive corridor
+floor needed by the weak-competition coexistence theorem.  The resident
+species is bounded only by one; no extinction assumption is used. -/
+theorem favorableCorridor_positive_floor_of_finiteBlockCertificate
+    {K ρ : ℝ → ℝ}
+    {ρplus α c front εblock εwide radius S
+      slope η seed L R leftAdvance rightAdvance minWidth : ℝ}
+    {focal competitor : ℕ → ℝ → ℝ}
+    {N P : ℕ}
+    (hK : CompactProbabilityKernel K radius)
+    (hρtail : ExactFavorableTail ρ ρplus S)
+    (hρplus : 0 < ρplus)
+    (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hstep : ∀ n x,
+      focal (n + 1) x =
+        heterogeneousCorrectedStep K ρ α c n
+          (focal n) (competitor n) x)
+    (hfocal_continuous : ∀ n, Continuous (focal n))
+    (hfocal_nonneg : ∀ n x, 0 ≤ focal n x)
+    (hfocal_le_one : ∀ n x, focal n x ≤ 1)
+    (hcompetitor_continuous : ∀ n, Continuous (competitor n))
+    (hcompetitor_nonneg : ∀ n x, 0 ≤ competitor n x)
+    (hcompetitor_le_one : ∀ n x, competitor n x ≤ 1)
+    (cert :
+      FiniteBlockCertificate K slope η seed (P + 1)
+        leftAdvance rightAdvance minWidth)
+    (hadvance : leftAdvance ≤ rightAdvance)
+    (hwidth : minWidth ≤ R - L)
+    (hη : 0 ≤ η) (hsmall : η + α ≤ 1)
+    (hslope : 0 ≤ slope)
+    (hslope_le :
+      slope ≤ favorableLowerSlope ρplus α 1 η)
+    (hinitial : ∀ y ∈ Set.Icc L R, seed ≤ focal N y)
+    (hsupport_ahead :
+      ∀ (k t : ℕ), t < P + 1 → ∀ y,
+        0 < finiteLinearOrbit K slope
+          (intervalFloor seed
+            (L + leftAdvance * (k : ℝ))
+            (R + rightAdvance * (k : ℝ))) t y →
+        S ≤ y - c * ((N + (P + 1) * k + t : ℕ) : ℝ))
+    (hc : 0 ≤ c)
+    (hεblock : 0 < εblock) (hεgap : εblock < εwide)
+    (hleft :
+      (c + εblock) * ((P + 1 : ℕ) : ℝ) > leftAdvance)
+    (hright :
+      (front - εblock) * ((P + 1 : ℕ) : ℝ) < rightAdvance) :
+    ∃ Nfloor, ∀ n, Nfloor ≤ n →
+      ∀ y ∈ favorableCorridor c front εwide n,
+        seed ≤ focal n y := by
+  have hfavorable :
+      ∀ (k t : ℕ), t < P + 1 → ∀ y,
+        0 < finiteLinearOrbit K slope
+          (intervalFloor seed
+            (L + leftAdvance * (k : ℝ))
+            (R + rightAdvance * (k : ℝ))) t y →
+        competitor (N + (P + 1) * k + t) y ≤ 1 ∧
+        ρplus ≤ ρ
+          (y - c * ((N + (P + 1) * k + t : ℕ) : ℝ)) := by
+    intro k t ht y hy
+    constructor
+    · exact hcompetitor_le_one _ y
+    · rw [hρtail.eq_favorable _ (hsupport_ahead k t ht y hy)]
+  have hblockfloor_raw :=
+    finiteBlockCertificate_blockCorridor_floor
+      (focal := focal) (competitor := competitor)
+      (Kfun := K) (ρfun := ρ)
+      (α := α) (c := c) (ρ₀ := ρplus) (δ := 1)
+      (η := η) (slope := slope) (seed := seed)
+      (L := L) (R := R)
+      (leftAdvance := leftAdvance) (rightAdvance := rightAdvance)
+      (minWidth := minWidth) (front := front) (ε := εblock)
+      (N := N) (block := P + 1)
+      cert hadvance hwidth hstep hK.integrable hK.continuous hK.nonneg
+      hρtail.continuous hρtail.lower hα0
+      hfocal_continuous hfocal_nonneg hfocal_le_one
+      hcompetitor_continuous hcompetitor_nonneg
+      hρplus (by norm_num) hη (by simpa using hsmall)
+      hslope hslope_le hinitial hfavorable hleft hright
+  have hblockfloor :
+      ∃ Kbase, ∀ (k : ℕ), Kbase ≤ k →
+        ∀ x ∈ favorableCorridor c front εblock
+            (N + k + P * k),
+          seed ≤ focal (N + k + P * k) x := by
+    rcases hblockfloor_raw with ⟨Kbase, hKbase⟩
+    refine ⟨Kbase, ?_⟩
+    intro k hk x hx
+    have htime :
+        N + (P + 1) * k = N + k + P * k := by ring
+    rw [← htime] at hx ⊢
+    exact hKbase k hk x hx
+  have hηpos : 0 < η :=
+    cert.seed_pos.trans_le cert.seed_le_eta
+  have hseedq : seed ≤ perturbedCarrying α 1 := by
+    unfold perturbedCarrying
+    linarith [cert.seed_le_eta]
+  apply blockCorridor_floor_implies_all_times
+    (focal := focal) (competitor := competitor)
+    (Kfun := K) (ρfun := ρ)
+    (α := α) (c := c) (front := front)
+    (εwide := εblock) (εtarget := εwide)
+    (radius := radius) (ρ₀ := ρplus) (δ := 1) (seed := seed)
+    (N := N) (P := P)
+    hstep hK.integrable hK.continuous hK.nonneg hK.mass_one
+    hK.radius_nonneg hK.support
+    hρtail.continuous hρtail.lower hα0
+    hfocal_continuous hfocal_nonneg hfocal_le_one
+    hcompetitor_continuous hcompetitor_nonneg
+  · exact ⟨0, fun n _hn x => hcompetitor_le_one n x⟩
+  · exact hc
+  · exact hρplus
+  · exact ⟨S, fun s hs => by
+      rw [hρtail.eq_favorable s hs]⟩
+  · exact hεblock
+  · exact hεgap
+  · norm_num
+  · simpa using hα1
+  · exact cert.seed_pos
+  · exact hseedq
+  · exact hblockfloor
+
+/-- All finite-dimensional data needed to generate a positive moving-corridor
+floor for one species.  Kernel regularity, the exact favorable tail, and the
+two-species recurrence remain outside this structure because they are shared
+by the final coexistence theorem. -/
+structure FiniteBlockCorridorCertificate
+    (K : ℝ → ℝ) (ρplus α c front εwide S : ℝ)
+    (focal : ℕ → ℝ → ℝ) where
+  blockEpsilon : ℝ
+  slope : ℝ
+  eta : ℝ
+  seed : ℝ
+  seedLeft : ℝ
+  seedRight : ℝ
+  leftAdvance : ℝ
+  rightAdvance : ℝ
+  minWidth : ℝ
+  startTime : ℕ
+  blockMinusOne : ℕ
+  finite_block :
+    FiniteBlockCertificate K slope eta seed (blockMinusOne + 1)
+      leftAdvance rightAdvance minWidth
+  advance_order : leftAdvance ≤ rightAdvance
+  initial_width : minWidth ≤ seedRight - seedLeft
+  eta_nonneg : 0 ≤ eta
+  low_density : eta + α ≤ 1
+  slope_nonneg : 0 ≤ slope
+  slope_below_response :
+    slope ≤ favorableLowerSlope ρplus α 1 eta
+  initial_seed :
+    ∀ y ∈ Set.Icc seedLeft seedRight, seed ≤ focal startTime y
+  favorable_support :
+    ∀ (k t : ℕ), t < blockMinusOne + 1 → ∀ y,
+      0 < finiteLinearOrbit K slope
+        (intervalFloor seed
+          (seedLeft + leftAdvance * (k : ℝ))
+          (seedRight + rightAdvance * (k : ℝ))) t y →
+      S ≤
+        y - c *
+          ((startTime + (blockMinusOne + 1) * k + t : ℕ) : ℝ)
+  blockEpsilon_pos : 0 < blockEpsilon
+  blockEpsilon_lt_wide : blockEpsilon < εwide
+  left_speed :
+    (c + blockEpsilon) * ((blockMinusOne + 1 : ℕ) : ℝ) >
+      leftAdvance
+  right_speed :
+    (front - blockEpsilon) * ((blockMinusOne + 1 : ℕ) : ℝ) <
+      rightAdvance
+
+/-- Bundled form of
+`favorableCorridor_positive_floor_of_finiteBlockCertificate`. -/
+theorem favorableCorridor_positive_floor_of_finiteBlockCorridorCertificate
+    {K ρ : ℝ → ℝ}
+    {ρplus α c front εwide radius S : ℝ}
+    {focal competitor : ℕ → ℝ → ℝ}
+    (hK : CompactProbabilityKernel K radius)
+    (hρtail : ExactFavorableTail ρ ρplus S)
+    (hρplus : 0 < ρplus)
+    (hα0 : 0 ≤ α) (hα1 : α < 1)
+    (hstep : ∀ n x,
+      focal (n + 1) x =
+        heterogeneousCorrectedStep K ρ α c n
+          (focal n) (competitor n) x)
+    (hfocal_continuous : ∀ n, Continuous (focal n))
+    (hfocal_nonneg : ∀ n x, 0 ≤ focal n x)
+    (hfocal_le_one : ∀ n x, focal n x ≤ 1)
+    (hcompetitor_continuous : ∀ n, Continuous (competitor n))
+    (hcompetitor_nonneg : ∀ n x, 0 ≤ competitor n x)
+    (hcompetitor_le_one : ∀ n x, competitor n x ≤ 1)
+    (hc : 0 ≤ c)
+    (data :
+      FiniteBlockCorridorCertificate
+        K ρplus α c front εwide S focal) :
+    ∃ Nfloor, ∀ n, Nfloor ≤ n →
+      ∀ y ∈ favorableCorridor c front εwide n,
+        data.seed ≤ focal n y := by
+  exact
+    favorableCorridor_positive_floor_of_finiteBlockCertificate
+      hK hρtail hρplus hα0 hα1 hstep
+      hfocal_continuous hfocal_nonneg hfocal_le_one
+      hcompetitor_continuous hcompetitor_nonneg hcompetitor_le_one
+      data.finite_block data.advance_order data.initial_width
+      data.eta_nonneg data.low_density
+      data.slope_nonneg data.slope_below_response
+      data.initial_seed data.favorable_support
+      hc data.blockEpsilon_pos data.blockEpsilon_lt_wide
+      data.left_speed data.right_speed
+
+/-- **Corrected Theorem 2.3 from two finite linear block certificates.**
+
+Each species supplies a finite certificate for simultaneous growth and
+dispersal while the other species is bounded by one.  The certificates first
+produce positive floors on the common moving corridor; the finite-depth
+rectangle comparison then gives uniform convergence to the coexistence
+equilibrium on every strictly narrower corridor. -/
+theorem certified_weak_competition_spatial_coexistence_of_finiteBlockCertificates
+    {K₁ K₂ ρ₁ ρ₂ : ℝ → ℝ}
+    {ρ₁plus ρ₂plus α₁ α₂ c front εwide εtarget radius S₁ S₂ : ℝ}
+    {u v : ℕ → ℝ → ℝ}
+    (hK₁ : CompactProbabilityKernel K₁ radius)
+    (hK₂ : CompactProbabilityKernel K₂ radius)
+    (hρ₁tail : ExactFavorableTail ρ₁ ρ₁plus S₁)
+    (hρ₂tail : ExactFavorableTail ρ₂ ρ₂plus S₂)
+    (hρ₁plus : 0 < ρ₁plus) (hρ₂plus : 0 < ρ₂plus)
+    (hα₁0 : 0 < α₁) (hα₁1 : α₁ < 1)
+    (hα₂0 : 0 < α₂) (hα₂1 : α₂ < 1)
+    (hc : 0 ≤ c)
+    (hεwide : 0 < εwide) (hεgap : εwide < εtarget)
+    (hcorridor : c + 2 * εtarget ≤ front)
+    (horbit :
+      CorrectedTwoSpeciesOrbit K₁ K₂ ρ₁ ρ₂ α₁ α₂ c u v)
+    (huCertificate :
+      FiniteBlockCorridorCertificate
+        K₁ ρ₁plus α₁ c front εwide S₁ u)
+    (hvCertificate :
+      FiniteBlockCorridorCertificate
+        K₂ ρ₂plus α₂ c front εwide S₂ v) :
+    (∀ n, (favorableCorridor c front εtarget n).Nonempty) ∧
+      UniformlyTendstoOnMovingSets u
+        (favorableCorridor c front εtarget)
+        (coexistenceU α₁ α₂) ∧
+      UniformlyTendstoOnMovingSets v
+        (favorableCorridor c front εtarget)
+        (coexistenceV α₁ α₂) := by
+  obtain ⟨Nu, hNu⟩ :=
+    favorableCorridor_positive_floor_of_finiteBlockCorridorCertificate
+      hK₁ hρ₁tail hρ₁plus hα₁0.le hα₁1
+      horbit.u_step horbit.u_continuous horbit.u_nonneg
+      horbit.u_le_one horbit.v_continuous horbit.v_nonneg
+      horbit.v_le_one hc huCertificate
+  obtain ⟨Nv, hNv⟩ :=
+    favorableCorridor_positive_floor_of_finiteBlockCorridorCertificate
+      hK₂ hρ₂tail hρ₂plus hα₂0.le hα₂1
+      horbit.v_step horbit.v_continuous horbit.v_nonneg
+      horbit.v_le_one horbit.u_continuous horbit.u_nonneg
+      horbit.u_le_one hc hvCertificate
+  have huEventually :
+      ∀ᶠ n : ℕ in atTop,
+        ∀ x ∈ favorableCorridor c front εwide n,
+          huCertificate.seed ≤ u n x :=
+    eventually_atTop.2 ⟨Nu, hNu⟩
+  have hvEventually :
+      ∀ᶠ n : ℕ in atTop,
+        ∀ x ∈ favorableCorridor c front εwide n,
+          hvCertificate.seed ≤ v n x :=
+    eventually_atTop.2 ⟨Nv, hNv⟩
+  have hpersistence :
+      ∀ᶠ n : ℕ in atTop,
+        ∀ x ∈ favorableCorridor c front εwide n,
+          huCertificate.seed ≤ u n x ∧
+            hvCertificate.seed ≤ v n x := by
+    filter_upwards [huEventually, hvEventually] with n huFloor hvFloor
+    exact fun x hx => ⟨huFloor x hx, hvFloor x hx⟩
+  exact certified_weak_competition_spatial_coexistence
+    hK₁ hK₂ hρ₁tail hρ₂tail hρ₁plus hρ₂plus
+    hα₁0 hα₁1 hα₂0 hα₂1 hc hεwide hεgap hcorridor
+    huCertificate.finite_block.seed_pos
+    hvCertificate.finite_block.seed_pos
+    horbit hpersistence
+
 /-- A per-species minorization certificate produces the eventual corridor
 floor needed by the finite-depth coexistence argument.  The competitor bound
 is fixed to one and comes directly from the invariant unit square. -/
@@ -777,6 +1058,9 @@ section AxiomAudit
 #print axioms eventuallyUniformlyTrappedByEverySeededEnvelope_of_compactSupport
 #print axioms certified_weak_competition_spatial_coexistence
 #print axioms corridorFloorCertificate_forces_growth_restriction
+#print axioms favorableCorridor_positive_floor_of_finiteBlockCertificate
+#print axioms favorableCorridor_positive_floor_of_finiteBlockCorridorCertificate
+#print axioms certified_weak_competition_spatial_coexistence_of_finiteBlockCertificates
 #print axioms favorableCorridor_positive_floor_of_certificate
 #print axioms certified_weak_competition_spatial_coexistence_of_minorization
 

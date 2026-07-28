@@ -1097,6 +1097,8 @@ import ShenWork.Liang.StateSpace
 import ShenWork.Liang.GlobalDynamicsTools
 import ShenWork.Liang.FastHabitatExtinction
 import ShenWork.Liang.ScalarPersistence
+import ShenWork.Liang.MultistepPersistence
+import ShenWork.Liang.FiniteBlockSpreading
 import ShenWork.Liang.IntermediateSpeedExclusion
 import ShenWork.Liang.SeededEnvelope
 import ShenWork.Liang.WeakCompetitionCoexistence

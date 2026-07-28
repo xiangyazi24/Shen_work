@@ -112,8 +112,9 @@ These reduced speeds, rather than merely
 two-species coexistence theorem.
 
 The proved certificate theorems below deliberately use different, stronger
-spatial hypotheses: Theorem 2.2 uses compact support and a kernel
-minorization, while Theorem 2.3 additionally uses exact favorable tails.
+spatial hypotheses: Theorems 2.2 and 2.3 use compact support and finite
+low-density linear block certificates, while Theorem 2.3 additionally uses
+exact favorable tails.
 
 ## 4. Corrected statements and current formal status
 
@@ -153,18 +154,28 @@ for which the moment or logarithm may be undefined.
 
 ### Corrected Theorem 2.2: proved certified-front version
 
-`correctedIntermediateSpeedExclusion_of_minorization` proves the nonlinear
-fast-component relaxation from uniform extinction of the slow component.
-The assembly theorem
-`correctedIntermediateSpeedExclusion_of_bcf_extinction_and_minorization`
-takes instead the bounded-continuous norm limit
-\(\|\mathrm{slow}_n\|_\infty\to0\), exactly the output shape of the
-component extinction theorem, and discharges the pointwise extinction bridge
-internally. For the fast component it assumes the corrected IDE recurrence,
-a continuous compactly supported probability kernel, a nonnegative kernel
-minorization on a finite displacement window, a compact positive seed, a
-favorable-tail lower bound, and explicit fixed-floor reproduction and
-corridor geometry inequalities. It concludes
+The main theorem is
+`correctedIntermediateSpeedExclusion_of_finiteBlockCertificate`. On a
+low-density interval it bounds the nonlinear favorable response below by a
+linear multiplier. A `FiniteBlockCertificate` then asserts that one finite
+iterate of this linear growth-and-dispersal recursion maps every sufficiently
+wide interval floor above the same floor on a translated, expanded interval.
+Unlike the old one-step argument, this certificate counts all dispersal paths
+during the block and imposes no fixed-floor reproduction inequality on a
+single kernel window.
+
+`finiteBlockCertificate_of_reference_interval_and_power_bound` further proves
+that nonnegativity is automatic, the universal upper bound reduces to finitely
+many scalar power inequalities, and the substantive expansion estimate need
+only be checked on the standard interval \([0,W]\). Translation invariance, a
+sliding subinterval, and positivity then give the estimate for every interval
+of width at least \(W\).
+
+Given this finite linear certificate, the corrected IDE recurrence, a
+continuous compactly supported probability kernel, a compact positive seed,
+uniform extinction of the slow species, favorable-environment bounds on the
+positive support of the linear subsolution, and explicit block-speed
+inequalities, Lean proves
 
 \[
 \mathrm{UniformlyExtinct}(\mathrm{slow})
@@ -180,12 +191,13 @@ E_n=[(c+\varepsilon_{\rm target})n,\,
      (\mathrm{front}-\varepsilon_{\rm target})n].
 \]
 
-The theorem also proves internally that the seed expansion stays in the
-certified favorable tail. The bridge
-`uniformlyExtinct_of_bcf_norm_tendsto_zero` is the exact step used by the
-assembly theorem.
+The block floor is first obtained at an arithmetic progression of times.
+Finite kernel range propagates it across every residue class, after which a
+scalar Beverton--Holt comparison gives uniform convergence to one.
 
-The formal obstruction
+The older theorem `correctedIntermediateSpeedExclusion_of_minorization` and
+its bounded-continuous-norm assembly remain valid stronger sufficient
+results. Their formal obstruction
 `minorization_reproduction_forces_growth_margin` also shows that the
 one-step reproduction certificate necessarily satisfies
 
@@ -195,16 +207,19 @@ one-step reproduction certificate necessarily satisfies
           -2\alpha\,\delta_{\mathrm{seed}}\bigr).
 \]
 
-In particular, it forces \(\rho_0>1\). Thus the certificate is a genuinely
-strong sufficient hypothesis, not a consequence of merely having a positive
-favorable growth rate.
+In particular, it forces \(\rho_0>1\). The separate sequential
+transport-then-recovery experiment does not repair this problem:
+`multistep_minorization_positive_corridor_infeasible` proves that its
+assumptions are incompatible with a nonempty positive-width corridor for a
+compactly supported kernel. This failure motivates the simultaneous
+finite-block recursion.
 
 This result is not the sharp statement
 \(c_1^*<c<c_2^*\). In particular:
 
 - the slow component's extinction is supplied separately rather than derived
   from the displayed speed ordering;
-- `front` is a speed certified by the seed/minorization inequalities and is
+- `front` is a speed certified by the finite-block inequalities and is
   not identified with \(c_2^*\);
 - no general leading-edge extinction theorem at speeds above \(c_2^*\) is
   asserted.
@@ -249,14 +264,18 @@ convergence of both components to \((u^*,v^*)\) on
 `constant_speed_observer_tendsto_of_uniform_corridor` then gives convergence
 along every constant-speed observer that remains in this corridor.
 
-The further theorem
-`certified_weak_competition_spatial_coexistence_of_minorization` replaces the
-two eventual-floor assumptions by one `CorridorFloorCertificate` per species.
-Each certificate contains a kernel minorization window, compact positive seed,
-one-step reproduction inequality, and explicit geometry keeping its expanding
-interval inside the exact favorable tail. This is an additional numerical
-sufficient condition, not an automatic consequence of
-\(0<\alpha_i<1\). The theorem
+The constructive theorem
+`certified_weak_competition_spatial_coexistence_of_finiteBlockCertificates`
+replaces the two eventual-floor assumptions by one
+`FiniteBlockCorridorCertificate` per species. Each certificate contains a
+finite linear block estimate, a compact positive seed, and explicit geometry
+keeping the positive support of every intermediate linear iterate inside the
+exact favorable tail. Once the two certificates are supplied, the theorem
+covers the full weak-competition range \(0<\alpha_i<1\).
+
+The older theorem
+`certified_weak_competition_spatial_coexistence_of_minorization` is a still
+stronger one-step sufficient criterion. Its theorem
 `corridorFloorCertificate_forces_growth_restriction` proves the exact
 necessary inequality
 
@@ -276,11 +295,10 @@ Neither theorem is a general sharp-threshold theorem. Although
 `corrected_weak_competition_uniform_corridor_convergence` still assumes the
 global fixed-depth seeded-envelope comparison. The main spatial theorem
 discharges that comparison under its finite-range, exact-tail, and
-eventual-floor hypotheses; the minorization corollary produces those floors
-when its two numerical certificate assumptions are supplied. Their `front`
-is not identified with \(c_{\rm coex}\). The implication from
-\(c<c_{\rm coex}\) and merely nonzero initial data to the required eventual
-floors, or to the stronger numerical certificates, remains unproved.
+eventual-floor hypotheses; the finite-block corollary produces those floors
+from its two finite linear certificates. Their `front` is not identified with
+\(c_{\rm coex}\). The implication from \(c<c_{\rm coex}\) and merely nonzero
+initial data to the required finite-block certificates remains unproved.
 
 ## 5. What is already proved in Lean
 
@@ -301,10 +319,12 @@ column lists direct project imports and omits Mathlib imports.
 | `ShenWork/Liang/GlobalDynamicsTools.lean` | `CorrectedModel` | Algebraic response tests and the weak-competition rectangle squeeze |
 | `ShenWork/Liang/FastHabitatExtinction.lean` | `StateSpace`, `LinearDeterminacy` | Admissible extinction weights, component extinction, and the top theorem `correctedIDEOrbit_fastHabitat_extinction` |
 | `ShenWork/Liang/ScalarPersistence.lean` | `IDEComparison` | Beverton–Holt convergence, positivity propagation, interval seeds, an expanding-interval positive floor, and the necessary growth margin for a one-step minorization certificate |
-| `ShenWork/Liang/IntermediateSpeedExclusion.lean` | `ScalarPersistence`, `MovingCorridor`, `StateSpace` | Compact-support comparison, corridor floor and convergence, the norm-to-extinction bridge, the conditional relaxation theorem, and the assembled result `correctedIntermediateSpeedExclusion_of_bcf_extinction_and_minorization` |
+| `ShenWork/Liang/MultistepPersistence.lean` | `ScalarPersistence` | Attenuated floor propagation, exact Beverton–Holt recovery estimates, and variable-floor interval transport |
+| `ShenWork/Liang/FiniteBlockSpreading.lean` | `ScalarPersistence`, `MovingCorridor` | Low-density linear lower bound, reduction of the block expansion check to one reference interval, nonlinear comparison through one block, and iterated moving-corridor floors |
+| `ShenWork/Liang/IntermediateSpeedExclusion.lean` | `MultistepPersistence`, `FiniteBlockSpreading`, `MovingCorridor`, `StateSpace` | Block-time and all-time corridor propagation; corrected 2.2 from a finite linear block certificate; the one-step special case; and the obstruction to sequential transport then recovery |
 | `ShenWork/Liang/SeededEnvelope.lean` | `GlobalDynamicsTools` | Valid nested seeded envelopes and `seededEnvelopeOrbit_tendsto_coexistence` |
 | `ShenWork/Liang/WeakCompetitionCoexistence.lean` | `GlobalDynamicsTools`, `LinearDeterminacy`, `MovingCorridor`, `SeededEnvelope` | Admissible reduced speeds, homogeneous and seeded-envelope convergence, the conditional corridor theorem `corrected_weak_competition_uniform_corridor_convergence`, and the observer corollary |
-| `ShenWork/Liang/SpatialCoexistenceCertificate.lean` | `IntermediateSpeedExclusion`, `WeakCompetitionCoexistence` | Exact finite-depth spatial comparison; `certified_weak_competition_spatial_coexistence` from eventual positive wider-corridor floors; the stronger-assumption minorization corollary; and the proof that its one-step certificate forces \(\alpha_i<1/2\) and \(\rho_i^+>1\) |
+| `ShenWork/Liang/SpatialCoexistenceCertificate.lean` | `IntermediateSpeedExclusion`, `WeakCompetitionCoexistence` | Exact finite-depth spatial comparison; coexistence from eventual wider-corridor floors; the two-species finite-block certificate theorem; the stronger one-step minorization corollary; and its growth obstruction |
 
 ## 6. What remains for the sharp proposal-level package
 
@@ -315,15 +335,15 @@ column lists direct project imports and omits Mathlib imports.
    surviving-species positive floor directly from
    \(c_1^*<c<c_2^*\) under a general linear-determinacy theorem. Then identify
    the certified `front` with the sharp \(c_2^*\) and add the leading-edge
-   extinction statement. The present proof instead uses compact support and
-   a finite-window minorization certificate.
+   extinction statement. The present proof reduces the lower-spreading part
+   to a finite linear convolution-power certificate.
 3. For Corrected Theorem 2.3, derive the two eventual positive corridor floors
    from
    \(c<c_{\rm coex}\), general admissible kernels, and nontrivial initial data.
-   Then identify the corridor front with the sharp reduced speed. The present
-   spatial theorem assumes compact support and exact favorable tails; the
-   one-step minorization corollary is only one additional sufficient route to
-   the required floors.
+   Equivalently, derive the two finite linear block certificates introduced
+   here from the reduced variational speeds. Then identify the corridor front
+   with the sharp reduced speed. The present spatial theorem assumes compact
+   support and exact favorable tails.
 
 The proved certificate arguments are discrete-time corridor arguments. They
 do not follow directly from a continuous-time nonlocal PDE theorem.

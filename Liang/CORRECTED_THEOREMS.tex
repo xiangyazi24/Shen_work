@@ -26,7 +26,7 @@
 \title{A Corrected Integrodifference Competition Model\\
 in a Shifting Habitat}
 \author{Xiang Huang \and Liang Kong}
-\date{July 27, 2026}
+\date{July 28, 2026}
 
 \begin{document}
 
@@ -43,8 +43,8 @@ principle, and the geometry of the favorable moving corridor.  We then give
 three global results with explicit hypotheses: uniform extinction in a
 sufficiently fast habitat, a certified intermediate-speed exclusion theorem,
 and a certified weak-competition coexistence theorem.  The exclusion result
-uses a quantitative finite-range spreading certificate; the coexistence
-result assumes eventual positive floors in a wider favorable corridor and
+uses a finite linear block spreading certificate.  The coexistence result
+derives eventual positive floors from one such certificate per species and
 then proves convergence in every strictly smaller certified corridor.
 Identifying the certified fronts with sharp variational spreading speeds
 remains a separate conditional step.  An appendix audits the original
@@ -584,43 +584,123 @@ Iteration of this scalar recurrence shows
 the argument applies separately to both components.
 \end{proof}
 
-\begin{theorem}[Certified intermediate-speed exclusion; corrected Theorem 2.2]
-\label{thm:global-exclusion}
-Assume the hypotheses of Section~2, \(c\geq0\),
-\(\mathcal A_1\neq\varnothing\), \(c>c_1^{\rm lin}\), and that \(u_0\) has
-bounded right support.  Let the initial state be continuous and
-\([0,1]^2\)-valued.  Suppose that the second kernel has finite range:
-for some \(r\geq0\),
+\begin{definition}[Finite linear block certificate]
+\label{def:finite-block-certificate}
+For \(\sigma\geq0\), set
 \[
-  k_2(z)=0\qquad(|z|>r).
+  (\mathcal L_\sigma\phi)(x)
+  :=
+  \int_{\R}k_2(x-y)\,\sigma\phi(y)\,dy.
 \]
-Let \(f,\varepsilon_{\rm w},\varepsilon_{\rm t},\rho_0,S,
-\delta,z,\kappa,L,R,a,b,\theta\) be real numbers and \(N\in\N\).  Assume
-\begin{align}
- &\rho_0>0,\qquad
-   \rho_2(s)\geq\rho_0\quad(s\geq S),
-   \label{eq:exclusion-tail}\\
- &0<\varepsilon_{\rm w}<\varepsilon_{\rm t},\qquad
-   c+2\varepsilon_{\rm t}\leq f,
-   \label{eq:exclusion-corridor}\\
- &\kappa\geq0,\quad\theta\geq0,\quad
-   k_2(s)\geq\kappa\quad(s\in[a,b]),
-   \label{eq:exclusion-minorization}\\
- &b-a\leq R-L,\qquad 2\theta\leq b-a,
-   \label{eq:exclusion-width}\\
- &\delta>0,\quad z>0,\quad
-   z+\alpha_2\delta\leq1,\quad
-   z\leq\kappa\theta\,
-      \Fhat(\rho_0,\alpha_2;z,\delta),
-   \label{eq:exclusion-reproduction}\\
- &v_N(y)\geq z\quad(y\in[L,R]),\qquad
-   u_n(y)\leq\delta\quad(n\geq N,\ y\in\R),
-   \label{eq:exclusion-seed}\\
- &S\leq L-cN,\qquad
-   c<a+\theta<c+\varepsilon_{\rm w},\qquad
-   f-\varepsilon_{\rm w}<b-\theta.
-   \label{eq:exclusion-speeds}
-\end{align}
+Fix an integer \(m\geq1\), numbers \(z,\eta>0\), a minimum width
+\(W\), and displacements \(a\leq b\).  These data form a finite linear block
+certificate if \(z\leq\eta\) and, for every interval
+\([A,B]\) with \(B-A\geq W\), the iterates
+\[
+  \phi_{A,B}^{0}=z\,\mathbf 1_{[A,B]},
+  \qquad
+  \phi_{A,B}^{t+1}=\mathcal L_\sigma\phi_{A,B}^{t}
+\]
+are integrable where needed, satisfy
+\[
+  0\leq\phi_{A,B}^{t}\leq\eta
+  \qquad(0\leq t\leq m),
+\]
+and obey the block expansion estimate
+\begin{equation}\label{eq:block-expansion}
+  \phi_{A,B}^{m}(x)\geq z
+  \qquad
+  (A+a\leq x\leq B+b).
+\end{equation}
+\end{definition}
+
+\begin{proposition}[Reference-interval reduction]
+\label{prop:reference-block}
+Assume \(k_2\geq0\), \(\sigma\geq0\), \(W\geq0\), and \(a\leq b\).
+Once the nonnegativity, upper-bound, and integrability conditions in
+Definition~\ref{def:finite-block-certificate} have been checked, it is enough
+to verify the single estimate
+\[
+  \phi_{0,W}^{m}(x)\geq z
+  \qquad(a\leq x\leq W+b).
+\]
+If \(k_2\) has mass one, nonnegativity is automatic and the universal upper
+bound follows from the finite scalar checks
+\[
+  \sigma^t z\leq\eta
+  \qquad(0\leq t\leq m).
+\]
+\end{proposition}
+
+\begin{proof}
+Given \(B-A\geq W\) and \(x\in[A+a,B+b]\), one can choose
+\[
+  H\in[A,B-W]
+  \quad\text{with}\quad
+  x\in[H+a,H+W+b].
+\]
+For example, take
+\[
+  H=\max\{A,x-(W+b)\}.
+\]
+Translation invariance sends the reference estimate to the subinterval
+\([H,H+W]\).  Its indicator is bounded above by the indicator of \([A,B]\);
+positivity of the kernel propagates this order through all \(m\) linear
+steps.  Hence \eqref{eq:block-expansion} holds on the full interval.
+Finally, unit kernel mass gives
+\(\phi_{A,B}^t\leq\sigma^t z\) by induction.
+\end{proof}
+
+\begin{theorem}[Finite-block intermediate-speed exclusion; corrected
+Theorem 2.2]
+\label{thm:global-exclusion}
+Assume the hypotheses of Section~2, \(c\geq0\), and
+\(\|u_n\|_\infty\to0\).  Let the initial state be continuous and
+\([0,1]^2\)-valued, and suppose
+\[
+  k_2(z)=0\qquad(|z|>r)
+\]
+for some \(r\geq0\).  Choose
+\[
+  \rho_0,\delta,z,\eta>0,\qquad \sigma\geq0,
+\]
+such that
+\begin{equation}\label{eq:block-linear-slope}
+  \eta+\alpha_2\delta\leq1,
+  \qquad
+  \sigma\leq
+  \frac{1+\rho_0}
+       {1+\rho_0(\eta+\alpha_2\delta)}.
+\end{equation}
+Suppose that \((m,z,\eta,W,a,b,\sigma)\) is a finite linear block
+certificate, and that for some \(N\in\N\) and \(L,R\in\R\),
+\begin{equation}\label{eq:exclusion-seed}
+  R-L\geq W,
+  \qquad
+  v_N(y)\geq z\quad(y\in[L,R]).
+\end{equation}
+For \(k\in\N\), \(0\leq t<m\), assume that
+\begin{equation}\label{eq:block-support-control}
+ \phi_{L+ak,R+bk}^{t}(y)>0
+ \quad\Longrightarrow\quad
+ \begin{cases}
+   u_{N+mk+t}(y)\leq\delta,\\
+   \rho_2\!\left(y-c(N+mk+t)\right)\geq\rho_0.
+ \end{cases}
+\end{equation}
+Finally, choose
+\begin{equation}\label{eq:exclusion-corridor}
+  0<\varepsilon_{\rm b}<\varepsilon_{\rm f}
+  <\varepsilon_{\rm t},
+  \qquad
+  c+2\varepsilon_{\rm t}\leq f.
+\end{equation}
+and assume the block-speed inequalities
+\begin{equation}\label{eq:block-speeds}
+  a<(c+\varepsilon_{\rm b})m,
+  \qquad
+  (f-\varepsilon_{\rm b})m<b.
+\end{equation}
 Then
 \[
   \|u_n\|_\infty\longrightarrow0
@@ -634,72 +714,61 @@ and
 \end{theorem}
 
 \begin{proof}
-The first conclusion is the componentwise assertion of
-Theorem~\ref{thm:global-extinction}.  We establish a quantitative lower
-bound for the second component.  Induction on \(k\) gives
-\begin{equation}\label{eq:exclusion-expanding-floor}
-  v_{N+k}(y)\geq z
-  \qquad
-  \bigl(y\in\mathcal I_k(L,R,a,b,\theta)\bigr).
-\end{equation}
-Indeed, for a point in the next interval, one can choose a predecessor
-subinterval of length \(\theta\) whose displacements all belong to
-\([a,b]\).  Conditions \eqref{eq:exclusion-minorization} and
-\eqref{eq:exclusion-width} make this possible at both endpoints.
-On that predecessor interval the competitor is at most \(\delta\), and
-\eqref{eq:exclusion-tail}, \eqref{eq:exclusion-seed}, and
-\eqref{eq:exclusion-speeds} place the environment above \(\rho_0\).
-The subunit comparison supplied by \(z+\alpha_2\delta\leq1\), together with
-\eqref{eq:exclusion-reproduction} then reproduce the floor \(z\).
-
-The strict speed inequalities imply that, for all sufficiently large \(n\),
+On \(0\leq q\leq\eta\), whenever the two bounds in
+\eqref{eq:block-support-control} hold, direct cross multiplication in
+\eqref{eq:corrected-response} gives
 \[
-  \mathcal C_n(c,f,\varepsilon_{\rm w})
-  \subset
-  \mathcal I_{n-N}(L,R,a,b,\theta).
+  \sigma q\leq\Fhat(\rho_2,\alpha_2;q,u).
 \]
-Thus \(v_n\) has a positive uniform floor on the wider corridor.
+Positivity of the kernel and induction on \(t\) therefore place each linear
+iterate \(\phi_{L+ak,R+bk}^{t}\) below the corresponding nonlinear profile.
+At \(t=m\), \eqref{eq:block-expansion} reproduces the floor \(z\) on
+\([L+a(k+1),R+b(k+1)]\).  Induction on \(k\) yields a positive floor at all
+block times.  The inequalities \eqref{eq:block-speeds} place the
+\(\varepsilon_{\rm b}\)-corridor inside these expanding intervals for all
+large \(k\).
 
-It remains to identify the limiting value.  Given \(\eta>0\), uniform
-extinction of \(u_n\) gives a number \(d>0\), as small as needed, and a time
-after which \(u_n\leq d\).  On the favorable tail the second response is
-bounded below by the scalar Beverton--Holt map
-\[
-  B_d(q)
-  =
-  \frac{(1+\rho_0)q}
-       {1+\rho_0(q+\alpha_2d)}.
-\]
-Its positive carrying value is \(1-\alpha_2d\), and its iterates from any
-positive floor converge monotonically to that value.  Choose \(d\) and then
-a finite iteration depth \(m\) so that the resulting lower bound is within
-\(\eta\) of one.  Because \(k_2\) is supported in \([-r,r]\) and
-\(\varepsilon_{\rm t}>\varepsilon_{\rm w}\), every \(m\)-step predecessor of
-a point in the target corridor lies in the wider corridor once \(n\) is
-large.  Hence the scalar lower comparison is uniform on the target
-corridor.  The invariant upper bound \(v_n\leq1\) completes the squeeze.
+Finite kernel range propagates this floor across the \(m\) residue classes
+of time, losing only a fixed finite amount of corridor width.  Thus \(v_n\)
+has an eventual positive floor on the
+\(\varepsilon_{\rm f}\)-corridor at every sufficiently large time.
+Uniform extinction of \(u_n\), followed by the scalar Beverton--Holt
+comparison on a still narrower corridor, makes the lower bound converge to
+one.  Since \(v_n\leq1\), the required uniform convergence follows.
 \end{proof}
 
 \begin{remark}
-The number \(f\) in Theorem~\ref{thm:global-exclusion} is a certified front:
-it is constrained by the explicit displacement inequalities
-\eqref{eq:exclusion-speeds}.  The theorem does not identify \(f\) with a
-sharp variational spreading speed.  Its certificate also has a genuine
-numerical feasibility condition.  Unit kernel mass,
-\eqref{eq:exclusion-minorization}, and \eqref{eq:exclusion-width} imply
-\(\kappa\theta\leq1/2\).  Dividing
-\eqref{eq:exclusion-reproduction} by \(z>0\) therefore gives the necessary
-inequality
+The front \(f\) is certified by the finite convolution estimate
+\eqref{eq:block-expansion}; it has not yet been identified with a sharp
+variational spreading speed.  The missing analytic step is to derive such a
+finite block from \(f<c_2^{\rm lin}\), or from another intrinsic
+linear-determinacy hypothesis.
+\end{remark}
+
+\begin{remark}[Why the older one-step certificate is too narrow]
+The valid one-step special case used a kernel minorization
+\begin{align}
+ &k_2(s)\geq\kappa\quad(s\in[a,b]),
+   \label{eq:exclusion-minorization}\\
+ &2\theta\leq b-a,
+   \label{eq:exclusion-width}\\
+ &z\leq\kappa\theta\,
+      \Fhat(\rho_0,\alpha_2;z,\delta).
+   \label{eq:exclusion-reproduction}
+\end{align}
+Unit kernel mass gives \(\kappa\theta\leq1/2\), so this forces
 \begin{equation}\label{eq:exclusion-certificate-necessary}
-  1
-  \leq
+  1\leq
   \rho_0\bigl(1-2z-2\alpha_2\delta\bigr).
 \end{equation}
-In particular, it forces
-\(\rho_0>1\) and \(z+\alpha_2\delta<1/2\).
-Thus the certificate is a sufficient theorem only when its displayed
-parameters are feasible; its existence is not automatic from
-\(c_1^{\rm lin}<c<c_2^{\rm lin}\).
+In particular, \(\rho_0>1\).  Allowing the floor to attenuate during
+transport and recover only afterward does not solve the geometry: with a
+kernel supported in \([-r,r]\), zero recovery steps contradict the required
+growth, while one or more recovery steps erode the right endpoint by at least
+the entire rightward range.  The resulting speed inequality is incompatible
+with a nonempty positive-width corridor.  The simultaneous finite-block
+recursion avoids both defects by retaining every dispersal path during the
+block.
 \end{remark}
 
 \begin{theorem}[Certified weak-competition coexistence; corrected Theorem 2.3]
@@ -782,6 +851,72 @@ the subsequent interior squeezing to \((u^*,v^*)\) throughout the full weak
 competition range.
 \end{remark}
 
+\begin{definition}[Finite-block corridor certificate]
+\label{def:coex-block-certificate}
+Fix \(i\in\{1,2\}\), a front \(f\), and a wide margin
+\(\varepsilon_{\rm w}>0\).  Write \(w_{1,n}=u_n\) and \(w_{2,n}=v_n\).
+A finite-block corridor certificate for species \(i\) consists of
+\[
+  m_i,N_i\in\N,\qquad
+  z_i,\eta_i,\sigma_i,W_i,a_i,b_i,L_i,R_i,
+  \varepsilon_i\in\R
+\]
+with \(m_i\geq1\), \(0<z_i\leq\eta_i\), and
+\begin{equation}\label{eq:coex-block-slope}
+  \eta_i+\alpha_i\leq1,
+  \qquad
+  0\leq\sigma_i\leq
+  \frac{1+\rho_i^+}
+       {1+\rho_i^+(\eta_i+\alpha_i)}.
+\end{equation}
+The data \((m_i,z_i,\eta_i,W_i,a_i,b_i,\sigma_i)\) must form a finite
+linear block certificate in the sense of
+Definition~\ref{def:finite-block-certificate}, with \(k_2\) replaced by
+\(k_i\).  In addition,
+\begin{equation}\label{eq:coex-block-seed}
+  R_i-L_i\geq W_i,
+  \qquad
+  w_{i,N_i}(y)\geq z_i\quad(y\in[L_i,R_i]),
+\end{equation}
+and every positive intermediate linear iterate must remain in the exact
+favorable tail:
+\begin{equation}\label{eq:coex-block-tail}
+  \phi_{L_i+a_i k,R_i+b_i k}^{t}(y)>0
+  \quad\Longrightarrow\quad
+  S_i\leq y-c(N_i+m_i k+t)
+  \qquad(0\leq t<m_i).
+\end{equation}
+Finally,
+\begin{equation}\label{eq:coex-block-speeds}
+  0<\varepsilon_i<\varepsilon_{\rm w},
+  \qquad
+  a_i<(c+\varepsilon_i)m_i,
+  \qquad
+  (f-\varepsilon_i)m_i<b_i.
+\end{equation}
+\end{definition}
+
+\begin{corollary}[Finite-block coexistence criterion]
+\label{cor:coexistence-block}
+Assume all the kernel, favorable-tail, weak-competition, and corridor
+hypotheses of Theorem~\ref{thm:global-coexistence}, except
+\eqref{eq:coex-positive-floors}.  If each species has a finite-block corridor
+certificate in the sense of
+Definition~\ref{def:coex-block-certificate}, using a common front and common
+wide margin, then both conclusions of
+Theorem~\ref{thm:global-coexistence} hold.
+\end{corollary}
+
+\begin{proof}
+For each species, \eqref{eq:coex-block-slope} places the finite linear
+recursion below the nonlinear response while the competitor is bounded by
+one.  The exact-tail condition and \eqref{eq:coex-block-tail} supply the
+favorable growth bound on the entire positive support of every intermediate
+iterate.  Induction over blocks, followed by finite-range propagation across
+time residues, produces an eventual floor \(w_{i,n}\geq z_i\) on the common
+wide corridor.  Apply Theorem~\ref{thm:global-coexistence}.
+\end{proof}
+
 \begin{definition}[One-step expanding-floor certificate]
 \label{def:floor-certificate}
 Fix \(i\in\{1,2\}\), a front \(f\), and a wide margin
@@ -834,8 +969,7 @@ Theorem~\ref{thm:global-coexistence} hold.
 \end{corollary}
 
 \begin{proof}
-The induction used in \eqref{eq:exclusion-expanding-floor}, now with the
-competitor bounded by one, gives
+A direct one-step induction, with the competitor bounded by one, gives
 \[
   w_{i,N_i+k}(y)\geq z_i
   \qquad
@@ -1168,8 +1302,8 @@ Use a one-sided interior corridor
 where \(f\) is a certified rightward front.
 Every sequence in this corridor has habitat coordinate tending to
 \(+\infty\).  Theorem~\ref{thm:global-exclusion} gives such a statement from
-an explicit minorization certificate.  Replacing \(f\) by a proposed sharp
-speed \(c_2^*\) is valid only after the additional implication in
+an explicit finite linear block certificate.  Replacing \(f\) by a proposed
+sharp speed \(c_2^*\) is valid only after the additional implication in
 Corollary~\ref{cor:conditional-exclusion-speed} has been established.  Since
 the proposal does not assume symmetric kernels and separately defines
 leftward moments, leftward and rightward speeds cannot be conflated.
