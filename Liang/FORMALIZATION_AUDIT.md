@@ -108,86 +108,114 @@ c_{\rm coex}=\min\{\widetilde c_1^*,\widetilde c_2^*\}.
 \]
 
 These reduced speeds, rather than merely
-\(\min\{c_1^*,c_2^*\}\), are the natural sufficient threshold for a
-two-species coexistence corridor.
+\(\min\{c_1^*,c_2^*\}\), are the candidate threshold in the desired sharp
+two-species coexistence theorem.
 
-## 4. Corrected theorem statements
+The proved certificate theorems below deliberately use different, stronger
+spatial hypotheses: Theorem 2.2 uses compact support and a kernel
+minorization, while Theorem 2.3 additionally uses exact favorable tails.
 
-The following are the mathematically defensible targets. The local algebra,
-exponential propagation, scalar domination, moving-frame geometry,
-unit-square state-space invariance, competitive comparison, and zero-species
-invariance are already formalized. The full nonlinear long-time conclusions
-still require the persistence arguments listed in Section 6.
+## 4. Corrected statements and current formal status
 
-### Corrected Theorem 2.1: fast-habitat extinction
+The variational formulas in Section 3 describe the desired sharp theorem
+package. The current Lean development proves Corrected Theorem 2.1 and
+quantitative certificate versions of Corrected Theorems 2.2 and 2.3. It would
+be inaccurate to describe the latter two as general sharp-speed theorems.
 
-Assume the hypotheses in Section 3. If
+### Corrected Theorem 2.1: proved fast-habitat extinction
 
-\[
-c>\max\{c_1^*,c_2^*\},
-\]
-
-then
+`correctedIDEOrbit_fastHabitat_extinction` is the proved two-species theorem.
+For species \(i\), Lean defines
 
 \[
-\lim_{n\to\infty}
-  \sup_{x\in\mathbb R}\max\{u_n(x),v_n(x)\}=0.
+c_{i,\mathrm{adm}}
+  =\operatorname{extinctionCriticalSpeed}(k_i,1+\rho_i^+)
 \]
 
-The restriction of the initial data to the invariant unit square replaces the
-proposal's insufficient “nonnegative and bounded” assumption.
-
-### Corrected Theorem 2.2: intermediate-speed exclusion
-
-Assume \(c_1^*<c<c_2^*\), and assume \(v_0\not\equiv0\). Then
+as the infimum over `ExtinctionWeight`: a positive exponential weight for
+which the weighted kernel is integrable and the complete linear multiplier is
+positive. The theorem assumes that this admissible set is nonempty,
+that each environment is nondecreasing with the stated negative left and
+positive right limits, and that each initial component in the invariant unit
+square vanishes to the right of a finite bound. If
 
 \[
-\lim_{n\to\infty}\sup_{x\in\mathbb R}u_n(x)=0.
+c>\max\{c_{1,\mathrm{adm}},c_{2,\mathrm{adm}}\},
 \]
 
-For every
+then the bounded-continuous sup norms of both components tend to zero. This is
+a complete uniform-extinction result under its stated assumptions, with no
+`sorry` and no project-specific axiom.
+
+The admissible-domain qualification matters. The formal theorem does not
+identify `extinctionCriticalSpeed` with an infimum over exponential weights
+for which the moment or logarithm may be undefined.
+
+### Corrected Theorem 2.2: proved certified-front version
+
+`correctedIntermediateSpeedExclusion_of_minorization` proves the nonlinear
+fast-component relaxation from uniform extinction of the slow component.
+The assembly theorem
+`correctedIntermediateSpeedExclusion_of_bcf_extinction_and_minorization`
+takes instead the bounded-continuous norm limit
+\(\|\mathrm{slow}_n\|_\infty\to0\), exactly the output shape of the
+component extinction theorem, and discharges the pointwise extinction bridge
+internally. For the fast component it assumes the corrected IDE recurrence,
+a continuous compactly supported probability kernel, a nonnegative kernel
+minorization on a finite displacement window, a compact positive seed, a
+favorable-tail lower bound, and explicit fixed-floor reproduction and
+corridor geometry inequalities. It concludes
 
 \[
-0<\varepsilon<\frac{c_2^*-c}{2},
+\mathrm{UniformlyExtinct}(\mathrm{slow})
+\quad\text{and}\quad
+\sup_{x\in E_n}
+  |\mathrm{fast}_n(x)-1|\longrightarrow0,
 \]
 
-the surviving species converges to its favorable single-species equilibrium
-in the one-sided corridor
+where
 
 \[
-E_n^\varepsilon
-  =\{x:(c+\varepsilon)n\le x\le(c_2^*-\varepsilon)n\}:
+E_n=[(c+\varepsilon_{\rm target})n,\,
+     (\mathrm{front}-\varepsilon_{\rm target})n].
 \]
+
+The theorem also proves internally that the seed expansion stays in the
+certified favorable tail. The bridge
+`uniformlyExtinct_of_bcf_norm_tendsto_zero` is the exact step used by the
+assembly theorem.
+
+The formal obstruction
+`minorization_reproduction_forces_growth_margin` also shows that the
+one-step reproduction certificate necessarily satisfies
 
 \[
-\lim_{n\to\infty}
-  \sup_{x\in E_n^\varepsilon}|v_n(x)-1|=0.
+1\leq \rho_0
+  \bigl(1-2\,\mathrm{seed}
+          -2\alpha\,\delta_{\mathrm{seed}}\bigr).
 \]
 
-A precise spreading statement should additionally include
+In particular, it forces \(\rho_0>1\). Thus the certificate is a genuinely
+strong sufficient hypothesis, not a consequence of merely having a positive
+favorable growth rate.
 
-\[
-\lim_{n\to\infty}
-  \sup_{x\ge(c_2^*+\varepsilon)n}v_n(x)=0
-\]
+This result is not the sharp statement
+\(c_1^*<c<c_2^*\). In particular:
 
-and extinction behind every line slower than the habitat. If the ordering of
-the two speeds is reversed, interchange the species.
+- the slow component's extinction is supplied separately rather than derived
+  from the displayed speed ordering;
+- `front` is a speed certified by the seed/minorization inequalities and is
+  not identified with \(c_2^*\);
+- no general leading-edge extinction theorem at speeds above \(c_2^*\) is
+  asserted.
 
-The symmetric region \(|x-cn|\le\eta n\) must not be used: its left edge moves
-at speed \(c-\eta<c\) and therefore samples the unfavorable far-left
-environment.
+The one-sided corridor is essential. A symmetric region around \(cn\) has a
+left edge moving slower than the habitat and therefore enters the
+unfavorable far-left environment.
 
-### Corrected Theorem 2.3: weak-competition coexistence
+### Corrected Theorem 2.3: proved finite-range theorem with certified floors
 
-Assume \(0<\alpha_1,\alpha_2<1\), both initial components are nonzero, the
-linear-determinacy hypotheses hold, and
-
-\[
-0<c<c_{\rm coex}.
-\]
-
-Define
+For \(0<\alpha_1,\alpha_2<1\), define
 
 \[
 u^*=\frac{1-\alpha_1}{1-\alpha_1\alpha_2},
@@ -195,77 +223,110 @@ u^*=\frac{1-\alpha_1}{1-\alpha_1\alpha_2},
 v^*=\frac{1-\alpha_2}{1-\alpha_1\alpha_2}.
 \]
 
-For every
+The main proved spatial theorem is
+`certified_weak_competition_spatial_coexistence`. It assumes:
+
+- continuous compactly supported probability kernels with a common support
+  radius;
+- an `ExactFavorableTail` for each environment, so the environment is exactly
+  equal to its favorable value beyond a stated threshold;
+- a corrected two-species orbit in the invariant unit square;
+- weak competition \(0<\alpha_i<1\);
+- eventual positive floors for both species on a wider favorable corridor;
+- margins satisfying
+  \(0<\varepsilon_{\rm wide}<\varepsilon_{\rm target}\) and
+  \(c+2\varepsilon_{\rm target}\le\mathrm{front}\).
+
+Finite kernel range and exact favorable tails turn those floors into the
+fixed-depth seeded-envelope comparison. The theorem then proves uniform
+convergence of both components to \((u^*,v^*)\) on
 
 \[
-0<\varepsilon<\frac{c_{\rm coex}-c}{2},
+[(c+\varepsilon_{\rm target})n,\,
+  (\mathrm{front}-\varepsilon_{\rm target})n].
 \]
 
-one should prove
+`constant_speed_observer_tendsto_of_uniform_corridor` then gives convergence
+along every constant-speed observer that remains in this corridor.
+
+The further theorem
+`certified_weak_competition_spatial_coexistence_of_minorization` replaces the
+two eventual-floor assumptions by one `CorridorFloorCertificate` per species.
+Each certificate contains a kernel minorization window, compact positive seed,
+one-step reproduction inequality, and explicit geometry keeping its expanding
+interval inside the exact favorable tail. This is an additional numerical
+sufficient condition, not an automatic consequence of
+\(0<\alpha_i<1\). The theorem
+`corridorFloorCertificate_forces_growth_restriction` proves the exact
+necessary inequality
 
 \[
-\lim_{n\to\infty}
-  \sup_{(c+\varepsilon)n\le x\le(c_{\rm coex}-\varepsilon)n}
-  \max\{|u_n(x)-u^*|,\ |v_n(x)-v^*|\}=0.
+1\leq \rho_i^+
+  \bigl(1-2\,\mathrm{floor}_i-2\alpha_i\bigr).
 \]
 
-The fixed-observer version is:
+Consequently, this one-step certificate forces
+\(\alpha_i<1/2\) and \(\rho_i^+>1\); it is impossible when
+\(\alpha_i\geq1/2\). This obstruction concerns the particular certificate,
+not the positive-floor coexistence theorem itself.
 
-\[
-c<c'<c_{\rm coex},\quad R>0
-\quad\Longrightarrow\quad
-\lim_{n\to\infty}\sup_{|x-c'n|\le R}
-  \max\{|u_n(x)-u^*|,\ |v_n(x)-v^*|\}=0.
-\]
-
-The lower bound \(c<c'\) is essential. For \(c'<c\), the moving coordinate
-\((c'-c)n\) tends to \(-\infty\), so the observer samples the unfavorable
-environment and cannot generally converge to the positive far-right
-equilibrium.
+Neither theorem is a general sharp-threshold theorem. Although
+`WeakCompetitionCoexistence.lean` defines the admissible reduced speed
+`coexistenceCriticalSpeed`, its theorem
+`corrected_weak_competition_uniform_corridor_convergence` still assumes the
+global fixed-depth seeded-envelope comparison. The main spatial theorem
+discharges that comparison under its finite-range, exact-tail, and
+eventual-floor hypotheses; the minorization corollary produces those floors
+when its two numerical certificate assumptions are supplied. Their `front`
+is not identified with \(c_{\rm coex}\). The implication from
+\(c<c_{\rm coex}\) and merely nonzero initial data to the required eventual
+floors, or to the stronger numerical certificates, remains unproved.
 
 ## 5. What is already proved in Lean
 
 All files below compile without `sorry` and without project-specific axioms.
 Their axiom audits report only Lean/Mathlib foundations such as propositional
-extensionality, quotient soundness, and classical choice.
+extensionality, quotient soundness, and classical choice. The dependency
+column lists direct project imports and omits Mathlib imports.
 
-| File | Verified content |
-|---|---|
-| `ShenWork/Liang/ModelAudit.lean` | Positivity on the admissible simplex for the printed map; exact coexistence equilibrium; fixed-point identities; moving-frame limits |
-| `ShenWork/Liang/CorrectedModel.lean` | Global positivity of the corrected map; invariant unit bound; monotonicity in the focal species; antitonicity in the competitor; favorable equilibrium preservation; weak- and strong-competition invasion-multiplier inequalities |
-| `ShenWork/Analysis/DispersalKernel.lean` | Convolution change of variables; exponential-tail eigenfunction; exact discrete exponential orbit; speed-dependent moving-frame decay |
-| `ShenWork/Liang/LinearDeterminacy.lean` | Critical-speed specialization and an exact bridge to ShenWork's existing `kernelConvVal` convention |
-| `ShenWork/Liang/IDEComparison.lean` | Continuity-based integrability of the corrected update; probability-kernel lifting of the unit-interval bound; corrected nonlinear step dominated by the far-right linear step; order preservation; exponential-barrier induction; moving-frame extinction of sublinear orbits |
-| `ShenWork/Liang/StateSpace.lean` | Bounded-continuous two-species state; direct construction with ShenWork `greenConvBCF`; a proved self-map of unit-square states; competitive product-order preservation; recursive orbit; proof that an initially absent species remains absent |
-| `ShenWork/Liang/MovingCorridor.lean` | Nonemptiness of the corrected one-sided corridor; every point sequence in it samples the favorable far-right environment |
+| File | Direct project dependencies | Verified content |
+|---|---|---|
+| `ShenWork/Liang/ModelAudit.lean` | — | Positivity on the admissible simplex for the printed map; exact coexistence equilibrium; fixed-point identities; moving-frame limits |
+| `ShenWork/Liang/CorrectedModel.lean` | `ModelAudit` | Global positivity and unit bound of the corrected map; focal monotonicity; competitor antitonicity; favorable equilibrium preservation; invasion-multiplier inequalities |
+| `ShenWork/Analysis/DispersalKernel.lean` | — | Convolution change of variables; exponential-tail eigenfunction; exact discrete exponential orbit; moving-frame decay |
+| `ShenWork/Liang/LinearDeterminacy.lean` | `DispersalKernel`, `ModelAudit`, existing `WaveRotheTrap` | Critical-speed specialization and an exact bridge to ShenWork's `kernelConvVal` convention |
+| `ShenWork/Liang/IDEComparison.lean` | `DispersalKernel`, `CorrectedModel` | Corrected-update integrability and unit bound; linear domination; order preservation; exponential barriers; moving-frame extinction of sublinear orbits |
+| `ShenWork/Liang/StateSpace.lean` | `IDEComparison`, existing `WaveRotheTrap` | Bounded-continuous unit-square state; corrected self-map and orbit; competitive product order; zero-species invariance |
+| `ShenWork/Liang/MovingCorridor.lean` | `ModelAudit` | Nonemptiness and favorable-tail geometry of one-sided moving corridors |
+| `ShenWork/Liang/GlobalDynamicsTools.lean` | `CorrectedModel` | Algebraic response tests and the weak-competition rectangle squeeze |
+| `ShenWork/Liang/FastHabitatExtinction.lean` | `StateSpace`, `LinearDeterminacy` | Admissible extinction weights, component extinction, and the top theorem `correctedIDEOrbit_fastHabitat_extinction` |
+| `ShenWork/Liang/ScalarPersistence.lean` | `IDEComparison` | Beverton–Holt convergence, positivity propagation, interval seeds, an expanding-interval positive floor, and the necessary growth margin for a one-step minorization certificate |
+| `ShenWork/Liang/IntermediateSpeedExclusion.lean` | `ScalarPersistence`, `MovingCorridor`, `StateSpace` | Compact-support comparison, corridor floor and convergence, the norm-to-extinction bridge, the conditional relaxation theorem, and the assembled result `correctedIntermediateSpeedExclusion_of_bcf_extinction_and_minorization` |
+| `ShenWork/Liang/SeededEnvelope.lean` | `GlobalDynamicsTools` | Valid nested seeded envelopes and `seededEnvelopeOrbit_tendsto_coexistence` |
+| `ShenWork/Liang/WeakCompetitionCoexistence.lean` | `GlobalDynamicsTools`, `LinearDeterminacy`, `MovingCorridor`, `SeededEnvelope` | Admissible reduced speeds, homogeneous and seeded-envelope convergence, the conditional corridor theorem `corrected_weak_competition_uniform_corridor_convergence`, and the observer corollary |
+| `ShenWork/Liang/SpatialCoexistenceCertificate.lean` | `IntermediateSpeedExclusion`, `WeakCompetitionCoexistence` | Exact finite-depth spatial comparison; `certified_weak_competition_spatial_coexistence` from eventual positive wider-corridor floors; the stronger-assumption minorization corollary; and the proof that its one-step certificate forces \(\alpha_i<1/2\) and \(\rho_i^+>1\) |
 
-In particular, the formalization has moved beyond finding counterexamples:
-the recommended response has the complete local order structure needed by a
-comparison proof, and the upper-spreading exponential argument is already
-machine checked.
+## 6. What remains for the sharp proposal-level package
 
-## 6. Remaining proof architecture
+1. Relate the admissible-domain speed in Corrected Theorem 2.1 to any preferred
+   unrestricted notation only after stating enough moment-domain hypotheses.
+   The extinction theorem itself is complete.
+2. For Corrected Theorem 2.2, derive both the slow-species extinction and the
+   surviving-species positive floor directly from
+   \(c_1^*<c<c_2^*\) under a general linear-determinacy theorem. Then identify
+   the certified `front` with the sharp \(c_2^*\) and add the leading-edge
+   extinction statement. The present proof instead uses compact support and
+   a finite-window minorization certificate.
+3. For Corrected Theorem 2.3, derive the two eventual positive corridor floors
+   from
+   \(c<c_{\rm coex}\), general admissible kernels, and nontrivial initial data.
+   Then identify the corridor front with the sharp reduced speed. The present
+   spatial theorem assumes compact support and exact favorable tails; the
+   one-step minorization corollary is only one additional sufficient route to
+   the required floors.
 
-The global theorems should be completed in this order:
-
-1. Establish strong positivity and quantitative positivity propagation for
-   the now-bundled discrete state update. The competitive product-order
-   theorem is complete.
-2. Prove the scalar moving-habitat theorem for the corrected Beverton–Holt
-   equation: extinction above \(c_i^*\), persistence below \(c_i^*\), and
-   interior convergence in \((c,c_i^*)\).
-3. Deduce Corrected Theorem 2.1 by componentwise scalar domination.
-4. For Corrected Theorem 2.2, first extinguish the slower component, then
-   sandwich the surviving component between scalar equations with a vanishing
-   competition perturbation.
-5. For Corrected Theorem 2.3, construct compact moving subsolutions using the
-   reduced multipliers \(\widetilde R_i\), obtain a positive floor in the
-   coexistence corridor, and iterate upper/lower homogeneous competition maps
-   to squeeze the solution to \((u^*,v^*)\).
-
-This is a discrete-time analogue of the corridor strategy in the continuous
-nonlocal competition literature, not a direct reuse of a continuous-time PDE
-theorem.
+The proved certificate arguments are discrete-time corridor arguments. They
+do not follow directly from a continuous-time nonlocal PDE theorem.
 
 ## 7. Exact connection to ShenWork
 
@@ -291,11 +352,11 @@ not directly prove the IDE long-time dynamics: continuous versus discrete
 time and scalar versus competitive order are substantive differences.
 
 The accompanying `CORRECTED_THEOREMS.pdf` is deliberately written as a
-standalone mathematical note: its main body contains only proved statements
-and clearly labelled conjectures, with no formalization or build terminology.
-Its appendix gives the model-level, theorem-level, strong-competition, PINN,
-and editorial defects in the original proposal, together with a repair for
-each category.
+standalone mathematical note: its main body contains proved statements,
+explicitly conditional speed corollaries, and clearly identified remaining
+analytic steps, with no formalization or build terminology. Its appendix
+gives the model-level, theorem-level, strong-competition, PINN, and editorial
+defects in the original proposal, together with a repair for each category.
 
 ## 8. Further generalizations
 

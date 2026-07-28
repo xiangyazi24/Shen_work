@@ -12,7 +12,6 @@
 \newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
-\newtheorem{conjecture}[theorem]{Conjecture}
 \newtheorem{remark}[theorem]{Remark}
 
 \newcommand{\R}{\mathbb R}
@@ -41,9 +40,16 @@ nonnegative.  We establish the local order structure, invariance of the
 unit-square state space, preservation of the competitive product order, the
 exact action of dispersal on exponential modes, an exponential comparison
 principle, and the geometry of the favorable moving corridor.  We then give
-precise conjectural formulations of the remaining extinction, exclusion, and
-coexistence results.  An appendix audits the original proposal and records,
-by category, which claims fail as stated and how they can be repaired.
+three global results with explicit hypotheses: uniform extinction in a
+sufficiently fast habitat, a certified intermediate-speed exclusion theorem,
+and a certified weak-competition coexistence theorem.  The exclusion result
+uses a quantitative finite-range spreading certificate; the coexistence
+result assumes eventual positive floors in a wider favorable corridor and
+then proves convergence in every strictly smaller certified corridor.
+Identifying the certified fronts with sharp variational spreading speeds
+remains a separate conditional step.  An appendix audits the original
+proposal and records, by category, which claims fail as stated and how they
+can be repaired.
 \end{abstract}
 
 \section{Introduction}
@@ -57,12 +63,12 @@ on the order structure of the nonlinear update.
 
 The purpose of this note is twofold.  First, we give a corrected model for
 which nonnegative initial data generate nonnegative solutions and the
-two-species update is genuinely competitive.  Second, we separate the
-conclusions that follow from elementary comparison from the global
-persistence statements that still require moving subsolutions and interior
-squeezing.  The distinction is important: empty-habitat spreading speeds
-control upper fronts, but they do not by themselves determine coexistence or
-competitive exclusion.
+two-species update is genuinely competitive.  Second, we prove global
+extinction, exclusion, and coexistence statements while separating explicit
+lower-spreading certificates from the subsequent interior squeezing
+argument.  The distinction between certified fronts and sharp fronts remains
+important: empty-habitat spreading speeds control upper fronts, but they do
+not by themselves determine coexistence or competitive exclusion.
 
 \section{Model and assumptions}
 
@@ -464,111 +470,516 @@ one-sided corridor
 A symmetric band \(|x-cn|\leq\eta n\) contains
 \(x=(c-\eta)n\), whose moving coordinate tends to \(-\infty\).
 
-\section{Corrected global research questions}
-\label{sec:global-conjectures}
+\section{Certified global results}
+\label{sec:global-results}
 
-This section records precise global statements suggested by the preceding
-estimates.  They are conjectures, not consequences of the local and
-upper-barrier arguments alone.
-
-Let
+For later use, set
 \[
   R_i:=1+\rho_i^+,
   \qquad
   \M_i(\mu):=\int_{\R}k_i(z)e^{\mu z}\,dz,
 \]
-and define the empty-habitat rightward speeds
-\begin{equation}\label{eq:empty-speeds}
-  c_i^*
+and let
+\[
+  \mathcal A_i
   :=
-  \inf_{\mu>0}
+  \{\mu>0:\M_i(\mu)<\infty\}.
+\]
+When \(\mathcal A_i\neq\varnothing\), define the admissible linear speed
+\begin{equation}\label{eq:admissible-linear-speeds}
+  c_i^{\rm lin}
+  :=
+  \inf_{\mu\in\mathcal A_i}
   \frac{\log(R_i\M_i(\mu))}{\mu}.
 \end{equation}
-For weak competition, define the favorable rare-species multipliers
-\[
-  \widetilde R_1
-  :=
-  \frac{R_1}{1+\rho_1^+\alpha_1},
-  \qquad
-  \widetilde R_2
-  :=
-  \frac{R_2}{1+\rho_2^+\alpha_2},
-\]
-the associated candidate invasion speeds
-\begin{equation}\label{eq:reduced-speeds}
-  \widetilde c_i^*
-  :=
-  \inf_{\mu>0}
-  \frac{\log(\widetilde R_i\M_i(\mu))}{\mu},
-  \qquad
-  c_{\rm coex}:=\min_i\widetilde c_i^*.
-\end{equation}
-Identifying the nonlinear spreading speed with one of these variational
-quantities requires the usual irreducibility and linear-determinacy
-hypotheses.
+The restriction to \(\mathcal A_i\) is essential: no logarithm or infimum is
+silently taken over an infinite exponential moment.
 
-\begin{conjecture}[Fast-habitat extinction]
-\label{conj:global-extinction}
-Assume the hypotheses of Section~2, the required exponential moments, and
-compactly supported initial data in \([0,1]^2\).  If
+For \(f>c\) and \(\varepsilon>0\), write
+\begin{equation}\label{eq:certified-corridor}
+  \mathcal C_n(c,f,\varepsilon)
+  :=
+  [(c+\varepsilon)n,(f-\varepsilon)n].
+\end{equation}
+For real numbers \(L,R,a,b,\theta\), define the expanding interval
+\begin{equation}\label{eq:expanding-interval}
+  \mathcal I_k(L,R,a,b,\theta)
+  :=
+  [L+(a+\theta)k,\ R+(b-\theta)k].
+\end{equation}
+
+\begin{theorem}[Fast-habitat extinction; corrected Theorem 2.1]
+\label{thm:global-extinction}
+Assume the hypotheses of Section~2, \(c\geq0\), and
+\(\mathcal A_i\neq\varnothing\) for \(i=1,2\).  Let the initial state be
+continuous and \([0,1]^2\)-valued.  The following componentwise statements
+hold independently:
 \[
-  c>\max\{c_1^*,c_2^*\},
+  \left.
+  \begin{gathered}
+    u_0(x)=0\quad(x>L_1),\\
+    c>c_1^{\rm lin}
+  \end{gathered}
+  \right\}
+  \quad\Longrightarrow\quad
+  \|u_n\|_\infty\longrightarrow0,
+\]
+and
+\[
+  \left.
+  \begin{gathered}
+    v_0(x)=0\quad(x>L_2),\\
+    c>c_2^{\rm lin}
+  \end{gathered}
+  \right\}
+  \quad\Longrightarrow\quad
+  \|v_n\|_\infty\longrightarrow0.
+\]
+In particular, if both right-support conditions hold and
+\[
+  c>\max\{c_1^{\rm lin},c_2^{\rm lin}\},
 \]
 then
 \[
   \sup_{x\in\R}\max\{u_n(x),v_n(x)\}\longrightarrow0.
 \]
-\end{conjecture}
+Compact support of each initial component is a sufficient, but stronger,
+version of the two right-support assumptions above.
+\end{theorem}
 
-\begin{conjecture}[Intermediate-speed exclusion]
-\label{conj:global-exclusion}
-Assume \(c_1^*<c<c_2^*\) and \(v_0\not\equiv0\).  Under suitable scalar
-persistence and linear-determinacy hypotheses,
+\begin{proof}
+We prove the assertion for one component \(w_n\), with kernel \(k_i\).
+Choose
 \[
-  \sup_{x\in\R}u_n(x)\longrightarrow0,
+  c_i^{\rm lin}<s<c.
 \]
-and, for every
+By the definition of the infimum, there is
+\(\mu\in\mathcal A_i\) such that
 \[
-  0<\varepsilon<\frac{c_2^*-c}{2},
+  \frac{\log(R_i\M_i(\mu))}{\mu}<s.
 \]
+The right-support assumption gives
+\(w_0(x)\leq Ae^{-\mu x}\) for a finite \(A\).  Theorem~\ref{thm:barrier}
+therefore yields constants \(B>0\) and \(0<\lambda<1\) such that
 \[
-  \sup_{(c+\varepsilon)n\leq x\leq(c_2^*-\varepsilon)n}
+  \sup_{x\geq sn}w_n(x)\leq B\lambda^n.
+\]
+
+Choose \(q\) with \(1+\rho_i^-<q<1\).  Since \(s<c\) and \(\rho_i\) is
+nondecreasing, for all sufficiently large \(n\),
+\[
+  y\leq sn
+  \quad\Longrightarrow\quad
+  1+\rho_i(y-cn)\leq q.
+\]
+Split the source integral at \(y=sn\).  On the left part, the corrected
+response is at most \(q\,w_n(y)\); on the right part, it is at most
+\(R_iw_n(y)\).  Positivity and unit mass of the kernel give
+\[
+  \|w_{n+1}\|_\infty
+  \leq q\|w_n\|_\infty+R_iB\lambda^n.
+\]
+Iteration of this scalar recurrence shows
+\(\|w_n\|_\infty\to0\).  The competitor never enters the upper estimate, so
+the argument applies separately to both components.
+\end{proof}
+
+\begin{theorem}[Certified intermediate-speed exclusion; corrected Theorem 2.2]
+\label{thm:global-exclusion}
+Assume the hypotheses of Section~2, \(c\geq0\),
+\(\mathcal A_1\neq\varnothing\), \(c>c_1^{\rm lin}\), and that \(u_0\) has
+bounded right support.  Let the initial state be continuous and
+\([0,1]^2\)-valued.  Suppose that the second kernel has finite range:
+for some \(r\geq0\),
+\[
+  k_2(z)=0\qquad(|z|>r).
+\]
+Let \(f,\varepsilon_{\rm w},\varepsilon_{\rm t},\rho_0,S,
+\delta,z,\kappa,L,R,a,b,\theta\) be real numbers and \(N\in\N\).  Assume
+\begin{align}
+ &\rho_0>0,\qquad
+   \rho_2(s)\geq\rho_0\quad(s\geq S),
+   \label{eq:exclusion-tail}\\
+ &0<\varepsilon_{\rm w}<\varepsilon_{\rm t},\qquad
+   c+2\varepsilon_{\rm t}\leq f,
+   \label{eq:exclusion-corridor}\\
+ &\kappa\geq0,\quad\theta\geq0,\quad
+   k_2(s)\geq\kappa\quad(s\in[a,b]),
+   \label{eq:exclusion-minorization}\\
+ &b-a\leq R-L,\qquad 2\theta\leq b-a,
+   \label{eq:exclusion-width}\\
+ &\delta>0,\quad z>0,\quad
+   z+\alpha_2\delta\leq1,\quad
+   z\leq\kappa\theta\,
+      \Fhat(\rho_0,\alpha_2;z,\delta),
+   \label{eq:exclusion-reproduction}\\
+ &v_N(y)\geq z\quad(y\in[L,R]),\qquad
+   u_n(y)\leq\delta\quad(n\geq N,\ y\in\R),
+   \label{eq:exclusion-seed}\\
+ &S\leq L-cN,\qquad
+   c<a+\theta<c+\varepsilon_{\rm w},\qquad
+   f-\varepsilon_{\rm w}<b-\theta.
+   \label{eq:exclusion-speeds}
+\end{align}
+Then
+\[
+  \|u_n\|_\infty\longrightarrow0
+\]
+and
+\[
+  \sup_{x\in\mathcal C_n(c,f,\varepsilon_{\rm t})}
+  |v_n(x)-1|
+  \longrightarrow0.
+\]
+\end{theorem}
+
+\begin{proof}
+The first conclusion is the componentwise assertion of
+Theorem~\ref{thm:global-extinction}.  We establish a quantitative lower
+bound for the second component.  Induction on \(k\) gives
+\begin{equation}\label{eq:exclusion-expanding-floor}
+  v_{N+k}(y)\geq z
+  \qquad
+  \bigl(y\in\mathcal I_k(L,R,a,b,\theta)\bigr).
+\end{equation}
+Indeed, for a point in the next interval, one can choose a predecessor
+subinterval of length \(\theta\) whose displacements all belong to
+\([a,b]\).  Conditions \eqref{eq:exclusion-minorization} and
+\eqref{eq:exclusion-width} make this possible at both endpoints.
+On that predecessor interval the competitor is at most \(\delta\), and
+\eqref{eq:exclusion-tail}, \eqref{eq:exclusion-seed}, and
+\eqref{eq:exclusion-speeds} place the environment above \(\rho_0\).
+The subunit comparison supplied by \(z+\alpha_2\delta\leq1\), together with
+\eqref{eq:exclusion-reproduction} then reproduce the floor \(z\).
+
+The strict speed inequalities imply that, for all sufficiently large \(n\),
+\[
+  \mathcal C_n(c,f,\varepsilon_{\rm w})
+  \subset
+  \mathcal I_{n-N}(L,R,a,b,\theta).
+\]
+Thus \(v_n\) has a positive uniform floor on the wider corridor.
+
+It remains to identify the limiting value.  Given \(\eta>0\), uniform
+extinction of \(u_n\) gives a number \(d>0\), as small as needed, and a time
+after which \(u_n\leq d\).  On the favorable tail the second response is
+bounded below by the scalar Beverton--Holt map
+\[
+  B_d(q)
+  =
+  \frac{(1+\rho_0)q}
+       {1+\rho_0(q+\alpha_2d)}.
+\]
+Its positive carrying value is \(1-\alpha_2d\), and its iterates from any
+positive floor converge monotonically to that value.  Choose \(d\) and then
+a finite iteration depth \(m\) so that the resulting lower bound is within
+\(\eta\) of one.  Because \(k_2\) is supported in \([-r,r]\) and
+\(\varepsilon_{\rm t}>\varepsilon_{\rm w}\), every \(m\)-step predecessor of
+a point in the target corridor lies in the wider corridor once \(n\) is
+large.  Hence the scalar lower comparison is uniform on the target
+corridor.  The invariant upper bound \(v_n\leq1\) completes the squeeze.
+\end{proof}
+
+\begin{remark}
+The number \(f\) in Theorem~\ref{thm:global-exclusion} is a certified front:
+it is constrained by the explicit displacement inequalities
+\eqref{eq:exclusion-speeds}.  The theorem does not identify \(f\) with a
+sharp variational spreading speed.  Its certificate also has a genuine
+numerical feasibility condition.  Unit kernel mass,
+\eqref{eq:exclusion-minorization}, and \eqref{eq:exclusion-width} imply
+\(\kappa\theta\leq1/2\).  Dividing
+\eqref{eq:exclusion-reproduction} by \(z>0\) therefore gives the necessary
+inequality
+\begin{equation}\label{eq:exclusion-certificate-necessary}
+  1
+  \leq
+  \rho_0\bigl(1-2z-2\alpha_2\delta\bigr).
+\end{equation}
+In particular, it forces
+\(\rho_0>1\) and \(z+\alpha_2\delta<1/2\).
+Thus the certificate is a sufficient theorem only when its displayed
+parameters are feasible; its existence is not automatic from
+\(c_1^{\rm lin}<c<c_2^{\rm lin}\).
+\end{remark}
+
+\begin{theorem}[Certified weak-competition coexistence; corrected Theorem 2.3]
+\label{thm:global-coexistence}
+Assume the hypotheses of Section~2,
+\[
+  0<\alpha_1<1,\qquad 0<\alpha_2<1,\qquad c\geq0.
+\]
+Let the initial state be continuous and \([0,1]^2\)-valued.
+Suppose that there are \(r\geq0\) and \(S_1,S_2\in\R\) such that
+\[
+  k_i(z)=0\quad(|z|>r),
+  \qquad
+  \rho_i(s)=\rho_i^+\quad(s\geq S_i),
+  \qquad i=1,2.
+\]
+Let \(0<\varepsilon_{\rm w}<\varepsilon_{\rm t}\) and
+\[
+  c+2\varepsilon_{\rm t}\leq f.
+\]
+Assume that there are \(p_1,p_2>0\) and \(N_0\in\N\) such that, for every
+\(n\geq N_0\) and every
+\(x\in\mathcal C_n(c,f,\varepsilon_{\rm w})\),
+\begin{equation}\label{eq:coex-positive-floors}
+  u_n(x)\geq p_1,
+  \qquad
+  v_n(x)\geq p_2.
+\end{equation}
+Then
+\[
+  \sup_{x\in\mathcal C_n(c,f,\varepsilon_{\rm t})}
+  |u_n(x)-u^*|
+  \longrightarrow0
+\]
+and
+\[
+  \sup_{x\in\mathcal C_n(c,f,\varepsilon_{\rm t})}
+  |v_n(x)-v^*|
+  \longrightarrow0.
+\]
+In particular, every constant-speed observer \(x=sn\) with
+\[
+  c+\varepsilon_{\rm t}\leq s\leq f-\varepsilon_{\rm t}
+\]
+converges to the favorable coexistence equilibrium.
+\end{theorem}
+
+\begin{proof}
+Fix a finite depth \(m\).  The common finite range of the kernels and the
+strict margin inequality imply that every predecessor involved in \(m\)
+updates of a target-corridor point remains in the wider corridor for all
+sufficiently large \(n\).  The exact favorable-tail hypothesis makes both
+environmental responses homogeneous on this predecessor set.
+
+Start the homogeneous competitive recursion from the rectangle
+\[
+  [\ell_1,1]\times[\ell_2,1],
+\]
+where \(0<\ell_i\leq p_i\) and
+\(\ell_i+\alpha_i\leq1\).  Competitive monotonicity propagates the lower and
+upper corners of this rectangle through the \(m\) exact favorable updates.
+Under \(0<\alpha_1,\alpha_2<1\), the lower corners increase, the upper
+corners decrease, and both converge to the unique intersection of
+\[
+  u+\alpha_1v=1,
+  \qquad
+  v+\alpha_2u=1,
+\]
+namely \((u^*,v^*)\).  Given \(\eta>0\), choose \(m\) so that this homogeneous
+rectangle lies within \(\eta\) of \((u^*,v^*)\), and then choose \(n\) large
+enough for the \(m\)-step spatial comparison.  This gives the two uniform
+limits.  The observer statement follows by inclusion in the target corridor.
+\end{proof}
+
+\begin{remark}
+The positive-floor condition \eqref{eq:coex-positive-floors} is the global
+persistence input to Theorem~\ref{thm:global-coexistence}; it is not derived
+from the empty-habitat moment formulas in this note.  The theorem establishes
+the subsequent interior squeezing to \((u^*,v^*)\) throughout the full weak
+competition range.
+\end{remark}
+
+\begin{definition}[One-step expanding-floor certificate]
+\label{def:floor-certificate}
+Fix \(i\in\{1,2\}\), a front \(f\), and a wide margin
+\(\varepsilon_{\rm w}>0\).  Suppose that
+\[
+  \rho_i(s)=\rho_i^+\qquad(s\geq S_i).
+\]
+A one-step expanding-floor certificate for species \(i\) consists of
+\[
+  N_i\in\N,\qquad
+  z_i,\kappa_i,L_i,R_i,a_i,b_i,\theta_i\in\R
+\]
+such that, with \(w_{1,n}=u_n\) and \(w_{2,n}=v_n\),
+\begin{align}
+ &z_i>0,\quad\kappa_i\geq0,\quad\theta_i\geq0,\quad
+   k_i(s)\geq\kappa_i\quad(s\in[a_i,b_i]),
+   \label{eq:coex-certificate-minorization}\\
+ &b_i-a_i\leq R_i-L_i,\qquad
+   2\theta_i\leq b_i-a_i,
+   \label{eq:coex-certificate-width}\\
+ &z_i+\alpha_i\leq1,\qquad
+   z_i\leq\kappa_i\theta_i
+     \Fhat(\rho_i^+,\alpha_i;z_i,1),
+   \label{eq:coex-certificate-reproduction}\\
+ &w_{i,N_i}(y)\geq z_i\quad(y\in[L_i,R_i]),
+   \label{eq:coex-certificate-seed}\\
+ &S_i\leq y-c(N_i+k)
+   \quad
+   \left(k\in\N,\
+   y\in\mathcal I_k(L_i,R_i,a_i,b_i,\theta_i)\right),
+   \label{eq:coex-certificate-tail}\\
+ &a_i+\theta_i<c+\varepsilon_{\rm w},\qquad
+   f-\varepsilon_{\rm w}<b_i-\theta_i.
+   \label{eq:coex-certificate-speeds}
+\end{align}
+These conditions give a directly checkable sufficient mechanism for
+\eqref{eq:coex-positive-floors}; they are not part of the full
+weak-competition statement of Theorem~\ref{thm:global-coexistence}.
+\end{definition}
+
+\begin{corollary}[A narrower minorization criterion for Theorem 2.3]
+\label{cor:coexistence-minorization}
+Assume all the kernel, favorable-tail, weak-competition, and corridor
+hypotheses of Theorem~\ref{thm:global-coexistence}, except
+\eqref{eq:coex-positive-floors}.  If each species has a one-step
+expanding-floor certificate in the sense of
+Definition~\ref{def:floor-certificate}, with the same \(f\) and
+\(\varepsilon_{\rm w}\), then both conclusions of
+Theorem~\ref{thm:global-coexistence} hold.
+\end{corollary}
+
+\begin{proof}
+The induction used in \eqref{eq:exclusion-expanding-floor}, now with the
+competitor bounded by one, gives
+\[
+  w_{i,N_i+k}(y)\geq z_i
+  \qquad
+  \bigl(y\in
+  \mathcal I_k(L_i,R_i,a_i,b_i,\theta_i)\bigr).
+\]
+The strict inequalities in
+\eqref{eq:coex-certificate-speeds} place the wider corridor inside this
+expanding interval for all sufficiently large times.  Thus
+\eqref{eq:coex-positive-floors} holds with \(p_i=z_i\), after increasing the
+common starting time.  Apply Theorem~\ref{thm:global-coexistence}.
+\end{proof}
+
+\begin{remark}[Feasibility of the one-step certificate]
+\label{rem:certificate-feasibility}
+The preceding corollary is deliberately narrower than
+Theorem~\ref{thm:global-coexistence}.  Since \(k_i\) has mass one,
+\eqref{eq:coex-certificate-minorization} and
+\eqref{eq:coex-certificate-width} imply
+\[
+  \kappa_i\theta_i\leq\frac12.
+\]
+Combining this bound with
+\eqref{eq:coex-certificate-reproduction} and dividing by \(z_i>0\) gives
+the sharper necessary condition
+\begin{equation}\label{eq:coex-certificate-necessary}
+  1
+  \leq
+  \rho_i^+\bigl(1-2z_i-2\alpha_i\bigr).
+\end{equation}
+Consequently, such a certificate requires
+\[
+  \alpha_i<\frac12
+  \qquad\text{and}\qquad
+  \rho_i^+>1.
+\]
+Even under these two necessary inequalities,
+\eqref{eq:coex-certificate-necessary} remains an additional quantitative
+condition to be checked.  This limitation belongs to this particular
+one-step minorization device, not to the full weak-competition range
+\(0<\alpha_i<1\) covered by the positive-floor theorem.
+\end{remark}
+
+\section{Conditional variational-speed forms}
+\label{sec:conditional-speeds}
+
+Assume in this section that
+\(\mathcal A_1,\mathcal A_2\neq\varnothing\).  For weak competition, define
+the favorable rare-species multipliers
+\[
+  \widetilde R_i
+  :=
+  \frac{R_i}{1+\rho_i^+\alpha_i}
+\]
+and the admissible invasion-speed candidates
+\begin{equation}\label{eq:reduced-speeds}
+  \widetilde c_i^{\rm lin}
+  :=
+  \inf_{\mu\in\mathcal A_i}
+  \frac{\log(\widetilde R_i\M_i(\mu))}{\mu},
+  \qquad
+  c_{\rm coex}^{\rm lin}
+  :=
+  \min_i\widetilde c_i^{\rm lin}.
+\end{equation}
+
+\begin{corollary}[Conditional variational form of Theorem 2.2]
+\label{cor:conditional-exclusion-speed}
+Assume
+\[
+  c_1^{\rm lin}<c<c_2^{\rm lin}.
+\]
+Fix
+\[
+  0<\varepsilon<
+  \frac{c_2^{\rm lin}-c}{2}.
+\]
+If the hypotheses of Theorem~\ref{thm:global-exclusion} admit a quantitative
+certificate with
+\[
+  f=c_2^{\rm lin},
+  \qquad
+  0<\varepsilon_{\rm w}<\varepsilon_{\rm t}=\varepsilon,
+\]
+then
+\[
+  \|u_n\|_\infty\longrightarrow0,
+  \qquad
+  \sup_{(c+\varepsilon)n\leq x\leq
+             (c_2^{\rm lin}-\varepsilon)n}
   |v_n(x)-1|\longrightarrow0.
 \]
-A complete spreading statement must specify the rightward front and its
-behavior ahead of \(c_2^*\); if kernels are asymmetric, the leftward and
-rightward speeds must be distinguished.
-\end{conjecture}
+\end{corollary}
 
-\begin{conjecture}[Weak-competition coexistence]
-\label{conj:global-coexistence}
-Assume \(0<\alpha_1,\alpha_2<1\), both initial components are nonzero, and
-the required irreducibility and linear-determinacy hypotheses hold.  If
+\begin{proof}
+Apply Theorem~\ref{thm:global-exclusion} with the stated values of
+\(f\) and \(\varepsilon_{\rm t}\).
+\end{proof}
+
+\begin{corollary}[Conditional variational form of Theorem 2.3]
+\label{cor:conditional-coexistence-speed}
+Assume the kernel, favorable-tail, weak-competition, and state hypotheses of
+Theorem~\ref{thm:global-coexistence}.  Suppose
 \[
-  0<c<c_{\rm coex},
+  0<c<c_{\rm coex}^{\rm lin}.
 \]
-then, for every
+Fix
 \[
-  0<\varepsilon<\frac{c_{\rm coex}-c}{2},
+  0<\varepsilon<
+  \frac{c_{\rm coex}^{\rm lin}-c}{2}.
 \]
+If a scalar invasion or spreading theorem supplies constants
+\(p_1,p_2>0\) and an eventual wider-corridor bound
+\eqref{eq:coex-positive-floors} with
 \[
-  \sup_{(c+\varepsilon)n\leq x\leq(c_{\rm coex}-\varepsilon)n}
+  f=c_{\rm coex}^{\rm lin},
+  \qquad
+  0<\varepsilon_{\rm w}<\varepsilon_{\rm t}=\varepsilon,
+\]
+then
+\[
+  \sup_{(c+\varepsilon)n\leq x\leq
+             (c_{\rm coex}^{\rm lin}-\varepsilon)n}
   \max\{|u_n(x)-u^*|,\ |v_n(x)-v^*|\}
   \longrightarrow0.
 \]
-Equivalently, the corresponding fixed-speed observer statement should
-quantify only over
-\[
-  c<s<c_{\rm coex}.
-\]
-\end{conjecture}
+\end{corollary}
 
-\begin{remark}
-The reduced quantities in \eqref{eq:reduced-speeds} are natural sufficient
-thresholds because they arise from invasion of the two resident-only states.
-They should not be presented as exact nonlinear speeds without a separate
-linear-determinacy theorem.  In particular, the empty-habitat speeds
-\eqref{eq:empty-speeds} alone do not encode the competition coefficients.
+\begin{proof}
+Apply Theorem~\ref{thm:global-coexistence} with the stated front and margins.
+\end{proof}
+
+\begin{remark}[The remaining sharp-speed step]
+\label{rem:sharp-speed-step}
+The moment formulas \eqref{eq:admissible-linear-speeds} and
+\eqref{eq:reduced-speeds} do not, by themselves, produce the lower-spreading
+certificates used above.  A separate scalar spreading or linear-determinacy
+theorem must derive those certificates from more intrinsic assumptions.
+Only after that step may \(c_i^{\rm lin}\) or
+\(\widetilde c_i^{\rm lin}\) be identified with a sharp nonlinear speed
+usually denoted by \(c_i^*\) or \(\widetilde c_i^*\).
+Extending the certified theorems from finite-range kernels and, for
+coexistence, exactly constant favorable tails to more general kernels and
+asymptotically constant tails is also left open.
 \end{remark}
 
 \section{A reusable generalization}
@@ -699,9 +1110,10 @@ cone.
 
 \paragraph{Repair.}
 Use the corrected response and initial values in the invariant unit square
-\([0,1]^2\), as in Conjecture~\ref{conj:global-extinction}.  A proof must
-then combine the upper exponential estimate with decay in the unfavorable
-region; the barrier alone proves only the upper-front part.
+\([0,1]^2\), as in Theorem~\ref{thm:global-extinction}.  Its proof combines
+the upper exponential estimate ahead of an intermediate frame with a
+uniform contraction behind that frame.  The upper barrier alone would prove
+only the upper-front part.
 
 \subsection{Theorem 2.2 has a missing-species counterexample}
 
@@ -725,7 +1137,11 @@ for every \(\eta>0\), contradicting the asserted strict positivity.
 \paragraph{Repair.}
 Any persistence conclusion for species two must assume
 \(v_0\not\equiv0\), together with the positivity or irreducibility
-conditions needed to spread nonzero mass.
+conditions needed to spread nonzero mass.  The finite-time positive seed in
+\eqref{eq:exclusion-seed} is a quantitative replacement that directly
+excludes the missing-species case.  Its feasibility must still be checked;
+in particular, it is subject to
+\eqref{eq:exclusion-certificate-necessary}.
 
 \subsection{Theorem 2.2 uses the wrong persistence region}
 
@@ -747,11 +1163,14 @@ Use a one-sided interior corridor
 \[
   (c+\varepsilon)n
   \leq x
-  \leq(c_2^*-\varepsilon)n.
+  \leq(f-\varepsilon)n,
 \]
+where \(f\) is a certified rightward front.
 Every sequence in this corridor has habitat coordinate tending to
-\(+\infty\).  The phrase ``spreads asymptotically with speed \(c_2^*\)''
-must also be replaced by a quantified rightward spreading statement.  Since
+\(+\infty\).  Theorem~\ref{thm:global-exclusion} gives such a statement from
+an explicit minorization certificate.  Replacing \(f\) by a proposed sharp
+speed \(c_2^*\) is valid only after the additional implication in
+Corollary~\ref{cor:conditional-exclusion-speed} has been established.  Since
 the proposal does not assume symmetric kernels and separately defines
 leftward moments, leftward and rightward speeds cannot be conflated.
 
@@ -770,10 +1189,11 @@ equilibrium uses the wrong quantifier range.
 \paragraph{Repair.}
 The observer speed must satisfy
 \[
-  c<c'<c_{\rm coex},
+  c<c'<f,
 \]
 or the conclusion should be stated uniformly in the corresponding
-one-sided corridor.
+one-sided certified corridor.  Theorem~\ref{thm:global-coexistence} uses
+exactly this geometry.
 
 \subsection{Theorem 2.3 uses only empty-habitat speeds}
 
@@ -795,10 +1215,14 @@ than the empty-state multiplier.  The associated invasion front can
 therefore be slower than the empty-habitat front.
 
 \paragraph{Repair.}
-Formulate a conservative coexistence corridor using the reduced speeds in
-\eqref{eq:reduced-speeds}, and state separately the irreducibility and
-linear-determinacy conditions under which those variational speeds are
-exact.
+First prove coexistence behind a certified front from genuine positive
+interior floors, as in Theorem~\ref{thm:global-coexistence}.  The reduced
+speeds in \eqref{eq:reduced-speeds} give a conditional candidate for that
+front, but a separate scalar spreading or linear-determinacy theorem must
+produce the required floors before those variational quantities can be
+called exact speeds.  The one-step minorization criterion is only a narrower
+sufficient device: \eqref{eq:coex-certificate-necessary} shows that it cannot
+cover the whole weak-competition interval.
 
 \subsection{The strong-competition conclusion does not follow from speed
 ordering}
@@ -854,9 +1278,11 @@ legitimate only if a common environmental response is intended; otherwise
 the second occurrence should be \(\rho_2\).
 
 \paragraph{Repair.}
-Until the global arguments are complete, use ``we conjecture'' or ``we aim
-to prove.''  State explicitly whether the two species share one
-environmental response or have species-specific functions.
+Label only the statements established under their displayed hypotheses as
+theorems.  Keep sharp-speed versions explicitly conditional until the
+missing spreading implication is proved, as in
+Section~\ref{sec:conditional-speeds}.  State explicitly whether the two
+species share one environmental response or have species-specific functions.
 
 \section{Summary of repairs}
 
@@ -872,12 +1298,13 @@ Bounded nonnegative data &
 Work in the invariant unit square and require every persisting species to be
 initially nonzero.\\
 Symmetric persistence band &
-Use a one-sided corridor strictly ahead of the habitat.\\
+Use a one-sided corridor strictly ahead of the habitat, with a certified
+rightward front.\\
 Observer range \(0<c'<c^\dagger\) &
-Replace it by \(c<c'<c_{\rm coex}\).\\
+Replace it by an interval \(c<c'<f\) lying inside the certified corridor.\\
 Empty-habitat coexistence threshold &
-Use invasion multipliers and prove linear determinacy at the semi-trivial
-states.\\
+Use positive interior floors for the certified theorem; relating the front
+to invasion multipliers requires a separate linear-determinacy result.\\
 Strong competition &
 Add invasion and initial-data hypotheses; allow bistability.\\
 PINN convergence &

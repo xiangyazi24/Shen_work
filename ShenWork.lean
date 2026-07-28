@@ -1094,3 +1094,10 @@ import ShenWork.Liang.MovingCorridor
 import ShenWork.Liang.LinearDeterminacy
 import ShenWork.Liang.IDEComparison
 import ShenWork.Liang.StateSpace
+import ShenWork.Liang.GlobalDynamicsTools
+import ShenWork.Liang.FastHabitatExtinction
+import ShenWork.Liang.ScalarPersistence
+import ShenWork.Liang.IntermediateSpeedExclusion
+import ShenWork.Liang.SeededEnvelope
+import ShenWork.Liang.WeakCompetitionCoexistence
+import ShenWork.Liang.SpatialCoexistenceCertificate
