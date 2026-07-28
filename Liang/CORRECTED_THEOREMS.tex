@@ -1,0 +1,915 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage{array,booktabs,tabularx}
+\usepackage{enumitem}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\N}{\mathbb N}
+\newcommand{\rhop}{[\rho]_+}
+\newcommand{\Fhat}{\widehat F}
+\newcommand{\M}{\mathcal M}
+\newcommand{\D}{\mathcal D}
+\newcommand{\T}{\mathcal T}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{A Corrected Integrodifference Competition Model\\
+in a Shifting Habitat}
+\author{Xiang Huang \and Liang Kong}
+\date{July 27, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We formulate a positivity-preserving integrodifference competition model in
+a habitat moving at constant speed.  Signed environmental variation is
+placed in the low-density growth factor, while density dependence remains
+nonnegative.  We establish the local order structure, invariance of the
+unit-square state space, preservation of the competitive product order, the
+exact action of dispersal on exponential modes, an exponential comparison
+principle, and the geometry of the favorable moving corridor.  We then give
+precise conjectural formulations of the remaining extinction, exclusion, and
+coexistence results.  An appendix audits the original proposal and records,
+by category, which claims fail as stated and how they can be repaired.
+\end{abstract}
+
+\section{Introduction}
+
+Integrodifference equations are natural models for populations with
+discrete generations and nonlocal dispersal.  If favorable habitat moves at
+speed \(c>0\), persistence requires the population to disperse and grow fast
+enough to remain in the favorable region.  For two competing species, the
+same problem also depends on invasion at the two semi-trivial equilibria and
+on the order structure of the nonlinear update.
+
+The purpose of this note is twofold.  First, we give a corrected model for
+which nonnegative initial data generate nonnegative solutions and the
+two-species update is genuinely competitive.  Second, we separate the
+conclusions that follow from elementary comparison from the global
+persistence statements that still require moving subsolutions and interior
+squeezing.  The distinction is important: empty-habitat spreading speeds
+control upper fronts, but they do not by themselves determine coexistence or
+competitive exclusion.
+
+\section{Model and assumptions}
+
+For \(i=1,2\), let \(k_i\colon\R\to[0,\infty)\) be a continuous integrable
+probability density,
+\[
+  \int_{\R}k_i(z)\,dz=1.
+\]
+Let \(\rho_i\colon\R\to(-1,\infty)\) be continuous and nondecreasing, with
+finite limits
+\[
+  -1<\rho_i^-:=\lim_{s\to-\infty}\rho_i(s)<0
+  <\rho_i^+:=\lim_{s\to+\infty}\rho_i(s).
+\]
+The species may have distinct environmental responses; the specialization
+\(\rho_1=\rho_2\) is allowed.  Let \(\alpha_1,\alpha_2\geq0\).
+
+For \(\rho>-1\) and \(\alpha,u,v\geq0\), define
+\begin{equation}\label{eq:corrected-response}
+  \Fhat(\rho,\alpha;u,v)
+  :=
+  \frac{(1+\rho)u}
+       {1+[\rho]_+(u+\alpha v)},
+  \qquad
+  [\rho]_+:=\max\{\rho,0\}.
+\end{equation}
+The corrected two-species system is
+\begin{align}
+  u_{n+1}(x)
+  &=
+  \int_{\R}k_1(x-y)
+  \Fhat\!\left(
+    \rho_1(y-cn),\alpha_1;u_n(y),v_n(y)
+  \right)\,dy,
+  \label{eq:corrected-u}\\
+  v_{n+1}(x)
+  &=
+  \int_{\R}k_2(x-y)
+  \Fhat\!\left(
+    \rho_2(y-cn),\alpha_2;v_n(y),u_n(y)
+  \right)\,dy.
+  \label{eq:corrected-v}
+\end{align}
+In favorable habitat, where \(\rho\geq0\), this is the usual
+Beverton--Holt competition response
+\[
+  \Fhat(\rho,\alpha;u,v)
+  =
+  \frac{(1+\rho)u}{1+\rho(u+\alpha v)}.
+\]
+In unfavorable habitat, where \(-1<\rho\leq0\), it becomes
+\[
+  \Fhat(\rho,\alpha;u,v)=(1+\rho)u.
+\]
+Thus unfavorable habitat gives subcritical linear growth instead of
+negative density dependence.
+
+\section{Local dynamics and competitive order}
+
+\begin{proposition}[Positivity, bounds, and local order]
+\label{prop:local-order}
+Suppose \(\rho>-1\) and \(\alpha,u,v\geq0\).  Then
+\begin{enumerate}[label=(\roman*)]
+  \item \(\Fhat(\rho,\alpha;u,v)\geq0\);
+  \item \(\Fhat(\rho,\alpha;u,v)\leq(1+\rho)u\);
+  \item if \(0\leq u\leq1\), then
+        \(0\leq\Fhat(\rho,\alpha;u,v)\leq1\);
+  \item \(\Fhat\) is nondecreasing in \(u\) and nonincreasing in \(v\).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Put \(b=[\rho]_+\) and \(D=1+b(u+\alpha v)\).  Since
+\(b,u,\alpha,v\geq0\), one has \(D\geq1\).  The numerator is nonnegative
+because \(1+\rho>0\), which proves (i).  Dividing the numerator by
+\(D\geq1\) proves (ii).
+
+For (iii), suppose first that \(\rho\leq0\).  Then \(b=0\), and hence
+\[
+  \Fhat(\rho,\alpha;u,v)=(1+\rho)u\leq u\leq1.
+\]
+If \(\rho\geq0\), then
+\[
+  D-(1+\rho)u=(1-u)+\rho\alpha v\geq0,
+\]
+which again gives \(\Fhat\leq1\).
+
+Finally, on the positive cone,
+\[
+  \frac{\partial\Fhat}{\partial u}
+  =
+  \frac{(1+\rho)(1+b\alpha v)}{D^2}\geq0,
+  \qquad
+  \frac{\partial\Fhat}{\partial v}
+  =
+  -\frac{(1+\rho)ub\alpha}{D^2}\leq0.
+\]
+This proves (iv).
+\end{proof}
+
+\begin{proposition}[Favorable coexistence equilibrium]
+\label{prop:equilibrium}
+Suppose \(0<\alpha_1,\alpha_2<1\), and define
+\[
+  u^*=\frac{1-\alpha_1}{1-\alpha_1\alpha_2},
+  \qquad
+  v^*=\frac{1-\alpha_2}{1-\alpha_1\alpha_2}.
+\]
+Then \(u^*,v^*>0\),
+\[
+  u^*+\alpha_1v^*=1,
+  \qquad
+  v^*+\alpha_2u^*=1,
+\]
+and for every \(\rho\geq0\),
+\[
+  \Fhat(\rho,\alpha_1;u^*,v^*)=u^*,
+  \qquad
+  \Fhat(\rho,\alpha_2;v^*,u^*)=v^*.
+\]
+\end{proposition}
+
+\begin{proof}
+Since \(0<\alpha_1\alpha_2<1\), all displayed denominators are positive.
+Direct substitution gives the two nullcline identities.  If
+\(u+\alpha v=1\) and \(\rho\geq0\), then
+\[
+  \Fhat(\rho,\alpha;u,v)
+  =\frac{(1+\rho)u}{1+\rho}=u.
+\]
+Applying this identity to the two nullclines proves the result.
+\end{proof}
+
+The low-density multiplier of a rare species in favorable habitat, when its
+competitor is at density one, is
+\begin{equation}\label{eq:rare-multiplier}
+  m(\rho,\alpha):=\frac{1+\rho}{1+\rho\alpha},
+  \qquad \rho>0.
+\end{equation}
+
+\begin{proposition}[Weak and strong competition at a resident equilibrium]
+\label{prop:invasion-multiplier}
+Let \(\rho>0\).
+\begin{enumerate}[label=(\roman*)]
+  \item If \(0\leq\alpha<1\), then \(m(\rho,\alpha)>1\).
+  \item If \(\alpha>1\), then \(m(\rho,\alpha)<1\).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+The denominator in \eqref{eq:rare-multiplier} is positive.  The first
+inequality is equivalent to
+\(\rho\alpha<\rho\), and the second is equivalent to
+\(\rho<\rho\alpha\).
+\end{proof}
+
+For bounded continuous states, write
+\[
+  (u_1,v_1)\preceq_{\rm c}(u_2,v_2)
+  \quad\Longleftrightarrow\quad
+  u_1(x)\leq u_2(x)
+  \ \text{and}\
+  v_1(x)\geq v_2(x)
+  \quad\text{for every }x\in\R.
+\]
+This is the competitive product order.  Let \(\T_n\) denote one update of
+\eqref{eq:corrected-u}--\eqref{eq:corrected-v}.
+
+\begin{theorem}[State-space invariance and competitive comparison]
+\label{thm:state-space}
+Assume the kernels and environments satisfy the hypotheses of Section~2.
+Then \(\T_n\) maps bounded continuous
+\([0,1]^2\)-valued states to bounded continuous
+\([0,1]^2\)-valued states.  Moreover,
+\[
+  (u_1,v_1)\preceq_{\rm c}(u_2,v_2)
+  \quad\Longrightarrow\quad
+  \T_n(u_1,v_1)\preceq_{\rm c}\T_n(u_2,v_2).
+\]
+\end{theorem}
+
+\begin{proof}
+Proposition~\ref{prop:local-order} bounds each source term between zero and
+one.  Integration against a nonnegative kernel of mass one preserves these
+bounds.  Bounded continuity of the new profiles follows from the standard
+continuity theorem for convolution of an \(L^1\) kernel with a bounded
+continuous function.
+
+For the order statement, increasing the focal profile and decreasing the
+competitor profile increases the corresponding local source by
+Proposition~\ref{prop:local-order}(iv).  Multiplication by a nonnegative
+kernel and integration preserve the inequality.  Applying this once to the
+\(u\)-equation and once, with the two order directions reversed, to the
+\(v\)-equation proves the claim.
+\end{proof}
+
+\begin{corollary}[An absent species remains absent]
+\label{cor:zero-species}
+If \(v_0\equiv0\), then \(v_n\equiv0\) for every \(n\in\N\).  The analogous
+statement holds for \(u\).
+\end{corollary}
+
+\begin{proof}
+Equation~\eqref{eq:corrected-response} gives
+\(\Fhat(\rho,\alpha;0,u)=0\).  Hence \(v_n\equiv0\) implies
+\(v_{n+1}\equiv0\), and induction completes the proof.
+\end{proof}
+
+\section{Dispersal, exponential modes, and upper barriers}
+
+For a kernel \(K\), define
+\[
+  (\D_Kf)(x):=\int_{\R}K(x-y)f(y)\,dy,
+  \qquad
+  \M_K(\mu):=\int_{\R}K(z)e^{\mu z}\,dz.
+\]
+
+\begin{lemma}[Exponential eigenfunction identity]
+\label{lem:eigenfunction}
+Whenever \(\M_K(\mu)\) is finite,
+\[
+  \D_K(e^{-\mu\,\cdot})(x)
+  =
+  \M_K(\mu)e^{-\mu x}.
+\]
+\end{lemma}
+
+\begin{proof}
+With \(z=x-y\),
+\begin{align*}
+  \int_{\R}K(x-y)e^{-\mu y}\,dy
+  &=
+  \int_{\R}K(z)e^{-\mu(x-z)}\,dz\\
+  &=
+  e^{-\mu x}\int_{\R}K(z)e^{\mu z}\,dz.
+\end{align*}
+\end{proof}
+
+\begin{proposition}[Exact exponential orbit]
+\label{prop:exponential-orbit}
+Suppose \(\M_K(\mu)\) is finite.  Let \(Lf=R\D_Kf\), and let
+\[
+  W_n(x)=A\bigl(R\M_K(\mu)\bigr)^n e^{-\mu x}.
+\]
+Then \(W_{n+1}=LW_n\).  Along \(x=sn\),
+\[
+  W_n(sn)
+  =
+  A\left(R\M_K(\mu)e^{-\mu s}\right)^n.
+\]
+If \(R\M_K(\mu)>0\), \(\mu>0\), and
+\[
+  s>\frac{\log(R\M_K(\mu))}{\mu},
+\]
+then \(W_n(sn)\to0\).
+\end{proposition}
+
+\begin{proof}
+The recurrence follows from Lemma~\ref{lem:eigenfunction}.  The moving-frame
+formula is an algebraic rearrangement.  The speed inequality is equivalent
+to
+\[
+  0<R\M_K(\mu)e^{-\mu s}<1,
+\]
+so the geometric factor tends to zero.
+\end{proof}
+
+\begin{theorem}[Exponential comparison]
+\label{thm:barrier}
+Assume \(K\geq0\) and \(R>0\).  Fix \(\mu>0\) with
+\(0<\M_K(\mu)<\infty\), and suppose a nonnegative orbit \(w_n\) satisfies
+\[
+  w_{n+1}(x)\leq R\D_Kw_n(x).
+\]
+Suppose \(A\geq0\) and
+\[
+  w_0(x)\leq Ae^{-\mu x}
+  \qquad (x\in\R).
+\]
+Then
+\[
+  w_n(x)\leq
+  A\bigl(R\M_K(\mu)\bigr)^n e^{-\mu x}
+  \qquad (n\in\N,\ x\in\R).
+\]
+Consequently, if
+\[
+  s>\frac{\log(R\M_K(\mu))}{\mu},
+\]
+then
+\[
+  \sup_{x\geq sn}w_n(x)\longrightarrow0.
+\]
+\end{theorem}
+
+\begin{proof}
+The dispersal operator preserves pointwise order because \(K\geq0\).
+Induct on \(n\).  The initial inequality is the base case.  If the bound
+holds at time \(n\), then
+\[
+  w_{n+1}
+  \leq R\D_Kw_n
+  \leq R\D_KW_n
+  =W_{n+1}.
+\]
+For \(x\geq sn\), the exponential is decreasing, so
+\[
+  0\leq w_n(x)
+  \leq
+  A\left(R\M_K(\mu)e^{-\mu s}\right)^n.
+\]
+The right-hand side is a geometric sequence with ratio strictly between
+zero and one.
+\end{proof}
+
+\begin{corollary}[Componentwise scalar domination]
+\label{cor:scalar-domination}
+Suppose \(\rho_i(s)\leq\rho_i^+\) for all \(s\), and set
+\(R_i=1+\rho_i^+\).  Each component of
+\eqref{eq:corrected-u}--\eqref{eq:corrected-v} satisfies
+\[
+  u_{n+1}\leq R_1\D_{k_1}u_n,
+  \qquad
+  v_{n+1}\leq R_2\D_{k_2}v_n.
+\]
+Thus Theorem~\ref{thm:barrier} applies separately to both species.
+\end{corollary}
+
+\begin{proof}
+By Proposition~\ref{prop:local-order},
+\[
+  \Fhat(\rho_i(s),\alpha;u,v)
+  \leq(1+\rho_i(s))u
+  \leq(1+\rho_i^+)u.
+\]
+Multiplication by a nonnegative kernel and integration preserve the
+inequality.
+\end{proof}
+
+\begin{remark}
+Every bounded, compactly supported nonnegative initial profile lies below
+\(Ae^{-\mu x}\) for a suitable \(A\).  Hence the preceding upper-front
+estimate applies to the initial data normally used in spreading theory.
+It is an upper-spreading result; persistence below the critical speed
+requires a separate lower-solution argument.
+\end{remark}
+
+\section{The favorable moving corridor}
+
+\begin{lemma}[Moving-coordinate geometry]
+\label{lem:moving-coordinate}
+Let the habitat move at speed \(c\).
+\begin{enumerate}[label=(\roman*)]
+  \item If an observer moves at speed \(s<c\), then
+        \((s-c)n\to-\infty\).
+  \item If \(s>c\), then \((s-c)n\to+\infty\).
+  \item If \(x_n\geq(c+\varepsilon)n\) for some \(\varepsilon>0\), then
+        \(x_n-cn\to+\infty\).
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+The first two statements follow from the sign of \(s-c\).  For the third,
+\[
+  x_n-cn\geq\varepsilon n\longrightarrow+\infty.
+\]
+\end{proof}
+
+\begin{corollary}[Uniformly favorable corridor geometry]
+\label{cor:favorable-corridor}
+Let \(\rho(s)\to\rho^+\) as \(s\to+\infty\).  If
+\[
+  (c+\varepsilon)n\leq x_n
+  \leq(c_{\rm front}-\varepsilon)n
+\]
+for every \(n\), where \(\varepsilon>0\), then
+\[
+  \rho(x_n-cn)\longrightarrow\rho^+.
+\]
+The corridor is nonempty whenever \(c+2\varepsilon\leq c_{\rm front}\).
+\end{corollary}
+
+\begin{proof}
+The first conclusion follows by composing the far-right limit of \(\rho\)
+with Lemma~\ref{lem:moving-coordinate}(iii).  The nonemptiness condition is
+the inequality
+\[
+  c+\varepsilon\leq c_{\rm front}-\varepsilon.
+\]
+\end{proof}
+
+Thus convergence to a far-right favorable equilibrium belongs in a
+one-sided corridor
+\[
+  (c+\varepsilon)n
+  \leq x
+  \leq(c_{\rm front}-\varepsilon)n.
+\]
+A symmetric band \(|x-cn|\leq\eta n\) contains
+\(x=(c-\eta)n\), whose moving coordinate tends to \(-\infty\).
+
+\section{Corrected global research questions}
+\label{sec:global-conjectures}
+
+This section records precise global statements suggested by the preceding
+estimates.  They are conjectures, not consequences of the local and
+upper-barrier arguments alone.
+
+Let
+\[
+  R_i:=1+\rho_i^+,
+  \qquad
+  \M_i(\mu):=\int_{\R}k_i(z)e^{\mu z}\,dz,
+\]
+and define the empty-habitat rightward speeds
+\begin{equation}\label{eq:empty-speeds}
+  c_i^*
+  :=
+  \inf_{\mu>0}
+  \frac{\log(R_i\M_i(\mu))}{\mu}.
+\end{equation}
+For weak competition, define the favorable rare-species multipliers
+\[
+  \widetilde R_1
+  :=
+  \frac{R_1}{1+\rho_1^+\alpha_1},
+  \qquad
+  \widetilde R_2
+  :=
+  \frac{R_2}{1+\rho_2^+\alpha_2},
+\]
+the associated candidate invasion speeds
+\begin{equation}\label{eq:reduced-speeds}
+  \widetilde c_i^*
+  :=
+  \inf_{\mu>0}
+  \frac{\log(\widetilde R_i\M_i(\mu))}{\mu},
+  \qquad
+  c_{\rm coex}:=\min_i\widetilde c_i^*.
+\end{equation}
+Identifying the nonlinear spreading speed with one of these variational
+quantities requires the usual irreducibility and linear-determinacy
+hypotheses.
+
+\begin{conjecture}[Fast-habitat extinction]
+\label{conj:global-extinction}
+Assume the hypotheses of Section~2, the required exponential moments, and
+compactly supported initial data in \([0,1]^2\).  If
+\[
+  c>\max\{c_1^*,c_2^*\},
+\]
+then
+\[
+  \sup_{x\in\R}\max\{u_n(x),v_n(x)\}\longrightarrow0.
+\]
+\end{conjecture}
+
+\begin{conjecture}[Intermediate-speed exclusion]
+\label{conj:global-exclusion}
+Assume \(c_1^*<c<c_2^*\) and \(v_0\not\equiv0\).  Under suitable scalar
+persistence and linear-determinacy hypotheses,
+\[
+  \sup_{x\in\R}u_n(x)\longrightarrow0,
+\]
+and, for every
+\[
+  0<\varepsilon<\frac{c_2^*-c}{2},
+\]
+\[
+  \sup_{(c+\varepsilon)n\leq x\leq(c_2^*-\varepsilon)n}
+  |v_n(x)-1|\longrightarrow0.
+\]
+A complete spreading statement must specify the rightward front and its
+behavior ahead of \(c_2^*\); if kernels are asymmetric, the leftward and
+rightward speeds must be distinguished.
+\end{conjecture}
+
+\begin{conjecture}[Weak-competition coexistence]
+\label{conj:global-coexistence}
+Assume \(0<\alpha_1,\alpha_2<1\), both initial components are nonzero, and
+the required irreducibility and linear-determinacy hypotheses hold.  If
+\[
+  0<c<c_{\rm coex},
+\]
+then, for every
+\[
+  0<\varepsilon<\frac{c_{\rm coex}-c}{2},
+\]
+\[
+  \sup_{(c+\varepsilon)n\leq x\leq(c_{\rm coex}-\varepsilon)n}
+  \max\{|u_n(x)-u^*|,\ |v_n(x)-v^*|\}
+  \longrightarrow0.
+\]
+Equivalently, the corresponding fixed-speed observer statement should
+quantify only over
+\[
+  c<s<c_{\rm coex}.
+\]
+\end{conjecture}
+
+\begin{remark}
+The reduced quantities in \eqref{eq:reduced-speeds} are natural sufficient
+thresholds because they arise from invasion of the two resident-only states.
+They should not be presented as exact nonlinear speeds without a separate
+linear-determinacy theorem.  In particular, the empty-habitat speeds
+\eqref{eq:empty-speeds} alone do not encode the competition coefficients.
+\end{remark}
+
+\section{A reusable generalization}
+
+The same local argument applies to the more general response
+\begin{equation}\label{eq:general-response}
+  G_i(s;u,v)
+  :=
+  \frac{R_i(s)u}
+       {1+b_i(s)(u+\alpha_i v)},
+  \qquad
+  R_i(s)>0,\quad b_i(s)\geq0.
+\end{equation}
+Positivity and competitive order follow immediately.  A sufficient
+condition for \(G_i(s;u,v)\leq1\) whenever \(0\leq u\leq1\) is
+\[
+  R_i(s)\leq1+b_i(s).
+\]
+Indeed,
+\[
+  1+b_i(s)(u+\alpha_i v)-R_i(s)u
+  =
+  1-\bigl(R_i(s)-b_i(s)\bigr)u+b_i(s)\alpha_i v
+\]
+If \(R_i(s)\leq b_i(s)\), the right-hand side is at least one.  Otherwise
+\(0<R_i(s)-b_i(s)\leq1\), so
+\(\bigl(R_i(s)-b_i(s)\bigr)u\leq1\), and the right-hand side is again
+nonnegative.
+The model \eqref{eq:corrected-response} is the special case
+\[
+  R_i(s)=1+\rho_i(s),
+  \qquad
+  b_i(s)=[\rho_i(s)]_+.
+\]
+This formulation separates low-density growth, density dependence, and
+interspecific competition.  It also permits different environments for the
+two species, asymmetric kernels, directional moments in higher dimensions,
+and habitat displacements that vary with time.
+
+\appendix
+
+\section{Audit of the original proposal}
+\label{app:audit}
+
+This appendix concerns the CMBE 2026 proposal
+\emph{Spatial Dynamics of an Integro-Difference Lotka--Volterra Model in a
+Shifting Habitat}.  The purpose is diagnostic: for each defect, we give the
+shortest mathematical reason that the original statement cannot stand and
+then record a repair.
+
+\subsection{The printed response is not positive on the stated state space}
+
+The response printed in the proposal is
+\begin{equation}\label{eq:printed-response}
+  F(\rho,\alpha;u,v)
+  :=
+  \frac{(1+\rho)u}{1+\rho(u+\alpha v)}.
+\end{equation}
+The hypotheses of Theorems 2.1--2.3 allow arbitrary bounded nonnegative
+initial data.  They do not impose \(u+\alpha v\leq1\).  Under the permitted
+values
+\[
+  \rho=-\frac12,\qquad \alpha=0,\qquad u=3,\qquad v=0,
+\]
+one obtains
+\[
+  F\!\left(-\frac12,0;3,0\right)
+  =
+  \frac{(1/2)3}{1-(1/2)3}
+  =-3.
+\]
+Thus the local update can send an admissible nonnegative state to a negative
+value.  The model, as stated, is not a positive population dynamical system.
+
+\paragraph{Repair.}
+Either add and prove an invariant state-space restriction strong enough to
+keep every denominator positive, or change the response.  The correction
+\eqref{eq:corrected-response} gives positivity on the entire positive cone
+and is therefore the cleaner repair.
+
+\subsection{The simplex remark does not restore competition}
+
+The proposal contains a red editorial sentence suggesting
+\[
+  1-u-\alpha v\geq0.
+\]
+This is not included as a theorem hypothesis, and no invariance proof is
+given.  More importantly, even if the inequality is imposed, the direction
+of competition remains wrong in unfavorable habitat.  For
+\[
+  \rho=-\frac12,\qquad \alpha=1,\qquad u=\frac12,
+\]
+both \(v=0\) and \(v=\frac12\) satisfy \(u+\alpha v\leq1\), but
+\[
+  F\!\left(-\frac12,1;\frac12,0\right)=\frac13
+  <
+  \frac12
+  =
+  F\!\left(-\frac12,1;\frac12,\frac12\right).
+\]
+Increasing the competitor increases the focal-species response.  In fact,
+where the denominator is positive,
+\[
+  \frac{\partial F}{\partial v}
+  =
+  -\frac{(1+\rho)u\rho\alpha}
+         {(1+\rho(u+\alpha v))^2},
+\]
+which is positive when \(-1<\rho<0\), \(u>0\), and \(\alpha>0\).
+
+\paragraph{Repair.}
+Density dependence must remain nonnegative.  Replacing \(\rho\) by
+\([\rho]_+\) in the denominator yields
+\eqref{eq:corrected-response}; the unfavorable response then becomes
+subcritical linear growth.
+
+\subsection{Theorem 2.1 lacks a valid invariant state space}
+
+Theorem 2.1 assumes only that the initial pair is nonnegative, bounded, and
+compactly supported.  The calculation above uses data allowed by exactly
+those assumptions.  Consequently, the theorem is not formulated on a state
+space preserved by its own update, and the comparison principles invoked in
+the proposal are unavailable.
+
+This defect is logically prior to the speed calculation.  Even a correct
+formula for \(c_i^*\) cannot repair a nonlinear map that leaves the positive
+cone.
+
+\paragraph{Repair.}
+Use the corrected response and initial values in the invariant unit square
+\([0,1]^2\), as in Conjecture~\ref{conj:global-extinction}.  A proof must
+then combine the upper exponential estimate with decay in the unfavorable
+region; the barrier alone proves only the upper-front part.
+
+\subsection{Theorem 2.2 has a missing-species counterexample}
+
+Theorem 2.2 assumes that the pair \((u_0,v_0)\) has nonempty compact support,
+but it does not assume \(v_0\not\equiv0\).  Choose
+\[
+  u_0\not\equiv0,\qquad v_0\equiv0.
+\]
+Then the pair satisfies the printed initial-data hypothesis.  Since the
+second response has a factor \(v_n(y)\), induction gives
+\[
+  v_n\equiv0\qquad\text{for all }n.
+\]
+Therefore
+\[
+  \liminf_{n\to\infty}
+  \inf_{|x-cn|\leq\eta n}v_n(x)=0
+\]
+for every \(\eta>0\), contradicting the asserted strict positivity.
+
+\paragraph{Repair.}
+Any persistence conclusion for species two must assume
+\(v_0\not\equiv0\), together with the positivity or irreducibility
+conditions needed to spread nonzero mass.
+
+\subsection{Theorem 2.2 uses the wrong persistence region}
+
+The symmetric region in the original theorem is
+\[
+  |x-cn|\leq\eta n.
+\]
+Its left boundary is \(x=(c-\eta)n\), so in habitat coordinates
+\[
+  x-cn=-\eta n\longrightarrow-\infty.
+\]
+The left edge therefore samples the unfavorable limit \(\rho^-\), while the
+right edge samples the favorable limit.  A uniform lower bound over the
+entire symmetric band cannot be justified by convergence to the favorable
+single-species equilibrium.
+
+\paragraph{Repair.}
+Use a one-sided interior corridor
+\[
+  (c+\varepsilon)n
+  \leq x
+  \leq(c_2^*-\varepsilon)n.
+\]
+Every sequence in this corridor has habitat coordinate tending to
+\(+\infty\).  The phrase ``spreads asymptotically with speed \(c_2^*\)''
+must also be replaced by a quantified rightward spreading statement.  Since
+the proposal does not assume symmetric kernels and separately defines
+leftward moments, leftward and rightward speeds cannot be conflated.
+
+\subsection{Theorem 2.3 quantifies over observers behind the habitat}
+
+Theorem 2.3 asserts convergence to the positive favorable equilibrium for
+every \(0<c'<c^\dagger\), where \(c^\dagger>c\).  This interval includes all
+\(c'\) with \(0<c'<c\).  For such an observer,
+\[
+  c'n-cn=(c'-c)n\longrightarrow-\infty.
+\]
+Hence the observer moves linearly far into the unfavorable side of the
+habitat.  The claimed convergence to the far-right positive coexistence
+equilibrium uses the wrong quantifier range.
+
+\paragraph{Repair.}
+The observer speed must satisfy
+\[
+  c<c'<c_{\rm coex},
+\]
+or the conclusion should be stated uniformly in the corresponding
+one-sided corridor.
+
+\subsection{Theorem 2.3 uses only empty-habitat speeds}
+
+The threshold
+\[
+  c<\min\{c_1^*,c_2^*\}
+\]
+uses growth at the empty state.  Coexistence, however, requires each species
+to invade a state occupied by the other species.  At resident density one,
+the rare-species multiplier is
+\[
+  \widetilde R_i
+  =
+  \frac{1+\rho_i^+}{1+\rho_i^+\alpha_i},
+\]
+not \(1+\rho_i^+\).  For every
+\(0<\alpha_i<1\), this multiplier is greater than one but strictly smaller
+than the empty-state multiplier.  The associated invasion front can
+therefore be slower than the empty-habitat front.
+
+\paragraph{Repair.}
+Formulate a conservative coexistence corridor using the reduced speeds in
+\eqref{eq:reduced-speeds}, and state separately the irreducibility and
+linear-determinacy conditions under which those variational speeds are
+exact.
+
+\subsection{The strong-competition conclusion does not follow from speed
+ordering}
+
+The summary states that under strong competition the faster species excludes
+the other, even when both persist alone.  Suppose, in the favorable
+homogeneous environment, that
+\[
+  \alpha_1>1,\qquad \alpha_2>1.
+\]
+By Proposition~\ref{prop:invasion-multiplier}, each rare-species multiplier
+at the other resident-only equilibrium is less than one:
+\[
+  \frac{1+\rho^+}{1+\rho^+\alpha_i}<1.
+\]
+Thus both semi-trivial equilibria resist invasion.  This is the local
+signature of bistability.  Ordering the two empty-habitat speeds does not
+select a unique winner independently of initial data.
+
+\paragraph{Repair.}
+A strong-competition theorem must specify invasion eigenvalues, wave
+selection, and initial-data conditions.  It may yield conditional exclusion
+or a bistable traveling front, but speed ordering alone is insufficient.
+
+\subsection{The PINN convergence sentence is not an analytical consequence}
+
+The proposal suggests that training loss tending to zero should imply
+convergence to the analytical traveling wave and consistent recovery of its
+speed.  A small sampled residual does not by itself imply either conclusion.
+One must specify at least:
+\begin{enumerate}[label=(\roman*)]
+  \item the function space and norm in which the residual is controlled;
+  \item compactness or coercivity for the network sequence;
+  \item consistency of quadrature for the nonlocal integral;
+  \item stability and uniqueness of the target wave after fixing translation;
+  \item identifiability of the wave speed.
+\end{enumerate}
+Without these ingredients, the PINN is a numerical proposal rather than a
+convergence theorem.
+
+\paragraph{Repair.}
+State the neural-network component as a computational method and validate it
+numerically.  A mathematical convergence claim should be deferred until a
+separate approximation theorem supplies the missing hypotheses.
+
+\subsection{The status and notation are internally inconsistent}
+
+Section 2 says that the three theorems are results ``we propose to
+establish,'' whereas the summary says ``we prove'' and the conclusion says
+``we established.''  These descriptions cannot all be correct in the same
+document.  In addition, both species equations use \(\rho_1\).  This is
+legitimate only if a common environmental response is intended; otherwise
+the second occurrence should be \(\rho_2\).
+
+\paragraph{Repair.}
+Until the global arguments are complete, use ``we conjecture'' or ``we aim
+to prove.''  State explicitly whether the two species share one
+environmental response or have species-specific functions.
+
+\section{Summary of repairs}
+
+\begin{center}
+\begin{tabularx}{0.92\textwidth}{@{}>{\raggedright\arraybackslash}p{0.27\textwidth}Y@{}}
+\toprule
+Original issue & Required repair\\
+\midrule
+Signed density dependence &
+Use nonnegative density dependence, for example
+\([\rho]_+\), or prove a genuinely invariant alternative state space.\\
+Bounded nonnegative data &
+Work in the invariant unit square and require every persisting species to be
+initially nonzero.\\
+Symmetric persistence band &
+Use a one-sided corridor strictly ahead of the habitat.\\
+Observer range \(0<c'<c^\dagger\) &
+Replace it by \(c<c'<c_{\rm coex}\).\\
+Empty-habitat coexistence threshold &
+Use invasion multipliers and prove linear determinacy at the semi-trivial
+states.\\
+Strong competition &
+Add invasion and initial-data hypotheses; allow bistability.\\
+PINN convergence &
+Treat it as numerical methodology unless a separate approximation theorem is
+proved.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{thebibliography}{9}
+
+\bibitem{LewisMarculisShen2018}
+M.~A. Lewis, N.~G. Marculis, and Z. Shen,
+\href{https://www.math.ualberta.ca/~mlewis/Publications%202018/Lewis_Marculis_Shen.pdf}
+{Integrodifference equations in the presence of climate change:
+persistence criterion, travelling waves and inside dynamics},
+\emph{Journal of Mathematical Biology} 77 (2018), 1649--1687.
+
+\bibitem{WuWangZou2019}
+C. Wu, Y. Wang, and X. Zou,
+\href{https://www.uwo.ca/apmaths/faculty/zou/repr/jde19-2.pdf}
+{Spatial-temporal dynamics of a Lotka--Volterra competition model with
+nonlocal dispersal under shifting environment},
+\emph{Journal of Differential Equations} 267 (2019), 4890--4921.
+
+\bibitem{KongRawalShen2015}
+L. Kong, N. Rawal, and W. Shen,
+\href{https://arxiv.org/abs/1410.0317}
+{Spreading speeds and linear determinacy for two species competition
+systems with nonlocal dispersal in periodic habitats},
+\emph{Mathematical Modelling of Natural Phenomena} 10 (2015), 113--141.
+
+\end{thebibliography}
+
+\end{document}

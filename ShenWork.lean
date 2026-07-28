@@ -1087,3 +1087,10 @@ import ShenWork.Paper2.IntervalDomainTheorem13MLtOneClosure
 import ShenWork.Paper3.IntervalDomainMMinimalSignalEnergyGlobal
 import ShenWork.Paper3.IntervalDomainMMinimalCriticalGlobal
 import ShenWork.Paper3.MinimalSteadyWACounterexample
+import ShenWork.Analysis.DispersalKernel
+import ShenWork.Liang.ModelAudit
+import ShenWork.Liang.CorrectedModel
+import ShenWork.Liang.MovingCorridor
+import ShenWork.Liang.LinearDeterminacy
+import ShenWork.Liang.IDEComparison
+import ShenWork.Liang.StateSpace
