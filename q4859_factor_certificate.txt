@@ -1,0 +1,59 @@
+Q4859 EXACT FIRST-ORDER ORE FACTOR CERTIFICATE
+===============================================
+Script: q4859_factor_sympy.py   SymPy 1.14.0   Python 3.12.3
+Date: 2026-07-14
+
+QUESTION
+--------
+Does the normalized Problem 2.5 order-3 linear recurrence operator (over Q(n))
+have (i) a first-order right factor, (ii) a first-order left factor?
+Does extending the coefficient field to Q(sqrt(2))(n) change either answer?
+
+EXACT SCRIPT OUTPUT (key lines)
+--------------------------------
+RSOLVE_HYPER_RESULT ORIGINAL_RIGHT 0
+CONCLUSION ORIGINAL_RIGHT NO_FIRST_ORDER_FACTOR_OVER_Q
+
+RSOLVE_HYPER_RESULT ADJOINT_RIGHT_EQ_LEFT_ORIGINAL 0
+CONCLUSION ADJOINT_RIGHT_EQ_LEFT_ORIGINAL NO_FIRST_ORDER_FACTOR_OVER_Q
+
+Q_SQRT2_ell0_deg6_irreducible_over_Q 3072*n**6 + 74112*n**5 + 738544*n**4 + 3890106*n**3 + 11417947*n**2 + 17696904*n + 11307715
+CONCLUSION Q_SQRT2_ell0_deg6 REMAINS_IRREDUCIBLE_OVER_Q_SQRT2
+
+Q_SQRT2_ell3_deg6_irreducible_over_Q 3072*n**6 + 55680*n**5 + 414064*n**4 + 1615610*n**3 + 3483853*n**2 + 3929280*n + 1806156
+CONCLUSION Q_SQRT2_ell3_deg6 REMAINS_IRREDUCIBLE_OVER_Q_SQRT2
+
+FINAL_CONCLUSION: no first-order right factor over Q(n)
+FINAL_CONCLUSION: no first-order left factor over Q(n)
+FINAL_CONCLUSION: Q(sqrt(2))(n) does not change the result
+
+INTERPRETATION
+--------------
+(i)  NO first-order right factor over Q(n).
+     rsolve_hyper (Petkovšek's algorithm) returned 0 for the original operator,
+     meaning the recurrence has no hypergeometric term solution over Q(n).
+     Equivalently, the operator cannot be written as L = R1 * R0 with R0 of
+     order 1 and coefficients in Q(n).
+
+(ii) NO first-order left factor over Q(n).
+     rsolve_hyper returned 0 for the formal adjoint operator as well.
+     Since a first-order left factor of L exists iff the adjoint L* has a
+     first-order right factor, this confirms no left factor either.
+
+(iii) Q(sqrt(2))(n) DOES NOT change either answer.
+     The unique degree-6 irreducible (over Q) factor of the trailing coefficient
+     ell0 and the unique degree-6 irreducible factor of the leading coefficient
+     ell3 both remain irreducible over Q(sqrt(2)).  The Petkovšek dispersion
+     structure (which governs the possible degree of the certificate polynomial)
+     is therefore identical over Q(sqrt(2)) to that over Q, so no new
+     hypergeometric solutions can arise.
+
+NORMALIZED OPERATOR COEFFICIENTS (all degree 13 in n)
+------------------------------------------------------
+ell0 = -4*(n+1)*(n+3)^2*(n+4)*(2n+3)*(2n+5)*(2n+7)*
+            (3072n^6+74112n^5+738544n^4+3890106n^3+11417947n^2+17696904n+11307715)
+
+ell3 =  4*(n+2)*(n+3)*(n+4)^2*(2n+7)*(2n+11)^2*
+            (3072n^6+55680n^5+414064n^4+1615610n^3+3483853n^2+3929280n+1806156)
+
+Both degree-6 factors are irreducible over Q and over Q(sqrt(2)).
