@@ -35,8 +35,15 @@ formalization audit.
   mass is precisely multiplied by the appropriate power of the low-density
   slope. This mass growth does not imply a pointwise moving-interval floor.
   The remaining analytic gap is to derive that one local reference
-  convolution-power estimate from the variational speed inequality. The
-  older one-step minorization theorem is
+  convolution-power estimate from the variational speed inequality.
+  `finiteBlockCertificate_forces_minStep_lt_corridorSpeed` now proves that a
+  rightward speed alone cannot do this for an asymmetric kernel with hard
+  positive drift. The general corrected left interior speed is
+  \(\max\{c,-c_{2,-}^*\}\), as in the scalar spreading theorem of Li,
+  Bewick, Barnard, and Fagan (2016); the simpler left edge \(c\) requires an
+  additional directional condition (automatic for symmetric kernels and
+  \(c\ge0\)). Their exponential--sine lower-solution construction is the
+  identified completion route. The older one-step minorization theorem is
   retained as a stronger special route; its certificate forces a favorable
   lower growth bound greater than one. The attempted sequential
   transport-then-recovery route is now formally proved incompatible with a
@@ -84,6 +91,8 @@ Mathlib imports are omitted below.
   → `ScalarPersistence`
 - `ShenWork/Liang/FiniteBlockSpreading.lean`
   → `ScalarPersistence`, `MovingCorridor`
+- `ShenWork/Liang/ExponentialSineLowerSolution.lean`
+  → `FiniteBlockSpreading`, `LinearDeterminacy`
 - `ShenWork/Liang/IntermediateSpeedExclusion.lean`
   → `MultistepPersistence`, `FiniteBlockSpreading`, `MovingCorridor`,
   `StateSpace`

@@ -378,6 +378,101 @@ theorem finiteLinearOrbit_interval_scale
   exact finiteLinearOrbit_const_mul K slope seed
     (intervalFloor 1 L R)
 
+/-! ## One-sided support obstructions -/
+
+/-- If every dispersal jump is at least `minStep` and the input vanishes to
+the left of `L`, then one dispersal step vanishes to the left of
+`L + minStep`. -/
+theorem dispersal_eq_zero_below_add_minStep
+    {K f : ℝ → ℝ} {minStep L x : ℝ}
+    (hKleft : ∀ z < minStep, K z = 0)
+    (hfleft : ∀ y < L, f y = 0)
+    (hx : x < L + minStep) :
+    ShenWork.Analysis.dispersal K f x = 0 := by
+  rw [ShenWork.Analysis.dispersal_eq_shift]
+  apply integral_eq_zero_of_ae
+  filter_upwards [] with z
+  by_cases hz : z < minStep
+  · simp [hKleft z hz]
+  · have hxy : x - z < L := by
+      push Not at hz
+      linarith
+    simp [hfleft (x - z) hxy]
+
+/-- A finite linear orbit cannot outrun a hard lower bound on every
+dispersal jump. -/
+theorem finiteLinearOrbit_eq_zero_below_minStep
+    {K f : ℝ → ℝ} {slope minStep L : ℝ}
+    (hKleft : ∀ z < minStep, K z = 0)
+    (hfleft : ∀ y < L, f y = 0) :
+    ∀ (n : ℕ) (x : ℝ),
+      x < L + minStep * (n : ℝ) →
+      finiteLinearOrbit K slope f n x = 0 := by
+  intro n
+  induction n with
+  | zero =>
+      intro x hx
+      simpa using hfleft x (by simpa using hx)
+  | succ n ih =>
+      intro x hx
+      rw [finiteLinearOrbit_succ]
+      unfold ShenWork.Analysis.linearDispersalStep
+      rw [dispersal_eq_zero_below_add_minStep hKleft
+        (fun y hy => ih y hy)]
+      · ring
+      · norm_num at hx ⊢
+        linarith
+
+/-- A nonvacuous finite-block certificate must advance its left endpoint by
+at least `block * minStep` when every kernel jump is at least `minStep`.
+Consequently, a right-only variational speed cannot by itself guarantee a
+corridor whose left edge moves more slowly than the kernel's hard drift. -/
+theorem finiteBlockCertificate_minStep_mul_block_le_leftAdvance
+    {K : ℝ → ℝ}
+    {slope η seed leftAdvance rightAdvance minWidth minStep : ℝ}
+    {block : ℕ}
+    (cert : FiniteBlockCertificate K slope η seed block
+      leftAdvance rightAdvance minWidth)
+    (hKleft : ∀ z < minStep, K z = 0)
+    (htarget : leftAdvance ≤ minWidth + rightAdvance) :
+    minStep * (block : ℝ) ≤ leftAdvance := by
+  by_contra hnot
+  have hlt : leftAdvance < minStep * (block : ℝ) := lt_of_not_ge hnot
+  have hzero :
+      finiteLinearOrbit K slope
+        (intervalFloor seed 0 minWidth) block leftAdvance = 0 := by
+    apply finiteLinearOrbit_eq_zero_below_minStep
+      (L := 0) (minStep := minStep) hKleft
+    · intro y hy
+      simp [intervalFloor, not_le.mpr hy]
+    · simpa using hlt
+  have hexpand :=
+    cert.expands_floor 0 minWidth (by simp) leftAdvance
+      ⟨by simp, by simpa using htarget⟩
+  rw [hzero] at hexpand
+  linarith [cert.seed_pos]
+
+/-- Combining the support obstruction with the block-corridor geometry shows
+that the proposed corridor speed must strictly exceed every hard lower bound
+on one-step dispersal. -/
+theorem finiteBlockCertificate_forces_minStep_lt_corridorSpeed
+    {K : ℝ → ℝ}
+    {slope η seed leftAdvance rightAdvance minWidth minStep
+      corridorSpeed : ℝ}
+    {block : ℕ}
+    (cert : FiniteBlockCertificate K slope η seed block
+      leftAdvance rightAdvance minWidth)
+    (hblock : 0 < block)
+    (hKleft : ∀ z < minStep, K z = 0)
+    (htarget : leftAdvance ≤ minWidth + rightAdvance)
+    (hleft : leftAdvance < corridorSpeed * (block : ℝ)) :
+    minStep < corridorSpeed := by
+  have hsupport :=
+    finiteBlockCertificate_minStep_mul_block_le_leftAdvance
+      cert hKleft htarget
+  have hblock_real : 0 < (block : ℝ) := by exact_mod_cast hblock
+  nlinarith
+
 /-- Pointwise order of initial profiles propagates through a finite linear
 orbit.  The integrability assumptions match the exact form stored in
 `FiniteBlockCertificate`. -/
@@ -1101,6 +1196,8 @@ section AxiomAudit
 #print axioms integral_intervalFloor
 #print axioms integral_finiteLinearOrbit
 #print axioms integral_finiteLinearOrbit_intervalFloor
+#print axioms finiteBlockCertificate_minStep_mul_block_le_leftAdvance
+#print axioms finiteBlockCertificate_forces_minStep_lt_corridorSpeed
 #print axioms finiteBlockCertificate_of_reference_interval
 #print axioms finiteBlockCertificate_of_reference_interval_and_power_bound
 #print axioms finiteBlockCertificate_of_unit_reference

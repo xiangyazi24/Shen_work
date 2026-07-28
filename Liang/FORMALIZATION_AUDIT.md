@@ -192,6 +192,47 @@ could be spread too thinly or lie in the wrong region. The remaining bridge
 from the variational speed inequality is a local convolution-power, or
 quantitative large-deviation, lower bound.
 
+The rightward speed alone cannot supply this bound on a corridor beginning
+at speed \(c\) for an asymmetric kernel. If \(K(z)=0\) for every \(z<a\),
+then every dispersal path advances by at least \(a\) per step. The new Lean
+theorems `finiteBlockCertificate_minStep_mul_block_le_leftAdvance` and
+`finiteBlockCertificate_forces_minStep_lt_corridorSpeed` prove that a
+nonvacuous block certificate must have
+
+\[
+a\,\mathrm{block}\le\mathrm{leftAdvance},
+\]
+
+and hence any compatible corridor speed must be strictly larger than \(a\).
+This gives a formal obstruction to deriving the present
+\((c+\varepsilon)n\) left edge from a rightward speed inequality alone.
+Conversely, `minStep_lt_kernelSpeedAt` proves that if the favorable linear
+growth is greater than one, every positive exponential weight predicts a
+rightward speed strictly larger than \(a\). Thus the hard-drift example
+simultaneously satisfies the printed rightward speed comparison and defeats
+the proposed left corridor edge.
+
+The general scalar correction uses both directional speeds. The inside
+spreading interval in Theorem 2(i)(b) of Li, Bewick, Barnard, and Fagan
+(2016) has left speed
+
+\[
+\ell_2=\max\{c,-c_{2,-}^*\}
+\]
+
+and right speed \(c_2^*\). Thus the simpler left edge \(c\) requires
+\(c\ge -c_{2,-}^*\); it is automatic for symmetric kernels when \(c\ge0\).
+Their Lemma 4 constructs the needed expanding positive plateau from two
+truncated exponential--sine flanks for compactly supported kernels and then
+uses kernel truncation for the general case. This is now the identified
+route for completing the sharp-speed version of Corrected Theorem 2.2.
+`ExponentialSineLowerSolution.lean` now formalizes the exact weighted
+sine/cosine moments, their amplitude-and-phase form, and the fact that a
+compactly truncated flank obeys the same convolution identity away from its
+two endpoints. It also proves the resulting one-step linear subsolution
+inequality for one moving flank. Joining two such flanks to a plateau and
+proving the full moving lower-solution inequalities remain.
+
 Given this finite linear certificate, the corrected IDE recurrence, a
 continuous compactly supported probability kernel, a compact positive seed,
 uniform extinction of the slow species, favorable-environment bounds on the
@@ -341,7 +382,8 @@ column lists direct project imports and omits Mathlib imports.
 | `ShenWork/Liang/FastHabitatExtinction.lean` | `StateSpace`, `LinearDeterminacy` | Admissible extinction weights, component extinction, and the top theorem `correctedIDEOrbit_fastHabitat_extinction` |
 | `ShenWork/Liang/ScalarPersistence.lean` | `IDEComparison` | Beverton–Holt convergence, positivity propagation, interval seeds, an expanding-interval positive floor, and the necessary growth margin for a one-step minorization certificate |
 | `ShenWork/Liang/MultistepPersistence.lean` | `ScalarPersistence` | Attenuated floor propagation, exact Beverton–Holt recovery estimates, and variable-floor interval transport |
-| `ShenWork/Liang/FiniteBlockSpreading.lean` | `ScalarPersistence`, `MovingCorridor` | Low-density linear lower bound, reduction of the block expansion check to one reference interval, nonlinear comparison through one block, and iterated moving-corridor floors |
+| `ShenWork/Liang/FiniteBlockSpreading.lean` | `ScalarPersistence`, `MovingCorridor` | Low-density linear lower bound, reduction of the block expansion check to one reference interval, nonlinear comparison through one block, iterated moving-corridor floors, and the hard-drift obstruction on the left block speed |
+| `ShenWork/Liang/ExponentialSineLowerSolution.lean` | `FiniteBlockSpreading`, `LinearDeterminacy` | Hard-drift lower bound on every rightward exponential speed; weighted sine/cosine kernel moments; exact amplitude-and-phase action of convolution on an exponential--sine flank; exact interior identity and one-step subsolution inequality for its compact truncation |
 | `ShenWork/Liang/IntermediateSpeedExclusion.lean` | `MultistepPersistence`, `FiniteBlockSpreading`, `MovingCorridor`, `StateSpace` | Block-time and all-time corridor propagation; corrected 2.2 from a finite linear block certificate; the one-step special case; and the obstruction to sequential transport then recovery |
 | `ShenWork/Liang/SeededEnvelope.lean` | `GlobalDynamicsTools` | Valid nested seeded envelopes and `seededEnvelopeOrbit_tendsto_coexistence` |
 | `ShenWork/Liang/WeakCompetitionCoexistence.lean` | `GlobalDynamicsTools`, `LinearDeterminacy`, `MovingCorridor`, `SeededEnvelope` | Admissible reduced speeds, homogeneous and seeded-envelope convergence, the conditional corridor theorem `corrected_weak_competition_uniform_corridor_convergence`, and the observer corollary |
@@ -352,12 +394,15 @@ column lists direct project imports and omits Mathlib imports.
 1. Relate the admissible-domain speed in Corrected Theorem 2.1 to any preferred
    unrestricted notation only after stating enough moment-domain hypotheses.
    The extinction theorem itself is complete.
-2. For Corrected Theorem 2.2, derive both the slow-species extinction and the
-   surviving-species positive floor directly from
-   \(c_1^*<c<c_2^*\) under a general linear-determinacy theorem. Then identify
-   the certified `front` with the sharp \(c_2^*\) and add the leading-edge
-   extinction statement. The present proof reduces the lower-spreading part
-   to a finite linear convolution-power certificate.
+2. For Corrected Theorem 2.2, formalize the scalar exponential--sine
+   lower-solution construction of Li, Bewick, Barnard, and Fagan (2016),
+   including the general left interior speed
+   \(\max\{c,-c_{2,-}^*\}\). Combine it with slow-species extinction and the
+   small-competitor lower comparison, identify the certified `front` with
+   the sharp \(c_2^*\), and add the leading-edge extinction statement. The
+   simpler corridor beginning at speed \(c\) requires
+   \(c\ge -c_{2,-}^*\). The present Lean proof reduces the remaining
+   lower-spreading work to a finite linear convolution-power certificate.
 3. For Corrected Theorem 2.3, derive the two eventual positive corridor floors
    from
    \(c<c_{\rm coex}\), general admissible kernels, and nontrivial initial data.

@@ -47,7 +47,12 @@ uses a finite linear block spreading certificate.  The coexistence result
 derives eventual positive floors from one such certificate per species and
 then proves convergence in every strictly smaller certified corridor.
 Identifying the certified fronts with sharp variational spreading speeds
-remains a separate conditional step.  An appendix audits the original
+remains a separate conditional step.  For the exclusion theorem, the
+published scalar inside-spreading theorem of
+Li--Bewick--Barnard--Fagan supplies the mathematical route, but its
+full joined exponential--sine lower solution has not yet been formalized
+here.  The exact convolution, phase-shift, and compact-truncation identities
+for each flank are formalized.  An appendix audits the original
 proposal and records, by category, which claims fail as stated and how they
 can be repaired.
 \end{abstract}
@@ -495,6 +500,22 @@ When \(\mathcal A_i\neq\varnothing\), define the admissible linear speed
 The restriction to \(\mathcal A_i\) is essential: no logarithm or infimum is
 silently taken over an infinite exponential moment.
 
+For the opposite direction, set
+\[
+  \mathcal A_{i,-}
+  :=
+  \{\mu>0:\M_i(-\mu)<\infty\},
+\]
+and, when this set is nonempty, define
+\begin{equation}\label{eq:admissible-left-speeds}
+  c_{i,-}^{\rm lin}
+  :=
+  \inf_{\mu\in\mathcal A_{i,-}}
+  \frac{\log(R_i\M_i(-\mu))}{\mu}.
+\end{equation}
+The corresponding left boundary in physical coordinates has velocity
+\(-c_{i,-}^{\rm lin}\).
+
 For \(f>c\) and \(\varepsilon>0\), write
 \begin{equation}\label{eq:certified-corridor}
   \mathcal C_n(c,f,\varepsilon)
@@ -798,7 +819,23 @@ The front \(f\) is certified by the finite convolution estimate
 \eqref{eq:block-expansion}; it has not yet been identified with a sharp
 variational spreading speed.  The missing analytic step is to derive such a
 finite block from \(f<c_2^{\rm lin}\), or from another intrinsic
-linear-determinacy hypothesis.
+linear-determinacy hypothesis.  There is a published route for the scalar
+part: Theorem~2(i)(b) and Lemma~4 of
+Li--Bewick--Barnard--Fagan~\cite{LiBewickBarnardFagan2016} construct a
+positive expanding plateau by joining two truncated exponential--sine
+flanks.  In the notation used here, their general left interior speed is
+\[
+  \ell_2=\max\{c,-c_{2,-}^{\rm lin}\},
+\]
+not always \(c\).  Thus the corridor with left edge
+\((c+\varepsilon)n\) additionally requires
+\(c\geq-c_{2,-}^{\rm lin}\); for symmetric kernels and \(c\geq0\), this
+condition is automatic.  Formalizing that scalar lower-solution construction
+is underway: the exact weighted-moment and compact-truncation identities for
+each flank, together with its one-step linear subsolution inequality, are
+proved.  Joining the two flanks to a plateau and inserting the
+small-competitor comparison remain.  Completing those steps would close the
+proposal-level speed implication for corrected Theorem~2.2.
 \end{remark}
 
 \begin{remark}[Why the older one-step certificate is too narrow]
@@ -1364,6 +1401,47 @@ Corollary~\ref{cor:conditional-exclusion-speed} has been established.  Since
 the proposal does not assume symmetric kernels and separately defines
 leftward moments, leftward and rightward speeds cannot be conflated.
 
+\subsection{A rightward speed does not determine the left interior edge}
+
+There is a second, independent asymmetry defect.  Suppose a continuous
+probability kernel is supported in an interval \([a,b]\) with \(a>c\).
+Starting from compact support, every individual moves at least \(a\) units
+per generation.  Hence after \(n\) generations the entire population lies
+to the right of its initial left endpoint plus \(na\).  It is therefore zero
+near \(x=cn\).  On the other hand, if the favorable linear multiplier is
+\(R>1\), then
+\[
+  \M_K(\mu)\geq e^{\mu a},
+  \qquad
+  \frac{\log(R\M_K(\mu))}{\mu}>a
+  \quad(\mu>0),
+\]
+so \(c^*\geq a>c\).  Thus the printed rightward speed inequality can hold
+while persistence near the habitat speed fails.
+
+The corresponding obstruction is formalized in Lean; the audit lists the
+two theorem names.  If \(k_2(z)=0\) for \(z<a\), a nonvacuous \(m\)-step
+block certificate must satisfy
+\[
+  ma\leq A_{\rm left}.
+\]
+The geometry needed for a corridor moving at speed \(q\) also requires
+\(A_{\rm left}<mq\), and therefore forces \(a<q\).
+
+\paragraph{Repair.}
+Use both directional speeds.  The scalar inside-spreading theorem in
+\cite{LiBewickBarnardFagan2016} applies.  Its general left interior edge is
+\[
+  \left(\max\{c,-c_{2,-}^*\}+\varepsilon\right)n
+\]
+and the right edge at
+\[
+  (c_2^*-\varepsilon)n.
+\]
+If one wants the simpler left edge \((c+\varepsilon)n\), one must assume
+\(c\geq-c_{2,-}^*\); symmetry of the kernel together with \(c\geq0\) is a
+standard sufficient specialization.
+
 \subsection{Theorem 2.3 quantifies over observers behind the habitat}
 
 Theorem 2.3 asserts convergence to the positive favorable equilibrium for
@@ -1505,6 +1583,13 @@ proved.\\
 \end{center}
 
 \begin{thebibliography}{9}
+
+\bibitem{LiBewickBarnardFagan2016}
+B.~Li, S.~Bewick, M.~R. Barnard, and W.~F. Fagan,
+\href{https://doi.org/10.1007/s11538-016-0180-2}
+{Persistence and spreading speeds of integrodifference equations with an
+expanding or contracting habitat},
+\emph{Bulletin of Mathematical Biology} 78 (2016), 1337--1379.
 
 \bibitem{LewisMarculisShen2018}
 M.~A. Lewis, N.~G. Marculis, and Z. Shen,
