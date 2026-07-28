@@ -165,11 +165,32 @@ during the block and imposes no fixed-floor reproduction inequality on a
 single kernel window.
 
 `finiteBlockCertificate_of_reference_interval_and_power_bound` further proves
-that nonnegativity is automatic, the universal upper bound reduces to finitely
-many scalar power inequalities, and the substantive expansion estimate need
-only be checked on the standard interval \([0,W]\). Translation invariance, a
-sliding subinterval, and positivity then give the estimate for every interval
-of width at least \(W\).
+that nonnegativity and all integrability obligations are automatic, the
+universal upper bound reduces to finitely many scalar power inequalities, and
+the substantive expansion estimate need only be checked on the standard
+interval \([0,W]\). Translation invariance, a sliding subinterval, and
+positivity then give the estimate for every interval of width at least \(W\).
+The stronger constructor `finiteBlockCertificate_of_unit_reference` uses
+linear homogeneity and a slope at least one to reduce the scalar checks to one
+terminal inequality and remove the seed height from the expansion estimate.
+The sole analytic input is then a dimensionless unit-height convolution-power
+lower bound on one compact interval.
+
+The mass computation is no longer part of that input. The Lean theorems
+`integral_intervalFloor` and `integral_finiteLinearOrbit_intervalFloor` prove
+the exact identity
+
+\[
+\int_{\mathbb R}\phi^t_{A,B}(x)\,dx
+  =\mathrm{slope}^t\,\mathrm{seed}\,(B-A)
+\]
+
+for every integrable unit-mass kernel and \(A\le B\). Thus a supercritical
+slope gives exact exponential growth of total linear mass. This is strictly
+weaker than the required pointwise estimate on a moving interval: the mass
+could be spread too thinly or lie in the wrong region. The remaining bridge
+from the variational speed inequality is a local convolution-power, or
+quantitative large-deviation, lower bound.
 
 Given this finite linear certificate, the corrected IDE recurrence, a
 continuous compactly supported probability kernel, a compact positive seed,

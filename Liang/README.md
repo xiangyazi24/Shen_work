@@ -26,9 +26,15 @@ formalization audit.
   floor at all sufficiently large times, and forces the fast component to
   converge to one after the slow component becomes uniformly extinct.
   `finiteBlockCertificate_of_reference_interval_and_power_bound` reduces
-  nonnegativity and the upper bound to automatic/scalar checks, and reduces
-  the substantive expansion check from every sufficiently wide interval to
-  one standard interval. The remaining analytic gap is to derive that reference
+  nonnegativity and all integrability obligations to automatic facts, reduces
+  the upper bound to one terminal scalar check, and by
+  `finiteBlockCertificate_of_unit_reference` reduces the substantive
+  expansion check to a dimensionless unit-height standard interval. The
+  exact identities `integral_intervalFloor` and
+  `integral_finiteLinearOrbit_intervalFloor` also prove that total linear
+  mass is precisely multiplied by the appropriate power of the low-density
+  slope. This mass growth does not imply a pointwise moving-interval floor.
+  The remaining analytic gap is to derive that one local reference
   convolution-power estimate from the variational speed inequality. The
   older one-step minorization theorem is
   retained as a stronger special route; its certificate forces a favorable

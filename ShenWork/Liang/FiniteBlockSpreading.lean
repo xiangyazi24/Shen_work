@@ -5,6 +5,7 @@ Authors: Xiang Huang
 -/
 import ShenWork.Liang.ScalarPersistence
 import ShenWork.Liang.MovingCorridor
+import Mathlib.Analysis.Convolution
 
 /-!
 # Finite-block lower spreading certificates
@@ -28,6 +29,7 @@ problem.
 -/
 
 open Filter MeasureTheory Set Topology
+open scoped Convolution
 
 namespace ShenWork.Liang
 
@@ -237,6 +239,145 @@ theorem finiteLinearOrbit_interval_translate
   exact finiteLinearOrbit_translate K slope
     (intervalFloor seed 0 W) h n x
 
+theorem intervalFloor_integrable
+    (seed L R : ℝ) :
+    Integrable (intervalFloor seed L R) := by
+  have hconst :
+      IntegrableOn (fun _ : ℝ => seed) (Set.Icc L R) :=
+    continuousOn_const.integrableOn_Icc
+  have hindicator :=
+    hconst.integrable_indicator measurableSet_Icc
+  apply hindicator.congr
+  filter_upwards [] with x
+  simp only [Set.indicator, intervalFloor]
+
+/-- The total mass of an interval floor is its height times its width. -/
+theorem integral_intervalFloor
+    {seed L R : ℝ} (hLR : L ≤ R) :
+    ∫ x, intervalFloor seed L R x = seed * (R - L) := by
+  have hprofile :
+      intervalFloor seed L R =
+        (Set.Icc L R).indicator (fun _ : ℝ => seed) := by
+    funext x
+    simp [intervalFloor, Set.indicator]
+  rw [hprofile,
+    MeasureTheory.integral_indicator_const seed measurableSet_Icc]
+  simp [MeasureTheory.measureReal_def, Real.volume_Icc,
+    ENNReal.toReal_ofReal (sub_nonneg.mpr hLR), smul_eq_mul]
+  ring
+
+/-- `dispersal K f` is the ordinary scalar convolution `f ⋆ K`. -/
+theorem dispersal_eq_convolution_mul
+    (K f : ℝ → ℝ) :
+    ShenWork.Analysis.dispersal K f =
+      f ⋆[ContinuousLinearMap.mul ℝ ℝ, volume] K := by
+  funext x
+  unfold ShenWork.Analysis.dispersal
+  rw [MeasureTheory.convolution_def]
+  apply integral_congr_ae
+  filter_upwards [] with y
+  simp [mul_comm]
+
+/-- Integrability of the kernel and initial profile propagates through every
+finite linear iterate. -/
+theorem finiteLinearOrbit_integrable
+    {K f : ℝ → ℝ} {slope : ℝ}
+    (hKint : Integrable K) (hfint : Integrable f) :
+    ∀ n, Integrable (finiteLinearOrbit K slope f n) := by
+  intro n
+  induction n with
+  | zero =>
+      simpa using hfint
+  | succ n ih =>
+      rw [finiteLinearOrbit_succ]
+      unfold ShenWork.Analysis.linearDispersalStep
+      rw [dispersal_eq_convolution_mul]
+      exact (ih.integrable_convolution
+        (ContinuousLinearMap.mul ℝ ℝ) hKint).const_mul slope
+
+/-- A unit-mass kernel preserves total mass under dispersal, so the total
+mass of the linear orbit grows by the exact scalar factor `slope ^ n`. -/
+theorem integral_finiteLinearOrbit
+    {K f : ℝ → ℝ} {slope : ℝ}
+    (hKint : Integrable K) (hKmass : ∫ z, K z = 1)
+    (hfint : Integrable f) :
+    ∀ n,
+      ∫ x, finiteLinearOrbit K slope f n x =
+        slope ^ n * ∫ x, f x := by
+  intro n
+  induction n with
+  | zero =>
+      simp
+  | succ n ih =>
+      rw [finiteLinearOrbit_succ]
+      unfold ShenWork.Analysis.linearDispersalStep
+      rw [integral_const_mul, dispersal_eq_convolution_mul,
+        MeasureTheory.integral_convolution
+          (ContinuousLinearMap.mul ℝ ℝ)
+          (finiteLinearOrbit_integrable hKint hfint n) hKint,
+        hKmass, ih]
+      simp
+      ring
+
+/-- For interval data, the exact total mass of the linear orbit is the
+initial height times the interval width, multiplied by `slope ^ n`. -/
+theorem integral_finiteLinearOrbit_intervalFloor
+    {K : ℝ → ℝ} {slope seed L R : ℝ}
+    (hKint : Integrable K) (hKmass : ∫ z, K z = 1)
+    (hLR : L ≤ R) :
+    ∀ n,
+      ∫ x, finiteLinearOrbit K slope (intervalFloor seed L R) n x =
+        slope ^ n * seed * (R - L) := by
+  intro n
+  rw [integral_finiteLinearOrbit hKint hKmass
+    (intervalFloor_integrable seed L R) n,
+    integral_intervalFloor hLR]
+  ring
+
+/-- The linear orbit is homogeneous in its initial profile. -/
+theorem finiteLinearOrbit_const_mul
+    (K : ℝ → ℝ) (slope a : ℝ) (f : ℝ → ℝ) :
+    ∀ n x,
+      finiteLinearOrbit K slope (fun y => a * f y) n x =
+        a * finiteLinearOrbit K slope f n x := by
+  intro n
+  induction n with
+  | zero =>
+      intro x
+      rfl
+  | succ n ih =>
+      intro x
+      rw [finiteLinearOrbit_succ, finiteLinearOrbit_succ]
+      unfold ShenWork.Analysis.linearDispersalStep
+      rw [show finiteLinearOrbit K slope
+          (fun y => a * f y) n =
+            fun y => a * finiteLinearOrbit K slope f n y by
+        funext y
+        exact ih y]
+      rw [ShenWork.Analysis.dispersal_const_mul]
+      ring
+
+theorem intervalFloor_eq_seed_mul_unit
+    (seed L R : ℝ) :
+    intervalFloor seed L R =
+      fun x => seed * intervalFloor 1 L R x := by
+  funext x
+  by_cases hx : x ∈ Set.Icc L R <;>
+    simp [intervalFloor, hx]
+
+/-- Scaling the height of an interval seed scales every later linear
+iterate by exactly the same factor. -/
+theorem finiteLinearOrbit_interval_scale
+    (K : ℝ → ℝ) (slope seed L R : ℝ) :
+    ∀ n x,
+      finiteLinearOrbit K slope
+          (intervalFloor seed L R) n x =
+        seed * finiteLinearOrbit K slope
+          (intervalFloor 1 L R) n x := by
+  rw [intervalFloor_eq_seed_mul_unit]
+  exact finiteLinearOrbit_const_mul K slope seed
+    (intervalFloor 1 L R)
+
 /-- Pointwise order of initial profiles propagates through a finite linear
 orbit.  The integrability assumptions match the exact form stored in
 `FiniteBlockCertificate`. -/
@@ -348,6 +489,96 @@ theorem finiteLinearOrbit_le_pow_mul
             hKmass]
           ring
 
+/-- For an interval seed, integrability of every comparison integrand and the
+scalar power upper bound are automatic from an integrable nonnegative
+unit-mass kernel. -/
+theorem finiteLinearOrbit_interval_bound_and_integrable
+    {K : ℝ → ℝ} {slope seed L R : ℝ}
+    (hKint : Integrable K)
+    (hKmass : ∫ z, K z = 1)
+    (hK : ∀ z, 0 ≤ K z)
+    (hslope : 0 ≤ slope)
+    (hseed : 0 ≤ seed) :
+    ∀ t,
+      (∀ x,
+        finiteLinearOrbit K slope
+          (intervalFloor seed L R) t x ≤
+            slope ^ t * seed) ∧
+      ∀ x,
+        Integrable
+          (fun y =>
+            K (x - y) *
+              (slope * finiteLinearOrbit K slope
+                (intervalFloor seed L R) t y)) := by
+  have horbit_nonneg :
+      ∀ t x,
+        0 ≤ finiteLinearOrbit K slope
+          (intervalFloor seed L R) t x :=
+    finiteLinearOrbit_nonneg hK hslope
+      (fun x => intervalFloor_nonneg hseed)
+  have horbit_integrable :
+      ∀ t,
+        Integrable
+          (finiteLinearOrbit K slope
+            (intervalFloor seed L R) t) :=
+    finiteLinearOrbit_integrable hKint
+      (intervalFloor_integrable seed L R)
+  intro t
+  induction t with
+  | zero =>
+      constructor
+      · intro x
+        simpa using intervalFloor_le_seed (x := x) hseed
+      · intro x
+        apply (hKint.comp_sub_left x).mul_bdd
+          ((horbit_integrable 0).const_mul slope).aestronglyMeasurable
+        filter_upwards [] with y
+        rw [Real.norm_eq_abs,
+          abs_of_nonneg (mul_nonneg hslope (horbit_nonneg 0 y))]
+        have hupper :=
+          intervalFloor_le_seed
+            (L := L) (R := R) (x := y) hseed
+        simpa using mul_le_mul_of_nonneg_left hupper hslope
+  | succ t ih =>
+      have hupper :
+          ∀ x,
+            finiteLinearOrbit K slope
+              (intervalFloor seed L R) (t + 1) x ≤
+                slope ^ (t + 1) * seed := by
+        intro x
+        rw [finiteLinearOrbit_succ]
+        unfold ShenWork.Analysis.linearDispersalStep
+        rw [← ShenWork.Analysis.dispersal_const_mul]
+        unfold ShenWork.Analysis.dispersal
+        calc
+          (∫ y,
+              K (x - y) *
+                (slope * finiteLinearOrbit K slope
+                  (intervalFloor seed L R) t y)) ≤
+              ∫ y,
+                K (x - y) *
+                  (slope * (slope ^ t * seed)) := by
+            apply integral_mono (ih.2 x)
+              ((hKint.comp_sub_left x).mul_const
+                (slope * (slope ^ t * seed)))
+            intro y
+            apply mul_le_mul_of_nonneg_left _ (hK (x - y))
+            exact mul_le_mul_of_nonneg_left (ih.1 y) hslope
+          _ = slope ^ (t + 1) * seed := by
+            rw [integral_mul_const,
+              integral_sub_left_eq_self K (volume : Measure ℝ) x,
+              hKmass]
+            ring
+      refine ⟨hupper, ?_⟩
+      intro x
+      apply (hKint.comp_sub_left x).mul_bdd
+        ((horbit_integrable (t + 1)).const_mul slope).aestronglyMeasurable
+      filter_upwards [] with y
+      rw [Real.norm_eq_abs,
+        abs_of_nonneg
+          (mul_nonneg hslope (horbit_nonneg (t + 1) y))]
+      exact mul_le_mul_of_nonneg_left (hupper y) hslope
+
 /-- To verify the substantive expansion field of a finite block certificate,
 it suffices to check the single reference interval `[0,minWidth]`.
 Translation invariance and sliding that interval inside any wider seed
@@ -444,9 +675,10 @@ theorem finiteBlockCertificate_of_reference_interval
     exact hlinear_integrable L R hwidth t ht y
 
 /-- A more economical reference-interval constructor.  Nonnegativity is
-automatic, and the universal upper bound is reduced to the scalar estimates
-`slope ^ t * seed ≤ η`; only the finite-step integrability and one reference
-expansion estimate remain to be checked. -/
+automatic, all finite-step integrability conditions follow from convolution
+of integrable functions and the scalar bounds, and the universal upper bound
+is reduced to `slope ^ t * seed ≤ η`.  Thus only finite scalar inequalities
+and one reference expansion estimate remain to be checked. -/
 theorem finiteBlockCertificate_of_reference_interval_and_power_bound
     {K : ℝ → ℝ}
     {slope η seed leftAdvance rightAdvance minWidth : ℝ}
@@ -461,14 +693,6 @@ theorem finiteBlockCertificate_of_reference_interval_and_power_bound
     (hadvance : leftAdvance ≤ rightAdvance)
     (hpower :
       ∀ t, t ≤ block → slope ^ t * seed ≤ η)
-    (hlinear_integrable :
-      ∀ L R, minWidth ≤ R - L →
-        ∀ t, t < block → ∀ x,
-          Integrable
-            (fun y =>
-              K (x - y) *
-                (slope * finiteLinearOrbit K slope
-                  (intervalFloor seed L R) t y)))
     (href :
       ∀ x ∈ Set.Icc leftAdvance (minWidth + rightAdvance),
         seed ≤ finiteLinearOrbit K slope
@@ -481,14 +705,59 @@ theorem finiteBlockCertificate_of_reference_interval_and_power_bound
     exact finiteLinearOrbit_nonneg hK hslope
       (fun y => intervalFloor_nonneg hseed_pos.le) t x
   · intro L R hwidth t ht x
-    apply (finiteLinearOrbit_le_pow_mul
-      hKint hKmass hK hslope
-      (fun y => intervalFloor_le_seed hseed_pos.le)
-      t (fun j hj y =>
-        hlinear_integrable L R hwidth j (hj.trans_le ht) y) x).trans
+    apply
+      (finiteLinearOrbit_interval_bound_and_integrable
+        hKint hKmass hK hslope hseed_pos.le t).1 x |>.trans
     exact hpower t ht
-  · exact hlinear_integrable
+  · intro L R _hwidth t _ht x
+    exact
+      (finiteLinearOrbit_interval_bound_and_integrable
+        hKint hKmass hK hslope hseed_pos.le t).2 x
   · exact href
+
+/-- Dimensionless finite-block constructor.  When the slope is at least one,
+the scalar upper bounds follow from the single terminal inequality.  Linear
+homogeneity removes the seed height from the reference expansion estimate.
+Thus the analytic content is precisely the unit-height reference inequality
+`1 ≤ finiteLinearOrbit ... block`. -/
+theorem finiteBlockCertificate_of_unit_reference
+    {K : ℝ → ℝ}
+    {slope η seed leftAdvance rightAdvance minWidth : ℝ}
+    {block : ℕ}
+    (hseed_pos : 0 < seed)
+    (hKint : Integrable K)
+    (hKmass : ∫ z, K z = 1)
+    (hK : ∀ z, 0 ≤ K z)
+    (hslope : 1 ≤ slope)
+    (hminWidth : 0 ≤ minWidth)
+    (hadvance : leftAdvance ≤ rightAdvance)
+    (hseed_terminal : slope ^ block * seed ≤ η)
+    (href :
+      ∀ x ∈ Set.Icc leftAdvance (minWidth + rightAdvance),
+        1 ≤ finiteLinearOrbit K slope
+          (intervalFloor 1 0 minWidth) block x) :
+    FiniteBlockCertificate K slope η seed block
+      leftAdvance rightAdvance minWidth := by
+  have hseed_le_eta : seed ≤ η := by
+    calc
+      seed = 1 * seed := by ring
+      _ ≤ slope ^ block * seed :=
+        mul_le_mul_of_nonneg_right
+          (one_le_pow₀ hslope) hseed_pos.le
+      _ ≤ η := hseed_terminal
+  apply finiteBlockCertificate_of_reference_interval_and_power_bound
+    hseed_pos hseed_le_eta hKint hKmass hK
+    (zero_le_one.trans hslope)
+    hminWidth hadvance
+  · intro t ht
+    exact
+      (mul_le_mul_of_nonneg_right
+        (pow_le_pow_right₀ hslope ht) hseed_pos.le).trans
+        hseed_terminal
+  · intro x hx
+    rw [finiteLinearOrbit_interval_scale]
+    simpa using
+      mul_le_mul_of_nonneg_left (href x hx) hseed_pos.le
 
 /-! ## One nonlinear block -/
 
@@ -829,8 +1098,12 @@ theorem finiteBlockCertificate_blockCorridor_floor
 section AxiomAudit
 
 #print axioms linear_mul_le_correctedResponse
+#print axioms integral_intervalFloor
+#print axioms integral_finiteLinearOrbit
+#print axioms integral_finiteLinearOrbit_intervalFloor
 #print axioms finiteBlockCertificate_of_reference_interval
 #print axioms finiteBlockCertificate_of_reference_interval_and_power_bound
+#print axioms finiteBlockCertificate_of_unit_reference
 #print axioms finiteLinearOrbit_le_correctedOrbit
 #print axioms finiteBlockCertificate_positive_floor
 #print axioms finiteBlockCertificate_blockCorridor_floor

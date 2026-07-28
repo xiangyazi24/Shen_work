@@ -624,11 +624,25 @@ to verify the single estimate
   \phi_{0,W}^{m}(x)\geq z
   \qquad(a\leq x\leq W+b).
 \]
-If \(k_2\) has mass one, nonnegativity is automatic and the universal upper
-bound follows from the finite scalar checks
+If \(k_2\) is integrable, nonnegative, and has mass one, nonnegativity and all
+the required integrability conditions are automatic, while the universal
+upper bound follows from the finite scalar checks
 \[
   \sigma^t z\leq\eta
   \qquad(0\leq t\leq m).
+\]
+If also \(\sigma\geq1\), it is enough to check the terminal scalar inequality.
+Moreover, linear homogeneity gives
+\[
+  \phi_{0,W}^{m}
+  =
+  z\,\psi_{0,W}^{m},
+\]
+where \(\psi^0_{0,W}=\mathbf 1_{[0,W]}\).  Hence the reference expansion
+condition is exactly the dimensionless estimate
+\[
+  \psi_{0,W}^{m}(x)\geq1
+  \qquad(a\leq x\leq W+b).
 \]
 \end{proposition}
 
@@ -647,9 +661,51 @@ Translation invariance sends the reference estimate to the subinterval
 \([H,H+W]\).  Its indicator is bounded above by the indicator of \([A,B]\);
 positivity of the kernel propagates this order through all \(m\) linear
 steps.  Hence \eqref{eq:block-expansion} holds on the full interval.
-Finally, unit kernel mass gives
-\(\phi_{A,B}^t\leq\sigma^t z\) by induction.
+Convolution preserves integrability, and multiplication by the bounded
+finite orbit preserves integrability of every comparison integrand.  Finally,
+unit kernel mass gives \(\phi_{A,B}^t\leq\sigma^t z\) by induction.
+Monotonicity of powers handles all earlier times when \(\sigma\geq1\), and
+linearity gives the displayed scaling identity.
 \end{proof}
+
+\begin{proposition}[Exact total mass]
+\label{prop:block-total-mass}
+Suppose \(k_2\) is integrable and has mass one.  If \(A\leq B\), then every
+linear interval orbit in Definition~\ref{def:finite-block-certificate}
+satisfies
+\[
+  \int_{\R}\phi_{A,B}^{t}(x)\,dx
+  =
+  \sigma^t z(B-A)
+  \qquad(t\geq0).
+\]
+\end{proposition}
+
+\begin{proof}
+The initial interval floor has integral \(z(B-A)\).  For integrable
+functions, Fubini's theorem and the unit-mass identity give
+\[
+  \int_{\R}\mathcal L_\sigma\phi
+  =
+  \sigma
+  \left(\int_{\R}k_2\right)
+  \left(\int_{\R}\phi\right)
+  =
+  \sigma\int_{\R}\phi.
+\]
+Induction on \(t\) proves the formula.
+\end{proof}
+
+\begin{remark}
+When \(\sigma>1\), Proposition~\ref{prop:block-total-mass} certifies exact
+exponential growth of the total linearized mass.  It does not by itself
+imply the pointwise reference estimate in
+Proposition~\ref{prop:reference-block}: the same mass may be distributed too
+thinly or in the wrong spatial region.  The remaining analytic step is
+therefore a local lower estimate for the relevant convolution power (or,
+equivalently, a quantitative large-deviation lower estimate), not another
+integrability or normalization argument.
+\end{remark}
 
 \begin{theorem}[Finite-block intermediate-speed exclusion; corrected
 Theorem 2.2]
