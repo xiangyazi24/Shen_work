@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run exact Q3292 audit
-        run: python3 scripts/q3292_successor_audit.py
+        run: python3 scripts/q3292_successor_audit_fast.py
