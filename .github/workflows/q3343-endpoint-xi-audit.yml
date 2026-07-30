@@ -1,0 +1,14 @@
+name: q3343-endpoint-xi-audit
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run exact Q3343 audit
+        run: python3 -u scripts/q3343_endpoint_xi_audit.py
