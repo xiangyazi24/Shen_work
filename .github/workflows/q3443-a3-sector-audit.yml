@@ -1,0 +1,14 @@
+name: q3443-a3-sector-audit
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run exact Q3443 audit
+        run: python3 -u scripts/q3443_a3_sector_audit.py
