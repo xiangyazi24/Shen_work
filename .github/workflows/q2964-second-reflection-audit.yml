@@ -1,7 +1,7 @@
 name: q2964-second-reflection-audit
 on:
-  push:
-    branches: [q2964-second-reflection-audit]
+  pull_request:
+    branches: [main]
 permissions:
   contents: read
 jobs:
