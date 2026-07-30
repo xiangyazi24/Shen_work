@@ -10,5 +10,16 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Patch ordinary geometry sieve range
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/q3521_reflected_radical_audit.py')
+          text = path.read_text()
+          old = 'prime, primes, lpf = sieve(LIMIT + 2)'
+          new = 'prime, primes, lpf = sieve(2 * LIMIT + 2)'
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new))
+          PY
       - name: Run exact Q3521 audit
         run: python3 -u scripts/q3521_reflected_radical_audit.py
