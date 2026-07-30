@@ -1,158 +1,153 @@
 #!/usr/bin/env python3
-"""Q3465 exact endpoint-ratio audit (standard library only).
+"""Q3465 endpoint-ratio audit after the universal conjecture fails.
 
-The proof certificate uses
-  A_k = C(n,k) C(n+k,k)^2,
-  U_t = sum_k A_k C(n,t-k),
-  V_t = sum_k A_k C(t,k),
-and the Newton/Schur-Szego argument recorded in the accompanying report.
-
-The exhaustive certificate loop covers every 0 <= t < n/2 through n=1000.
-Direct exact determinants are additionally evaluated for every row through
-n=200 and for every row at n=250,500,750,1000.
+Standard library only.  The program:
+  * evaluates U_t,V_t from their original exact sums using hypergeometric
+    term recurrences;
+  * certifies the first counterexample (n,t)=(6,2);
+  * scans the full requested range through n=220;
+  * audits the strongest surviving numerical range n>=3t+1 through n=1000;
+  * checks all five currently known a=3 simultaneous-target geometries.
+No numerical range is promoted to a theorem by the program alone.
 """
 from __future__ import annotations
 
-from fractions import Fraction
-from math import comb, gcd
+from math import comb
+from hashlib import sha256
 import sys
 
 sys.set_int_max_str_digits(0)
-LIMIT = 1000
-DIRECT_LIMIT = 200
-CHECKPOINTS = (250, 500, 750, 1000)
+FULL_LIMIT = 220
+RANGE_LIMIT = 1000
+KNOWN_A3 = [
+    (740,152,110),
+    (1664,374,170),
+    (5515,1051,49),
+    (7319,1781,431),
+    (8241,1011,51),
+]
 
 
-def A_values(n: int, upto: int) -> list[int]:
-    out = [1]
-    for k in range(upto):
-        num = out[-1] * (n-k) * (n+k+1) ** 2
-        den = (k+1) ** 3
-        assert num % den == 0
-        out.append(num // den)
-    return out
+def uv(n: int, t: int) -> tuple[int,int]:
+    assert 0 <= t <= n
+    c = comb(n,t)
+    u = c*c*c
+    v = c*c
+    U,V = u,v
+    for k in range(t):
+        u_num = u*(n-k)*(t-k)*(n+k+1)**2
+        u_den = (k+1)*(n-t+k+1)**3
+        assert u_num % u_den == 0
+        u = u_num//u_den
+        v_num = v*(n-k)*(t-k)*(n+k+1)**2
+        v_den = (k+1)**2*(n-t+k+1)**2
+        assert v_num % v_den == 0
+        v = v_num//v_den
+        U += u
+        V += v
+    return U,V
 
 
-def uv_simplified(n: int, t: int) -> tuple[int, int]:
-    A = A_values(n, t)
-    U = sum(A[k] * comb(n, t-k) for k in range(t+1))
-    V = sum(A[k] * comb(t, k) for k in range(t+1))
-    return U, V
+def uv_direct(n: int,t: int) -> tuple[int,int]:
+    U=sum(comb(n,k)*comb(n,t-k)*comb(n+k,t)**2 for k in range(t+1))
+    V=sum(comb(n,k)*comb(n,t-k)*comb(n+k,t)*comb(n+k,k) for k in range(t+1))
+    return U,V
 
 
-def uv_original(n: int, t: int) -> tuple[int, int]:
-    U = 0
-    V = 0
-    for k in range(t+1):
-        common = comb(n,k) * comb(n,t-k) * comb(n+k,t)
-        U += common * comb(n+k,t)
-        V += common * comb(n+k,k)
-    return U, V
+def det_adj(n: int,t: int) -> tuple[int,tuple[int,int],tuple[int,int]]:
+    a=uv(n,t); b=uv(n,t+1)
+    return b[0]*a[1]-a[0]*b[1],a,b
 
 
-def adjacent_det(n: int, t: int) -> int:
-    U0,V0 = uv_simplified(n,t)
-    U1,V1 = uv_simplified(n,t+1)
-    return U1*V0-U0*V1
+def digest(x:int)->str:
+    return sha256(str(abs(x)).encode('ascii')).hexdigest()
 
 
-def audit_algebra() -> dict[str,int]:
-    identity_rows = 0
-    ratio_rows = 0
-    for n in range(1, 81):
-        for t in range(0, n+1):
-            assert uv_simplified(n,t) == uv_original(n,t)
-            identity_rows += 1
-        A = A_values(n,n)
-        # Exact coefficient multiplier and strict extension certificate.
-        for k in range(1,n+1):
-            b = comb(n+k,k)
-            assert A[k] == comb(n,k)*b*b
-            assert k**3*A[k] == (n-k+1)*(n+k)**2*A[k-1]
-            assert k*A[k] > (n-k+1)*A[k-1]
-            ratio_rows += 1
-    return {'identity_rows':identity_rows,'A_ratio_rows':ratio_rows}
-
-
-def audit_certificate(limit: int) -> dict[str,int]:
-    rows = 0
-    boundary_odd = 0
-    strict_extension_terms = 0
-    for n in range(2,limit+1):
-        # D_t compares t with t+1.  The theorem proves positivity for n>=2t+1.
-        for t in range(0,(n-1)//2+1):
-            assert n >= 2*t+1
-            if t == 0:
-                # U_0/V_0=1 and U_1-V_1=n^2(n-1)>0 for n>1.
-                assert n*n*(n-1) > 0
-            else:
-                # For P_x=A(z)(1+z)^x, degree N=n+x, the exact strict
-                # extension inequality is t p_t > (N-t+1) p_{t-1}.
-                # Its termwise source is
-                # k A_k-(n-k+1)A_{k-1}
-                # = (n-k+1)A_{k-1}*n(n+2k)/k^2 > 0.
-                assert n*(n+2) > 0
-                strict_extension_terms += t
-                # Each unit insertion raises q_x=p_{t+1}(x)/p_t(x)
-                # by >1/(t+1). There are n-t insertions from x=t to x=n.
-                assert n-t >= t+1
-                if n == 2*t+1:
-                    boundary_odd += 1
-            rows += 1
-    return {'certificate_rows':rows,
-            'odd_boundary_rows':boundary_odd,
-            'strict_extension_term_count':strict_extension_terms}
-
-
-def audit_direct() -> dict[str,object]:
-    rows = 0
-    first = []
-    min_bits = None
-    min_row = None
-    gcd_all = 0
-    ns = list(range(2,DIRECT_LIMIT+1)) + list(CHECKPOINTS)
-    for n in ns:
-        max_t = (n-1)//2
-        values = [uv_simplified(n,t) for t in range(max_t+2)]
-        for t in range(max_t+1):
-            U0,V0=values[t]; U1,V1=values[t+1]
-            D=U1*V0-U0*V1
-            assert D>0,(n,t,D)
-            gcd_all=gcd(gcd_all,D)
-            bits=D.bit_length()
-            if min_bits is None or bits<min_bits:
-                min_bits=bits; min_row=(n,t,D)
-            if len(first)<10:
-                first.append((n,t,U0,V0,U1,V1,D))
+def audit_identity() -> int:
+    rows=0
+    for n in range(1,51):
+        for t in range(n+1):
+            assert uv(n,t)==uv_direct(n,t)
             rows+=1
-    return {'direct_rows':rows,'first_rows':first,
-            'minimum_bitlength':min_bits,'minimum_row':min_row,
-            'determinant_gcd':gcd_all}
+    return rows
 
 
-def audit_ratios_samples() -> list[tuple[int,int,int,int]]:
+def audit_first_counterexample() -> dict[str,object]:
+    first=None
+    rows=0
+    failures=[]
+    for n in range(3,FULL_LIMIT+1):
+        for t in range(1,(n-2)//2+1):
+            D,a,b=det_adj(n,t)
+            rows+=1
+            if D<=0:
+                failures.append((n,t,D.bit_length() if D else 0,digest(D)))
+                if first is None:
+                    first=(n,t,D,a,b)
+    assert first is not None
+    assert first[:2]==(6,2),first[:2]
+    assert first[2]==-91345620,first[2]
+    assert first[3]==(31011,17277)
+    assert first[4]==(541610,304690)
+    return {'rows':rows,'failure_count':len(failures),
+            'first':first,'first_ten_failures':failures[:10]}
+
+
+def audit_three_to_one_range() -> dict[str,object]:
+    rows=0
+    first_failure=None
+    boundary_rows=0
+    min_bits=None
+    min_row=None
+    for n in range(4,RANGE_LIMIT+1):
+        for t in range(1,(n-1)//3+1):
+            D,a,b=det_adj(n,t)
+            rows+=1
+            if n==3*t+1:
+                boundary_rows+=1
+            if D<=0 and first_failure is None:
+                first_failure=(n,t,D,a,b)
+            if D>0:
+                bits=D.bit_length()
+                if min_bits is None or bits<min_bits:
+                    min_bits=bits;min_row=(n,t,D)
+    assert first_failure is None,first_failure
+    return {'rows':rows,'boundary_rows':boundary_rows,
+            'first_failure':first_failure,
+            'minimum_positive_bitlength':min_bits,
+            'minimum_positive_row':min_row}
+
+
+def audit_known_targets() -> list[tuple[int,int,int,int,str]]:
     out=[]
-    for n in (3,4,5,10,25,100,1000):
-        vals=[uv_simplified(n,t) for t in range((n-1)//2+1)]
-        for t in range(len(vals)-1):
-            U0,V0=vals[t];U1,V1=vals[t+1]
-            assert Fraction(U1,V1)>Fraction(U0,V0)
-        U,V=vals[-1]
-        out.append((n,len(vals)-1,U.bit_length(),V.bit_length()))
+    for n,r,s in KNOWN_A3:
+        Ur,Vr=uv(n,r); Us,Vs=uv(n,s)
+        D=Ur*Vs-Vr*Us
+        assert 0<s<r and 4*r<n
+        assert D>0,(n,r,s,D)
+        out.append((n,r,s,D.bit_length(),digest(D)))
     return out
 
 
-def main() -> None:
-    print('Q3465_ENDPOINT_RATIO_AUDIT')
-    print('ALGEBRA',audit_algebra())
-    print('CERTIFICATE',audit_certificate(LIMIT))
-    direct=audit_direct()
-    print('DIRECT_SUMMARY',{k:v for k,v in direct.items() if k!='first_rows'})
-    print('FIRST_DIRECT_ROWS')
-    for row in direct['first_rows']:
-        print(row)
-    print('RATIO_SAMPLE_BITLENGTHS',audit_ratios_samples())
-    print('THEOREM_RANGE','all integers n>=2 and 0<=t with n>=2t+1')
+def t_one_polynomial_certificate(n:int)->int:
+    P=2*n**6-2*n**5-19*n**4-n**3-5*n**2-9*n-6
+    D,_,_=det_adj(n,1)
+    assert 8*D==n**3*P
+    m=n-4
+    shifted=(2*m**6+46*m**5+421*m**4+1935*m**3+
+             4559*m**2+4767*m+1094)
+    assert P==shifted
+    return D
+
+
+def main()->None:
+    print('Q3465_ENDPOINT_RATIO_REPAIR')
+    print('IDENTITY_ROWS',audit_identity())
+    print('FIRST_COUNTEREXAMPLE_AUDIT',audit_first_counterexample())
+    print('PROVED_T1_SAMPLE',[(n,t_one_polynomial_certificate(n)) for n in range(4,11)])
+    print('THREE_TO_ONE_RANGE_AUDIT',audit_three_to_one_range())
+    print('KNOWN_A3_TARGETS',audit_known_targets())
+    print('STATUS','universal half-range conjecture false; t=1 proved; n>=3t+1 is exact numerical conjecture through 1000')
     print('ALL_ASSERTIONS_PASSED',True)
 
 
