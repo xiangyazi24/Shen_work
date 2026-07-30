@@ -1,0 +1,13 @@
+name: q3292-first-row
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  first-row:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print exact first row
+        run: python3 -u -c "import sys; sys.path.insert(0,'scripts'); import q3292_successor_audit as x; x.first_row()"
