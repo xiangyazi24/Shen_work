@@ -10,5 +10,5 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Run exact Q3443 audit
-        run: python3 -u scripts/q3443_a3_sector_audit.py
+      - name: Run corrected exact Q3443 audit
+        run: python3 -u scripts/q3443_a3_sector_audit_v2.py
