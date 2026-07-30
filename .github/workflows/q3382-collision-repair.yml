@@ -16,3 +16,5 @@ jobs:
           path: zinan-memory
       - name: Run Q3382 diagnostic
         run: python3 -u scripts/q3382_diag.py
+      - name: Run exact background reconstruction
+        run: python3 -u scripts/q3382_exact_background.py
