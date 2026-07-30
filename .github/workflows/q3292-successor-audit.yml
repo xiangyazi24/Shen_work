@@ -6,9 +6,17 @@ permissions:
   contents: read
 jobs:
   audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {lo: 5, hi: 250}
+          - {lo: 250, hi: 500}
+          - {lo: 500, hi: 750}
+          - {lo: 750, hi: 1000}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Run exact Q3292 audit
-        run: python3 scripts/q3292_successor_audit_fast2.py
+      - name: Run exact Q3292 shard
+        run: python3 -u scripts/q3292_successor_shard.py ${{ matrix.lo }} ${{ matrix.hi }}
