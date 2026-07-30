@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run exact Q3343 audit
-        run: python3 -u scripts/q3343_endpoint_xi_audit_v2.py
+        run: python3 -u scripts/q3343_endpoint_xi_audit_v3.py
