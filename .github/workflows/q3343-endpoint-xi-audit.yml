@@ -10,5 +10,5 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Run exact Q3343 audit
-        run: python3 -u scripts/q3343_endpoint_xi_audit_v5.py
+      - name: Run audit
+        run: python3 -u scripts/q3343_endpoint_xi_audit_v6.py
